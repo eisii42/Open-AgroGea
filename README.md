@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/logo.png" alt="AgroGea" width="120" height="120">
+</p>
+
 <h1 align="center">AgroGea</h1>
 
 <p align="center">
@@ -5,10 +9,14 @@
 </p>
 
 <p align="center">
+  <a href="README.en.md">🇬🇧 English</a> · <b>🇮🇹 Italiano</b>
+</p>
+
+<p align="center">
   <a href="LICENSE"><img alt="License: AGPL v3" src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg"></a>
   <a href="https://github.com/eisii42/Open-AgroGea/releases"><img alt="Release" src="https://img.shields.io/github/v/release/eisii42/Open-AgroGea?include_prereleases&sort=semver"></a>
   <a href="https://github.com/eisii42/Open-AgroGea/actions/workflows/release.yml"><img alt="Release build" src="https://github.com/eisii42/Open-AgroGea/actions/workflows/release.yml/badge.svg"></a>
-  <img alt="Node >=22" src="https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&logoColor=white">
+  <img alt="Node 22+" src="https://img.shields.io/badge/Node.js-22%2B-339933?logo=nodedotjs&logoColor=white">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey">
 </p>
 
@@ -20,9 +28,11 @@
 
 AgroGea è una suite agronomica e di gestione del territorio **local-first**: mappa GIS, Quaderno di Campagna digitale, modelli decisionali fitosanitari e bilancio idrico, analisi del suolo e rateo variabile — **funzionanti offline**, in mezzo a un vigneto senza copertura, con sincronizzazione opzionale verso un server aziendale quando torni in rete.
 
-È costruita come **hard fork** del motore GIS [GeoLibre](https://github.com/opengeos/GeoLibre) (MIT © Qiusheng Wu): la cartografia, il rendering vettoriale e gli strumenti di analisi spaziale sono l'eredità diretta di un motore GIS professionale; sopra a questa base AgroGea aggiunge l'intero dominio agronomico — tracciabilità colturale, DSS, gestione multi-azienda, export per gli enti di controllo.
+<p align="center">
+  <img src="docs/assets/Gif_Readme.gif" alt="AgroGea in azione" width="100%">
+</p>
 
-## Perché local-first
+## Local-first
 
 - **Funziona al 100% senza rete, in campo.** Disegni un appezzamento, registri un trattamento, consulti la mappa satellitare, calcoli la resa — tutto già sul dispositivo. Quando torni a portata di rete, AgroGea sincronizza da solo ciò che hai inserito.
 - **Velocità istantanea.** Gli overlay catastali, gli spatial join, gli indici di rischio e i calcoli di superficie girano **dentro l'applicazione** (DuckDB Spatial in-browser), non su un server lontano.
@@ -31,14 +41,14 @@ AgroGea è una suite agronomica e di gestione del territorio **local-first**: ma
 
 ## Funzionalità principali
 
-- 🗺️ **Mappa GIS completa** — ortofoto satellitare (Esri World Imagery), overlay catastale WMS, imagery storica *Wayback* per confrontare lo stesso terreno in epoche diverse, import drag-and-drop di Shapefile / GeoJSON / OSM / GeoParquet nel motore di analisi locale.
+- 🗺️ **Mappa GIS completa** — ortofoto satellitare (Esri World Imagery), overlay catastale WMS, imagery storica *Wayback* per confrontare lo stesso terreno in epoche diverse, import drag-and-drop di Shapefile / GeoJSON / OSM / GeoParquet nel motore di analisi locale. È costruita come **hard fork** del motore GIS [GeoLibre](https://github.com/opengeos/GeoLibre): la cartografia, il rendering vettoriale e gli strumenti di analisi spaziale sono l'eredità diretta di un motore GIS professionale; sopra a questa base AgroGea aggiunge l'intero dominio agronomico — tracciabilità colturale, DSS, export per gli enti di controllo.
 - 📒 **Quaderno di Campagna Digitale** — tracciabilità dei trattamenti fitosanitari e delle fertilizzazioni conforme alle regole **PAN/SIAN**, con validazione automatica dei campi obbligatori, intervallo di rientro e Tempo di Carenza calcolati e sotto controllo prima del conferimento.
 - 🌾 **Harvest & Analytics** — registrazione raccolte per appezzamento/annata, grafici a barre e istogrammi al volo dalla tabella attributi, Field Calculator con formule agronomiche pronte all'uso (densità piante, resa t/ha, massimale N organico ZVN).
 - 🌡️ **DSS & Bilancio Idrico** — mappa colorata del rischio (verde/giallo/rosso) per appezzamento, che combina stress idrico, rischio fitopatologico, vigore NDVI e fertilità del suolo; bilancio idrico giorno per giorno con evapotraspirazione **Penman-Monteith (FAO-56)** e stima della riduzione di resa (fattore Ky, FAO-33/66).
 - 🎯 **Analisi del suolo e rateo variabile (VRA)** — zonazione e prescrizioni a rateo variabile a partire da analisi del suolo e indici vegetazionali.
 - 📤 **Export per gli enti di controllo** — tracciato scelto automaticamente in base al Paese dell'azienda: **SIAN/PAN** (Italia, CSV Excel-ready con BOM UTF-8), **SIEX/CUE** (Spagna, JSON FEGA), tracciato internazionale di base per gli altri Paesi UE. Import del Fascicolo Aziendale SIAN con creazione automatica degli appezzamenti mancanti. Export geometrie in GeoJSON, KML, GPX, CSV, Shapefile.
 
-Guida completa all'uso: [Manuale Cliente](docs/user-guide/client-manual.md) · Percorso passo-passo: [Tutorial](docs/user-guide/tutorial.md).
+Guida completa all'uso: [Manuale utente](docs/user-guide/manuale.md) · Funzionamento dei moduli agronomici: [Documentazione tecnica](docs/technical/moduli-agronomici.md).
 
 ## Avvio rapido
 
@@ -86,7 +96,11 @@ Stato attuale e prossimi passi dell'edizione Community: [ROADMAP.md](ROADMAP.md)
 
 ## Contribuire
 
-Segnalazioni di bug, richieste di funzionalità e pull request sono benvenute — vedi la [guida per contribuire](docs/contributing.md).
+Segnalazioni di bug, richieste di funzionalità e pull request sono benvenute — vedi la [guida per contribuire](docs/contributing.md). Cronologia delle versioni in [CHANGELOG.md](CHANGELOG.md).
+
+## Sicurezza
+
+Per segnalare una vulnerabilità **non aprire una issue pubblica**: segui la [Security Policy](SECURITY.md).
 
 ## Licenza
 

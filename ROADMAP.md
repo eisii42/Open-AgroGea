@@ -22,6 +22,9 @@ Stabilizzazione della base attuale in vista del primo ciclo di feature.
 
 - Installer macOS e Linux verificati end-to-end (finora testati principalmente su Windows)
 - Correzioni e rifiniture sulle funzionalità già disponibili
+- PIN offline: lunghezza minima 6 caratteri, parametri Argon2 rinforzati e pepper per-dispositivo nel keychain di sistema
+- Proxy tile nativo: blocco degli indirizzi privati/loopback (anti-SSRF), con opt-in esplicito per WMS su rete aziendale
+- CSP della webview: rimozione di `unsafe-eval` (resta solo `wasm-unsafe-eval` per PGlite/DuckDB) e restrizione di `connect-src`
 
 ## 🔭 Piano di rilascio (`0.2.0` → `1.0.0`)
 
@@ -108,6 +111,7 @@ modelli DSS.
   precedenti.
 - Hardening finale e installer multi-OS verificati: prima release pubblica stabile
   e feature-complete.
+- Revisione versione mobile.
 
 ---
 
