@@ -1,0 +1,30 @@
+{
+  "name": "@geolibre/attribute-table",
+  "version": "1.4.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@geolibre/core": "*",
+    "@geolibre/map": "*",
+    "@geolibre/plugins": "*",
+    "@geolibre/ui": "*",
+    "@tanstack/react-virtual": "^3.14.2",
+    "lucide-react": "^1.17.0",
+    "react": "^19.2.7"
+  },
+  "devDependencies": {
+    "@types/geojson": "^7946.0.16",
+    "@types/react": "^19.2.17",
+    "maplibre-gl": "^5.24.0",
+    "typescript": "^6.0.3"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,136 @@
+import { useAgroStore } from "@agrogea/core";
+import type { Polygon, MultiPolygon } from "geojson";
+import {
+  abbinaAppezzamentoEsistente,
+  type SianCampoMappato,
+} from "../../services/gis/sian-mapping";
+import i18n from "../../i18n";
+
+/**
+ * Inserimento create-or-populate dei campi del Fascicolo SIAN in PGlite.
+ *
+ * Per ogni campo decodificato:
+ *   * se l'appezzamento FISICO non esiste (nessun match per id SIAN) e c'è una
+ *     geometria poligonale → crea la riga immutabile in `appezzamenti`,
+ *     marcandone l'id SIAN nei metadata per i re-import futuri;
+ *   * se esiste già (perimetria immutata) → ne riusa l'identità;
+ *   * in entrambi i casi → popola/aggiorna `campi_campagna` sull'anno indicato
+ *     con i codici ministeriali e la superficie dichiarata.
+ *
+ * I record CSV privi di geometria che non trovano un appezzamento esistente
+ * vengono saltati (non si può creare un'entità fisica senza poligono).
+ */
+
+export interface EsitoImportSian {
+  creati: number;
+  aggiornati: number;
+  saltati: number;
+}
+
+function isPoligono(g: SianCampoMappato["geometria"]): g is Polygon | MultiPolygon {
+  return g != null && (g.type === "Polygon" || g.type === "MultiPolygon");
+}
+
+export async function importaFascicoloSian(
+  campi: SianCampoMappato[],
+  anno: number,
+): Promise<EsitoImportSian> {
+  const stato = useAgroStore.getState();
+  const { aziendaAttivaId } = stato;
+  const dal = stato.dal;
+  if (!dal || !aziendaAttivaId) {
+    throw new Error(i18n.t("importaFascicolo.noActiveCompany"));
+  }
+
+  // Snapshot mutabile degli appezzamenti per abbinare anche le entità create
+  // durante questo stesso import (più campi possono condividere l'id fisico).
+  const esistenti = stato.appezzamenti.map((a) => ({
+    id: a.id,
+    metadata: a.metadata,
+  }));
+
+  const esito: EsitoImportSian = { creati: 0, aggiornati: 0, saltati: 0 };
+
+  // Cache delle colture (crops) create durante l'import: una specie per chiave
+  // naturale (codice coltura + codice varietà ministeriali), così righe diverse
+  // della stessa coltura condividono la stessa entità normalizzata.
+  const cropPerChiave = new Map<string, string>();
+  const risolviCropId = async (campo: SianCampoMappato): Promise<string> => {
+    const chiave = `${campo.crop_external_code ?? ""}|${campo.variety_external_code ?? ""}`;
+    const esistente = cropPerChiave.get(chiave);
+    if (esistente) return esistente;
+    const crop = await dal.upsertCrop({
+      common_name: campo.crop_external_code ?? i18n.t("importaFascicolo.sianCrop"),
+      scientific_name: null,
+      variety_name: campo.variety_external_code,
+      crop_metadata: {
+        origine: "sian-import",
+        crop_external_code: campo.crop_external_code,
+        variety_external_code: campo.variety_external_code,
+      },
+    });
+    cropPerChiave.set(chiave, crop.id);
+    return crop.id;
+  };
+
+  for (const campo of campi) {
+    let appezzamentoId = abbinaAppezzamentoEsistente(campo, esistenti);
+
+    if (!appezzamentoId) {
+      if (!isPoligono(campo.geometria)) {
+        esito.saltati += 1;
+        continue;
+      }
+      const nome =
+        campo.agricultural_parcel_external_id != null
+          ? i18n.t("importaFascicolo.sianPlotName", {
+              reference: campo.reference_parcel_external_id ?? "?",
+              parcel: campo.agricultural_parcel_external_id,
+            })
+          : i18n.t("importaFascicolo.sianPlotFallbackName", {
+              index: esistenti.length + 1,
+            });
+      const creato = await dal.upsertAppezzamento({
+        id: crypto.randomUUID(),
+        company_id: aziendaAttivaId,
+        // L'appezzamento è l'entità FISICA: la coltura vive in plots_campaign/crops.
+        user_plot_name: nome,
+        cadastral_sheet: null,
+        cadastral_parcel: null,
+        last_ndvi_mean: null,
+        geometry: campo.geometria,
+        irrigation_type: null,
+        planting_year: null,
+        historical_notes: null,
+        metadata: {
+          origine: "sian-import",
+          agricultural_parcel_external_id: campo.agricultural_parcel_external_id,
+          reference_parcel_external_id: campo.reference_parcel_external_id,
+        },
+      });
+      appezzamentoId = creato.id;
+      esistenti.push({ id: creato.id, metadata: creato.metadata });
+      esito.creati += 1;
+    } else {
+      esito.aggiornati += 1;
+    }
+
+    await dal.upsertCampoCampagna({
+      plot_id: appezzamentoId,
+      crop_id: await risolviCropId(campo),
+      campaign_year: anno,
+      reference_parcel_external_id: campo.reference_parcel_external_id,
+      agricultural_parcel_external_id: campo.agricultural_parcel_external_id,
+      crop_external_code: campo.crop_external_code,
+      variety_external_code: campo.variety_external_code,
+      declared_area_ha: campo.superficie_ha,
+    });
+  }
+
+  // Allinea l'anno attivo all'import e ricarica il dominio (notifica il sync).
+  await useAgroStore.getState().setCampagnaAttiva(anno);
+  await useAgroStore.getState().refreshDomainData();
+  stato.syncRouter?.notifyLocalWrite();
+
+  return esito;
+}

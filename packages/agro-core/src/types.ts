@@ -1,0 +1,719 @@
+import type { FeatureCollection, MultiPolygon, Point, Polygon } from "geojson";
+
+// ---------------------------------------------------------------------------
+// Claims di licenza
+// ---------------------------------------------------------------------------
+
+/**
+ * Sessione utente autenticata, in forma minima e indipendente dal provider.
+ * L'edizione che possiede un backend di autenticazione può passare il proprio
+ * oggetto sessione (strutturalmente compatibile); in standalone resta `null`.
+ */
+export interface AuthSession {
+  user?: {
+    id?: string;
+    email?: string | null;
+  } | null;
+}
+
+/** Destinazione dei dati ordinari del workspace. */
+export type StorageConfig =
+  | {
+      /** Data plane gestito dall'edizione (backend remoto dell'adapter). */
+      tipo: "cloud";
+    }
+  | {
+      tipo: "on_premise";
+      /**
+       * Identificatore del profilo di connessione PostgreSQL privato del
+       * cliente. La stringa di connessione vera non transita mai nel JS: vive
+       * nello store cifrato di Tauri ed è risolta dal comando Rust
+       * `agro_push_mutations` a partire da questo id.
+       */
+      profilo_connessione: string;
+    }
+  | {
+      /**
+       * Edizione standalone/OSS senza control plane: i dati restano solo nel
+       * PGlite locale. L'outbox continua a registrare le mutazioni (local-first
+       * intatto), ma nessuna push raggiunge un data plane remoto — il router usa
+       * il {@link LocalOnlySyncTarget}.
+       */
+      tipo: "local";
+    };
+
+/** Claims di licenza del workspace attivo. */
+export interface TenantClaims {
+  tenantId: string;
+  licenzaAttiva: boolean;
+  configStorage: StorageConfig;
+  /** Moduli colturali sbloccati dalla licenza (es. "viticoltura"). */
+  moduli: string[];
+  /**
+   * true quando il `tenantId` deriva dall'uid dell'utente (onboarding
+   * self-service) anziché da una claim `tenant_id` provisionata nel JWT.
+   */
+  selfService: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Profilo utente & licenza (Control Plane: tabella `user_profiles`)
+// ---------------------------------------------------------------------------
+
+/** Stato della licenza manuale gestito in `user_profiles.license_status`. */
+export type StatoLicenza = "active" | "inactive";
+
+/**
+ * Piano licenza: governa quote di aziende e posti collaboratore (lineup unico a
+ * 3 livelli: `base` single-user/1 azienda, `standard` 5 aziende+team, `plus`
+ * aziende illimitate+team ampio). I codici legacy (`free`/`flat_3`/`enterprise`)
+ * restano accettati a runtime e ricondotti dal client (`normalizePlan`).
+ */
+export type PianoLicenza = "base" | "standard" | "plus" | (string & {});
+
+/**
+ * Preferenze d'interfaccia dell'utente, persistite cross-device su
+ * `user_profiles.preferences`.
+ */
+export interface UserPreferenze {
+  /** Unità di misura agronomiche (superficie, resa, apporti idrici). */
+  units?: {
+    area: "ha" | "ac";
+    yield: "q" | "t" | "kg";
+    water?: "mm" | "hl";
+  };
+  /** Lingua dell'interfaccia (codice {@link AppLocale}: "it"|"en"|"es"|"fr"). */
+  locale?: string;
+}
+
+/**
+ * Profilo dell'utente autenticato (`public.user_profiles`), fonte autorevole
+ * dello stato di licenza per il gate di onboarding.
+ */
+export interface ProfiloUtente {
+  id: string;
+  email: string;
+  license_plan: PianoLicenza;
+  license_status: StatoLicenza;
+  /**
+   * Layout della dashboard (visibilità dei moduli): flag booleani per id di
+   * {@link DashboardModuleId}. Local-first su localStorage, sincronizzato qui
+   * per il cross-device. `null`/assente per i profili pre-v12.
+   */
+  dashboard_layout_config?: Record<string, boolean> | null;
+  /** Altre preferenze d'interfaccia cross-device (unità, lingua). */
+  preferences?: UserPreferenze | null;
+  updated_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// Dominio agronomico
+// ---------------------------------------------------------------------------
+
+/** Categoria colturale per il dispatch dei moduli DSS (derivata da crops.common_name). */
+export type Coltura =
+  | "viticoltura"
+  | "cereali"
+  | "olivicoltura"
+  | "frutticoltura"
+  | (string & {});
+
+/** Azienda agricola (`companies`). */
+export interface Azienda {
+  id: string;
+  tenant_id: string;
+  /** Ragione sociale (ex ragione_sociale). */
+  business_name: string;
+  /** Identificativo fiscale nazionale dell'azienda (ex CUAA / codice fiscale). */
+  national_company_id: string | null;
+  /** Partita IVA (ex partita_iva). */
+  vat_number: string | null;
+  /** Forma giuridica (ex forma_giuridica). */
+  legal_form: string | null;
+  /** Indirizzo della sede (ex indirizzo). */
+  address: string | null;
+  /** Comune (ex comune). */
+  city: string | null;
+  /** Provincia (ex provincia). */
+  province: string | null;
+  /** Regione (ex regione). */
+  region: string | null;
+  /** CAP (ex cap). */
+  postal_code: string | null;
+  /**
+   * Paese dell'indirizzo legale (ISO 3166-1 alpha-2: "IT", "ES", "FR", …).
+   * Sorgente PRIMARIA del Country Resolution.
+   */
+  country: string | null;
+  email: string | null;
+  /** Indirizzo PEC. */
+  pec: string | null;
+  /** Codice destinatario SDI per la fatturazione elettronica. */
+  sdi_code: string | null;
+  /** Centroide dell'azienda (jsonb GeoJSON Point). */
+  centroid: Point | null;
+  /** Certificazioni (ex certificazioni). */
+  certifications: string[];
+  /** Numero del fascicolo aziendale (ex fascicolo_aziendale). */
+  farm_file_id: string | null;
+  /** Organismo pagatore di riferimento (ex organismo_pagatore). */
+  paying_agency: string | null;
+  /** Referente aziendale (ex referente_nome). */
+  contact_name: string | null;
+  /** Ruolo del referente (ex referente_ruolo). */
+  contact_role: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/**
+ * Specie/varietà coltivata (`crops`). Isolata dall'anagrafica fisica
+ * dell'appezzamento: le proprietà di filiera (clone, sesto d'impianto,
+ * portainnesto…) vivono dentro {@link Crop.crop_metadata}.
+ */
+export interface Crop {
+  id: string;
+  tenant_id: string;
+  /** Nome comune (es. "Vite", "Olivo"). */
+  common_name: string;
+  /** Nome scientifico (es. "Vitis vinifera"). */
+  scientific_name: string | null;
+  /** Varietà/cultivar (es. "Sangiovese", "Leccino"). */
+  variety_name: string | null;
+  /** Proprietà dinamiche di filiera (clone, sesto d'impianto, ecc.). */
+  crop_metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/** Anagrafica FISICA immutabile dell'appezzamento (`plots_registry`, LPIS). */
+export interface Appezzamento {
+  id: string;
+  tenant_id: string;
+  /** Azienda proprietaria (ex azienda_id, FK companies). */
+  company_id: string;
+  /** Nome libero scelto dall'utente per l'appezzamento (LPIS: user plot name). */
+  user_plot_name: string;
+  /** Foglio catastale (ex foglio_catastale). */
+  cadastral_sheet: string | null;
+  /** Particella catastale (ex particella). */
+  cadastral_parcel: string | null;
+  /**
+   * Superficie geodetica in ettari (NUMERIC 10,4): UNICO punto di verità per la
+   * superficie, ricalcolata dal DAL con `@turf/area` a ogni upsert. Fonte
+   * autorevole per dosi e quantità totali.
+   */
+  area_ha: number;
+  /** Cache dell'ultimo NDVI medio calcolato dalla pipeline STAC (ex ultimo_ndvi_medio). */
+  last_ndvi_mean: number | null;
+  geometry: Polygon | MultiPolygon;
+  /** Tipo di irrigazione (ex irrigazione). */
+  irrigation_type: string | null;
+  /** Anno d'impianto (ex anno_impianto). */
+  planting_year: number | null;
+  /** Note storiche del campo come entità FISICA immutabile (ex note_storiche). */
+  historical_notes?: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/**
+ * Stato BUROCRATICO annuale di un appezzamento per una Campagna Agraria
+ * (`plots_campaign`, SIAN/AGEA, LPIS/IACS). Associa un appezzamento fisico a una
+ * coltura ({@link Crop}) per una determinata annata.
+ */
+export interface CampoCampagna {
+  id: string;
+  tenant_id: string;
+  plot_id: string;
+  /** Coltura della campagna (FK crops). */
+  crop_id: string;
+  /** Anno della campagna agraria (es. 2026). */
+  campaign_year: number;
+  /** Identificativo Isola SIAN (reference parcel). */
+  reference_parcel_external_id: string | null;
+  /** Identificativo Appezzamento SIAN (agricultural parcel). */
+  agricultural_parcel_external_id: string | null;
+  /** Codifica rigida ministeriale della coltura. */
+  crop_external_code: string | null;
+  /** Codifica rigida ministeriale della varietà. */
+  variety_external_code: string | null;
+  /** Superficie ufficiale dichiarata in ettari (IACS declared area, NUMERIC 10,4). */
+  declared_area_ha: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/** Sintesi dell'ultima operazione di campagna su un appezzamento (vista dettaglio). */
+export interface UltimaOperazione {
+  plot_id: string;
+  operation_type: TipoOperazione;
+  /** ISO della data di esecuzione (`executed_at`). */
+  executed_at: string;
+  product_name: string | null;
+  /** Etichetta pronta per la UI: "[Operazione] - [Data]". */
+  etichetta: string;
+}
+
+export type TipoOperazione =
+  | "phytosanitary"
+  | "fertilization"
+  | "irrigation"
+  | "tillage"
+  | "sowing"
+  | "harvest"
+  | "sampling";
+
+export type DoseUnita = "kg/ha" | "l/ha" | "kg/hl" | "l/hl" | "g/hl" | "m3";
+
+/** Registro operazioni del Quaderno di Campagna (`treatment_logs`). */
+export interface RegistroTrattamento {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  plot_id: string | null;
+  /** Aggancio allo stato di Campagna Agraria del campo (FK plots_campaign). */
+  plot_campaign_id: string | null;
+  operation_type: TipoOperazione;
+  product_name: string | null;
+  registration_number: string | null;
+  dose_value: number | null;
+  dose_unit: DoseUnita | null;
+  /** dose × superficie appezzamento, congelata al momento della registrazione. */
+  total_quantity: number | null;
+  /** Avversità/patogeno bersaglio (ex avversita_target). */
+  target_disease: string | null;
+  /** Operatore che ha eseguito l'operazione (ex operatore). */
+  operator_name: string | null;
+  /** Macchina/attrezzatura impiegata (ex mezzo). */
+  machinery_equipment: string | null;
+  /** Sostanza attiva del fitofarmaco (ex sostanza_attiva). */
+  active_substance: string | null;
+  /** Volume totale di acqua della botte, in litri (ex acqua_volume_l). */
+  water_volume_l: number | null;
+  /** Codice fiscale dell'operatore (ex operatore_cf). */
+  operator_tax_code: string | null;
+  /** Numero del certificato di abilitazione/patentino (ex num_patentino). */
+  license_number: string | null;
+  /** Tipo di concime (ex tipo_concime). */
+  fertilizer_type: string | null;
+  /** Titolo N-P-K del concime (ex titolo_npk). */
+  npk_ratio: string | null;
+  executed_at: string;
+  reentry_interval_h: number | null;
+  /** Tempo di carenza in giorni (ex carenza_giorni). */
+  safety_period_days: number | null;
+  /** Condizioni meteo al momento dell'operazione (ex meteo). */
+  weather_conditions: Record<string, unknown> | null;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/** Metrica di stazione meteo (`weather_readings`, Smart IoT / agrometeo). */
+export interface LetturaMeteo {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  station_id: string;
+  measured_at: string;
+  air_temperature: number | null;
+  relative_humidity: number | null;
+  rain_mm: number | null;
+  leaf_wetness: number | null;
+  solar_radiation: number | null;
+  wind_speed: number | null;
+  wind_direction: number | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Configurazione meteo & cache DSS (Modulo Meteo, tabelle local-only)
+// ---------------------------------------------------------------------------
+
+/** Sorgente dei dati meteo configurata per l'azienda. */
+export type FonteDatiMeteo = "public_api" | "private_station";
+
+/** Metriche meteo che l'utente può scegliere di mostrare a schermo. */
+export type VariabileMeteo =
+  | "temperature"
+  | "humidity"
+  | "rain"
+  | "radiation"
+  | "leaf_wetness"
+  | "wind";
+
+/**
+ * Configurazione della fonte meteo dell'azienda (`weather_config`). Tabella
+ * LOCAL-ONLY: non si sincronizza (contiene la `station_api_key`).
+ */
+export interface ConfigMeteoAzienda {
+  company_id: string;
+  tenant_id: string;
+  data_source: FonteDatiMeteo;
+  api_provider: string | null;
+  station_model: string | null;
+  station_api_key: string | null;
+  station_device_id: string | null;
+  /** Variabili meteo abilitate nella UI. */
+  visible_variables: VariabileMeteo[];
+  /** Lucchetto orario del WeatherSyncService: ultimo pull riuscito. */
+  last_weather_pull_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Livello di rischio sintetico di un DSS (cache `dss_results`). */
+export type LivelloRischioDss = "low" | "medium" | "high";
+
+/** Riga di cache di un indice DSS calcolato in locale (`dss_results`). */
+export interface DssRisultato {
+  id: string;
+  plot_id: string | null;
+  model_name: string;
+  risk_level: LivelloRischioDss;
+  output_value: number;
+  calculated_at: string;
+}
+
+/**
+ * Riga giornaliera del bilancio idrico FAO 56/66 (`soil_water_indices`).
+ * LOCAL-ONLY: ricomputabile dalle letture meteo e dai log irrigui.
+ */
+export interface SoilWaterIndex {
+  id: string;
+  plot_campaign_id: string | null;
+  /** Giorno di riferimento (ISO "YYYY-MM-DD"). */
+  date: string;
+  /** Evapotraspirazione di riferimento ET0 (mm). */
+  et0: number;
+  /** Evapotraspirazione colturale ETc (mm). */
+  etc: number;
+  rain_mm: number;
+  irrigation_mm: number;
+  /** Percolazione profonda DP del giorno (mm). */
+  deep_percolation_mm: number;
+  /** Deplezione radicale Dr,t (mm). */
+  depletion_mm: number;
+  /** Acqua facilmente disponibile RAW (mm). */
+  raw_mm: number;
+  /** Acqua disponibile totale AWC (mm). */
+  awc_mm: number;
+  /** true se Dr,t ≥ RAW. */
+  water_stress: boolean;
+  calculated_at: string;
+}
+
+/** Evento di raccolta (`harvest_logs`, Modulo Raccolta). */
+export interface Raccolta {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  plot_id: string | null;
+  /** Aggancio allo stato di Campagna Agraria del campo (FK plots_campaign). */
+  plot_campaign_id: string | null;
+  /** Cultivar/varietà raccolta (categoria primaria dei grafici). */
+  cultivar: string | null;
+  /** Destinazione/logistica del prodotto (ex destinazione). */
+  destination_logistics: string | null;
+  /** Quantità raccolta in kg (metrica numerica aggregata: Somma/Media). */
+  quantity_kg: number | null;
+  harvested_at: string;
+  /** Posizione del conferimento; di norma il centroide dell'appezzamento. */
+  geometry: import("geojson").Point | null;
+  notes: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/** Analisi di laboratorio georeferenziata del suolo (`soil_samples`). */
+export interface CampionamentoSuolo {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  plot_id: string | null;
+  sampled_at: string;
+  sampling_position: import("geojson").Point;
+  depth_cm: number | null;
+  nitrogen: number | null;
+  phosphorus: number | null;
+  potassium: number | null;
+  organic_matter: number | null;
+  ph: number | null;
+  texture: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/** Infrastruttura aziendale fissa o mobile (`infrastructure_assets`, CAD-GIS). */
+export interface AssetInfrastruttura {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  asset_type: string;
+  category: "fixed" | "mobile";
+  name: string | null;
+  geometry: import("geojson").Geometry;
+  attributes: Record<string, unknown>;
+  length_m: number | null;
+  area_ha: number | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Tracciabilità import/export (Modulo Tag I/O)
+// ---------------------------------------------------------------------------
+
+/** Verso di un trasferimento dati tracciato. */
+export type TipoTrasferimento = "import" | "export";
+
+/** Formato del file trasferito (mappa spaziale o tabellare). */
+export type FormatoFile =
+  | "csv"
+  | "geojson"
+  | "isoxml"
+  | "shapefile"
+  | "gpkg"
+  | "kml"
+  | "gpx";
+
+/** Voce del registro dei trasferimenti dati (`data_transfer_logs`, LOCAL-ONLY). */
+export interface DataTransferLog {
+  id: string;
+  tenant_id: string;
+  operation_type: TipoTrasferimento;
+  file_format: FormatoFile;
+  file_name: string;
+  /** Timestamp ISO del trasferimento. */
+  executed_at: string;
+  created_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// Cataloghi di stato multiregionali (Modulo 3)
+// ---------------------------------------------------------------------------
+
+/** Tipo di voce di catalogo ministeriale. */
+export type TipoCatalogo = "crop" | "phytosanitary" | "fertilizer" | "variety";
+
+/**
+ * Voce dei cataloghi di stato (`product_catalogs`). Reference data LOCAL-ONLY
+ * filtrata per `country_code`.
+ */
+export interface CatalogoVoce {
+  id: string;
+  /** Paese (ISO 3166-1 alpha-2) che governa la disponibilità della voce. */
+  country_code: string;
+  type: TipoCatalogo;
+  /** Codice ministeriale rigido (ex codice). */
+  code: string;
+  /** Denominazione leggibile da mostrare nei dropdown (ex nome). */
+  name: string;
+  /** Sostanza attiva (per i fitosanitari) (ex sostanza_attiva). */
+  active_substance: string | null;
+  /** Numero di registrazione nazionale del prodotto (ex numero_registrazione). */
+  registration_number: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// Multiutente — posti collaboratore per azienda (`tenant_memberships`)
+// ---------------------------------------------------------------------------
+
+/** Ruolo di un membro all'interno di una singola azienda. */
+export type RuoloMembro = "OWNER" | "MANAGER" | "VIEWER";
+
+/** Stato del posto: un invito pendente occupa il posto quanto un membro attivo. */
+export type StatoMembership = "active" | "invited" | "revoked";
+
+/**
+ * Appartenenza al team di un'azienda (`tenant_memberships`). Sincronizzata via
+ * outbox. Mappa terminologica: la "singola azienda" della specifica multiutente
+ * è `company_id` (riga di `companies`); il `tenant_id` è il workspace
+ * dell'abbonato master. I limiti per ruolo/piano sono enforced lato client
+ * (modulo `subscription-limits`/`MembershipGuard` della field-suite).
+ */
+export interface TenantMembership {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  email: string;
+  role: RuoloMembro;
+  status: StatoMembership;
+  invited_at: string | null;
+  joined_at: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Outbox / sync
+// ---------------------------------------------------------------------------
+
+export type TabellaSync =
+  | "companies"
+  | "crops"
+  | "plots_registry"
+  | "plots_campaign"
+  | "treatment_logs"
+  | "weather_readings"
+  | "soil_samples"
+  | "infrastructure_assets"
+  | "harvest_logs"
+  | "scouting_observations"
+  | "tenant_memberships";
+
+export type OperazioneMutazione = "insert" | "update" | "delete";
+
+export type SyncStatusMutazione = "pending" | "in_flight" | "synced" | "error";
+
+/** Una voce della coda transazionale locale (tabella `sync_outbox`). */
+export interface OutboxMutazione {
+  mutation_id: string;
+  table_name: TabellaSync;
+  row_id: string;
+  operation: OperazioneMutazione;
+  /** Riga completa serializzata, come accettata da `agro_apply_mutations`. */
+  payload: Record<string, unknown> | null;
+  /** Timestamp client ad alta precisione: base della risoluzione LWW. */
+  mutated_at: string;
+  device_id: string;
+  sync_status: SyncStatusMutazione;
+  attempts: number;
+  last_error: string | null;
+}
+
+export type SyncConnectionState = "offline" | "online" | "syncing" | "error";
+
+export interface SyncSnapshot {
+  state: SyncConnectionState;
+  pendingCount: number;
+  lastSyncedAt: string | null;
+  /** Ultimo pull riuscito dal data plane remoto (idratazione del locale). */
+  lastPulledAt: string | null;
+  lastError: string | null;
+  /** Dove sta riversando i dati: 'cloud' | 'on_premise' | 'local'. */
+  target: StorageConfig["tipo"] | null;
+}
+
+/** Esito di un drain dell'outbox verso il data plane. */
+export interface SyncPushResult {
+  applied: number;
+  skipped_lww: number;
+  duplicates: number;
+}
+
+// ---------------------------------------------------------------------------
+// UI condivisa
+// ---------------------------------------------------------------------------
+
+export type PanelMode = "floating" | "docked";
+
+export type FieldPanel =
+  | "quaderno"
+  | "raccolta"
+  | "geoeditor"
+  | "registro"
+  | "ndvi"
+  | "coltura"
+  | "coltura-dss"
+  | "acqua"
+  | "vra"
+  | "stampa"
+  | "dss"
+  | "layers"
+  | "sync"
+  | "account"
+  | "anagrafica"
+  | "impostazioni"
+  | "geocompliance"
+  | "profilo"
+  | "scouting";
+
+/** Rilievo GPS in campo, sincronizzato via outbox come le altre tabelle. */
+export interface ScoutingObservation {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  lat: number;
+  lng: number;
+  accuracy_m: number | null;
+  note: string | null;
+  capture_count: number | null;
+  observation_date: string | null;
+  photo_url: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export type AppezzamentiFeatureCollection = FeatureCollection<
+  Polygon | MultiPolygon,
+  {
+    id: string;
+    user_plot_name: string;
+    area_ha: number;
+    last_ndvi_mean: number | null;
+    /**
+     * Coltura associata nella Campagna Agraria attiva (`plots_campaign` →
+     * `crops`), pronta per il tooltip hover. `null` se l'appezzamento non ha una
+     * coltura associata per l'annata corrente.
+     */
+    crop: string | null;
+    /**
+     * Specie (nome comune, senza varietà) della coltura associata: chiave per la
+     * mappatura colore/icona (`cropStyle`). `null` se senza coltura.
+     */
+    crop_kind: string | null;
+    /**
+     * Colore di riempimento per-feature (simplestyle-spec `fill`): grigio neutro
+     * se l'appezzamento non ha coltura, colore ad hoc della specie altrimenti.
+     * Onorato dal renderer quando `simpleStyleEnabled` è attivo sul layer.
+     */
+    fill: string;
+    /** Colore del bordo per-feature (simplestyle-spec `stroke`). */
+    stroke: string;
+    /**
+     * Opacità del riempimento e spessore del bordo per-feature. OBBLIGATORI con
+     * `simpleStyleEnabled`: il renderer li legge via `to-number(["get",…], base)`
+     * e in MapLibre `to-number(null)` vale 0 (non il fallback) — senza queste
+     * proprietà i poligoni sarebbero trasparenti e senza bordo.
+     */
+    "fill-opacity": number;
+    "stroke-width": number;
+  }
+>;
+
+/**
+ * Layer delle raccolte: punti (o feature senza geometria) le cui properties
+ * alimentano i grafici del Modulo Raccolta nella tabella attributi.
+ */
+export type RaccolteFeatureCollection = FeatureCollection<
+  Point,
+  {
+    id: string;
+    plot_id: string | null;
+    cultivar: string | null;
+    destination_logistics: string | null;
+    quantity_kg: number | null;
+    harvested_at: string;
+  }
+>;

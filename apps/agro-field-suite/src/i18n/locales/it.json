@@ -1,0 +1,1457 @@
+{
+  "language": {
+    "label": "Lingua"
+  },
+  "commandPalette": {
+    "searchPlaceholder": "Cerca appezzamenti o azioni…  (Ctrl/Cmd + K)",
+    "noResults": "Nessun comando per «{{query}}».",
+    "category": {
+      "action": "azione",
+      "goTo": "vai a"
+    },
+    "actions": {
+      "ndvi": "Calcola indici (NDVI, NDRE…)",
+      "vra": "Mappe a rateo variabile (VRA)",
+      "newTreatment": "Nuovo trattamento",
+      "cropSheet": "Scheda coltura & DSS",
+      "drawPlot": "Disegna appezzamento",
+      "drawInfrastructure": "Disegna infrastruttura",
+      "drawPoi": "Disegna POI",
+      "editGeometries": "Modifica / elimina geometrie",
+      "printMap": "Stampa mappa",
+      "companySettings": "Impostazioni azienda",
+      "undoGeometry": "Annulla modifica geometria",
+      "redoGeometry": "Ripristina modifica geometria",
+      "profileSettings": "Impostazioni Profilo"
+    }
+  },
+  "compliance": {
+    "warning": {
+      "noCountryResolved": "Paese non determinato: si usa il formato internazionale.",
+      "plotsOutsideCountry": "{{count}} appezzamento/i fuori dai confini di {{country}} (rilevato: {{detected}}).",
+      "swappedCoordinates": "{{count}} appezzamento/i con coordinate forse invertite (lat/lon).",
+      "addressCoordsMismatch": "Nessun paese nell'indirizzo legale; dedotto {{detected}} dalle coordinate degli appezzamenti."
+    }
+  },
+  "validation": {
+    "required": "Campo obbligatorio.",
+    "dateFormat": "Usa il formato AAAA-MM-GG.",
+    "positiveNumber": "Inserisci un valore maggiore di zero.",
+    "invalidUnit": "Unità ammesse: {{allowed}}.",
+    "invalidFertilizerType": "Il tipo dev'essere organico o minerale.",
+    "npkFormat": "Usa il formato N-P-K (es. 15-15-15)."
+  },
+  "logbook": {
+    "common": {
+      "fieldCampaign": "Campo (campagna)",
+      "plot": "Appezzamento",
+      "wholeFarm": "— intera azienda —",
+      "select": "— seleziona —",
+      "selectFromRegister": "— seleziona dal registro —",
+      "cancel": "Annulla",
+      "saving": "Salvataggio…",
+      "panRequired": "Campi obbligatori PAN"
+    },
+    "treatment": {
+      "type": {
+        "phytosanitary": "Trattamento",
+        "fertilization": "Fertilizz.",
+        "irrigation": "Irrigaz.",
+        "tillage": "Lavoraz.",
+        "sampling": "Campion.",
+        "survey": "Rilievo"
+      },
+      "date": "Data trattamento",
+      "geoConstraints": "Vincoli geografici",
+      "nitrogenLimit": "Massimale azoto su questo appezzamento:",
+      "product": "Prodotto commerciale",
+      "productPlaceholder": "Nome commerciale",
+      "regNumber": "N. registrazione",
+      "regNumberPlaceholder": "Reg. Min. Salute",
+      "activeSubstance": "Sostanza attiva",
+      "activeSubstancePlaceholder": "es. Rame metallo, Zolfo",
+      "target": "Avversità target",
+      "dose": "Dose",
+      "unit": "Unità",
+      "water": "Acqua (l)",
+      "waterPlaceholder": "botte",
+      "computedTotal": "Totale calcolato:",
+      "nitrogenExceeded": "Supera il massimale di azoto in ZVN ({{max}} kg): ridurre la dose o frazionare l'apporto.",
+      "operatorTaxCode": "CF operatore",
+      "operatorTaxCodePlaceholder": "Codice fiscale",
+      "license": "N. patentino",
+      "licensePlaceholder": "Cert. abilitazione",
+      "submit": "Registra"
+    },
+    "fertilization": {
+      "date": "Data intervento",
+      "type": "Tipo concime",
+      "organic": "Organico",
+      "mineral": "Minerale",
+      "commercialName": "Nome commerciale",
+      "commercialNamePlaceholder": "es. Nitrato ammonico",
+      "totalDose": "Dose totale (kg)",
+      "npk": "Titolo N-P-K",
+      "npkPlaceholder": "es. 15-15-15",
+      "submit": "Registra fertilizzazione"
+    }
+  },
+  "nav": {
+    "profile": "Profilo",
+    "settings": "Impostazioni",
+    "logout": "Esci",
+    "themeLight": "Chiaro",
+    "themeDark": "Scuro",
+    "themeGreen": "Agronomico",
+    "themeTooltip": "Tema {{name}}",
+    "syncError": "Errore sync",
+    "syncOffline": "Offline",
+    "syncing": "Sincronizzazione…",
+    "syncQueued": "{{count}} in coda",
+    "synced": "Sincronizzato",
+    "syncOpenQueue": "{{label}} · apri coda",
+    "modulesHeading": "Moduli agronomici",
+    "soon": "presto",
+    "moduleSoil": "Suolo",
+    "moduleCrop": "Coltura",
+    "moduleWater": "Acqua",
+    "moduleDraw": "Disegna elemento",
+    "moduleLogbook": "Quaderno di Campagna",
+    "moduleSettings": "Impostazioni Azienda",
+    "toolNdvi": "Analisi indici (NDVI, NDRE…)",
+    "toolVra": "Mappe a rateo variabile (VRA)",
+    "toolCropSheet": "Scheda coltura & DSS",
+    "toolWaterBalance": "Bilancio idrico",
+    "toolDrawPlot": "Appezzamento (poligono)",
+    "toolDrawInfra": "Infrastruttura (linea)",
+    "toolDrawPoi": "POI (punto)",
+    "toolManage": "Modifica / Elimina",
+    "toolPrint": "Stampa mappa (Print Composer)",
+    "toolOperations": "Registro operazioni",
+    "toolHarvest": "Registra raccolta",
+    "toolExport": "Esporta (CSV)…",
+    "toolProfile": "Anagrafica",
+    "toolWeather": "Fonte meteo & variabili",
+    "toolGeoCompliance": "GeoCompliance"
+  },
+  "help": {
+    "menu": "Aiuto",
+    "commandPalette": "Riquadro comandi",
+    "shortcuts": "Scorciatoie da tastiera",
+    "diagnostics": "Diagnostica",
+    "feedback": "Invia feedback",
+    "checkUpdates": "Controlla aggiornamenti",
+    "about": "Informazioni",
+    "shortcut": {
+      "commandPalette": "Apri il riquadro comandi",
+      "undo": "Annulla modifica geometrica (celle VRA / poligoni)",
+      "redo": "Ripristina modifica geometrica",
+      "redoAlt": "Ripristina modifica geometrica (alternativa)",
+      "close": "Chiudi pannello o finestra"
+    },
+    "shortcutsModal": {
+      "title": "Scorciatoie da tastiera",
+      "description": "Velocizza il lavoro in campo con queste scorciatoie."
+    },
+    "feedbackModal": {
+      "title": "Invia feedback",
+      "description": "Il tuo messaggio sarà inviato via email a {{email}}.",
+      "placeholder": "Descrivi il problema o il tuo suggerimento…",
+      "metaNotice": "Versione dell'app, lingua attiva e ID dell'azienda corrente vengono allegati per facilitare il debug.",
+      "cancel": "Annulla",
+      "send": "Invia",
+      "sending": "Apertura client di posta…"
+    },
+    "aboutModal": {
+      "title": "Informazioni su AgroGea",
+      "foundation": "AgroGea Foundation",
+      "legal": "Dati local-first: ogni azienda è archiviata in un database PGlite isolato su questo dispositivo. Nulla lascia il dispositivo finché non sincronizzi verso il tuo cloud o il server aziendale."
+    },
+    "diagnosticsModal": {
+      "title": "Diagnostica",
+      "description": "Avvisi attivi rilevati nella suite.",
+      "allClear": "Nessun problema attivo. Tutto funziona correttamente.",
+      "syncError": "Sincronizzazione fallita",
+      "pendingQueue": "{{count}} mutazione/i in attesa nella coda outbox",
+      "weatherMissing": "Fonte meteo non configurata per l'azienda attiva"
+    },
+    "update": {
+      "checking": "Controllo aggiornamenti…",
+      "available": "Nuova versione {{version}} disponibile",
+      "upToDate": "AgroGea è aggiornato",
+      "unavailable": "Controllo aggiornamenti non disponibile qui",
+      "error": "Impossibile controllare gli aggiornamenti",
+      "notifyTitle": "Aggiornamenti AgroGea"
+    }
+  },
+  "quadernoPanel": {
+    "fieldFallbackName": "Campo {{id}}",
+    "notification": {
+      "removed": "Operazione rimossa: {{label}}"
+    },
+    "title": {
+      "newOperation": "Nuova operazione",
+      "logbook": "Quaderno di Campagna"
+    },
+    "button": {
+      "registerOperation": "Registra operazione"
+    },
+    "chooser": {
+      "description": "Scegli il tipo di operazione da registrare nel Quaderno."
+    },
+    "filter": {
+      "from": "Dal",
+      "to": "Al",
+      "allPlots": "— tutti gli appezzamenti —",
+      "reset": "Azzera filtri"
+    },
+    "map": {
+      "hide": "Nascondi dalla mappa ({{count}})",
+      "show": "Mostra sulla mappa ({{count}})"
+    },
+    "empty": {
+      "noRecords": "Nessuna registrazione: il quaderno di quest'azienda è vuoto.",
+      "noFilterMatch": "Nessun record per i filtri selezionati."
+    },
+    "list": {
+      "openDetail": "Apri scheda operazione",
+      "queued": "coda",
+      "deleteOperation": "Elimina operazione",
+      "deleteAriaLabel": "Elimina {{label}}"
+    }
+  },
+  "syncPanel": {
+    "title": "Coda di sincronizzazione",
+    "button": {
+      "clearQueue": "Svuota coda ({{count}})",
+      "retry": "Riprova"
+    },
+    "state": {
+      "label": "Stato: {{state}}"
+    },
+    "loading": "Caricamento coda…",
+    "empty": "Coda vuota: tutto sincronizzato.",
+    "attempts": "{{count}} tentativi",
+    "list": {
+      "removeFromQueue": "Rimuovi dalla coda"
+    },
+    "table": {
+      "companies": "Azienda",
+      "crops": "Coltura",
+      "plotsRegistry": "Appezzamento",
+      "plotsCampaign": "Campagna",
+      "treatmentLogs": "Quaderno",
+      "weatherReadings": "Meteo",
+      "soilSamples": "Campionamento",
+      "infrastructureAssets": "Infrastruttura",
+      "harvestLogs": "Raccolta"
+    },
+    "operation": {
+      "insert": "Creazione",
+      "update": "Modifica",
+      "delete": "Eliminazione"
+    },
+    "status": {
+      "pending": "in coda",
+      "inFlight": "invio…",
+      "error": "errore"
+    }
+  },
+  "useDssCalcolo": {
+    "offlineFallback": "Offline o fetch non riuscito ({{error}}). Uso i dati locali.",
+    "useLocalWeatherData": "Uso i dati meteo locali.",
+    "noWeatherData": "Nessun dato meteo disponibile: configura la fonte o connettiti per il primo scaricamento.",
+    "noActiveCompany": "Nessuna azienda attiva.",
+    "plotCalculationError": "Errore di calcolo per questo appezzamento.",
+    "dssCalculationError": "Errore di calcolo DSS."
+  },
+  "importaFascicolo": {
+    "noActiveCompany": "Nessuna azienda attiva: impossibile importare il Fascicolo.",
+    "sianCrop": "Coltura SIAN",
+    "sianPlotName": "SIAN {{reference}}/{{parcel}}",
+    "sianPlotFallbackName": "Appezzamento SIAN {{index}}"
+  },
+  "weatherSyncService": {
+    "openMeteoHttpError": "Open-Meteo HTTP {{status}}",
+    "openMeteoNoHourlyData": "Open-Meteo: risposta senza serie oraria.",
+    "openMeteoArchiveHttpError": "Open-Meteo Archive HTTP {{status}}",
+    "davisAdapterNotIntegrated": "Centralina Davis: adapter non ancora integrato. Configura endpoint e credenziali.",
+    "pesslAdapterNotIntegrated": "Centralina Pessl/FieldClimate: adapter non ancora integrato. Configura endpoint e credenziali.",
+    "unknownStationModel": "Modello centralina «{{model}}» non riconosciuto. Modelli supportati: {{supported}}.",
+    "privateStationCredentialsRequired": "Centralina privata: API key e ID dispositivo sono obbligatori.",
+    "dataUpdatedMinutesAgo": "Dati aggiornati {{minutes}} min fa (< {{lockMinutes}}).",
+    "missingStationConfig": "Configurazione centralina mancante.",
+    "noPlotGeometryForStation": "Nessun appezzamento con geometria: impossibile localizzare la stazione meteo."
+  },
+  "bilancioIdricoPanel": {
+    "title": "Acqua · Bilancio idrico",
+    "computing": "Calcolo…",
+    "computeBalance": "Calcola bilancio",
+    "computeBalanceCount": "Calcola bilancio ({{count}})",
+    "noPlots": "Nessun appezzamento disponibile.",
+    "plotsCount": "Appezzamenti ({{count}})",
+    "formulaHint": "ET0 Penman-Monteith · ETc = ET0·Kc · deplezione radicale Dr.",
+    "noCropWarning": "{{count}} appezzamento/i selezionato/i senza coltura: registra prima la coltura nella scheda «Dati coltura» (serve il Kc per l'ETc).",
+    "soilMap": "Mappa suolo (EC_a/tessitura)",
+    "soilMapAuto": "Automatica (campionamenti → manuale)",
+    "overlayActive": "Overlay attivo",
+    "showRiskOnMap": "Mostra rischio su mappa",
+    "balanceNotComputable": "Bilancio non calcolabile per questo appezzamento.",
+    "depletionDr": "Deplezione Dr",
+    "availableWater": "Acqua disponibile",
+    "irrigationPeriod": "Irrigazione (periodo)",
+    "autonomy": "Autonomia",
+    "autonomyDays": "{{count}} gg",
+    "waterStatus": "Stato idrico",
+    "waterStress": "Stress idrico",
+    "adequate": "Adeguato",
+    "soilLabel": "Suolo: {{source}}",
+    "soilSource": {
+      "customMap": "Mappa custom (EC_a/tessitura)",
+      "soilSamples": "Campionamenti georeferenziati",
+      "manual": "Composizione manuale (scheda)",
+      "metadata": "Parametri da metadata",
+      "default": "Default (terreno franco)"
+    },
+    "textureBreakdown": "S {{sand}}% / L {{silt}}% / A {{clay}}%",
+    "samplesUsed": "{{count}} campione/i",
+    "chart": {
+      "rain": "Pioggia (mm)",
+      "irrigation": "Irrigazione (mm)",
+      "drShort": "Dr (mm)",
+      "rawLabel": "RAW"
+    },
+    "exportMoistureHistory": "Esporta storico umidità",
+    "registerCropHint": "Registra la coltura in Campagna Agraria per archiviare la serie storica degli indici idrici."
+  },
+  "anagraficaPanel": {
+    "title": "Anagrafica Azienda",
+    "subtitle": "Dati e codici dell'azienda · sincronizzati come gli altri dati.",
+    "selectCompany": "Seleziona un'azienda per modificarne l'anagrafica.",
+    "readOnly": "Sola lettura (Viewer)",
+    "save": "Salva anagrafica",
+    "saved": "Salvato ✓",
+    "saveError": "Salvataggio non riuscito.",
+    "sections": {
+      "identity": {
+        "label": "Identità"
+      },
+      "codes": {
+        "label": "Codici"
+      },
+      "headquarters": {
+        "label": "Sede"
+      },
+      "contact": {
+        "label": "Referente"
+      }
+    },
+    "fields": {
+      "businessName": "Ragione sociale",
+      "legalForm": "Forma giuridica",
+      "legalFormPlaceholder": "es. S.S., S.R.L., ditta individuale",
+      "nationalCompanyId": "Codice fiscale / CUAA",
+      "nationalCompanyIdPlaceholder": "Codice Unico Azienda Agricola",
+      "vatNumber": "Partita IVA",
+      "sdiCode": "Codice destinatario SDI",
+      "pec": "PEC",
+      "farmFileId": "Fascicolo aziendale",
+      "payingAgency": "Organismo pagatore",
+      "payingAgencyPlaceholder": "es. AGEA, ARTEA, AVEPA",
+      "address": "Indirizzo",
+      "addressPlaceholder": "Via e civico",
+      "postalCode": "CAP",
+      "city": "Comune",
+      "province": "Provincia",
+      "provincePlaceholder": "es. FI",
+      "region": "Regione",
+      "country": "Paese",
+      "countryPlaceholder": "ISO 3166-1 alpha-2 (es. IT)",
+      "email": "Email",
+      "contactName": "Nome e cognome",
+      "contactRole": "Ruolo",
+      "contactRolePlaceholder": "es. titolare, agronomo"
+    }
+  },
+  "raccoltaPanel": {
+    "title": "Raccolte",
+    "newHarvest": "Nuova raccolta",
+    "harvestFallbackLabel": "Raccolta",
+    "removedNotice": "Raccolta rimossa: {{label}}",
+    "cultivar": "Cultivar / varietà",
+    "cultivarPlaceholder": "es. Sangiovese",
+    "destination": "Destinazione",
+    "destinationUnspecified": "— non specificata —",
+    "lotDestination": "Destinazione / codice lotto",
+    "lotDestinationPlaceholder": "es. cantina sociale, lotto 2026-014",
+    "quantity": "Quantità (q)",
+    "harvestDate": "Data raccolta",
+    "quantityMustBeNumber": "La quantità deve essere un numero.",
+    "saveAction": "Salva",
+    "emptyState": "Nessuna raccolta registrata per quest'azienda.",
+    "openCard": "Apri scheda raccolta",
+    "wholeFarmLower": "intera azienda",
+    "queueBadge": "coda",
+    "deleteHarvest": "Elimina raccolta",
+    "deleteHarvestAria": "Elimina {{label}}",
+    "deleteConfirmMessage": "l'eliminazione di questa raccolta invaliderà lo storico dei conferimenti e delle rese per questo appezzamento. L'azione è irreversibile.",
+    "deleteConfirmConsent": "Confermo di voler eliminare definitivamente questa raccolta.",
+    "destinations": {
+      "vinificazione": "vinificazione",
+      "mensa": "mensa",
+      "industria": "industria",
+      "olio": "olio",
+      "conferimento": "conferimento",
+      "essiccazione": "essiccazione"
+    }
+  },
+  "impostazioniPanel": {
+    "title": "Fonte meteo & variabili",
+    "saved": "Salvato ✓",
+    "saveConfig": "Salva configurazione",
+    "saveError": "Salvataggio non riuscito.",
+    "selectCompany": "Seleziona un'azienda per configurare la fonte meteo.",
+    "weatherSource": "Fonte dati meteo",
+    "publicApi": {
+      "label": "API Pubblica Gratuita",
+      "descr": "Open-Meteo · nessuna credenziale, ottimizzato per il tier free."
+    },
+    "privateStation": {
+      "label": "Stazione Meteo Aziendale",
+      "descr": "Centralina privata (Davis, Pessl…) con credenziali dedicate."
+    },
+    "stationModel": "Modello centralina",
+    "stationModelPlaceholder": "es. davis, pessl",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "chiave fornita dal costruttore",
+    "deviceId": "ID Dispositivo",
+    "deviceIdPlaceholder": "identificativo della stazione",
+    "credentialsNotice": "Le credenziali restano nel database locale dell'azienda e non vengono sincronizzate.",
+    "visibleVariables": "Variabili meteo a schermo",
+    "variables": {
+      "temperature": {
+        "label": "Temperatura",
+        "descr": "Aria (°C)"
+      },
+      "humidity": {
+        "label": "Umidità",
+        "descr": "Relativa (%)"
+      },
+      "rain": {
+        "label": "Pioggia",
+        "descr": "Precipitazioni (mm)"
+      },
+      "radiation": {
+        "label": "Radiazione",
+        "descr": "Solare (W/m²)"
+      },
+      "leaf_wetness": {
+        "label": "Bagnatura fogliare",
+        "descr": "Ore/giorno (stima)"
+      },
+      "wind": {
+        "label": "Vento",
+        "descr": "Velocità (m/s)"
+      }
+    }
+  },
+  "addDataControl": {
+    "chooseFile": "Scegli un file",
+    "configExported": "Configurazione esportata: «{{name}}» ({{count}} geometrie).",
+    "exportConfig": "Esporta configurazione",
+    "exportConfigDescription": "Tutti i layer della mappa (appezzamenti, infrastrutture, mappe DSS…) in un unico file.",
+    "fileAdded": "«{{name}}» aggiunto ({{count}} geometrie).",
+    "importInProgress": "Import in corso…",
+    "invalidGeoJson": "GeoJSON non valido: atteso FeatureCollection o Feature.",
+    "largeFile": "File grande ({{size}} MB)",
+    "largeFileWarning": "File sopra i 50 MB possono bloccare la WebView su smartphone. Vuoi procedere comunque?",
+    "loadingEllipsis": "Caricamento…",
+    "recentActivity": "Attività recenti",
+    "sianImportResult": "Fascicolo {{year}}: {{created}} campi creati, {{updated}} aggiornati.",
+    "sianImportResultSkipped": "Fascicolo {{year}}: {{created}} campi creati, {{updated}} aggiornati, {{skipped}} saltati.",
+    "sianModeDescription": "Importa il Fascicolo Aziendale Grafico (Shapefile .zip o CSV CAA). Crea/aggiorna i campi della Campagna Agraria {{year}}.",
+    "unrecognizedFormat": "Formato non riconosciuto: {{name}}. Accettati GeoJSON, KML, KMZ, GPX, GeoPackage (.gpkg), Shapefile (.zip/.shp).",
+    "uploadAnyway": "Carica comunque",
+    "addData": "Aggiungi dati",
+    "addDataToMap": "Aggiungi dati esterni alla mappa",
+    "mapModeDescription": "Carica file cartografici esterni (GeoJSON, KML, GPX, Shapefile via DuckDB Spatial). Finiscono nel Layer Store della mappa e sono disponibili per la Geo-compliance.",
+    "noFieldsRecognized": "Nessun campo riconosciuto nel file del Fascicolo.",
+    "noLayersToExport": "Nessun layer cartografico da esportare.",
+    "noReadableGeometries": "Il file non contiene geometrie leggibili.",
+    "selectCompanyFirst": "Seleziona prima un'azienda attiva.",
+    "mapLayer": "Layer mappa",
+    "sianFile": "Fascicolo SIAN"
+  },
+  "basemapSwitcher": {
+    "basemap": "Basemap",
+    "overlay": "Overlay",
+    "background": "Sfondo cartografico",
+    "cadastre": "Catasto (WMS)",
+    "streetMap": "Stradario (OSM)",
+    "satellite": "Satellite (Esri)"
+  },
+  "companyDataIo": {
+    "exportCompanyData": "Esporta dati azienda (GeoJSON)",
+    "importData": "Importa dati",
+    "importSuccess": "Importati {{crops}} colture, {{plots}} appezzamenti, {{campaigns}} campagne, {{treatments}} trattamenti, {{soilSamples}} analisi suolo, {{harvests}} raccolte, {{assets}} infrastrutture, {{scouting}} rilievi.",
+    "confirmImport": "I dati del file verranno importati nell'azienda attiva: eventuali record con lo stesso identificativo saranno sovrascritti. Continuare?",
+    "confirmRestoreLocal": "Ripristino dati locali: l'operazione SOVRASCRIVE lo stato corrente della mappa (appezzamenti e Quaderno di Campagna) con i dati del file. Continuare?",
+    "descriptionCloud": "Esporta o importa i dati dell'azienda attiva (appezzamenti + Quaderno di Campagna) in formato GeoJSON Esteso.",
+    "descriptionStandalone": "Esporta un'istantanea completa dei dati locali in GeoJSON, o ripristina lo stato da un file di backup.",
+    "exportSuccess": "Dati aziendali esportati.",
+    "titleCloud": "Trasferimento dati azienda",
+    "titleStandalone": "Sicurezza dati (backup/ripristino)"
+  },
+  "confirmDeleteOperazione": {
+    "confirmDelete": "Sì, elimina definitivamente",
+    "defaultConsentLabel": "Confermo di voler eliminare definitivamente questa operazione.",
+    "defaultMessage": "l'eliminazione di questa operazione invaliderà lo storico del Quaderno di Campagna per questo appezzamento. L'azione è irreversibile.",
+    "defaultTitle": "Elimina operazione colturale",
+    "deleting": "Eliminazione…",
+    "warning": "Attenzione:"
+  },
+  "safetyDeleteModal": {
+    "confirmDelete": "Elimina definitivamente",
+    "description": "Per confermare l'eliminazione definitiva dell'elemento e di tutti i dati storici associati, digita il suo nome esatto:",
+    "title": "Elimina elemento",
+    "confirmName": "Conferma nome"
+  },
+  "cropLegend": {
+    "noCrop": "Senza coltura",
+    "title": "Colture"
+  },
+  "meteoCard": {
+    "today": "Oggi",
+    "unavailable": "Meteo non disponibile: connettiti per il primo scaricamento.",
+    "refreshNow": "Aggiorna ora",
+    "title": "Meteo · previsione 5 giorni"
+  },
+  "moduleSidebar": {
+    "readOnly": "sola lettura",
+    "readOnlyUnavailable": "Non disponibile in sola lettura (ruolo Viewer)",
+    "cropData": "Dati coltura",
+    "dssModels": "DSS · modelli previsionali",
+    "exportSian": "Esporta SIAN (CSV)…"
+  },
+  "geometryEditToolbar": {
+    "edit": "Modifica",
+    "editVertices": "Modifica vertici",
+    "moveGeometry": "Sposta geometria",
+    "rotate": "Ruota",
+    "scale": "Scala",
+    "simplify": "Semplifica"
+  },
+  "fieldAttributeTable": {
+    "maxOrganicNitrogenFormula": "Massimale azoto organico in ZVN = area_ha × 170 kg/ha",
+    "plantDensityFormula": "Densità piante = numero_piante / area_ha",
+    "plots": "Appezzamenti",
+    "yieldFormula": "Conversione resa = (resa_kg / 1000) / area_ha",
+    "detachedTitle": "AgroGea — Tabella attributi",
+    "harvests": "Raccolte",
+    "maxOrganicNitrogen": "Max N organico (ZVN)",
+    "plantDensity": "Densità piante",
+    "yieldTHa": "Resa (t/ha)"
+  },
+  "dataEntrySheet": {
+    "areaGeodetic": "Area (geodetica)",
+    "category": "Categoria",
+    "lengthGeodetic": "Lunghezza (geodetica)",
+    "newInfrastructure": "Nuova infrastruttura",
+    "newPoi": "Nuovo punto di interesse",
+    "plotHint": "Coltura, anno d'impianto e profondità radici si impostano nella scheda «Dati coltura» dopo aver creato l'appezzamento.",
+    "assetName": "Nome / identificativo",
+    "assetNamePlaceholderLine": "es. Condotta principale",
+    "assetNamePlaceholderPoint": "es. Pozzo nord",
+    "assetType": "Tipologia",
+    "fixed": "Fissa",
+    "irrigationType": "Tipo irrigazione",
+    "irrigationTypePlaceholder": "es. goccia, aspersione",
+    "mobile": "Mobile",
+    "newPlot": "Nuovo appezzamento",
+    "plotName": "Nome appezzamento",
+    "plotNamePlaceholder": "es. Vigna Alta",
+    "position": "Posizione",
+    "readOnly": "Sola lettura",
+    "saveFailed": "Salvataggio non riuscito. Riprova.",
+    "saveLocalDb": "Salva nel DB locale"
+  },
+  "detailEditSheet": {
+    "deleteElement": "Elimina elemento",
+    "dragVertices": "Trascina i vertici sulla mappa per regolare la geometria.",
+    "notSpecified": "— non specificata —",
+    "samplingName": "Campionamento {{id}}",
+    "saveChanges": "Salva modifiche",
+    "saveGeometry": "Salva geometria",
+    "soilComposition": "Composizione del suolo",
+    "soilCompositionHint": "Classe tessiturale o percentuali sabbia/limo/argilla: alimentano il bilancio idrico (Saxton-Rawls) quando non ci sono campionamenti.",
+    "clayPercent": "Argilla %",
+    "editGeometry": "Modifica geometria",
+    "infrastructure": "Infrastruttura",
+    "nitrogenMgKg": "Azoto (mg/kg)",
+    "operationalStatus": "Stato operativo",
+    "organicMatter": "Sostanza organica",
+    "organicMatterPercent": "Sost. organica %",
+    "ph": "pH",
+    "phosphorusMgKg": "Fosforo (mg/kg)",
+    "plot": "Appezzamento",
+    "potassiumMgKg": "Potassio (mg/kg)",
+    "sampledOn": "Prelevato il",
+    "sandPercent": "Sabbia %",
+    "siltPercent": "Limo %",
+    "textureClassLabel": "Classe tessiturale",
+    "textureClass": {
+      "sandy": "Sabbioso",
+      "sandyLoam": "Sabbioso franco",
+      "loamySand": "Franco sabbioso",
+      "loam": "Franco",
+      "siltLoam": "Franco limoso",
+      "silt": "Limoso",
+      "sandyClayLoam": "Franco sabbioso argilloso",
+      "clayLoam": "Franco argilloso",
+      "siltyClayLoam": "Franco limoso argilloso",
+      "sandyClay": "Sabbioso argilloso",
+      "siltyClay": "Limoso argilloso",
+      "clay": "Argilloso"
+    }
+  },
+  "fieldCollectionTool": {
+    "capturesCount": "{{count}} catture",
+    "close": "Chiudi",
+    "delete": "Elimina",
+    "noAdditionalDetails": "Nessun dettaglio aggiuntivo registrato.",
+    "noObservationsYet": "Nessun rilievo. Usa i pulsanti sopra per iniziare.",
+    "observationRegister": "Registro rilievi ({{count}})",
+    "photoLabel": "foto",
+    "placeObservationHint": "Piazza un punto di osservazione tramite GPS o toccando la mappa.",
+    "saveError": "Errore salvataggio.",
+    "saveObservation": "Salva rilievo",
+    "tapMapToPlace": "Tocca la mappa per posizionare il punto di rilievo",
+    "captureCount": "Conteggio catture",
+    "captureCountPlaceholder": "N. insetti / catture",
+    "coordinates": "Coordinate",
+    "deleteError": "Errore eliminazione.",
+    "deleteObservation": "Elimina rilievo",
+    "describeObservation": "Descrivi l'osservazione…",
+    "gpsAccuracy": "Precisione GPS",
+    "gpsError": "Errore GPS.",
+    "layerName": "Rilievi GPS (Scouting)",
+    "notesSymptoms": "Note / Sintomi",
+    "observationDate": "Data rilievo",
+    "observationPhotoAlt": "Foto rilievo",
+    "openObservationCard": "Apri scheda rilievo",
+    "photo": "Fotografia",
+    "savedSuccess": "Rilievo salvato · {{lat}}, {{lng}}",
+    "takeOrChoosePhoto": "Scatta foto / Scegli da galleria",
+    "tapMap": "Tap mappa",
+    "tapMapEllipsis": "Tocca mappa…",
+    "title": "Rilievo in campo"
+  },
+  "offlineAreaDialog": {
+    "cachedTiles": "In cache: {{count}} tile",
+    "description": "Scarica le tile cartografiche per lavorare senza rete. Le tile vengono salvate nel browser e usate automaticamente offline.",
+    "download": "Scarica",
+    "errorsCount": "{{count}} errori",
+    "estimatedTiles": "{{count}} tile stimate",
+    "maxZoom": "Zoom max",
+    "useCurrentMapExtent": "Usa estensione mappa corrente",
+    "clear": "Svuota",
+    "east": "Est",
+    "invalidCoordinates": "Coordinate non valide.",
+    "north": "Nord",
+    "reduceAreaOrZoom": "riduci area o zoom",
+    "south": "Sud",
+    "title": "Download area offline",
+    "west": "Ovest"
+  },
+  "registroGeometrie": {
+    "pointsOfInterest": "Punti di interesse",
+    "samplingLabel": "Campionamento {{id}}",
+    "title": "Registro geometrie ({{count}})",
+    "empty": "Nessuna geometria ancora. Usa \"Disegna elemento\" per tracciare appezzamenti, infrastrutture o POI.",
+    "infrastructure": "Infrastruttura",
+    "infrastructures": "Infrastrutture",
+    "plot": "Appezzamento",
+    "plots": "Appezzamenti"
+  },
+  "updateNotice": {
+    "failed": "Aggiornamento non riuscito: {{error}}",
+    "installedRestarting": "Aggiornamento installato. Riavvio in corso…",
+    "updateNow": "Aggiorna ora",
+    "available": "È disponibile l'aggiornamento",
+    "close": "Chiudi",
+    "downloading": "Download dell'aggiornamento",
+    "hideReleaseNotes": "Nascondi note di rilascio",
+    "releaseNotes": "Note di rilascio"
+  },
+  "kpiGrid": {
+    "apply": "Applica",
+    "noKpis": "Nessun KPI per la selezione corrente. Scegli un'altra coltura o annata.",
+    "editParams": "Modifica parametri",
+    "paramsTitle": "Parametri · {{title}}"
+  },
+  "colorbar": {
+    "critical": "Critico",
+    "dssRisk": "Rischio DSS",
+    "optimal": "Ottimale",
+    "warning": "Allerta"
+  },
+  "fieldDashboard": {
+    "expandModules": "Espandi moduli",
+    "fullScreenMap": "Mappa a schermo intero",
+    "readOnlyBanner": {
+      "prefix": "Modalità",
+      "strong": "Sola Lettura",
+      "suffix": " (ruolo Viewer): puoi consultare ed esportare, ma non modificare i dati."
+    },
+    "scoutingTitle": "Rilievo in campo (Scouting GPS)",
+    "tabLogbook": "Quaderno",
+    "tabModules": "Moduli",
+    "tabOffline": "Offline",
+    "tabScouting": "Rilievo GPS"
+  },
+  "operazioneForm": {
+    "onSurface": "su {{area}} ha",
+    "selectEllipsis": "Seleziona…",
+    "selectFromNationalRegister": "Seleziona dal registro nazionale…",
+    "selectPlotForMmConversion": "Seleziona un appezzamento: la lama in mm si converte in volume sulla sua superficie.",
+    "selectPlotForSoilSample": "Seleziona un appezzamento: il campione di suolo viene georeferenziato al suo centroide.",
+    "soilAnalysis": "Analisi del suolo",
+    "type": {
+      "fertilization": {
+        "descr": "Concime, titolo N-P-K, dose totale, tetto azoto ZVN.",
+        "label": "Fertilizzazione"
+      },
+      "phytosanitary": {
+        "descr": "Difesa: prodotto, avversità, dose, patentino (PAN).",
+        "label": "Trattamento fitosanitario"
+      },
+      "sampling": {
+        "descr": "Prelievo di suolo (analisi) o altro campione.",
+        "label": "Campionamento"
+      },
+      "sowing": {
+        "descr": "Seme/varietà, dose di semina, mezzo.",
+        "label": "Semina / Trapianto"
+      },
+      "tillage": {
+        "descr": "Lavorazione del terreno: tipo e mezzo impiegato.",
+        "label": "Lavorazione"
+      },
+      "irrigation": {
+        "descr": "Apporto d'acqua (mm o hl), mezzo/impianto.",
+        "label": "Irrigazione"
+      }
+    },
+    "date": "Data",
+    "depthCm": "Profondità (cm)",
+    "hlVolume": "hl (volume)",
+    "irrigationAmount": "Apporto irriguo ({{unit}})",
+    "machinery": "Mezzo / macchina",
+    "machineryPlaceholder": "es. atomizzatore, aratro",
+    "mmSheet": "mm (lama)",
+    "nitrogenMax": "Massimale azoto:",
+    "nitrogenN": "Azoto (N)",
+    "notes": "Note",
+    "operator": "Operatore",
+    "operatorPlaceholder": "Nome e cognome",
+    "organicMatterPercent": "Sost. organica (%)",
+    "organoMineral": "Organo-minerale",
+    "otherSampleOption": "Altro campione",
+    "phosphorusP": "Fosforo (P)",
+    "potassiumK": "Potassio (K)",
+    "productFertilizer": "Nome commerciale concime",
+    "productPhyto": "Prodotto fitosanitario",
+    "productSeed": "Seme / varietà",
+    "reentryHours": "Rientro (h)",
+    "safetyDays": "Carenza (gg)",
+    "sampledMatrix": "Matrice campionata",
+    "soilAnalysisOption": "Suolo (analisi)",
+    "submit": "Registra operazione",
+    "targetPest": "Avversità",
+    "texture": "Tessitura",
+    "texturePlaceholder": "es. franco, argilloso, sabbioso",
+    "tillageTypeLabel": "Tipo di lavorazione",
+    "tillageTypePlaceholder": "es. aratura, erpicatura, fresatura, sarchiatura",
+    "totalQuantityKg": "Quantità totale (kg)"
+  },
+  "sianExportDialog": {
+    "chooseField": "— scegli un campo —",
+    "crops": "Colture",
+    "csvColumns": "Colonne del CSV (in ordine)",
+    "exportCsv": "Esporta CSV ({{count}})",
+    "fileFormat": "Formato file",
+    "noColumnSelected": "Nessuna colonna selezionata: aggiungine almeno una.",
+    "noPlot": "Nessun appezzamento.",
+    "noSelectionAllPlots": "Nessuna selezione = tutti gli appezzamenti.",
+    "noSelectionAllTypes": "Nessuna selezione = tutti i tipi.",
+    "operationType": {
+      "sampling": "Campionamento",
+      "fertilization": "Fertilizzazione",
+      "harvest": "Raccolta",
+      "irrigation": "Irrigazione",
+      "phytosanitary": "Trattamento",
+      "sowing": "Semina",
+      "tillage": "Lavorazione"
+    },
+    "operationTypes": "Tipi di operazione",
+    "plots": "Appezzamenti",
+    "previewColumns": "colonne",
+    "spatialScope": "Ambito spaziale",
+    "timeRange": "Intervallo temporale",
+    "title": "Esporta Quaderno (SIAN · CSV)",
+    "addColumn": "Aggiungi colonna",
+    "all": "Tutte",
+    "bomUtf8": "BOM UTF-8 (apertura corretta in Excel)",
+    "clear": "Svuota",
+    "currentYear": "Anno corrente",
+    "defaults": "Predefinite",
+    "from": "Dal",
+    "includeHeaderRow": "Includi riga di intestazione",
+    "includeWholeFarmOps": "Includi operazioni «intera azienda» (senza appezzamento)",
+    "last12Months": "Ultimi 12 mesi",
+    "moveDown": "Giù",
+    "moveUp": "Su",
+    "previewIntro": "Scegli filtri e struttura del tracciato. Anteprima:",
+    "previewOperations": "operazioni",
+    "remove": "Rimuovi",
+    "to": "Al",
+    "separatorLabel": "Separatore",
+    "separator": {
+      "comma": "Virgola ( , )",
+      "semicolon": "Punto e virgola ( ; )",
+      "tab": "Tabulazione"
+    }
+  },
+  "printComposer": {
+    "legendHint": "La legenda elenca i {{count}} layer visibili. PDF apre la stampa del browser (scegli «Salva come PDF»).",
+    "notesLabel": "Note",
+    "refreshMap": "Aggiorna mappa",
+    "title": "Print Composer · Stampa mappa",
+    "titleLabel": "Titolo",
+    "notesPlaceholder": "Es. Domanda PSR 2026 — misura 10.1",
+    "previewAlt": "Anteprima stampa",
+    "toggle": {
+      "scale": "Scala",
+      "north": "Nord",
+      "logo": "Logo"
+    }
+  },
+  "rawDataInspector": {
+    "dataset": {
+      "harvests": "Raccolte ({{count}})",
+      "ops": "Operazioni ({{count}})",
+      "plots": "Appezzamenti ({{count}})"
+    },
+    "noRowsMatch": "Nessuna riga corrisponde ai filtri.",
+    "opType": {
+      "sampling": "Campionamento",
+      "phytosanitary": "Trattamento",
+      "fertilization": "Fertilizzazione",
+      "irrigation": "Irrigazione",
+      "tillage": "Lavorazione",
+      "sowing": "Semina",
+      "harvest": "Raccolta"
+    },
+    "rowsCount": "{{shown}}/{{total}} righe",
+    "title": "Raw Data Inspector",
+    "searchPlaceholder": "Ricerca globale…",
+    "filterPlaceholder": "filtro",
+    "focusPlot": "Isola questo campo nella dashboard",
+    "removeFocus": "Rimuovi isolamento del campo",
+    "column": {
+      "name": "Nome",
+      "sheet": "Foglio",
+      "parcel": "Particella",
+      "areaHa": "Superficie (ha)",
+      "ndvi": "NDVI",
+      "notes": "Note",
+      "date": "Data",
+      "type": "Tipo",
+      "product": "Prodotto",
+      "activeSubstance": "Sost. attiva",
+      "dose": "Dose",
+      "targetDisease": "Avversità",
+      "cultivar": "Cultivar",
+      "quantityKg": "Quantità (kg)",
+      "destination": "Destinazione"
+    }
+  },
+  "commandCenter": {
+    "allCrops": "Tutte le colture",
+    "campaignYear": "Annata agraria",
+    "company": "Azienda",
+    "crop": "Coltura",
+    "downloadReport": "Download Executive Report",
+    "noPlotsInScope": "Nessun appezzamento nello scope.",
+    "plots": "Appezzamenti",
+    "plotsAreaSummary": "{{count}} appezzamenti · {{area}} ha",
+    "readOnlyBanner": {
+      "prefix": "Modalità",
+      "strong": "Sola Lettura",
+      "suffix": ": il tuo ruolo (Viewer) consente di consultare ed esportare i dati, ma non di modificarli."
+    },
+    "recalcAll": "Calcola tutto",
+    "recalcErrors": "{{count}} err.",
+    "refresh": "Aggiorna",
+    "allFields": "Tutti i campi",
+    "fieldsSelected": "{{count}} campi selez.",
+    "loadingAnalysis": "Caricamento analisi…",
+    "recalcAllReadOnly": "Non disponibile in modalità sola lettura (ruolo Viewer)",
+    "recalcAllTitle": "Calcola indici satellitari, DSS e bilancio idrico per tutti gli appezzamenti",
+    "refreshTitle": "Ricarica DSS, bilancio idrico e meteo dal database"
+  },
+  "suoloPanel": {
+    "calculateButton": "Calcola da Sentinel-2 (STAC)",
+    "calculating": "Calcolo in corso…",
+    "charts": {
+      "needData": "Servono appezzamenti con NDVI calcolato e campionamenti del suolo per incrociare i dati.",
+      "samples": "campioni",
+      "title": "Charts · NDVI ↔ suolo",
+      "pearsonTooltip": "Coefficiente di correlazione di Pearson",
+      "plots": "Appezzamenti"
+    },
+    "cloudCover": {
+      "title": "Copertura nuvolosa max"
+    },
+    "indices": {
+      "ndwi": {
+        "descr": "Contenuto idrico"
+      },
+      "overlay": "overlay",
+      "title": "Indici",
+      "msavi2": {
+        "descr": "Suolo nudo / bassa copertura"
+      },
+      "ndre": {
+        "descr": "Stato azotato (arboree)"
+      },
+      "ndvi": {
+        "descr": "Vigore vegetativo"
+      },
+      "primaryTooltip": "Indice primario (overlay sulla mappa)",
+      "savi": {
+        "descr": "Corretto per il suolo"
+      }
+    },
+    "period": {
+      "custom": "Personalizzato",
+      "daysMax": "{{count}} giorni · max {{max}}",
+      "from": "Dal",
+      "last15Days": "Ultimi 15 gg",
+      "last30Days": "Ultimi 30 gg",
+      "lastImage": "Ultima immagine",
+      "rangeTooWide": "Intervallo troppo ampio: massimo {{max}} giorni (selezionati {{count}}).",
+      "title": "Periodo",
+      "to": "al",
+      "endBeforeStart": "La data di fine precede quella di inizio."
+    },
+    "plots": {
+      "none": "Nessun appezzamento disponibile.",
+      "title": "Appezzamenti ({{count}})"
+    },
+    "progress": {
+      "plotCounter": "appezzamento {{current}}/{{total}}"
+    },
+    "results": {
+      "cloudSuffix": " · {{percent}}% nubi",
+      "noScene": "Nessuna scena utile coi filtri scelti.",
+      "sceneDate": "scena del {{date}}",
+      "title": "Risultati",
+      "trend": "Trend",
+      "trendIndices": "indici"
+    },
+    "title": "Suolo · Analisi indici"
+  },
+  "vraPanel": {
+    "baseIndex": "Indice base",
+    "cellResolution": "Risoluzione cella",
+    "cellsCount": "{{count}} celle",
+    "noPlotAvailable": "Nessun appezzamento disponibile.",
+    "ratesPerZone": "Ratei per zona ({{unit}})",
+    "tillageLabel": "Lavorazione",
+    "zoneOrderHint": "Zona 1 = indice più basso (vigore minore) → zona {{zone}} = più alto.",
+    "zonesCount": "Zone ({{count}})",
+    "zonesGenerated": "Zone generate",
+    "generateMap": "Genera mappa VRA",
+    "generating": "Generazione…",
+    "title": "Mappe a rateo variabile (VRA)",
+    "zoneNumber": "Zona {{number}}",
+    "tillage": {
+      "concimazione": "Concimazione",
+      "fertilizzazione": "Fertilizzazione",
+      "trattamento": "Trattamento",
+      "semina": "Semina",
+      "irrigazione": "Irrigazione"
+    },
+    "resolution": {
+      "fine": "Fine (~20 m)",
+      "media": "Media (~40 m)",
+      "grossa": "Grossa (~80 m)"
+    }
+  },
+  "cropDataForm": {
+    "campaignDeclarativeData": "Campagna {{campaignYear}} · dati dichiarativi",
+    "campaignYear": "Campagna Agraria",
+    "chooseCropTypeHint": "Scegli il tipo di coltura per compilare la scheda.",
+    "cropSaved": "Coltura salvata per la Campagna {{campaignYear}}.",
+    "cropType": "Tipo di coltura",
+    "declaredArea": "Superficie dichiarata (ha)",
+    "detailsLabel": "Dettagli {{label}}",
+    "fromCatalog": "Da catalogo…",
+    "prefilledFromCampaign": "Precompilato dalla Campagna {{copiedFrom}}. Verifica i dati e salva per creare la campagna {{campaignYear}}.",
+    "saveFailed": "Salvataggio non riuscito.",
+    "selectFromNationalRegister": "Seleziona dal registro nazionale…",
+    "sowingDate": "Data semina/trapianto",
+    "sowingHint": "Registra l'operazione «Semina / Trapianto» nel Quaderno: la sua data guida i modelli a gradi-giorno del DSS.",
+    "speciesFromCatalog": "Specie da catalogo · {{countryCode}}",
+    "speciesLabel": "Specie · {{label}}",
+    "agriculturalParcel": "ID Appezzamento / Agricultural parcel",
+    "commonName": "Nome comune",
+    "cropCode": "Codice coltura (SIAN/ministeriale)",
+    "cropCodePlaceholder": "es. 060",
+    "nextYear": "Annata successiva",
+    "noActiveCompany": "Nessuna azienda attiva.",
+    "previousYear": "Annata precedente",
+    "referenceParcel": "ID Isola / Reference parcel",
+    "saveCrop": "Salva coltura",
+    "scientificName": "Nome scientifico",
+    "scientificNamePlaceholder": "es. Vitis vinifera",
+    "updateCrop": "Aggiorna coltura",
+    "varietyCode": "Codice varietà",
+    "varietyFromCatalog": "Varietà da catalogo",
+    "varietyPlaceholder": "es. Sangiovese, Leccino"
+  },
+  "colturaPanel": {
+    "calculateModels": "Calcola Modelli",
+    "calculateModelsCount": "Calcola Modelli ({{count}})",
+    "dataTitle": "Dati coltura",
+    "noPlotAvailable": "Nessun appezzamento disponibile.",
+    "plotsCount": "Appezzamenti ({{count}})",
+    "plotsWithoutDssModule": "{{count}} appezzamento/i selezionato/i senza modulo DSS: registra prima la coltura nella scheda «Dati coltura».",
+    "calculating": "Calcolo…",
+    "dssTitle": "Coltura · DSS"
+  },
+  "teamPanel": {
+    "invite": "Invita",
+    "inviteSent": "Invito inviato a {{email}} come {{role}}.",
+    "invited": "invitato",
+    "noSeatsForPlan": "Il piano attuale non prevede posti collaboratore per questa azienda.",
+    "quotaExhausted": "Quota esaurita",
+    "readOnlyNotice": "Sola lettura: il tuo ruolo non consente di invitare collaboratori.",
+    "remove": "Rimuovi",
+    "seatUsage": "{{plural}}: {{used}} su {{max}}",
+    "sending": "Invio…",
+    "unlimited": "illimitati",
+    "emailPlaceholder": "email@cliente.it",
+    "exhausted": "esaurito",
+    "invalidEmail": "Inserisci un'email valida.",
+    "inviteCollaborator": "Invita collaboratore",
+    "plan": "Piano {{plan}}",
+    "role": "Ruolo",
+    "title": "Gestione team azienda"
+  },
+  "customDashboard": {
+    "addChart": "Aggiungi grafico",
+    "aggregationFunction": "Funzione",
+    "chartTitle": "Titolo",
+    "chartType": {
+      "pie": "Torta",
+      "area": "Area",
+      "bar": "Barre",
+      "line": "Linee"
+    },
+    "chartTypeLabel": "Tipo di grafico",
+    "dataEntity": "Dati (entità)",
+    "denominatorB": "Denominatore (B)",
+    "from": "Dal",
+    "groupByDimension": "Raggruppa per (dimensione)",
+    "measure": "Misura",
+    "noCharts": "Nessun grafico. Usa «Aggiungi grafico» per comporre la dashboard aziendale dai dati disponibili.",
+    "noDataForSelection": "Nessun dato per la selezione corrente.",
+    "numeratorA": "Numeratore (A)",
+    "subtitle": "Componi analisi dai dati aziendali: scegli entità, raggruppamento, funzione e tipo di grafico.",
+    "to": "Al",
+    "add": "Aggiungi",
+    "campaignYear": "Annata {{year}}",
+    "chartTitlePlaceholder": "Titolo del grafico",
+    "customPeriod": "Periodo personalizzato",
+    "dataAnalysis": "Analisi dati",
+    "dataPeriod": "Periodo dei dati",
+    "deleteChart": "Elimina grafico",
+    "dragToReorder": "Trascina per riordinare",
+    "editChart": "Modifica grafico",
+    "newChart": "Nuovo grafico",
+    "preset": "Preset",
+    "save": "Salva",
+    "title": "Dashboard personalizzata",
+    "wholeHistory": "Tutto lo storico"
+  },
+  "operationsCalendar": {
+    "delete": "Elimina",
+    "dssCalculatedOn": "Calcolato il",
+    "executionDate": "Data esecuzione",
+    "harvest": "Raccolta",
+    "harvestDate": "Data raccolta",
+    "highRisk": "Rischio elevato · {{model}}",
+    "month": {
+      "april": "Aprile",
+      "august": "Agosto",
+      "december": "Dicembre",
+      "february": "Febbraio",
+      "january": "Gennaio",
+      "july": "Luglio",
+      "june": "Giugno",
+      "march": "Marzo",
+      "may": "Maggio",
+      "november": "Novembre",
+      "october": "Ottobre",
+      "september": "Settembre"
+    },
+    "noEventsForDay": "Nessun evento registrato per questo giorno.",
+    "planned": "pianificato",
+    "product": "Prodotto",
+    "save": "Salva",
+    "weekday": {
+      "fri": "Ven",
+      "sat": "Sab",
+      "sun": "Dom",
+      "thu": "Gio",
+      "wed": "Mer",
+      "mon": "Lun",
+      "tue": "Mar"
+    },
+    "dssHigh": "elevato",
+    "dssIndex": "indice",
+    "dssModel": "Modello",
+    "dssRisk": "rischio",
+    "title": "Calendario operativo"
+  },
+  "userProfileSettingsPage": {
+    "comingSoon": "in arrivo",
+    "moduleGroup": {
+      "header": "Barra superiore",
+      "map": "Strumenti & controlli mappa (GeoLibre)",
+      "panels": "Pannelli & moduli agronomici"
+    },
+    "module": {
+      "headerAddData": {
+        "label": "Aggiungi dati",
+        "descr": "Ingresso file esterni (GeoLibre)"
+      },
+      "headerMeteoCard": {
+        "label": "Scheda meteo",
+        "descr": "Condizioni e previsione in header"
+      },
+      "headerSyncLed": {
+        "label": "Stato sincronizzazione",
+        "descr": "LED coda outbox"
+      },
+      "mapAttributeTable": {
+        "label": "Tabella attributi",
+        "descr": "Calcolatore campi e grafici"
+      },
+      "mapBasemapCadastre": {
+        "label": "Basemap catasto (WMS)",
+        "descr": "Particelle Agenzia Entrate"
+      },
+      "mapBasemapSatellite": {
+        "label": "Basemap satellite",
+        "descr": "Ortofoto Esri World Imagery"
+      },
+      "mapBasemapWayback": {
+        "label": "Imagery storica (Wayback)",
+        "descr": "Pannello Esri Wayback con selettore date"
+      },
+      "mapGeolocate": {
+        "label": "Geolocalizzazione",
+        "descr": "Posizione GPS in campo"
+      },
+      "mapLayerControl": {
+        "label": "Gestore livelli",
+        "descr": "Layer Manager nativo"
+      },
+      "mapMeasure": {
+        "label": "Righello (Measure)",
+        "descr": "Distanze e aree al volo"
+      },
+      "mapScale": {
+        "label": "Barra di scala",
+        "descr": "Scala metrica della mappa"
+      },
+      "mapSplitScreen": {
+        "label": "Vista a schermo diviso",
+        "descr": "Confronto mappe affiancate"
+      },
+      "mapTerrain": {
+        "label": "Rilievo 3D (Terrain)",
+        "descr": "Esagerazione altimetrica"
+      },
+      "panelAcqua": {
+        "label": "Bilancio idrico",
+        "descr": "Acqua & irrigazione (FAO 56/66)"
+      },
+      "panelAnagrafica": {
+        "label": "Anagrafica azienda",
+        "descr": "Dati legali e fiscali"
+      },
+      "panelColtura": {
+        "label": "Scheda coltura & DSS",
+        "descr": "Fenologia e modelli"
+      },
+      "panelGeoCompliance": {
+        "label": "GeoCompliance",
+        "descr": "Due diligence territoriale"
+      },
+      "panelMeteo": {
+        "label": "Fonte meteo & variabili",
+        "descr": "Configurazione meteo"
+      },
+      "panelNdvi": {
+        "label": "Analisi indici (NDVI/NDRE)",
+        "descr": "Pannello Suolo satellitare"
+      },
+      "panelQuaderno": {
+        "label": "Quaderno di Campagna",
+        "descr": "Registro operazioni"
+      },
+      "panelRaccolta": {
+        "label": "Registro raccolta",
+        "descr": "Conferimenti e rese"
+      },
+      "panelRegistro": {
+        "label": "Registro geometrie",
+        "descr": "Modifica / elimina elementi"
+      },
+      "panelSian": {
+        "label": "Export SIAN",
+        "descr": "Esportazione CSV ministeriale"
+      },
+      "panelStampa": {
+        "label": "Stampa mappa",
+        "descr": "Print Composer (PAC/PSR)"
+      },
+      "panelVra": {
+        "label": "Rateo variabile (VRA)",
+        "descr": "Mappe di prescrizione"
+      }
+    },
+    "unit": {
+      "ac": "Acri (ac)",
+      "hl": "Ettolitri (hl)",
+      "mm": "Millimetri (mm)",
+      "q": "Quintali (q)",
+      "ha": "Ettari (ha)",
+      "kg": "Chilogrammi (kg)",
+      "t": "Tonnellate (t)"
+    },
+    "header": {
+      "title": "Impostazioni Profilo",
+      "closeAria": "Chiudi impostazioni"
+    },
+    "sync": {
+      "syncing": "Sincronizzazione…",
+      "synced": "Preferenze sincronizzate",
+      "error": "Sync non riuscita (salvate in locale)",
+      "offline": "Offline · salvate in locale",
+      "auto": "Salvataggio automatico"
+    },
+    "interface": {
+      "title": "Interfaccia & moduli",
+      "subtitle": "Attiva o nascondi strumenti, pannelli e basemap. I moduli disattivati spariscono da sidebar, header e Command Palette.",
+      "resetLayout": "Ripristina layout predefinito"
+    },
+    "locale": {
+      "title": "Lingua & unità di misura",
+      "subtitle": "Localizzazione dell'app e formato dei dati analitici.",
+      "language": "Lingua interfaccia",
+      "area": "Superficie",
+      "yield": "Resa / quantità",
+      "water": "Apporti irrigui"
+    }
+  },
+  "operazioneDettaglioCard": {
+    "opLabel": {
+      "phytosanitary": "Trattamento fitosanitario",
+      "fertilization": "Fertilizzazione",
+      "irrigation": "Irrigazione",
+      "tillage": "Lavorazione",
+      "sowing": "Semina",
+      "harvest": "Raccolta",
+      "sampling": "Campionamento"
+    },
+    "operation": "Operazione",
+    "section": {
+      "cropPlot": "Coltura & appezzamento",
+      "productDose": "Prodotto & dose",
+      "operator": "Operatore",
+      "safety": "Sicurezza",
+      "notes": "Note"
+    },
+    "wholeFarm": "Intera azienda",
+    "field": {
+      "plot": "Appezzamento",
+      "product": "Prodotto",
+      "activeSubstance": "Sostanza attiva",
+      "registrationNumber": "N° registrazione",
+      "targetDisease": "Avversità / bersaglio",
+      "dose": "Dose",
+      "totalQuantity": "Quantità totale",
+      "waterVolume": "Volume acqua (l)",
+      "fertilizerType": "Tipo concime",
+      "npkRatio": "Titolo NPK",
+      "operatorName": "Nome operatore",
+      "operatorTaxCode": "Codice fiscale",
+      "licenseNumber": "N° patentino",
+      "machineryEquipment": "Macchina / attrezzatura",
+      "reentryInterval": "Intervallo di rientro (h)",
+      "safetyPeriod": "Tempo di carenza (gg)"
+    },
+    "delete": "Elimina",
+    "close": "Chiudi"
+  },
+  "raccoltaDettaglioCard": {
+    "harvest": "Raccolta",
+    "section": {
+      "cropPlot": "Coltura & appezzamento",
+      "delivery": "Conferimento",
+      "notes": "Note"
+    },
+    "wholeFarm": "Intera azienda",
+    "field": {
+      "plot": "Appezzamento",
+      "cultivar": "Cultivar / varietà",
+      "destination": "Destinazione",
+      "lotCode": "Codice lotto",
+      "quantity": "Quantità"
+    },
+    "delete": "Elimina",
+    "close": "Chiudi"
+  },
+  "mapTooltip": {
+    "plot": "Appezzamento",
+    "crop": "Coltura",
+    "area": "Area",
+    "lastNdvi": "Ultimo NDVI",
+    "infrastructure": "Infrastruttura",
+    "type": "Tipo",
+    "length": "Lunghezza",
+    "status": "Stato",
+    "mobile": "Mobile",
+    "fixed": "Fisso",
+    "poi": "POI",
+    "id": "ID"
+  },
+  "appHeader": {
+    "commandCenter": "Command Center",
+    "map": "Mappa",
+    "mapView": "Vista mappa"
+  },
+  "mapControls": {
+    "measure": "Misura distanze e aree (righello nativo)",
+    "searchPlace": "Cerca luogo (toponimo, indirizzo)",
+    "wayback": "Imagery storica (Esri Wayback)"
+  },
+  "cropFormSchema": {
+    "category": {
+      "viticoltura": {
+        "label": "Vite",
+        "commonName": "Vite",
+        "varietyLabel": "Cultivar"
+      },
+      "olivicoltura": {
+        "label": "Olivo",
+        "commonName": "Olivo",
+        "varietyLabel": "Cultivar"
+      },
+      "frutticoltura": {
+        "label": "Frutteto",
+        "commonName": "Frutteto",
+        "varietyLabel": "Cultivar"
+      },
+      "seminativo": {
+        "label": "Seminativo",
+        "commonName": "Seminativo",
+        "varietyLabel": "Varietà / ibrido"
+      },
+      "orticoltura": {
+        "label": "Orticoltura",
+        "commonName": "Ortaggio",
+        "varietyLabel": "Varietà"
+      }
+    },
+    "field": {
+      "clone": "Clone",
+      "portainnesto": "Portainnesto",
+      "sestoImpianto": "Sesto d'impianto (m)",
+      "formaAllevamento": "Forma di allevamento",
+      "annoImpianto": "Anno d'impianto",
+      "profonditaRadici": "Profondità radici (m)",
+      "tipoRaccolta": "Tipo di raccolta",
+      "specie": "Specie",
+      "ciclo": "Ciclo",
+      "densitaSemina": "Densità di semina (kg/ha)",
+      "interfilaCm": "Interfila (cm)",
+      "ambiente": "Ambiente"
+    },
+    "placeholder": {
+      "viticoltura": {
+        "clone": "es. R24, VCR 6",
+        "portainnesto": "es. 1103 Paulsen",
+        "sestoImpianto": "es. 2.5 × 0.8",
+        "profonditaRadici": "es. 1.0"
+      },
+      "olivicoltura": {
+        "sestoImpianto": "es. 6 × 6",
+        "profonditaRadici": "es. 1.2"
+      },
+      "frutticoltura": {
+        "specie": "es. Melo, Pesco, Susino",
+        "portainnesto": "es. M9, GF677",
+        "sestoImpianto": "es. 3.5 × 1.0",
+        "profonditaRadici": "es. 1.0"
+      },
+      "seminativo": {
+        "specie": "es. Frumento duro, Mais, Girasole, Soia, Orzo, Colza",
+        "profonditaRadici": "es. 0.8"
+      },
+      "orticoltura": {
+        "specie": "es. Pomodoro, Lattuga",
+        "sestoImpianto": "es. 1.0 × 0.4",
+        "profonditaRadici": "es. 0.4"
+      }
+    },
+    "option": {
+      "formaAllevamento": {
+        "spalliera": "Spalliera",
+        "cordoneSperonato": "Cordone speronato",
+        "guyot": "Guyot",
+        "alberello": "Alberello",
+        "vaso": "Vaso",
+        "globo": "Globo",
+        "palmetta": "Palmetta"
+      },
+      "tipoRaccolta": {
+        "manuale": "Manuale",
+        "agevolata": "Agevolata",
+        "meccanica": "Meccanica"
+      },
+      "cicloSeminativo": {
+        "autunnoVernino": "Autunno-vernino",
+        "primaverile": "Primaverile",
+        "estivo": "Estivo",
+        "secondoRaccolto": "Secondo raccolto"
+      },
+      "cicloOrticoltura": {
+        "primaverile": "Primaverile",
+        "estivo": "Estivo",
+        "autunnale": "Autunnale",
+        "invernale": "Invernale"
+      },
+      "ambiente": {
+        "pienoCampo": "Pieno campo",
+        "tunnel": "Tunnel",
+        "serra": "Serra"
+      }
+    }
+  }
+}

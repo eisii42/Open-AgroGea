@@ -1,0 +1,120 @@
+@import "@geolibre/ui/globals.css";
+@import "@agrogea/ui/tokens.css";
+/* Come nel desktop GeoLibre: globals.css è config-agnostico, l'app fornisce
+   il config Tailwind. */
+@config "../tailwind.config.js";
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  /* Uso in campo: niente zoom accidentale da doppio tap, niente selezione
+     del testo trascinando sulla mappa. */
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea,
+select {
+  -webkit-user-select: text;
+  user-select: text;
+  /* iOS: sotto i 16px il focus su un input forza lo zoom della pagina. */
+  font-size: 16px;
+}
+
+/* I controlli MapLibre di default sono troppo piccoli per i guanti da campo:
+   override scoped, mai dentro node_modules (convenzione GeoLibre). */
+.agro-field-map .maplibregl-ctrl button {
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+}
+
+/* Pannello Misura nativo (controllo top-left): toggle nativo nascosto (apertura
+   pilotata dal bottone custom della colonna) e scheda scostata a DESTRA della
+   colonna bottoni così si apre di fianco al suo bottone, senza sovrapporsi e
+   senza finire dietro la barra moduli. L'offset segue lo stato della sidebar
+   (data-sidebar su .agro-field-map): a barra chiusa supera la colonna bottoni, a
+   barra aperta anche i 272px del pannello moduli. */
+.agro-field-map .geolibre-measure-control {
+  position: relative;
+  transition: margin-left 0.3s ease-in-out;
+}
+.agro-field-map[data-sidebar="collapsed"] .geolibre-measure-control {
+  margin-left: 60px;
+}
+.agro-field-map[data-sidebar="open"] .geolibre-measure-control {
+  margin-left: 320px;
+}
+/* Misura: il toggle nativo si rimuove del tutto (il pannello è ancorato via CSS
+   al container, non dipende dal toggle). */
+.agro-field-map .geolibre-measure-control .measure-button {
+  display: none;
+}
+
+/* Esri Wayback: il pannello (bottom-right) è posizionato via JS dal rect del
+   toggle, quindi il toggle NON va tolto dal layout — `display:none` lo porterebbe
+   a rect 0 e la scheda finirebbe fuori vista. Lo si rende INVISIBILE mantenendo
+   l'ingombro (`visibility:hidden` conserva il bounding rect) e si azzera
+   sfondo/ombra del container così non resta un riquadro vuoto: niente bottone
+   blu, scheda comunque al suo posto. */
+.agro-field-map .geolibre-esri-wayback-control {
+  background: transparent;
+  box-shadow: none;
+}
+.agro-field-map .geolibre-esri-wayback-control .esri-wayback-control-toggle {
+  visibility: hidden;
+}
+
+/* Toolbar del GeoEditor: l'icona SVG dei pulsanti deve riempire il bottone e
+   restare centrata (allineato al desktop GeoLibre). Senza queste regole — anche
+   con lo style.css del pacchetto importato — alcune icone collassano a 0px. */
+.geo-editor-control .geo-editor-tool-button {
+  align-items: center;
+  box-sizing: border-box;
+  display: flex !important;
+  justify-content: center;
+  line-height: 0;
+  padding: 0;
+}
+
+.geo-editor-control .geo-editor-tool-button svg {
+  display: block;
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.geo-editor-control .geo-editor-tool-button[data-mode="text_marker"] svg {
+  height: 24px;
+  width: 24px;
+}
+
+.geo-editor-control .geo-editor-tool-button[data-mode="text_marker"] svg text {
+  font-size: 18px;
+}
+
+/* La toolbar NATIVA del GeoEditor non è usata nell'agro-field-suite: il disegno
+   di nuove geometrie è pilotato dal menu "Disegna elemento" della sidebar e la
+   modifica dalla barra custom (GeometryEditToolbar). La si nasconde del tutto
+   così non si apre più dietro la barra dei moduli. L'API programmatica del
+   controllo (enableDrawMode/enableEditMode, usata da quei comandi) resta attiva:
+   nascondere l'UI non disattiva l'editor né il rendering della geometria
+   editabile (che sono layer di mappa, non parte di questo controllo). */
+.agro-field-map .geo-editor-control {
+  display: none !important;
+}
+
+/* Toolbox NATIVO dei Components di GeoLibre (ControlGrid in alto a destra: STAC
+   search, swipe/confronto mappa, minimap, ecc.): non fa parte del prodotto
+   AgroGea, lo si nasconde del tutto. Le API programmatiche del plugin
+   (openMeasurePanel / openSearchPlacesPanel, pilotate dalla colonna controlli)
+   sono pannelli standalone INDIPENDENTI da questa griglia e restano attive. */
+.agro-field-map .geolibre-components-control {
+  display: none !important;
+}

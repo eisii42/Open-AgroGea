@@ -1,0 +1,282 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import type { Appezzamento, CampionamentoSuolo } from "@agrogea/core";
+import {
+  frazioniDaTessitura,
+  normalizzaFrazioni,
+  parametriSuoloSaxtonRawls,
+  saxtonRawls,
+} from "@agrogea/tools";
+import {
+  aggregaTessitura,
+  frazioniDaCampione,
+  frazioniDaProprieta,
+  parametriDaMetadata,
+  parametriDaSuoloManuale,
+  SUOLO_FRANCO_DEFAULT,
+} from "../apps/agro-field-suite/src/modules/soil/SoilDataResolver";
+
+/**
+ * Validazione dell'engine pedotransfer (Saxton-Rawls) e dei mapper puri del
+ * SoilDataResolver: tessitura → frazioni → θFC/θPWP, aggregazione campionamenti,
+ * fallback da metadata. La parte spaziale (DuckDB) è IO e non è coperta qui.
+ */
+
+describe("frazioniDaTessitura — classi multilingue e fallback", () => {
+  it("riconosce le classi USDA in IT/EN/ES", () => {
+    const argilloso = frazioniDaTessitura("argilloso");
+    const clay = frazioniDaTessitura("clay");
+    const arcilloso = frazioniDaTessitura("arcilloso");
+    assert.ok(argilloso && clay && arcilloso);
+    assert.equal(argilloso!.argilla, clay!.argilla);
+    assert.equal(argilloso!.argilla, arcilloso!.argilla);
+    // l'argilloso è dominato dall'argilla
+    assert.ok(argilloso!.argilla > argilloso!.sabbia);
+  });
+
+  it("normalizza separatori e accenti (franco-sabbioso)", () => {
+    const a = frazioniDaTessitura("Franco-Sabbioso");
+    const b = frazioniDaTessitura("franco sabbioso");
+    assert.deepEqual(a, b);
+    assert.ok(a && a.sabbia > a.argilla);
+  });
+
+  it("ricade sull'euristica a keyword per etichette composte", () => {
+    const fr = frazioniDaTessitura("terreno prevalentemente argilloso e limoso");
+    assert.ok(fr);
+    const somma = fr!.sabbia + fr!.limo + fr!.argilla;
+    assert.ok(Math.abs(somma - 1) < 1e-9);
+    assert.ok(fr!.argilla > 0 && fr!.limo > 0);
+  });
+
+  it("restituisce null per stringhe non pedologiche o vuote", () => {
+    assert.equal(frazioniDaTessitura(""), null);
+    assert.equal(frazioniDaTessitura("xyz123"), null);
+    assert.equal(frazioniDaTessitura(null), null);
+  });
+});
+
+describe("normalizzaFrazioni — percentuali a frazioni", () => {
+  it("normalizza percentuali a somma 1", () => {
+    const fr = normalizzaFrazioni(50, 30, 20);
+    assert.ok(fr);
+    assert.ok(Math.abs(fr!.sabbia - 0.5) < 1e-9);
+    assert.ok(Math.abs(fr!.sabbia + fr!.limo + fr!.argilla - 1) < 1e-9);
+  });
+
+  it("restituisce null se tutte nulle", () => {
+    assert.equal(normalizzaFrazioni(0, 0, 0), null);
+  });
+});
+
+describe("saxtonRawls — sanità fisica θFC/θPWP", () => {
+  it("FC > PWP e dentro i limiti fisici, per ogni tessitura", () => {
+    for (const classe of ["sabbioso", "franco", "argilloso"]) {
+      const fr = frazioniDaTessitura(classe)!;
+      const { capacitaCampo, puntoAppassimento } = saxtonRawls(fr);
+      assert.ok(capacitaCampo > puntoAppassimento, `${classe}: FC>PWP`);
+      assert.ok(puntoAppassimento > 0 && capacitaCampo < 0.6, `${classe}: bounds`);
+    }
+  });
+
+  it("l'argilla trattiene più acqua disponibile/residua della sabbia", () => {
+    const sabbia = saxtonRawls(frazioniDaTessitura("sabbioso")!);
+    const argilla = saxtonRawls(frazioniDaTessitura("argilloso")!);
+    // l'argilla ha PWP nettamente più alto della sabbia (acqua più legata)
+    assert.ok(argilla.puntoAppassimento > sabbia.puntoAppassimento);
+    assert.ok(argilla.capacitaCampo > sabbia.capacitaCampo);
+  });
+
+  it("più sostanza organica aumenta la ritenzione", () => {
+    const fr = frazioniDaTessitura("franco")!;
+    const povero = saxtonRawls(fr, 0.5);
+    const ricco = saxtonRawls(fr, 5);
+    assert.ok(ricco.capacitaCampo >= povero.capacitaCampo);
+  });
+});
+
+describe("parametriSuoloSaxtonRawls — composizione ParametriSuolo", () => {
+  it("applica i default e gli override di profondità/deplezione", () => {
+    const fr = frazioniDaTessitura("franco")!;
+    const base = parametriSuoloSaxtonRawls(fr);
+    assert.equal(base.profonditaRadici, 0.8);
+    assert.equal(base.frazioneDeplezione, 0.5);
+
+    const custom = parametriSuoloSaxtonRawls(fr, {
+      profonditaRadiciM: 1.2,
+      frazioneDeplezione: 0.4,
+    });
+    assert.equal(custom.profonditaRadici, 1.2);
+    assert.equal(custom.frazioneDeplezione, 0.4);
+    assert.ok(custom.capacitaCampo > custom.puntoAppassimento);
+  });
+});
+
+describe("frazioniDaProprieta — feature custom e campionamenti", () => {
+  it("preferisce le percentuali esplicite (multi spelling)", () => {
+    const fr = frazioniDaProprieta({ sand: 60, silt: 30, clay: 10 });
+    assert.ok(fr);
+    assert.ok(Math.abs(fr!.sabbia - 0.6) < 1e-9);
+  });
+
+  it("ricade sulla classe tessiturale testuale", () => {
+    const fr = frazioniDaProprieta({ texture: "clay loam" });
+    assert.ok(fr);
+    assert.ok(fr!.argilla > 0.2);
+  });
+
+  it("EC_a da sola non determina la tessitura (null)", () => {
+    assert.equal(frazioniDaProprieta({ eca: 35, ecadeep: 40 }), null);
+  });
+});
+
+function campione(over: Partial<CampionamentoSuolo>): CampionamentoSuolo {
+  return {
+    id: "c1",
+    tenant_id: "t",
+    company_id: "a",
+    plot_id: "p",
+    sampled_at: "2026-06-01T00:00:00Z",
+    sampling_position: { type: "Point", coordinates: [11, 44] },
+    depth_cm: 30,
+    nitrogen: null,
+    phosphorus: null,
+    potassium: null,
+    organic_matter: null,
+    ph: null,
+    texture: null,
+    metadata: {},
+    created_at: "",
+    updated_at: "",
+    deleted_at: null,
+    ...over,
+  };
+}
+
+describe("frazioniDaCampione / aggregaTessitura", () => {
+  it("legge la tessitura dal campo texture o dalle percentuali in metadata", () => {
+    const daTexture = frazioniDaCampione(campione({ texture: "sandy loam" }));
+    assert.ok(daTexture && daTexture.sabbia > daTexture.argilla);
+
+    const daMeta = frazioniDaCampione(
+      campione({ texture: null, metadata: { sabbia: 20, limo: 30, argilla: 50 } }),
+    );
+    assert.ok(daMeta && Math.abs(daMeta.argilla - 0.5) < 1e-9);
+  });
+
+  it("media frazioni e sostanza organica dei campioni validi", () => {
+    const agg = aggregaTessitura([
+      { frazioni: { sabbia: 0.6, limo: 0.3, argilla: 0.1 }, sostanzaOrganica: 2 },
+      { frazioni: { sabbia: 0.4, limo: 0.3, argilla: 0.3 }, sostanzaOrganica: 4 },
+    ]);
+    assert.ok(agg);
+    assert.equal(agg!.n, 2);
+    assert.ok(Math.abs(agg!.frazioni.sabbia - 0.5) < 1e-9);
+    assert.equal(agg!.sostanzaOrganica, 3);
+  });
+
+  it("aggrega null se la lista è vuota", () => {
+    assert.equal(aggregaTessitura([]), null);
+  });
+});
+
+describe("parametriDaMetadata — fallback Tier 3", () => {
+  function plot(meta: Record<string, unknown>): Appezzamento {
+    return {
+      id: "p1",
+      tenant_id: "t",
+      company_id: "a",
+      user_plot_name: "Campo",
+      cadastral_sheet: null,
+      cadastral_parcel: null,
+      area_ha: 2,
+      last_ndvi_mean: null,
+      geometry: { type: "Polygon", coordinates: [[[0, 0], [0, 1], [1, 1], [0, 0]]] },
+      irrigation_type: null,
+      planting_year: null,
+      metadata: meta,
+      created_at: "",
+      updated_at: "",
+      deleted_at: null,
+    };
+  }
+
+  it("estrae i parametri completi dal metadata", () => {
+    const p = parametriDaMetadata(
+      plot({ parametri_suolo: { capacitaCampo: 0.33, puntoAppassimento: 0.15 } }),
+    );
+    assert.ok(p);
+    assert.equal(p!.capacitaCampo, 0.33);
+    assert.equal(p!.profonditaRadici, SUOLO_FRANCO_DEFAULT.profonditaRadici);
+  });
+
+  it("null se il metadata non ha parametri suolo completi", () => {
+    assert.equal(parametriDaMetadata(plot({})), null);
+    assert.equal(
+      parametriDaMetadata(plot({ parametri_suolo: { capacitaCampo: 0.3 } })),
+      null,
+    );
+  });
+});
+
+describe("parametriDaSuoloManuale — Tier 3 inserimento manuale", () => {
+  function plotMeta(meta: Record<string, unknown>): Appezzamento {
+    return {
+      id: "p2",
+      tenant_id: "t",
+      company_id: "a",
+      user_plot_name: "Campo",
+      cadastral_sheet: null,
+      cadastral_parcel: null,
+      area_ha: 2,
+      last_ndvi_mean: null,
+      geometry: { type: "Polygon", coordinates: [[[0, 0], [0, 1], [1, 1], [0, 0]]] },
+      irrigation_type: null,
+      planting_year: null,
+      metadata: meta,
+      created_at: "",
+      updated_at: "",
+      deleted_at: null,
+    };
+  }
+
+  it("calcola θFC/θPWP via Saxton-Rawls dalla classe tessiturale manuale", () => {
+    const p = parametriDaSuoloManuale(
+      plotMeta({ suolo: { tessitura: "argilloso", sostanza_organica: 2 } }),
+    );
+    assert.ok(p);
+    assert.ok(p!.capacitaCampo > p!.puntoAppassimento);
+    assert.equal(p!.profonditaRadici, SUOLO_FRANCO_DEFAULT.profonditaRadici);
+  });
+
+  it("usa le percentuali manuali e gli override profondità/deplezione", () => {
+    const p = parametriDaSuoloManuale(
+      plotMeta({
+        suolo: {
+          sabbia: 30,
+          limo: 30,
+          argilla: 40,
+          profondita_radici: 1.1,
+          frazione_deplezione: 0.45,
+        },
+      }),
+    );
+    assert.ok(p);
+    assert.equal(p!.profonditaRadici, 1.1);
+    assert.equal(p!.frazioneDeplezione, 0.45);
+  });
+
+  it("rispetta le costanti idrauliche dirette (utente esperto)", () => {
+    const p = parametriDaSuoloManuale(
+      plotMeta({ suolo: { capacita_campo: 0.34, punto_appassimento: 0.16 } }),
+    );
+    assert.ok(p);
+    assert.equal(p!.capacitaCampo, 0.34);
+    assert.equal(p!.puntoAppassimento, 0.16);
+  });
+
+  it("null se non c'è composizione manuale utile", () => {
+    assert.equal(parametriDaSuoloManuale(plotMeta({})), null);
+    assert.equal(parametriDaSuoloManuale(plotMeta({ suolo: { ph: 6.5 } })), null);
+  });
+});

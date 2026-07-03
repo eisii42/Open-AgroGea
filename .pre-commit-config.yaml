@@ -1,0 +1,32 @@
+ci:
+  skip: [npm-build, eslint]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-json
+      - id: check-added-large-files
+        args: ["--maxkb=1024", "--enforce-all"]
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+        args: ["--unsafe"]
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+      - id: trailing-whitespace
+
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        entry: npm run lint
+        language: system
+        pass_filenames: false
+        types_or: [ts, tsx, javascript, jsx]
+      - id: npm-build
+        name: npm build
+        entry: npm run build
+        language: system
+        pass_filenames: false

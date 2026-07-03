@@ -1,0 +1,22 @@
+node_modules/
+dist/
+target/
+.tauri/
+**/src-tauri/gen/
+*.log
+*.tsbuildinfo
+.DS_Store
+.idea/
+.vscode/
+.claude/
+
+# Segreti d'ambiente (la .env.standalone tracciata contiene solo la flag di build).
+.env
+.env.local
+
+# Artefatti di coverage (c8/v8).
+coverage/
+coverage.xml
+
+# Cartella di lavoro locale, mai committata.
+private/

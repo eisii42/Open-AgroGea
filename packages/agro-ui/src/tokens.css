@@ -1,0 +1,126 @@
+/*
+ * AgroGea — design tokens (da Design.md).
+ * Tipografia: IBM Plex Sans (UI) + IBM Plex Mono (numeri/coordinate, tnum).
+ * Le variabili sono affiancate (non sostituite) a quelle shadcn di
+ * @geolibre/ui, così i primitives condivisi continuano a funzionare.
+ */
+
+:root {
+  /* Neutri */
+  --bg: #eef1f4;
+  --panel: #ffffff;
+  --panel-2: #f7f9fb;
+  --panel-3: #eef2f6;
+  --line: #e0e5ea;
+  --line-2: #cdd5dd;
+
+  /* Ink */
+  --ink: #161a1f;
+  --ink-2: #4a5560;
+  --ink-3: #7c8794;
+  --ink-4: #a4adb8;
+
+  /* Accent (blu — alternative: verde #1f8a5b, antracite #3b4654) */
+  --accent: #1f6feb;
+  --accent-d: #1a5fcc;
+  --accent-l: #eaf1fe;
+  --accent-bd: #b9d2fb;
+
+  /* Stato */
+  --ok: #1f9d57;
+  --ok-l: #e6f6ec;
+  --warn: #e07a1f;
+  --warn-l: #fcefe0;
+  --danger: #d8443c;
+  --danger-l: #fbe9e8;
+
+  /* Colture */
+  --crop-vite: #7b3f6b;
+  --crop-vite-l: #f3eaf1;
+  --crop-cereali: #b8862b;
+  --crop-cereali-l: #f8f1e3;
+  --crop-olivo: #5d7d3a;
+  --crop-olivo-l: #eef3e6;
+  --crop-frutta: #c0573f;
+  --crop-frutta-l: #f9ebe7;
+
+  /* Rampa NDVI */
+  --ndvi-030: #d23b2e;
+  --ndvi-045: #e8833a;
+  --ndvi-055: #f2c14e;
+  --ndvi-066: #a7c44d;
+  --ndvi-078: #4e9a3f;
+  --ndvi-090: #1f6b2e;
+
+  /* Raggi e ombre */
+  --r-1: 6px;
+  --r-2: 9px;
+  --r-3: 14px;
+  --r-4: 20px;
+  --sh-1: 0 1px 2px rgba(16, 32, 56, 0.08);
+  --sh-2: 0 4px 14px rgba(16, 32, 56, 0.1);
+  --sh-3: 0 10px 30px rgba(16, 32, 56, 0.14);
+  --sh-pop: 0 18px 60px rgba(16, 32, 56, 0.22);
+
+  /* Target touch minimo per l'uso in campo */
+  --touch-min: 44px;
+
+  --font-ui: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+.dark {
+  --bg: #0d1420;
+  --panel: #131c2b;
+  --panel-2: #182335;
+  --panel-3: #1e2a3f;
+  --line: #243349;
+  --line-2: #2e405a;
+
+  --ink: #e8edf3;
+  --ink-2: #b3bfcd;
+  --ink-3: #7e8ca0;
+  --ink-4: #586780;
+
+  --accent: #4d8df5;
+  --accent-d: #3a7be8;
+  --accent-l: #16263f;
+  --accent-bd: #28477a;
+
+  --ok-l: #11301f;
+  --warn-l: #34250f;
+  --danger-l: #371413;
+
+  --crop-vite-l: #2b1a27;
+  --crop-cereali-l: #2d2310;
+  --crop-olivo-l: #1b2412;
+  --crop-frutta-l: #2f1812;
+
+  --sh-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --sh-2: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --sh-3: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --sh-pop: 0 18px 60px rgba(0, 0, 0, 0.6);
+}
+
+/*
+ * Agronomic Green Mode — base chiara con accento verde agronomico. Non è dark
+ * (GeoLibre osserva solo `.dark`), quindi i control nativi restano in chiaro.
+ */
+.agro-green {
+  --bg: #eef3ea;
+  --panel: #ffffff;
+  --panel-2: #f4f8f0;
+  --panel-3: #e8efe1;
+  --line: #d9e3d0;
+  --line-2: #c4d3b6;
+
+  --accent: #1f8a5b;
+  --accent-d: #18744c;
+  --accent-l: #e4f2ea;
+  --accent-bd: #aed8c2;
+}
+
+.agro-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}

@@ -1,0 +1,40 @@
+name: release-oss
+
+# Pubblica gli installer firmati dell'edizione Community quando spingi un tag vX.Y.Z.
+# tauri-action genera anche `latest.json` (createUpdaterArtifacts:true) e lo allega
+# alla Release: l'endpoint dell'updater punta proprio a quel file. Repo PUBBLICO,
+# quindi raw/releases sono raggiungibili senza autenticazione.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - run: npm install --legacy-peer-deps
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: apps/agro-field-suite
+          tagName: ${{ github.ref_name }}
+          releaseName: "AgroGea Community ${{ github.ref_name }}"
+          releaseBody: "Aggiornamento automatico. Vedi il changelog nel banner dell'app."
+          releaseDraft: false
+          prerelease: false

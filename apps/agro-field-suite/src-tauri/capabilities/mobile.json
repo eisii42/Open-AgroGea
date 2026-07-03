@@ -1,0 +1,18 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "mobile",
+  "description": "Permessi per build Android: geolocalizzazione GPS, fotocamera nativa, filesystem app-scoped.",
+  "platforms": ["android", "iOS"],
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "geolocation:allow-get-current-position",
+    "geolocation:allow-watch-position",
+    "geolocation:allow-clear-watch",
+    "camera:allow-take-photo",
+    "camera:allow-pick-images",
+    "fs:allow-app-read",
+    "fs:allow-app-write",
+    "fs:allow-app-mkdir"
+  ]
+}

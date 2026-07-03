@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "android": {
+      "signingKey": {
+        "path": "../../keys/agrogea-release.keystore",
+        "alias": "agrogea",
+        "keyPassword": { "password": "env:AGROGEA_KEY_PASSWORD" },
+        "storePassword": { "password": "env:AGROGEA_STORE_PASSWORD" }
+      }
+    }
+  }
+}

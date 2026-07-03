@@ -1,0 +1,64 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "AgroGea-Suite",
+  "version": "0.1.0",
+  "identifier": "com.agrogea.fieldsuite",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5174",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "AgroGea",
+        "width": 1100,
+        "height": 750,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' blob: data: 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval' blob:; connect-src 'self' https: http: blob: data:; img-src 'self' blob: data: https:; worker-src 'self' blob:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "publisher": "Andrea Carnasciali",
+    "copyright": "Copyright © 2026 Andrea Carnasciali",
+    "license": "AGPL-3.0-or-later",
+    "licenseFile": "../../../LICENSE",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "android": {
+      "debugApplicationIdSuffix": ".debug",
+      "minSdkVersion": 24,
+      "versionCode": 1
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/eisii42/Open-AgroGea/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IENDN0FEMDRGMkYyRjQ4MTMKUldRVFNDOHZUOUI2ekxNSThIZG4yK2EyaUNQc1VwT1BJUkZ2aHl3R2xGM3NUYmgyQVlWNEVVVGIK",
+      "windows": {
+        "installMode": "passive"
+      }
+    },
+    "geolocation": {
+      "androidPermissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
+    }
+  }
+}
