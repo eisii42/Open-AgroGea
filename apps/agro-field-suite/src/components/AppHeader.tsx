@@ -20,6 +20,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
+import agrogeaLogo from "../assets/agrogea-logo.png";
 import { AddDataControl } from "./AddDataControl";
 import { HelpMenu } from "./help/HelpMenu";
 import { MeteoCard } from "./MeteoCard";
@@ -106,7 +107,7 @@ export function AppHeader({
       {/* Logo + brand */}
       <div className="flex items-center gap-2">
         <span className="flex h-8 w-8 items-center justify-center rounded-[var(--r-2)] bg-[var(--accent)] text-white">
-          <Sprout size={18} />
+          <img src={agrogeaLogo} alt="AgroGea" className="h-6 w-6 object-contain" />
         </span>
         <span className="hidden text-[15px] font-semibold tracking-tight sm:inline">
           AgroGea
