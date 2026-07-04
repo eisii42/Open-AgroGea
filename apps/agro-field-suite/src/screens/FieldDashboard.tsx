@@ -267,7 +267,9 @@ export function FieldDashboard() {
         <Colorbar />
 
         {/* Legenda colture: colore/icona per specie negli appezzamenti attivi. */}
-        {!platform.isMobile && <CropLegend />}
+        {!platform.isMobile && (
+          <CropLegend mapControllerRef={mapControllerRef} />
+        )}
 
         {/* Feed attività: tag temporali degli ultimi import/export (FIX 2).
             Si nasconde quando non c'è nulla da mostrare. */}

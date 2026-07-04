@@ -27,7 +27,14 @@ function csvCell(value: unknown, separatore: SeparatoreCsv): string {
   return needsQuote ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-/** Definizione di una colonna esportabile: id stabile, etichetta, estrattore. */
+/**
+ * Definizione di una colonna esportabile: id stabile, etichetta di default
+ * (italiano, usata dai test `node --test` e come fallback), estrattore.
+ * La UI (SianExportDialog) risolve l'etichetta effettiva via i18n
+ * (`sianExportDialog.columns.<id>`) e passa un `resolveLabel` a
+ * {@link buildSianCsv}/{@link esportaSianCsv} così l'intestazione del CSV
+ * segue la lingua attiva invece di restare fissa in italiano.
+ */
 export interface SianColumn {
   id: string;
   label: string;
@@ -264,6 +271,9 @@ export function buildSianCsv(
   appezzamenti: Appezzamento[],
   config: SianExportConfig = CONFIG_SIAN_DEFAULT,
   campiCampagna: CampoCampagna[] = [],
+  // Risolve l'etichetta di intestazione per colonna; default = etichetta IT
+  // hardcoded (usata dai test e da chi consuma il modulo fuori dalla UI).
+  resolveLabel: (col: SianColumn) => string = (col) => col.label,
 ): string {
   const perId = new Map(appezzamenti.map((a) => [a.id, a]));
   const perCampo = new Map(campiCampagna.map((c) => [c.id, c]));
@@ -277,7 +287,7 @@ export function buildSianCsv(
     return cols.map((c) => csvCell(c.value(t, app, campo), sep)).join(sep);
   });
   const lines = config.includiIntestazioni
-    ? [cols.map((c) => csvCell(c.label, sep)).join(sep), ...righe]
+    ? [cols.map((c) => csvCell(resolveLabel(c), sep)).join(sep), ...righe]
     : righe;
   return lines.join("\n");
 }
@@ -319,7 +329,14 @@ export function esportaSianCsv(
   nomeAzienda = "azienda",
   config: SianExportConfig = CONFIG_SIAN_DEFAULT,
   campiCampagna: CampoCampagna[] = [],
+  resolveLabel?: (col: SianColumn) => string,
 ): string {
-  const csv = buildSianCsv(trattamenti, appezzamenti, config, campiCampagna);
+  const csv = buildSianCsv(
+    trattamenti,
+    appezzamenti,
+    config,
+    campiCampagna,
+    resolveLabel,
+  );
   return scaricaSianCsv(csv, config, nomeAzienda);
 }

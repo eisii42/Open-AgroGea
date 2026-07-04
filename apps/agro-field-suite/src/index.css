@@ -58,6 +58,63 @@ select {
   display: none;
 }
 
+/* Il pannello Misura (vendor maplibre-gl-components) sceglie le sue variabili
+   colore --ms-* in base al `prefers-color-scheme` del SISTEMA OPERATIVO
+   (`color-scheme: light dark` nel CSS compilato), non al tema dell'app: con OS
+   in dark mode e tema app chiaro/verde il testo risultava chiaro su pannello
+   chiaro, quasi illeggibile. Si sovrascrivono qui le stesse coppie di colori
+   del vendor, agganciate però alla classe `.dark` che l'app applica su <html>
+   (vedi packages/agro-core/src/field/theme.ts), così il pannello segue sempre
+   il tema scelto in AgroGea. Selettore a doppia classe (specificità 0,2,0)
+   per battere la regola vendor sotto media query (0,1,0). */
+.agro-field-map .geolibre-measure-control {
+  --ms-panel-bg: #fffffff2;
+  --ms-text: #374151;
+  --ms-strong-text: #1f2937;
+  --ms-muted: #6b7280;
+  --ms-subtle: #9ca3af;
+  --ms-subtle-bg: #f9fafb;
+  --ms-border: #e5e7eb;
+  --ms-secondary-border: #d1d5db;
+  --ms-button-bg: #fff;
+  --ms-button-text: #333;
+  --ms-input-bg: #fff;
+  --ms-input-text: #111;
+  --ms-hover-bg: #f3f4f6;
+  --ms-chip-bg: #e5e7eb;
+  --ms-chip-text: #4b5563;
+  --ms-warn-bg: #fef3c7;
+  --ms-warn-text: #92400e;
+  --ms-danger: #dc2626;
+  --ms-danger-bg: #fef2f2;
+  --ms-danger-border: #fecaca;
+  --ms-danger-border-hover: #fca5a5;
+  --ms-focus: #3b82f6;
+}
+html.dark .agro-field-map .geolibre-measure-control {
+  --ms-panel-bg: #282828f2;
+  --ms-text: #e0e0e0;
+  --ms-strong-text: #f3f4f6;
+  --ms-muted: #aaa;
+  --ms-subtle: #999;
+  --ms-subtle-bg: #ffffff0d;
+  --ms-border: #555;
+  --ms-secondary-border: #555;
+  --ms-button-bg: #2a2a2a;
+  --ms-button-text: #e0e0e0;
+  --ms-input-bg: #2a2a2a;
+  --ms-input-text: #e0e0e0;
+  --ms-hover-bg: #ffffff14;
+  --ms-chip-bg: #ffffff1f;
+  --ms-chip-text: #cbd5e1;
+  --ms-warn-bg: #fbbf2426;
+  --ms-warn-text: #fcd34d;
+  --ms-danger: #f87171;
+  --ms-danger-bg: #f8717126;
+  --ms-danger-border: #f8717166;
+  --ms-danger-border-hover: #f8717199;
+}
+
 /* Esri Wayback: il pannello (bottom-right) è posizionato via JS dal rect del
    toggle, quindi il toggle NON va tolto dal layout — `display:none` lo porterebbe
    a rect 0 e la scheda finirebbe fuori vista. Lo si rende INVISIBILE mantenendo

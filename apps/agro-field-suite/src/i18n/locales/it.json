@@ -164,7 +164,6 @@
     },
     "aboutModal": {
       "title": "Informazioni su AgroGea",
-      "foundation": "AgroGea Foundation",
       "legal": "Dati local-first: ogni azienda è archiviata in un database PGlite isolato su questo dispositivo. Nulla lascia il dispositivo finché non sincronizzi verso il tuo cloud o il server aziendale."
     },
     "diagnosticsModal": {
@@ -517,6 +516,7 @@
     "confirmName": "Conferma nome"
   },
   "cropLegend": {
+    "highlightHint": "Evidenzia gli appezzamenti di questa coltura sulla mappa",
     "noCrop": "Senza coltura",
     "title": "Colture"
   },
@@ -776,6 +776,39 @@
   },
   "sianExportDialog": {
     "chooseField": "— scegli un campo —",
+    "columns": {
+      "data": "Data",
+      "ora": "Ora",
+      "appezzamento": "Appezzamento",
+      "coltura": "Coltura",
+      "varieta": "Varietà",
+      "foglio_catastale": "Foglio catastale",
+      "particella": "Particella",
+      "superficie_ha": "Superficie (ha)",
+      "tipo_operazione": "Tipo operazione",
+      "prodotto": "Prodotto",
+      "numero_registrazione": "N. registrazione",
+      "dose_valore": "Dose",
+      "dose_unita": "Unità dose",
+      "quantita_totale": "Quantità totale",
+      "avversita_target": "Avversità",
+      "operatore": "Operatore",
+      "operatore_cf": "CF operatore",
+      "num_patentino": "N. patentino",
+      "sostanza_attiva": "Sostanza attiva",
+      "acqua_volume_l": "Acqua (l)",
+      "tipo_concime": "Tipo concime",
+      "titolo_npk": "Titolo NPK",
+      "reference_parcel_external_id": "ID Isola SIAN",
+      "agricultural_parcel_external_id": "ID Appezzamento SIAN",
+      "crop_external_code": "Codice coltura SIAN",
+      "variety_external_code": "Codice varietà SIAN",
+      "campaign_year": "Anno campagna",
+      "mezzo": "Mezzo / macchina",
+      "intervallo_rientro_h": "Rientro (h)",
+      "carenza_giorni": "Carenza (gg)",
+      "note": "Note"
+    },
     "crops": "Colture",
     "csvColumns": "Colonne del CSV (in ordine)",
     "exportCsv": "Esporta CSV ({{count}})",

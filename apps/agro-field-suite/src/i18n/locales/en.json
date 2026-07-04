@@ -164,7 +164,6 @@
     },
     "aboutModal": {
       "title": "About AgroGea",
-      "foundation": "AgroGea Foundation",
       "legal": "Local-first data: each company is stored in an isolated PGlite database on this device. Nothing leaves the device until you sync to your cloud or company server."
     },
     "diagnosticsModal": {
@@ -517,6 +516,7 @@
     "confirmName": "Confirm name"
   },
   "cropLegend": {
+    "highlightHint": "Highlight this crop's plots on the map",
     "noCrop": "No crop",
     "title": "Crops"
   },
@@ -776,6 +776,39 @@
   },
   "sianExportDialog": {
     "chooseField": "— choose a field —",
+    "columns": {
+      "data": "Date",
+      "ora": "Time",
+      "appezzamento": "Plot",
+      "coltura": "Crop",
+      "varieta": "Variety",
+      "foglio_catastale": "Cadastral sheet",
+      "particella": "Parcel",
+      "superficie_ha": "Area (ha)",
+      "tipo_operazione": "Operation type",
+      "prodotto": "Product",
+      "numero_registrazione": "Registration no.",
+      "dose_valore": "Dose",
+      "dose_unita": "Dose unit",
+      "quantita_totale": "Total quantity",
+      "avversita_target": "Target pest/disease",
+      "operatore": "Operator",
+      "operatore_cf": "Operator tax code",
+      "num_patentino": "License no.",
+      "sostanza_attiva": "Active substance",
+      "acqua_volume_l": "Water (l)",
+      "tipo_concime": "Fertilizer type",
+      "titolo_npk": "NPK ratio",
+      "reference_parcel_external_id": "SIAN reference parcel ID",
+      "agricultural_parcel_external_id": "SIAN agricultural parcel ID",
+      "crop_external_code": "SIAN crop code",
+      "variety_external_code": "SIAN variety code",
+      "campaign_year": "Campaign year",
+      "mezzo": "Machinery",
+      "intervallo_rientro_h": "Re-entry (h)",
+      "carenza_giorni": "Pre-harvest interval (days)",
+      "note": "Notes"
+    },
     "crops": "Crops",
     "csvColumns": "CSV columns (in order)",
     "exportCsv": "Export CSV ({{count}})",

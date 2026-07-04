@@ -164,7 +164,6 @@
     },
     "aboutModal": {
       "title": "À propos d'AgroGea",
-      "foundation": "AgroGea Foundation",
       "legal": "Données local-first : chaque exploitation est stockée dans une base PGlite isolée sur cet appareil. Rien ne quitte l'appareil tant que vous ne synchronisez pas vers votre cloud ou le serveur de l'entreprise."
     },
     "diagnosticsModal": {
@@ -517,6 +516,7 @@
     "confirmName": "Confirmer le nom"
   },
   "cropLegend": {
+    "highlightHint": "Mettre en évidence les parcelles de cette culture sur la carte",
     "noCrop": "Sans culture",
     "title": "Cultures"
   },
@@ -776,6 +776,39 @@
   },
   "sianExportDialog": {
     "chooseField": "— choisir un champ —",
+    "columns": {
+      "data": "Date",
+      "ora": "Heure",
+      "appezzamento": "Parcelle",
+      "coltura": "Culture",
+      "varieta": "Variété",
+      "foglio_catastale": "Feuille cadastrale",
+      "particella": "Parcelle cadastrale",
+      "superficie_ha": "Surface (ha)",
+      "tipo_operazione": "Type d'opération",
+      "prodotto": "Produit",
+      "numero_registrazione": "N° d'enregistrement",
+      "dose_valore": "Dose",
+      "dose_unita": "Unité de dose",
+      "quantita_totale": "Quantité totale",
+      "avversita_target": "Ravageur/maladie cible",
+      "operatore": "Opérateur",
+      "operatore_cf": "Code fiscal de l'opérateur",
+      "num_patentino": "N° de certiphyto",
+      "sostanza_attiva": "Substance active",
+      "acqua_volume_l": "Eau (l)",
+      "tipo_concime": "Type d'engrais",
+      "titolo_npk": "Ratio NPK",
+      "reference_parcel_external_id": "ID Îlot SIAN",
+      "agricultural_parcel_external_id": "ID Parcelle SIAN",
+      "crop_external_code": "Code culture SIAN",
+      "variety_external_code": "Code variété SIAN",
+      "campaign_year": "Année de campagne",
+      "mezzo": "Machine",
+      "intervallo_rientro_h": "Délai de rentrée (h)",
+      "carenza_giorni": "Délai avant récolte (j)",
+      "note": "Notes"
+    },
     "crops": "Cultures",
     "csvColumns": "Colonnes du CSV (dans l'ordre)",
     "exportCsv": "Exporter CSV ({{count}})",

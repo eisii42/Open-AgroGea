@@ -25,6 +25,7 @@ import {
   esportaSianCsv,
   filtraTrattamentiSian,
   type SeparatoreCsv,
+  type SianColumn,
   type SianExportConfig,
   type SianFiltri,
 } from "../lib/sianExport";
@@ -58,6 +59,10 @@ function etichettaTipo(t: TFunction, tipo: TipoOperazione): string {
     sampling: t("sianExportDialog.operationType.sampling"),
   };
   return map[tipo];
+}
+
+function etichettaColonna(t: TFunction, col: SianColumn): string {
+  return t(`sianExportDialog.columns.${col.id}`, col.label);
 }
 
 function separatori(t: TFunction): { value: SeparatoreCsv; label: string }[] {
@@ -160,6 +165,7 @@ export function SianExportDialog({
       azienda?.business_name,
       config,
       campiCampagna,
+      (col) => etichettaColonna(t, col),
     );
     void registraTrasferimento({
       operation_type: "export",
@@ -169,8 +175,10 @@ export function SianExportDialog({
     onClose();
   }
 
-  const labelColonna = (id: string) =>
-    COLONNE_SIAN.find((c) => c.id === id)?.label ?? id;
+  const labelColonna = (id: string) => {
+    const col = COLONNE_SIAN.find((c) => c.id === id);
+    return col ? etichettaColonna(t, col) : id;
+  };
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -377,7 +385,7 @@ export function SianExportDialog({
                   <option value="">{t("sianExportDialog.chooseField")}</option>
                   {colonneNonSelezionate.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.label}
+                      {etichettaColonna(t, c)}
                     </option>
                   ))}
                 </Select>

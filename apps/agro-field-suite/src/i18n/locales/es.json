@@ -164,7 +164,6 @@
     },
     "aboutModal": {
       "title": "Acerca de AgroGea",
-      "foundation": "AgroGea Foundation",
       "legal": "Datos local-first: cada empresa se almacena en una base de datos PGlite aislada en este dispositivo. Nada sale del dispositivo hasta que sincronizas con tu nube o el servidor de la empresa."
     },
     "diagnosticsModal": {
@@ -517,6 +516,7 @@
     "confirmName": "Confirmar nombre"
   },
   "cropLegend": {
+    "highlightHint": "Resalta las parcelas de este cultivo en el mapa",
     "noCrop": "Sin cultivo",
     "title": "Cultivos"
   },
@@ -776,6 +776,39 @@
   },
   "sianExportDialog": {
     "chooseField": "— elige un campo —",
+    "columns": {
+      "data": "Fecha",
+      "ora": "Hora",
+      "appezzamento": "Parcela",
+      "coltura": "Cultivo",
+      "varieta": "Variedad",
+      "foglio_catastale": "Hoja catastral",
+      "particella": "Parcela catastral",
+      "superficie_ha": "Superficie (ha)",
+      "tipo_operazione": "Tipo de operación",
+      "prodotto": "Producto",
+      "numero_registrazione": "N.º de registro",
+      "dose_valore": "Dosis",
+      "dose_unita": "Unidad de dosis",
+      "quantita_totale": "Cantidad total",
+      "avversita_target": "Plaga/enfermedad objetivo",
+      "operatore": "Operador",
+      "operatore_cf": "CF del operador",
+      "num_patentino": "N.º de carné",
+      "sostanza_attiva": "Sustancia activa",
+      "acqua_volume_l": "Agua (l)",
+      "tipo_concime": "Tipo de fertilizante",
+      "titolo_npk": "Relación NPK",
+      "reference_parcel_external_id": "ID Isla SIAN",
+      "agricultural_parcel_external_id": "ID Parcela SIAN",
+      "crop_external_code": "Código de cultivo SIAN",
+      "variety_external_code": "Código de variedad SIAN",
+      "campaign_year": "Año de campaña",
+      "mezzo": "Maquinaria",
+      "intervallo_rientro_h": "Reentrada (h)",
+      "carenza_giorni": "Plazo de seguridad (días)",
+      "note": "Notas"
+    },
     "crops": "Cultivos",
     "csvColumns": "Columnas del CSV (en orden)",
     "exportCsv": "Exportar CSV ({{count}})",
