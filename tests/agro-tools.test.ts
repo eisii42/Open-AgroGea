@@ -356,9 +356,39 @@ describe("pipeline STAC NDVI", () => {
     const badFetch = (async () =>
       new Response("boom", { status: 503 })) as unknown as typeof fetch;
     await assert.rejects(
-      cercaUltimaScenaNdvi([0, 0, 1, 1], { fetchImpl: badFetch }),
+      cercaUltimaScenaNdvi([0, 0, 1, 1], { fetchImpl: badFetch, attesaBaseMs: 0 }),
       /HTTP 503/,
     );
+  });
+
+  it("cercaUltimaScenaNdvi riprova sui 429 conservando la POST (backoff)", async () => {
+    let chiamate = 0;
+    const flakyFetch = (async (_url: string, init?: RequestInit) => {
+      chiamate++;
+      assert.equal(init?.method, "POST");
+      assert.ok(init?.body, "il body della search va rimandato a ogni tentativo");
+      if (chiamate === 1) {
+        return new Response("rate", { status: 429, headers: { "retry-after": "0" } });
+      }
+      return new Response(
+        JSON.stringify({
+          features: [
+            {
+              id: "dopo-retry",
+              properties: { datetime: "2026-06-01T10:00:00Z" },
+              assets: { B04: { href: "r.tif" }, B08: { href: "n.tif" } },
+            },
+          ],
+        }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+    const scena = await cercaUltimaScenaNdvi([0, 0, 1, 1], {
+      fetchImpl: flakyFetch,
+      attesaBaseMs: 0,
+    });
+    assert.equal(scena?.itemId, "dopo-retry");
+    assert.equal(chiamate, 2);
   });
 });
 
@@ -427,9 +457,45 @@ describe("pipeline STAC multi-indice e serie temporale", () => {
     const badFetch = (async () =>
       new Response("boom", { status: 500 })) as unknown as typeof fetch;
     await assert.rejects(
-      cercaSerieScene([0, 0, 1, 1], { indici: ["ndvi"], fetchImpl: badFetch }),
+      cercaSerieScene([0, 0, 1, 1], {
+        indici: ["ndvi"],
+        fetchImpl: badFetch,
+        attesaBaseMs: 0,
+      }),
       /HTTP 500/,
     );
+  });
+
+  it("cercaSerieScene riprova su 429/5xx e poi riesce (backoff)", async () => {
+    let chiamate = 0;
+    const flakyFetch = (async (_url: string, init?: RequestInit) => {
+      chiamate++;
+      assert.equal(init?.method, "POST");
+      if (chiamate <= 2) {
+        // Primo 429, poi 503: entrambi vanno ritentati.
+        return new Response("giù", { status: chiamate === 1 ? 429 : 503 });
+      }
+      return new Response(
+        JSON.stringify({
+          features: [
+            {
+              id: "s-retry",
+              properties: { datetime: "2026-06-01T10:00:00Z", "eo:cloud_cover": 3 },
+              assets: { B04: { href: "r" }, B08: { href: "n" } },
+            },
+          ],
+        }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+    const serie = await cercaSerieScene([0, 0, 1, 1], {
+      indici: ["ndvi"],
+      fetchImpl: flakyFetch,
+      attesaBaseMs: 0,
+    });
+    assert.equal(serie.length, 1);
+    assert.equal(serie[0].itemId, "s-retry");
+    assert.equal(chiamate, 3);
   });
 
   it("buildStacSearchBody usa l'intervallo esplicito se fornito (analisi personalizzata)", () => {

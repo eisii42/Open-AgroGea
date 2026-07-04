@@ -49,16 +49,18 @@ const pausa = (ms: number): Promise<void> =>
 /**
  * fetch con retry a backoff esponenziale sui 429 (rate limit) e 5xx. Onora
  * `Retry-After` se presente. Ritorna l'ultima risposta dopo i tentativi.
+ * `init` è inoltrato invariato a ogni tentativo (method/headers/body).
  */
 async function fetchConBackoff(
   fetchImpl: typeof fetch,
   url: string,
   options: { tentativi?: number; attesaBaseMs?: number } = {},
+  init?: RequestInit,
 ): Promise<Response> {
   const tentativi = options.tentativi ?? 4;
   let attesa = options.attesaBaseMs ?? 600;
   for (let i = 0; ; i++) {
-    const res = await fetchImpl(url);
+    const res = await fetchImpl(url, init);
     if (res.status !== 429 && res.status < 500) return res;
     if (i >= tentativi) return res;
     const retryAfter = Number(res.headers?.get?.("retry-after"));
@@ -346,7 +348,7 @@ export function filtraFinestraDaUltima(
  * filtrata per copertura nuvolosa e finestra temporale (giorni indietro da
  * `ora`). Restituisce tutte le scene idonee, dalla più recente alla più vecchia
  * — la UI usa l'ultima per il raster e l'intera serie per il grafico di trend.
- * Il `fetchImpl` è iniettabile per i test.
+ * Con retry/backoff sui 429 e 5xx. Il `fetchImpl` è iniettabile per i test.
  */
 export async function cercaSerieScene(
   bbox: [number, number, number, number],
@@ -360,6 +362,7 @@ export async function cercaSerieScene(
     ora?: Date;
     fetchImpl?: typeof fetch;
     apiUrl?: string;
+    attesaBaseMs?: number;
   },
 ): Promise<ScenaIndici[]> {
   const fetchImpl = options.fetchImpl ?? fetch;
@@ -373,11 +376,16 @@ export async function cercaSerieScene(
     limit: options.limit ?? 50,
     ora: options.ora,
   });
-  const res = await fetchImpl(`${apiUrl}/search`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  const res = await fetchConBackoff(
+    fetchImpl,
+    `${apiUrl}/search`,
+    { attesaBaseMs: options.attesaBaseMs },
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
   if (!res.ok) {
     throw new Error(`STAC search fallita: HTTP ${res.status}`);
   }
@@ -386,8 +394,9 @@ export async function cercaSerieScene(
 }
 
 /**
- * Esegue la POST /search e restituisce la scena migliore. Il `fetchImpl` è
- * iniettabile per i test; di default usa la `fetch` globale.
+ * Esegue la POST /search e restituisce la scena migliore. Con retry/backoff
+ * sui 429 e 5xx. Il `fetchImpl` è iniettabile per i test; di default usa la
+ * `fetch` globale.
  */
 export async function cercaUltimaScenaNdvi(
   bbox: [number, number, number, number],
@@ -396,6 +405,7 @@ export async function cercaUltimaScenaNdvi(
     giorniIndietro?: number;
     fetchImpl?: typeof fetch;
     apiUrl?: string;
+    attesaBaseMs?: number;
   } = {},
 ): Promise<ScenaNdvi | null> {
   const fetchImpl = options.fetchImpl ?? fetch;
@@ -404,11 +414,16 @@ export async function cercaUltimaScenaNdvi(
     cloudCoverMax: options.cloudCoverMax,
     giorniIndietro: options.giorniIndietro,
   });
-  const res = await fetchImpl(`${apiUrl}/search`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  const res = await fetchConBackoff(
+    fetchImpl,
+    `${apiUrl}/search`,
+    { attesaBaseMs: options.attesaBaseMs },
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
   if (!res.ok) {
     throw new Error(`STAC search fallita: HTTP ${res.status}`);
   }
