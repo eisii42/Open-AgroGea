@@ -22,7 +22,8 @@
       "companySettings": "Company settings",
       "undoGeometry": "Undo geometry edit",
       "redoGeometry": "Redo geometry edit",
-      "profileSettings": "Profile Settings"
+      "profileSettings": "Profile Settings",
+      "openCommandCenter": "Open Command Center"
     }
   },
   "compliance": {
@@ -144,6 +145,8 @@
     "about": "About",
     "shortcut": {
       "commandPalette": "Open the command palette",
+      "viewCommandCenter": "Switch to the Command Center (data view)",
+      "viewMap": "Back to the Map view",
       "undo": "Undo geometry edit (VRA cells / polygons)",
       "redo": "Redo geometry edit",
       "redoAlt": "Redo geometry edit (alternative)",

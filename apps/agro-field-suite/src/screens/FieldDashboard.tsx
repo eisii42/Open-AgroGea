@@ -147,10 +147,14 @@ export function FieldDashboard() {
   // Undo/Redo geometrie + scorciatoie globali (Ctrl/Cmd+Z, Y).
   const undoRedo = useGeometryUndoRedo();
 
-  // Command Palette globale: Ctrl/Cmd+K apre/chiude.
+  // Command Palette globale: Ctrl/Cmd+K apre/chiude. La dashboard resta
+  // montata anche col Command Center in primo piano (keep-alive in App.tsx):
+  // la palette risponde solo quando la vista mappa è quella attiva, altrimenti
+  // si aprirebbe invisibile sotto l'altra vista.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        if (useAgroStore.getState().activeView === "command-center") return;
         e.preventDefault();
         setPaletteOpen((v) => !v);
       }

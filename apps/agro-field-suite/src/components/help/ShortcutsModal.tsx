@@ -23,6 +23,8 @@ interface Shortcut {
 
 const SHORTCUTS: Shortcut[] = [
   { keys: ["Ctrl/Cmd", "K"], labelKey: "help.shortcut.commandPalette" },
+  { keys: ["→"], labelKey: "help.shortcut.viewCommandCenter" },
+  { keys: ["←"], labelKey: "help.shortcut.viewMap" },
   { keys: ["Ctrl/Cmd", "Z"], labelKey: "help.shortcut.undo" },
   { keys: ["Ctrl/Cmd", "Y"], labelKey: "help.shortcut.redo" },
   { keys: ["Ctrl/Cmd", "Shift", "Z"], labelKey: "help.shortcut.redoAlt" },

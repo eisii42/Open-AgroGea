@@ -22,7 +22,8 @@
       "companySettings": "Ajustes de la explotación",
       "undoGeometry": "Deshacer edición de geometría",
       "redoGeometry": "Rehacer edición de geometría",
-      "profileSettings": "Ajustes de perfil"
+      "profileSettings": "Ajustes de perfil",
+      "openCommandCenter": "Abrir Command Center"
     }
   },
   "compliance": {
@@ -144,6 +145,8 @@
     "about": "Información",
     "shortcut": {
       "commandPalette": "Abrir la paleta de comandos",
+      "viewCommandCenter": "Cambiar al Command Center (vista de datos)",
+      "viewMap": "Volver a la vista de Mapa",
       "undo": "Deshacer edición geométrica (celdas VRA / polígonos)",
       "redo": "Rehacer edición geométrica",
       "redoAlt": "Rehacer edición geométrica (alternativa)",

@@ -22,7 +22,8 @@
       "companySettings": "Impostazioni azienda",
       "undoGeometry": "Annulla modifica geometria",
       "redoGeometry": "Ripristina modifica geometria",
-      "profileSettings": "Impostazioni Profilo"
+      "profileSettings": "Impostazioni Profilo",
+      "openCommandCenter": "Apri Command Center"
     }
   },
   "compliance": {
@@ -144,6 +145,8 @@
     "about": "Informazioni",
     "shortcut": {
       "commandPalette": "Apri il riquadro comandi",
+      "viewCommandCenter": "Passa al Command Center (vista dati)",
+      "viewMap": "Torna alla vista Mappa",
       "undo": "Annulla modifica geometrica (celle VRA / poligoni)",
       "redo": "Ripristina modifica geometrica",
       "redoAlt": "Ripristina modifica geometrica (alternativa)",

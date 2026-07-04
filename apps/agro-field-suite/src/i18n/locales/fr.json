@@ -22,7 +22,8 @@
       "companySettings": "Paramètres de l'exploitation",
       "undoGeometry": "Annuler la modification de géométrie",
       "redoGeometry": "Rétablir la modification de géométrie",
-      "profileSettings": "Paramètres du profil"
+      "profileSettings": "Paramètres du profil",
+      "openCommandCenter": "Ouvrir le Command Center"
     }
   },
   "compliance": {
@@ -144,6 +145,8 @@
     "about": "À propos",
     "shortcut": {
       "commandPalette": "Ouvrir la palette de commandes",
+      "viewCommandCenter": "Passer au Command Center (vue données)",
+      "viewMap": "Revenir à la vue Carte",
       "undo": "Annuler l'édition géométrique (cellules VRA / polygones)",
       "redo": "Rétablir l'édition géométrique",
       "redoAlt": "Rétablir l'édition géométrique (alternative)",

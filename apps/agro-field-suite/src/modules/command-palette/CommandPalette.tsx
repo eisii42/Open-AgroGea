@@ -51,6 +51,7 @@ export function CommandPalette({
   const togglePanel = useAgroStore((s) => s.togglePanel);
   const setDrawIntent = useAgroStore((s) => s.setDrawIntent);
   const selectAppezzamento = useAgroStore((s) => s.selectAppezzamento);
+  const setActiveView = useAgroStore((s) => s.setActiveView);
   const flags = useSettingsStore((s) => s.dashboardLayout);
 
   const [query, setQuery] = useState("");
@@ -153,6 +154,20 @@ export function CommandPalette({
         paroleChiave: ["profilo", "preferenze", "lingua", "unità", "moduli", "account"],
         esegui: apriPannello("profilo"),
       },
+      // Switch di vista: la freccia → è la scorciatoia globale registrata in
+      // App.tsx (← riporta alla mappa). La palette vive nella vista mappa,
+      // quindi qui serve solo la direzione verso il Command Center.
+      {
+        id: "act-command-center",
+        titolo: t("commandPalette.actions.openCommandCenter"),
+        categoria: "azione",
+        paroleChiave: ["dashboard", "dati", "kpi", "analisi", "report", "vista"],
+        scorciatoia: "→",
+        esegui: () => {
+          setActiveView("command-center");
+          onClose();
+        },
+      },
     ];
 
     if (undoRedo.canUndo) {
@@ -210,6 +225,7 @@ export function CommandPalette({
     togglePanel,
     setDrawIntent,
     selectAppezzamento,
+    setActiveView,
     mapControllerRef,
     onClose,
     undoRedo,
