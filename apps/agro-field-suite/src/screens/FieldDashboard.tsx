@@ -424,8 +424,8 @@ export function FieldDashboard() {
             title={t("nav.modulesHeading")}
             maxHeight="70dvh"
           >
-            <div className="pb-4">
-              <ModuleSidebar />
+            <div className="px-2 pb-4">
+              <ModuleSidebar embedded />
             </div>
           </BottomSheet>
         )}

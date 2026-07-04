@@ -1,14 +1,8 @@
-import {
-  type AgroTheme,
-  controlPlane,
-  useAgroStore,
-  useSettingsStore,
-} from "@agrogea/core";
+import { type AgroTheme, useAgroStore, useSettingsStore } from "@agrogea/core";
 import { cn } from "@geolibre/ui";
 import {
   Building2,
   LayoutDashboard,
-  LogOut,
   Map as MapIcon,
   Moon,
   RefreshCw,
@@ -63,7 +57,6 @@ export function AppHeader({
   const sync = useAgroStore((s) => s.sync);
   const theme = useAgroStore((s) => s.theme);
   const setTheme = useAgroStore((s) => s.setTheme);
-  const endSession = useAgroStore((s) => s.endSession);
   const togglePanel = useAgroStore((s) => s.togglePanel);
   const activeView = useAgroStore((s) => s.activeView);
   const setActiveView = useAgroStore((s) => s.setActiveView);
@@ -91,21 +84,11 @@ export function AppHeader({
     };
   }, [menuOpen]);
 
-  async function logout() {
-    setMenuOpen(false);
-    try {
-      await controlPlane().signOut?.();
-    } catch {
-      /* offline o senza control plane: esci comunque dalla sessione locale */
-    }
-    endSession();
-  }
-
   return (
-    <header className="flex h-[56px] shrink-0 items-center gap-3 border-b border-[var(--line)] bg-[var(--panel)] px-3">
+    <header className="flex h-[56px] shrink-0 items-center gap-1.5 border-b border-[var(--line)] bg-[var(--panel)] px-2 sm:gap-3 sm:px-3">
       {/* Logo + brand */}
-      <div className="flex items-center gap-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-[var(--r-2)] bg-[var(--accent)] text-white">
+      <div className="flex shrink-0 items-center gap-2">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--r-2)] bg-[var(--accent)] text-white">
           <Sprout size={18} />
         </span>
         <span className="hidden text-[15px] font-semibold tracking-tight sm:inline">
@@ -117,7 +100,7 @@ export function AppHeader({
           Display statico (non più un pulsante): mostra "-" finché il nome non è
           impostato, poi il nome dell'azienda. */}
       <div
-        className="flex min-h-[36px] min-w-0 items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] px-2 text-left"
+        className="flex min-h-[36px] min-w-0 shrink items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] px-2 text-left"
         title={azienda?.business_name ?? undefined}
       >
         <Building2 size={15} className="shrink-0 text-[var(--ink-3)]" />
@@ -126,15 +109,26 @@ export function AppHeader({
         </span>
       </div>
 
-      {/* Add Data globale (GeoLibre 1.2): ingresso unico dei file esterni. */}
-      {flags.headerAddData && <AddDataControl />}
+      {/* Add Data globale (GeoLibre 1.2): ingresso unico dei file esterni.
+          Nascosto sotto sm: sui telefoni la barra si affollava troppo, e
+          l'import dati esterni non è un'azione da campo di prima necessità. */}
+      {flags.headerAddData && (
+        <div className="hidden shrink-0 sm:block">
+          <AddDataControl />
+        </div>
+      )}
 
-      {/* Scheda meteo: condizioni del giorno + previsione 4 giorni (Open-Meteo). */}
-      {flags.headerMeteoCard && <MeteoCard />}
+      {/* Scheda meteo: condizioni del giorno + previsione 4 giorni (Open-Meteo).
+          Nascosta sotto sm per lo stesso motivo dell'Add Data. */}
+      {flags.headerMeteoCard && (
+        <div className="hidden shrink-0 sm:block">
+          <MeteoCard />
+        </div>
+      )}
 
       {/* Switcher di vista (Modulo 1): Mappa ↔ Data Command Center. Cambiare
           vista smonta/rimonta la mappa ma conserva il contesto aziendale. */}
-      <div className="ml-2 flex items-center gap-0.5 rounded-[var(--r-2)] bg-[var(--panel-2)] p-0.5">
+      <div className="ml-0 flex shrink-0 items-center gap-0.5 rounded-[var(--r-2)] bg-[var(--panel-2)] p-0.5 sm:ml-2">
         <button
           type="button"
           onClick={() => setActiveView("map")}
@@ -165,7 +159,7 @@ export function AppHeader({
         </button>
       </div>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-2">
         {/* LED stato sync → apre la coda di sincronizzazione */}
         {flags.headerSyncLed && (
           <button
@@ -188,8 +182,9 @@ export function AppHeader({
           </button>
         )}
 
-        {/* Selettore tema */}
-        <div className="flex items-center gap-0.5 rounded-[var(--r-2)] bg-[var(--panel-2)] p-0.5">
+        {/* Selettore tema: su mobile solo l'icona del tema attivo (tap = ciclo
+            tra i 3 temi) per non affollare l'header; da sm in su tutti e 3. */}
+        <div className="hidden items-center gap-0.5 rounded-[var(--r-2)] bg-[var(--panel-2)] p-0.5 sm:flex">
           {THEME_OPTIONS.map(({ id, labelKey, Icon }) => (
             <button
               key={id}
@@ -207,6 +202,23 @@ export function AppHeader({
             </button>
           ))}
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            const idx = THEME_OPTIONS.findIndex((o) => o.id === theme);
+            setTheme(THEME_OPTIONS[(idx + 1) % THEME_OPTIONS.length].id);
+          }}
+          title={t("nav.themeTooltip", {
+            name: t(THEME_OPTIONS.find((o) => o.id === theme)?.labelKey as never),
+          })}
+          className="flex h-8 w-8 items-center justify-center rounded-[var(--r-2)] bg-[var(--panel-2)] text-[var(--ink-2)] sm:hidden"
+        >
+          {(() => {
+            const ActiveIcon =
+              THEME_OPTIONS.find((o) => o.id === theme)?.Icon ?? Sun;
+            return <ActiveIcon size={15} />;
+          })()}
+        </button>
 
         {/* Menu di Aiuto: Command Palette, scorciatoie, diagnostica, feedback,
             aggiornamenti, informazioni. Accanto al menu profilo. */}
@@ -236,15 +248,6 @@ export function AppHeader({
               >
                 <Settings size={15} className="text-[var(--ink-3)]" />
                 {t("commandPalette.actions.profileSettings")}
-              </button>
-              <div className="my-1 border-t border-[var(--line)]" />
-              <button
-                type="button"
-                onClick={() => void logout()}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[var(--danger)] hover:bg-[var(--danger-l)]"
-              >
-                <LogOut size={15} />
-                {t("nav.logout")}
               </button>
             </div>
           )}

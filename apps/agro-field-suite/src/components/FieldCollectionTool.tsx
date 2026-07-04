@@ -8,6 +8,7 @@
  * il campo foto è nascosto e l'osservazione si salva senza immagine.
  */
 import { controlPlane, type ScoutingObservation, useAgroStore } from "@agrogea/core";
+import { FieldSheet } from "@agrogea/ui";
 import {
   DEFAULT_LAYER_STYLE,
   type GeoLibreLayer,
@@ -281,22 +282,36 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
   }
 
   return (
-    <div className="absolute right-0 top-14 bottom-0 z-30 flex w-full flex-col bg-[var(--panel)] shadow-[var(--sh-pop)] sm:bottom-auto sm:max-h-[calc(100dvh-3.5rem)] sm:w-80 sm:overflow-y-auto sm:rounded-bl-[var(--r-3)] sm:border-b sm:border-l sm:border-[var(--line)]">
-      {/* Header */}
-      <div className="flex shrink-0 items-center justify-between border-b border-[var(--line)] px-4 py-3">
-        <div className="flex items-center gap-2">
-          <MapPin size={16} className="text-[var(--accent)]" />
-          <span className="text-sm font-semibold">{t("fieldCollectionTool.title")}</span>
-        </div>
-        <button type="button" onClick={onClose} className="rounded p-1 hover:bg-[var(--panel-2)]">
-          <X size={15} />
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto">
+    <>
+      <FieldSheet
+        title={t("fieldCollectionTool.title")}
+        onClose={onClose}
+        footer={
+          mode === "form" && pendingPoint ? (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={annulla}
+                className="flex-1 rounded-[var(--r-2)] border border-[var(--line)] py-2.5 text-sm font-medium hover:bg-[var(--panel-2)]"
+              >
+                {t("logbook.common.cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={() => void salva()}
+                disabled={saving}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--r-2)] bg-[var(--accent)] py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+              >
+                {saving ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />}
+                {t("fieldCollectionTool.saveObservation")}
+              </button>
+            </div>
+          ) : undefined
+        }
+      >
         {/* Form compilazione punto */}
         {mode === "form" && pendingPoint && (
-          <div className="space-y-3 p-4">
+          <div className="space-y-3">
             <div className="flex items-center gap-1.5 rounded-[var(--r-2)] bg-[var(--accent-l)] px-3 py-2 text-xs font-medium text-[var(--accent)]">
               <CheckCircle size={13} />
               {pendingPoint.lat.toFixed(5)}, {pendingPoint.lng.toFixed(5)}
@@ -366,31 +381,12 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
             )}
 
             {error && <p className="text-xs text-[var(--danger)]">{error}</p>}
-
-            <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                onClick={annulla}
-                className="flex-1 rounded-[var(--r-2)] border border-[var(--line)] py-2.5 text-sm font-medium hover:bg-[var(--panel-2)]"
-              >
-                {t("logbook.common.cancel")}
-              </button>
-              <button
-                type="button"
-                onClick={() => void salva()}
-                disabled={saving}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--r-2)] bg-[var(--accent)] py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
-              >
-                {saving ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />}
-                {t("fieldCollectionTool.saveObservation")}
-              </button>
-            </div>
           </div>
         )}
 
         {/* Modalità selezione / GPS */}
         {(mode === "idle" || mode === "placing-gps" || mode === "placing-map") && (
-          <div className="space-y-3 p-4">
+          <div className="space-y-3">
             <p className="text-xs text-[var(--ink-3)]">
               {t("fieldCollectionTool.placeObservationHint")}
             </p>
@@ -436,7 +432,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
 
         {/* Registro rilievi */}
         {observations.length > 0 && (
-          <div className="border-t border-[var(--line)] px-4 pb-4 pt-3">
+          <div className="mt-3 border-t border-[var(--line)] pt-3">
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-4)]">
               {t("fieldCollectionTool.observationRegister", { count: observations.length })}
             </p>
@@ -483,12 +479,12 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
         )}
 
         {observations.length === 0 && mode === "idle" && (
-          <div className="flex flex-col items-center gap-2 px-4 py-8 text-center text-xs text-[var(--ink-4)]">
+          <div className="flex flex-col items-center gap-2 py-8 text-center text-xs text-[var(--ink-4)]">
             <Plus size={28} className="opacity-30" />
             <p>{t("fieldCollectionTool.noObservationsYet")}</p>
           </div>
         )}
-      </div>
+      </FieldSheet>
 
       {/* Scheda dettaglio della nota (centro schermo). */}
       {detailObs && (
@@ -501,7 +497,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
           }}
         />
       )}
-    </div>
+    </>
   );
 }
 

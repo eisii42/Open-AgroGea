@@ -67,7 +67,17 @@ interface ModuleDef {
   tools: ToolDef[];
 }
 
-export function ModuleSidebar() {
+export function ModuleSidebar({
+  embedded = false,
+}: {
+  /**
+   * true quando è annidato nel BottomSheet mobile "Moduli" (FieldDashboard),
+   * che fornisce già titolo, chiusura e larghezza piena: sopprime l'intestazione
+   * e i vincoli di layout desktop (larghezza fissa, bordo, altezza piena) per
+   * evitare la doppia intestazione "MODULI AGRONOMICI".
+   */
+  embedded?: boolean;
+}) {
   const { t } = useTranslation();
   const openPanels = useAgroStore((s) => s.openPanels);
   const togglePanel = useAgroStore((s) => s.togglePanel);
@@ -246,10 +256,19 @@ export function ModuleSidebar() {
   });
 
   return (
-    <div className="flex h-full w-[260px] flex-col gap-1 overflow-y-auto border-r border-[var(--line)] bg-[var(--panel)] p-2">
-      <p className="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-4)]">
-        {t("nav.modulesHeading")}
-      </p>
+    <div
+      className={cn(
+        "flex flex-col gap-1 p-2",
+        embedded
+          ? "w-full"
+          : "h-full w-[260px] overflow-y-auto border-r border-[var(--line)] bg-[var(--panel)]",
+      )}
+    >
+      {!embedded && (
+        <p className="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-4)]">
+          {t("nav.modulesHeading")}
+        </p>
+      )}
       {moduli.map((mod) => {
         // I tool disattivati nel layout dell'utente spariscono; un modulo senza
         // più tool visibili viene nascosto del tutto (UI pulita).
