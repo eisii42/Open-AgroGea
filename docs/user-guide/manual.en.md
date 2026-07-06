@@ -30,6 +30,7 @@
    - [4.10 Data Command Center — the analytics dashboard](#410-data-command-center--the-analytics-dashboard)
    - [4.11 Official exports and backup](#411-official-exports-and-backup)
    - [4.12 Settings: weather, theme, profile](#412-settings-weather-theme-profile)
+   - [4.13 Warehouse — products, lots and stock](#413-warehouse--products-lots-and-stock)
 5. [Shortcuts and productivity](#5-shortcuts-and-productivity)
 6. [The recommended flow of a season](#6-the-recommended-flow-of-a-season)
 
@@ -281,6 +282,24 @@ From the **Command Center** button in the header you switch from the map to the 
 - **Weather** (Settings → Weather) — configure the weather station/source that feeds the water balance and the DSS.
 - **Theme** — Light / Dark / Green, from the selector in the header.
 - **Profile** — from the user menu top-right: app preferences and settings.
+
+### 4.13 Warehouse — products, lots and stock
+
+The Warehouse keeps the **product registry** and their **lots** with expiry, stock and cost, and links everything to the logbook activities.
+
+1. Sidebar → **Warehouse** → **Products and lots**.
+2. **＋ New product** and pick the **category** (rigid — it determines the required fields):
+   - **Plant protection product** — requires the **PAN registration number**;
+   - **Fertilizer** — requires the **N-P-K contents** (percentages);
+   - **Seed** — only name and unit of measure;
+   - **Fuel** — requires the agricultural fuel (**UMA**) allocation code.
+3. Open a product and **Load lot**: lot number, **expiry**, quantity and **unit purchase cost**. Every load updates the product's **weighted average cost (WAC/CUMP)** over the current stock.
+
+**Withdrawing from activities:** the logbook form (treatments, fertilizations, sowing) shows a **Warehouse withdrawal** section: pick product → lot → quantity. On save the stock is withdrawn **for real**, in a single transaction with the activity: if the quantity exceeds availability, **the whole registration fails** (no partial withdrawal) with a clear message. The product cost (quantity × WAC at withdrawal time) is **charged to the treated field** and will feed the field balance.
+
+**Expiry:** **expired** lots are highlighted and their use in activities is **blocked** (not selectable); lots **expiring** within the configurable threshold (default 30 days) raise an alert in the panel.
+
+> **Compatibility:** existing records with free-text products/machinery remain valid; the warehouse withdrawal is optional and coexists with free text until you link a real lot. Deleting an operation with withdrawals **restores** the stock automatically.
 
 ---
 

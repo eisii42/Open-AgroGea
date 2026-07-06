@@ -38,9 +38,29 @@
  * v15 — additiva: tabella `tenant_memberships` (multiutente: posti collaboratore
  * per azienda — owner/manager/viewer). Sincronizzata via outbox come le altre
  * tabelle di dominio; `tenant_memberships` aggiunta al CHECK di `sync_outbox`.
+ *
+ * v16 — additiva: Magazzino (0.2.0). Tre tabelle sincronizzate:
+ *   * `products` — anagrafica prodotti a categorie RIGIDE (agrofarmaci, concimi,
+ *     sementi, carburante) con i campi specifici di categoria e il CUMP corrente
+ *     (`avg_unit_cost`, media ponderata mobile aggiornata a ogni carico);
+ *   * `product_lots` — lotti con scadenza, giacenza corrente e costo di carico.
+ *     Il CHECK `quantity_on_hand >= 0` è la guardia ATOMICA dello scarico: uno
+ *     scarico che porterebbe la giacenza sotto zero fa fallire l'intera
+ *     transazione (nessuno scarico parziale);
+ *   * `activity_products` — giunzione attività (`treatment_logs`) ↔ lotto, con
+ *     quantità scaricata e costo imputato (CUMP congelato al momento dello
+ *     scarico): è la base del costo colturale per campo (0.4.0).
+ *   I campi testo libero di `treatment_logs` (`product_name`,
+ *   `machinery_equipment`, …) restano INTATTI come fallback per i record non
+ *   collegati a un lotto reale.
+ *   Rollback logico v16 (se serve annullare gli effetti): le tre tabelle sono
+ *   solo-additive e nessuna colonna esistente è cambiata; basta 1) `delete from
+ *   sync_outbox where table_name in ('products','product_lots',
+ *   'activity_products')`, 2) `drop table activity_products, product_lots,
+ *   products` (in quest'ordine per le FK). I dati pre-v16 non sono toccati.
  */
 
-export const AGRO_LOCAL_SCHEMA_VERSION = 15;
+export const AGRO_LOCAL_SCHEMA_VERSION = 16;
 
 export const AGRO_LOCAL_SCHEMA_SQL = `
 create table if not exists agro_meta (
@@ -464,4 +484,81 @@ create table if not exists product_catalogs (
 
 create index if not exists product_catalogs_country_idx
   on product_catalogs (country_code, type);
+
+-- v16 — Magazzino (0.2.0) ----------------------------------------------------
+
+-- products — anagrafica prodotti di magazzino a categorie RIGIDE. La categoria
+-- determina i campi obbligatori (enforced lato TS in validateProdotto, come
+-- la validazione PAN; qui le colonne restano nullable per non irrigidire le
+-- migrazioni): agrofarmaci → registration_number (registro PAN); concimi →
+-- titoli N-P-K; carburante → codice assegnazione UMA. avg_unit_cost è il
+-- CUMP corrente (Costo Unitario Medio Ponderato, media ponderata mobile),
+-- aggiornato in transazione a ogni carico lotto.
+create table if not exists products (
+  id                  uuid primary key,
+  tenant_id           uuid not null,
+  company_id          uuid not null references companies (id),
+  category            text not null check (
+    category in ('phytosanitary', 'fertilizer', 'seed', 'fuel')
+  ),
+  name                text not null,
+  unit                text not null default 'kg',
+  registration_number text,
+  npk_n               numeric(5, 2),
+  npk_p               numeric(5, 2),
+  npk_k               numeric(5, 2),
+  uma_code            text,
+  avg_unit_cost       numeric(12, 4) not null default 0,
+  notes               text,
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now(),
+  deleted_at          timestamptz
+);
+
+create index if not exists products_company_idx
+  on products (company_id, category);
+
+-- product_lots — lotti di magazzino: numero lotto, scadenza, giacenza corrente
+-- e costo unitario di carico (input del CUMP). Il CHECK "quantity_on_hand >= 0"
+-- è la guardia ATOMICA dello scarico: la transazione che porterebbe la giacenza
+-- sotto zero fallisce per intero (nessuno stato parziale/inconsistente).
+create table if not exists product_lots (
+  id               uuid primary key,
+  tenant_id        uuid not null,
+  product_id       uuid not null references products (id),
+  lot_number       text,
+  expires_at       date,
+  initial_quantity numeric(12, 3) not null default 0,
+  quantity_on_hand numeric(12, 3) not null default 0
+    check (quantity_on_hand >= 0),
+  unit_cost        numeric(12, 4) not null default 0,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  deleted_at       timestamptz
+);
+
+create index if not exists product_lots_product_idx
+  on product_lots (product_id, expires_at);
+
+-- activity_products — giunzione attività ↔ lotto: quantità scaricata e costo
+-- imputato, con unit_cost = CUMP del prodotto CONGELATO al momento dello
+-- scarico (il CUMP successivo non riscrive la storia). Il costo confluisce sul
+-- campo trattato via treatment_logs.plot_id (bilancio di campo 0.4.0).
+create table if not exists activity_products (
+  id               uuid primary key,
+  tenant_id        uuid not null,
+  treatment_log_id uuid not null references treatment_logs (id),
+  product_lot_id   uuid not null references product_lots (id),
+  quantity         numeric(12, 3) not null check (quantity > 0),
+  unit_cost        numeric(12, 4) not null default 0,
+  total_cost       numeric(14, 4) not null default 0,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  deleted_at       timestamptz
+);
+
+create index if not exists activity_products_treatment_idx
+  on activity_products (treatment_log_id);
+create index if not exists activity_products_lot_idx
+  on activity_products (product_lot_id);
 `;

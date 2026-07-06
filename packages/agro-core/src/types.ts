@@ -534,6 +534,109 @@ export interface CatalogoVoce {
 }
 
 // ---------------------------------------------------------------------------
+// Magazzino (0.2.0): anagrafica prodotti, lotti, scarichi per attività
+// ---------------------------------------------------------------------------
+
+/**
+ * Categoria RIGIDA del prodotto di magazzino: determina i campi obbligatori
+ * dell'anagrafica (vedi `validateProdotto` nel modulo warehouse).
+ */
+export type CategoriaProdotto =
+  | "phytosanitary"
+  | "fertilizer"
+  | "seed"
+  | "fuel";
+
+/**
+ * Anagrafica prodotto di magazzino (`products`). I campi specifici di categoria
+ * sono nullable a schema; l'obbligatorietà per categoria è enforced lato TS:
+ * agrofarmaci → {@link Prodotto.registration_number} (registro PAN); concimi →
+ * titoli N-P-K; carburante → {@link Prodotto.uma_code} (assegnazione UMA).
+ */
+export interface Prodotto {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  category: CategoriaProdotto;
+  /** Denominazione commerciale. */
+  name: string;
+  /** Unità di misura della giacenza (es. "kg", "l"). */
+  unit: string;
+  /** N. di registrazione ministeriale PAN (obbligatorio per gli agrofarmaci). */
+  registration_number: string | null;
+  /** Titolo N % (obbligatorio per i concimi). */
+  npk_n: number | null;
+  /** Titolo P % (obbligatorio per i concimi). */
+  npk_p: number | null;
+  /** Titolo K % (obbligatorio per i concimi). */
+  npk_k: number | null;
+  /** Codice assegnazione UMA (obbligatorio per il carburante agricolo). */
+  uma_code: string | null;
+  /**
+   * CUMP corrente (Costo Unitario Medio Ponderato): media ponderata mobile
+   * sulle giacenze, aggiornata in transazione a ogni carico lotto.
+   */
+  avg_unit_cost: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/** Lotto di magazzino (`product_lots`): scadenza, giacenza e costo di carico. */
+export interface LottoProdotto {
+  id: string;
+  tenant_id: string;
+  product_id: string;
+  /** Numero lotto di produzione. */
+  lot_number: string | null;
+  /** Data di scadenza (ISO "YYYY-MM-DD"), null se non deperibile. */
+  expires_at: string | null;
+  /** Quantità caricata all'origine (nell'unità del prodotto). */
+  initial_quantity: number;
+  /** Giacenza corrente; il CHECK `>= 0` a DB è la guardia atomica dello scarico. */
+  quantity_on_hand: number;
+  /** Costo unitario di carico (input del CUMP). */
+  unit_cost: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/**
+ * Scarico di un lotto in un'attività di campo (`activity_products`): quantità
+ * e costo imputato con CUMP congelato al momento dello scarico.
+ */
+export interface ScaricoAttivita {
+  id: string;
+  tenant_id: string;
+  treatment_log_id: string;
+  product_lot_id: string;
+  /** Quantità scaricata (nell'unità del prodotto). */
+  quantity: number;
+  /** CUMP del prodotto al momento dello scarico (congelato). */
+  unit_cost: number;
+  /** Costo imputato = quantity × unit_cost. */
+  total_cost: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/** Richiesta di scarico emessa dal form attività (lotto + quantità). */
+export interface ScaricoRichiesta {
+  product_lot_id: string;
+  quantity: number;
+}
+
+/** Costo vivo dei prodotti imputato a un campo (aggregato per il bilancio 0.4.0). */
+export interface CostoProdottiCampo {
+  /** Appezzamento trattato; null = operazioni "intera azienda". */
+  plot_id: string | null;
+  total_cost: number;
+}
+
+// ---------------------------------------------------------------------------
 // Multiutente — posti collaboratore per azienda (`tenant_memberships`)
 // ---------------------------------------------------------------------------
 
@@ -579,7 +682,10 @@ export type TabellaSync =
   | "infrastructure_assets"
   | "harvest_logs"
   | "scouting_observations"
-  | "tenant_memberships";
+  | "tenant_memberships"
+  | "products"
+  | "product_lots"
+  | "activity_products";
 
 export type OperazioneMutazione = "insert" | "update" | "delete";
 
@@ -630,6 +736,7 @@ export type PanelMode = "floating" | "docked";
 export type FieldPanel =
   | "quaderno"
   | "raccolta"
+  | "magazzino"
   | "geoeditor"
   | "registro"
   | "ndvi"

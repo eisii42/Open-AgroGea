@@ -27,6 +27,7 @@ import {
   Shapes,
   ShieldCheck,
   Sprout,
+  Warehouse,
   Wheat,
 } from "lucide-react";
 import { useState } from "react";
@@ -217,6 +218,19 @@ export function ModuleSidebar({
       ],
     },
     {
+      id: "magazzino",
+      labelKey: "nav.moduleWarehouse",
+      Icon: Warehouse,
+      tools: [
+        {
+          id: "magazzino",
+          labelKey: "nav.toolWarehouse",
+          Icon: Warehouse,
+          action: { kind: "panel", panel: "magazzino" },
+        },
+      ],
+    },
+    {
       id: "impostazioni",
       labelKey: "nav.moduleSettings",
       Icon: Settings,
@@ -253,6 +267,7 @@ export function ModuleSidebar({
     disegno: true,
     qdc: true,
     acqua: true,
+    magazzino: true,
   });
 
   return (

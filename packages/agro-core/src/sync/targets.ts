@@ -136,6 +136,25 @@ export const PULL_TABLES: { tabella: TabellaSync; columns: string }[] = [
       "id,tenant_id,company_id,email,role,status,invited_at,joined_at," +
       "created_at,updated_at,deleted_at",
   },
+  {
+    tabella: "products",
+    columns:
+      "id,tenant_id,company_id,category,name,unit,registration_number," +
+      "npk_n,npk_p,npk_k,uma_code,avg_unit_cost,notes," +
+      "created_at,updated_at,deleted_at",
+  },
+  {
+    tabella: "product_lots",
+    columns:
+      "id,tenant_id,product_id,lot_number,expires_at,initial_quantity," +
+      "quantity_on_hand,unit_cost,created_at,updated_at,deleted_at",
+  },
+  {
+    tabella: "activity_products",
+    columns:
+      "id,tenant_id,treatment_log_id,product_lot_id,quantity,unit_cost," +
+      "total_cost,created_at,updated_at,deleted_at",
+  },
 ];
 
 /**

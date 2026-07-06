@@ -33,6 +33,35 @@ export class AgroDalBase {
 
   // -- scrittura transazionale (dato + outbox) ------------------------------
 
+  /**
+   * Accoda la mutazione in `sync_outbox` DENTRO la transazione passata: è il
+   * mattone condiviso tra la scrittura singola ({@link writeWithOutbox}) e le
+   * scritture multi-riga atomiche del Magazzino (carico lotto con CUMP,
+   * scarico attività), dove più righe di dominio e le loro voci di outbox
+   * devono confermarsi o fallire insieme.
+   */
+  protected async enqueueOutbox(
+    tx: Transaction,
+    tabella: TabellaSync,
+    operazione: OperazioneMutazione,
+    row: Row & { id: string },
+  ): Promise<void> {
+    await tx.query(
+      `insert into sync_outbox
+         (mutation_id, table_name, row_id, operation, payload, mutated_at, device_id)
+       values ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        uuidv4(),
+        tabella,
+        row.id,
+        operazione,
+        operazione === "delete" ? null : JSON.stringify(row),
+        row.updated_at,
+        this.deviceId,
+      ],
+    );
+  }
+
   protected async writeWithOutbox(
     tabella: TabellaSync,
     operazione: OperazioneMutazione,
@@ -48,20 +77,7 @@ export class AgroDalBase {
         const { sql, values } = upsertSql(tabella, row);
         await tx.query(sql, values);
       }
-      await tx.query(
-        `insert into sync_outbox
-           (mutation_id, table_name, row_id, operation, payload, mutated_at, device_id)
-         values ($1, $2, $3, $4, $5, $6, $7)`,
-        [
-          uuidv4(),
-          tabella,
-          row.id,
-          operazione,
-          operazione === "delete" ? null : JSON.stringify(row),
-          row.updated_at,
-          this.deviceId,
-        ],
-      );
+      await this.enqueueOutbox(tx, tabella, operazione, row);
     });
   }
 

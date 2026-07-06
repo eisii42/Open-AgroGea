@@ -30,6 +30,7 @@
    - [4.10 Data Command Center — la dashboard analitica](#410-data-command-center--la-dashboard-analitica)
    - [4.11 Esportazioni ufficiali e backup](#411-esportazioni-ufficiali-e-backup)
    - [4.12 Impostazioni: meteo, tema, profilo](#412-impostazioni-meteo-tema-profilo)
+   - [4.13 Magazzino — prodotti, lotti e giacenze](#413-magazzino--prodotti-lotti-e-giacenze)
 5. [Scorciatoie e produttività](#5-scorciatoie-e-produttività)
 6. [Il flusso consigliato di una stagione](#6-il-flusso-consigliato-di-una-stagione)
 
@@ -281,6 +282,24 @@ Dal pulsante **Command Center** nell'header passi dalla mappa alla **dashboard**
 - **Meteo** (Impostazioni → Meteo) — configura la stazione/sorgente meteo che alimenta il bilancio idrico e il DSS.
 - **Tema** — Chiaro / Scuro / Verde, dal selettore nell'header.
 - **Profilo** — dal menu utente in alto a destra: preferenze e impostazioni dell'app.
+
+### 4.13 Magazzino — prodotti, lotti e giacenze
+
+Il Magazzino tiene l'**anagrafica dei prodotti** e i loro **lotti** con scadenza, giacenza e costo, e collega tutto alle attività del Quaderno.
+
+1. Sidebar → **Magazzino** → **Prodotti e lotti**.
+2. **＋ Nuovo prodotto** e scegli la **categoria** (rigida — determina i campi obbligatori):
+   - **Agrofarmaco** — richiede il **n. di registrazione PAN**;
+   - **Concime** — richiede i **titoli N-P-K** (percentuali);
+   - **Semente** — solo nome e unità di misura;
+   - **Carburante** — richiede il codice di **assegnazione UMA**.
+3. Apri un prodotto e **Carica lotto**: numero di lotto, **scadenza**, quantità e **costo unitario di carico**. Ogni carico aggiorna il **CUMP** (Costo Unitario Medio Ponderato) del prodotto con la media ponderata sulle giacenze.
+
+**Scarico dalle attività:** nel form del Quaderno (trattamenti, fertilizzazioni, semine) compare la sezione **Scarico da magazzino**: scegli prodotto → lotto → quantità. Al salvataggio la giacenza si scarica **realmente**, in un'unica transazione con l'attività: se la quantità supera la disponibilità, **l'intera registrazione fallisce** (nessuno scarico parziale) con un messaggio chiaro. Il costo dei prodotti (quantità × CUMP al momento dello scarico) è **imputato al campo trattato** e sarà la base del bilancio di campo.
+
+**Scadenze:** i lotti **scaduti** sono evidenziati e il loro uso nelle attività è **bloccato** (non selezionabili); i lotti **in scadenza** entro la soglia configurabile (default 30 giorni) sono segnalati con un alert nel pannello.
+
+> **Compatibilità:** le registrazioni esistenti con prodotti/mezzi a testo libero restano valide; lo scarico da magazzino è facoltativo e si affianca al testo libero finché non colleghi un lotto reale. Eliminando un'operazione con scarichi, le giacenze vengono **reintegrate** automaticamente.
 
 ---
 

@@ -2,10 +2,15 @@ import {
   type Appezzamento,
   type CampionamentoSuolo,
   type CatalogoVoce,
+  categoriaPerOperazione,
   centroide,
   type DoseUnita,
   irrigationToLitres,
   litresToIrrigation,
+  type LottoProdotto,
+  type Prodotto,
+  type ScaricoRichiesta,
+  statoScadenza,
   type TipoOperazione,
   type ValidationError,
   validateFertilizationLog,
@@ -175,15 +180,38 @@ export type CampionamentoSuoloInput = Omit<
   "id" | "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
 >;
 
+/** Riga di scarico magazzino in compilazione nel form. */
+interface ScaricoRow {
+  productId: string;
+  lotId: string;
+  quantity: string;
+}
+
 export interface OperazioneFormProps {
   operationType: TipoOperazione;
   appezzamenti: Appezzamento[];
   campiCampagna?: CampoCampagnaOption[];
   prodottiCatalogo?: CatalogoVoce[];
   concimiCatalogo?: CatalogoVoce[];
+  /**
+   * Anagrafica e lotti del Magazzino (0.2.0). Se ci sono prodotti della
+   * categoria pertinente al tipo operazione, il form mostra la sezione
+   * "Scarico da magazzino": prodotto → lotto → quantità. I lotti SCADUTI sono
+   * mostrati ma NON selezionabili (uso bloccato, §5.1).
+   */
+  prodottiMagazzino?: Prodotto[];
+  lottiMagazzino?: LottoProdotto[];
   valutaCompliance?: (appezzamento: Appezzamento) => ComplianceTrattamento | null;
   defaultAppezzamentoId?: string | null;
-  onSubmit: (values: TrattamentoFormValues) => Promise<void> | void;
+  /**
+   * Salvataggio dell'operazione; `scarichi` non vuoto attiva lo scarico
+   * ATOMICO dei lotti (§5.2): un errore (giacenza/lotto scaduto) annulla tutto
+   * e risale qui, dove il form lo mostra senza chiudersi.
+   */
+  onSubmit: (
+    values: TrattamentoFormValues,
+    scarichi?: ScaricoRichiesta[],
+  ) => Promise<void> | void;
   /** Salvataggio del campionamento di suolo (tabella dedicata). */
   onSubmitSoil?: (input: CampionamentoSuoloInput) => Promise<void> | void;
   onCancel?: () => void;
@@ -195,6 +223,8 @@ export function OperazioneForm({
   campiCampagna,
   prodottiCatalogo,
   concimiCatalogo,
+  prodottiMagazzino,
+  lottiMagazzino,
   valutaCompliance,
   defaultAppezzamentoId,
   onSubmit,
@@ -256,6 +286,10 @@ export function OperazioneForm({
   const [sostanzaOrganica, setSostanzaOrganica] = useState("");
   const [tessitura, setTessitura] = useState("");
   const [saving, setSaving] = useState(false);
+  // Scarico da magazzino (0.2.0): righe prodotto → lotto → quantità.
+  const [scarichiRows, setScarichiRows] = useState<ScaricoRow[]>([]);
+  // Errore del salvataggio (es. giacenza insufficiente): il form resta aperto.
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const appezzamento = useMemo(
     () => appezzamenti.find((a) => a.id === appezzamentoId) ?? null,
@@ -341,7 +375,52 @@ export function OperazioneForm({
   const mancano = panErrors.length > 0;
   // Per il campione di suolo serve un campo georeferenziato (centroide = posizione).
   const soilSenzaCampo = soilMode && !appezzamento;
-  const canSubmit = !saving && !mancano && !soilSenzaCampo;
+
+  // -- Magazzino (0.2.0): categoria pertinente e validazione righe scarico ----
+  const categoriaMagazzino = categoriaPerOperazione(operationType);
+  const prodottiCategoria = useMemo(
+    () =>
+      categoriaMagazzino
+        ? (prodottiMagazzino ?? []).filter(
+            (p) => p.category === categoriaMagazzino,
+          )
+        : [],
+    [prodottiMagazzino, categoriaMagazzino],
+  );
+  const usaMagazzino = prodottiCategoria.length > 0;
+  const lottoById = useMemo(() => {
+    const map = new Map<string, LottoProdotto>();
+    for (const l of lottiMagazzino ?? []) map.set(l.id, l);
+    return map;
+  }, [lottiMagazzino]);
+
+  /** Riga compilata per intero e coerente: quantità > 0 e ≤ giacenza, lotto non scaduto. */
+  const rowValida = (row: ScaricoRow): boolean => {
+    const qty = Number.parseFloat(row.quantity);
+    const lotto = lottoById.get(row.lotId);
+    return Boolean(
+      row.productId &&
+        lotto &&
+        Number.isFinite(qty) &&
+        qty > 0 &&
+        qty <= Number(lotto.quantity_on_hand) &&
+        statoScadenza(lotto.expires_at) !== "expired",
+    );
+  };
+  const scarichiValidi: ScaricoRichiesta[] = scarichiRows
+    .filter(rowValida)
+    .map((row) => ({
+      product_lot_id: row.lotId,
+      quantity: Number.parseFloat(row.quantity),
+    }));
+  // Una riga toccata ma non valida blocca il submit (niente scarichi "a metà").
+  const scarichiIncompleti = scarichiRows.some(
+    (row) =>
+      (row.productId || row.lotId || row.quantity.trim() !== "") &&
+      !rowValida(row),
+  );
+
+  const canSubmit = !saving && !mancano && !soilSenzaCampo && !scarichiIncompleti;
 
   function selezionaCampagna(value: string) {
     setCampoCampagnaId(value);
@@ -362,8 +441,39 @@ export function OperazioneForm({
 
   const num = (s: string) => (s.trim() === "" ? null : Number(s));
 
+  // -- righe scarico magazzino ------------------------------------------------
+
+  function aggiornaScarico(index: number, patch: Partial<ScaricoRow>) {
+    setScarichiRows((rows) =>
+      rows.map((row, i) => {
+        if (i !== index) return row;
+        // Cambiare prodotto azzera il lotto (i lotti sono per-prodotto).
+        return patch.productId !== undefined && patch.productId !== row.productId
+          ? { productId: patch.productId, lotId: "", quantity: row.quantity }
+          : { ...row, ...patch };
+      }),
+    );
+    // Prima riga: auto-compila il nome prodotto (fallback testuale del registro)
+    // se il campo è ancora vuoto, così il Quaderno resta leggibile anche senza
+    // consultare il magazzino.
+    if (index === 0 && patch.productId) {
+      const p = prodottiCategoria.find((x) => x.id === patch.productId);
+      if (p) {
+        setProdotto((corrente) => corrente || p.name);
+        if (p.registration_number) {
+          setNumeroRegistrazione((corrente) => corrente || p.registration_number || "");
+        }
+      }
+    }
+  }
+
+  function rimuoviScarico(index: number) {
+    setScarichiRows((rows) => rows.filter((_, i) => i !== index));
+  }
+
   async function handleSubmit() {
     if (!canSubmit) return;
+    setSubmitError(null);
     setSaving(true);
     try {
       if (soilMode && appezzamento) {
@@ -421,7 +531,12 @@ export function OperazioneForm({
         executed_at: new Date(`${data}T12:00:00`).toISOString(),
         weather_conditions: null,
         note: note.trim() || null,
-      });
+      }, scarichiValidi);
+    } catch (e) {
+      // Scarico atomico fallito (giacenza insufficiente, lotto scaduto…): la
+      // transazione è stata annullata per intero; il form resta aperto con il
+      // messaggio, l'utente corregge e riprova.
+      setSubmitError(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }
@@ -584,6 +699,149 @@ export function OperazioneForm({
             <Input id="op-prod" value={prodotto} onChange={(e) => setProdotto(e.target.value)} />
           )}
         </div>
+      )}
+
+      {/* Scarico da magazzino (0.2.0): prodotto → lotto → quantità. Lotti
+          scaduti visibili ma NON selezionabili (uso bloccato §5.1). */}
+      {usaMagazzino && !isSampling && (
+        <section className="flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
+            {t("operazioneForm.warehouseSection")}
+          </p>
+          {scarichiRows.length === 0 && (
+            <p className="text-[11px] text-[var(--ink-3)]">
+              {t("operazioneForm.warehouseFreeText")}
+            </p>
+          )}
+          {scarichiRows.map((row, index) => {
+            const prodottoSel = prodottiCategoria.find(
+              (p) => p.id === row.productId,
+            );
+            const lottiProdotto = (lottiMagazzino ?? []).filter(
+              (l) => l.product_id === row.productId,
+            );
+            const lottoSel = lottoById.get(row.lotId) ?? null;
+            const disponibile = lottoSel ? Number(lottoSel.quantity_on_hand) : null;
+            return (
+              <div
+                key={`scarico-${index}`}
+                className="flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2"
+              >
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor={`op-mag-prod-${index}`}>
+                      {t("operazioneForm.warehouseProduct")}
+                    </Label>
+                    <Select
+                      id={`op-mag-prod-${index}`}
+                      value={row.productId}
+                      onChange={(e) =>
+                        aggiornaScarico(index, { productId: e.target.value })
+                      }
+                    >
+                      <option value="">{t("operazioneForm.selectEllipsis")}</option>
+                      {prodottiCategoria.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor={`op-mag-lotto-${index}`}>
+                      {t("operazioneForm.warehouseLot")}
+                    </Label>
+                    <Select
+                      id={`op-mag-lotto-${index}`}
+                      value={row.lotId}
+                      onChange={(e) =>
+                        aggiornaScarico(index, { lotId: e.target.value })
+                      }
+                      disabled={!row.productId}
+                    >
+                      <option value="">{t("operazioneForm.selectEllipsis")}</option>
+                      {lottiProdotto.map((l) => {
+                        const stato = statoScadenza(l.expires_at);
+                        const scaduto = stato === "expired";
+                        return (
+                          <option key={l.id} value={l.id} disabled={scaduto}>
+                            {l.lot_number ?? l.id.slice(0, 8)}
+                            {l.expires_at ? ` · ${l.expires_at}` : ""}
+                            {" · "}
+                            {t("operazioneForm.warehouseAvailable", {
+                              qty: Number(l.quantity_on_hand),
+                              unit: prodottoSel?.unit ?? "",
+                            })}
+                            {scaduto
+                              ? ` · ${t("operazioneForm.warehouseExpiredOption")}`
+                              : stato === "expiring"
+                                ? ` · ${t("operazioneForm.warehouseExpiringOption")}`
+                                : ""}
+                          </option>
+                        );
+                      })}
+                    </Select>
+                    {row.productId && lottiProdotto.length === 0 && (
+                      <p className="text-[11px] text-[var(--warn)]">
+                        {t("operazioneForm.warehouseNoLots")}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-end gap-2">
+                  <div className="flex flex-1 flex-col gap-1.5">
+                    <Label htmlFor={`op-mag-qta-${index}`}>
+                      {t("operazioneForm.warehouseQuantity", {
+                        unit: prodottoSel?.unit ?? "—",
+                      })}
+                    </Label>
+                    <Input
+                      id={`op-mag-qta-${index}`}
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      step="any"
+                      max={disponibile ?? undefined}
+                      value={row.quantity}
+                      onChange={(e) =>
+                        aggiornaScarico(index, { quantity: e.target.value })
+                      }
+                      className="agro-num"
+                    />
+                  </div>
+                  {disponibile != null && (
+                    <p className="pb-2 text-[11px] text-[var(--ink-3)]">
+                      {t("operazioneForm.warehouseAvailable", {
+                        qty: disponibile,
+                        unit: prodottoSel?.unit ?? "",
+                      })}
+                    </p>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => rimuoviScarico(index)}
+                    className="min-h-[40px] px-2 text-xs"
+                  >
+                    {t("operazioneForm.warehouseRemoveRow")}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() =>
+              setScarichiRows((rows) => [
+                ...rows,
+                { productId: "", lotId: "", quantity: "" },
+              ])
+            }
+            className="self-start text-xs font-medium text-[var(--accent)]"
+          >
+            {t("operazioneForm.warehouseAddRow")}
+          </button>
+        </section>
       )}
 
       {f.fertilizerType && (
@@ -806,6 +1064,13 @@ export function OperazioneForm({
             <span key={`${e.field}-${e.messageKey}`}>• {e.field}</span>
           ))}
         </div>
+      )}
+
+      {/* Scarico atomico fallito: la transazione è annullata per intero (§5.2). */}
+      {submitError && (
+        <p className="rounded-[var(--r-2)] border border-[var(--danger)] bg-[var(--danger-l)] px-3 py-2 text-sm font-medium text-[var(--danger)]">
+          {t("operazioneForm.warehouseSubmitError", { message: submitError })}
+        </p>
       )}
 
       <div className="flex gap-2 pt-1">

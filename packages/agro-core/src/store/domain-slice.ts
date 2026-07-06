@@ -20,6 +20,8 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
     campagnaAttiva: new Date().getFullYear(),
     campiCampagna: [],
     memberships: [],
+    prodotti: [],
+    lotti: [],
 
     setAziendaAttiva: async (aziendaId) => {
       set({
@@ -35,6 +37,8 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         dataTransferLogs: [],
         campiCampagna: [],
         memberships: [],
+        prodotti: [],
+        lotti: [],
         activeView: "map",
         selectedFeature: null,
         geomEdit: null,
@@ -218,6 +222,8 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         dataTransferLogs,
         campiCampagna,
         memberships,
+        prodotti,
+        lotti,
       ] = await Promise.all([
         dal.listAppezzamenti(aziendaAttivaId),
         dal.listCrops(),
@@ -229,6 +235,8 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         dal.listDataTransferLogs(),
         dal.listCampiCampagna({ anno: get().campagnaAttiva }),
         dal.listMemberships(),
+        dal.listProdotti(aziendaAttivaId),
+        dal.listLotti(aziendaAttivaId),
       ]);
       set({
         aziende,
@@ -242,6 +250,8 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         dataTransferLogs,
         campiCampagna,
         memberships,
+        prodotti,
+        lotti,
       });
     },
 
@@ -275,27 +285,37 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       set({ configMeteo: config });
     },
 
-    registraTrattamento: async (input) => {
+    registraTrattamento: async (input, scarichi) => {
       assertWritable(get);
       const { dal, aziendaAttivaId, syncRouter } = get();
       if (!dal || !aziendaAttivaId) {
         throw new Error("Nessuna azienda attiva: impossibile registrare.");
       }
-      const record = await dal.insertTrattamento({
-        ...input,
-        company_id: aziendaAttivaId,
-      });
+      // Con scarichi: attività + scarico lotti + costo CUMP in un'unica
+      // transazione (l'eccezione WarehouseError risale al form senza scritture
+      // parziali). Senza scarichi: percorso classico (fallback testo libero).
+      const { trattamento: record } = await dal.insertTrattamentoConScarichi(
+        { ...input, company_id: aziendaAttivaId },
+        scarichi ?? [],
+      );
       set((s) => ({ trattamenti: [record, ...s.trattamenti] }));
+      if (scarichi && scarichi.length > 0) {
+        set({ lotti: await dal.listLotti(aziendaAttivaId) });
+      }
       syncRouter?.notifyLocalWrite();
       return record;
     },
 
     eliminaTrattamento: async (id) => {
       assertWritable(get);
-      const { dal, syncRouter } = get();
+      const { dal, aziendaAttivaId, syncRouter } = get();
       if (!dal) return;
       await dal.deleteTrattamento(id);
       set((s) => ({ trattamenti: s.trattamenti.filter((t) => t.id !== id) }));
+      // Lo storno magazzino del DAL può aver reintegrato giacenze: si riidratano.
+      if (aziendaAttivaId) {
+        set({ lotti: await dal.listLotti(aziendaAttivaId) });
+      }
       syncRouter?.notifyLocalWrite();
       // L'ultima operazione mostrata nella scheda dettaglio può essere quella
       // appena eliminata: la si ricalcola per l'appezzamento selezionato.
@@ -453,6 +473,61 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       }));
       syncRouter?.notifyLocalWrite();
       return record;
+    },
+
+    salvaProdotto: async (input) => {
+      assertWritable(get);
+      const { dal, aziendaAttivaId, syncRouter } = get();
+      if (!dal || !aziendaAttivaId) return null;
+      const record = await dal.upsertProdotto({
+        ...input,
+        company_id: aziendaAttivaId,
+      });
+      set((s) => ({
+        prodotti: [
+          ...s.prodotti.filter((p) => p.id !== record.id),
+          record,
+        ].sort((a, b) =>
+          a.category === b.category
+            ? a.name.localeCompare(b.name)
+            : a.category.localeCompare(b.category),
+        ),
+      }));
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    eliminaProdotto: async (id) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return;
+      await dal.deleteProdotto(id);
+      set((s) => ({ prodotti: s.prodotti.filter((p) => p.id !== id) }));
+      syncRouter?.notifyLocalWrite();
+    },
+
+    caricaLotto: async (input) => {
+      assertWritable(get);
+      const { dal, aziendaAttivaId, syncRouter } = get();
+      if (!dal || !aziendaAttivaId) return null;
+      const record = await dal.caricaLotto(input);
+      // Il carico aggiorna anche il CUMP del prodotto: si riidratano entrambi.
+      const [prodotti, lotti] = await Promise.all([
+        dal.listProdotti(aziendaAttivaId),
+        dal.listLotti(aziendaAttivaId),
+      ]);
+      set({ prodotti, lotti });
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    eliminaLotto: async (id) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return;
+      await dal.deleteLotto(id);
+      set((s) => ({ lotti: s.lotti.filter((l) => l.id !== id) }));
+      syncRouter?.notifyLocalWrite();
     },
   };
 }

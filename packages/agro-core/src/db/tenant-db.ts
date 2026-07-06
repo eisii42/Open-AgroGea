@@ -78,12 +78,17 @@ export async function dumpTenantDb(tenantId: string): Promise<Blob> {
   return db.dumpDataDir();
 }
 
+// Ordine parent → child: il dump si ricarica rispettando le foreign key
+// (products→companies, product_lots→products, activity_products→treatment_logs+lots).
 const SQL_DUMP_TABLES = [
   "companies",
   "crops",
   "plots_registry",
   "plots_campaign",
   "treatment_logs",
+  "products",
+  "product_lots",
+  "activity_products",
   "sync_outbox",
 ] as const;
 

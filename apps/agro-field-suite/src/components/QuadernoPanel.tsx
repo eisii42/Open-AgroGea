@@ -1,5 +1,6 @@
 import {
   type RegistroTrattamento,
+  type ScaricoRichiesta,
   type TipoOperazione,
   useAgroStore,
 } from "@agrogea/core";
@@ -44,6 +45,9 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
   // i dropdown Prodotto/Concime mostrano solo le voci del registro nazionale.
   const { voci: fitosanitari } = useCountryCatalog("phytosanitary");
   const { voci: concimi } = useCountryCatalog("fertilizer");
+  // Magazzino (0.2.0): anagrafica e lotti per la sezione di scarico del form.
+  const prodotti = useAgroStore((s) => s.prodotti);
+  const lotti = useAgroStore((s) => s.lotti);
   const sync = useAgroStore((s) => s.sync);
   const registraTrattamento = useAgroStore((s) => s.registraTrattamento);
   const salvaCampionamento = useAgroStore((s) => s.salvaCampionamento);
@@ -107,8 +111,14 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
     }
   }, [quadernoApriAppezzamentoId, consumaQuadernoApri]);
 
-  async function handleSubmit(values: TrattamentoFormValues) {
-    await registraTrattamento(values);
+  // Con `scarichi` valorizzato l'attività scarica i lotti di magazzino nella
+  // stessa transazione: un errore (giacenza/lotto scaduto) risale al form, che
+  // resta aperto e mostra il messaggio.
+  async function handleSubmit(
+    values: TrattamentoFormValues,
+    scarichi?: ScaricoRichiesta[],
+  ) {
+    await registraTrattamento(values, scarichi);
     setFormType(null);
     setFormDefaultAppId("");
   }
@@ -210,6 +220,8 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
           campiCampagna={campiCampagnaOptions}
           prodottiCatalogo={fitosanitari}
           concimiCatalogo={concimi}
+          prodottiMagazzino={prodotti}
+          lottiMagazzino={lotti}
           valutaCompliance={valutaCompliance}
           defaultAppezzamentoId={formDefaultAppId}
           onSubmit={handleSubmit}

@@ -27,6 +27,18 @@ export {
   tenantDataDir,
 } from "./db/tenant-db";
 export { AgroDal } from "./db/dal";
+export { WarehouseError } from "./db/dal-warehouse";
+export {
+  EXPIRY_WARNING_DAYS_DEFAULT,
+  categoriaPerOperazione,
+  cumpDopoCarico,
+  lottoScaduto,
+  statoScadenza,
+  validateProdotto,
+  type ProdottoDraft,
+  type ProdottoValidationError,
+  type StatoScadenzaLotto,
+} from "./warehouse/cump";
 export {
   OnPremiseSyncTarget,
   LocalOnlySyncTarget,

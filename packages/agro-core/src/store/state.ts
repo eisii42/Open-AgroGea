@@ -15,11 +15,14 @@ import type {
   Crop,
   DataTransferLog,
   FieldPanel,
+  LottoProdotto,
   OutboxMutazione,
   PanelMode,
+  Prodotto,
   ProfiloUtente,
   Raccolta,
   RegistroTrattamento,
+  ScaricoRichiesta,
   SyncSnapshot,
   TenantClaims,
   TenantMembership,
@@ -201,6 +204,10 @@ export interface DomainSlice {
   campiCampagna: CampoCampagna[];
   /** Posti collaboratore del workspace (multiutente), idratati dal DAL. */
   memberships: TenantMembership[];
+  /** Anagrafica prodotti di magazzino dell'azienda attiva (Modulo Magazzino). */
+  prodotti: Prodotto[];
+  /** Lotti di magazzino (tutti i prodotti dell'azienda attiva). */
+  lotti: LottoProdotto[];
 
   setAziendaAttiva: (aziendaId: string | null) => Promise<void>;
   /**
@@ -254,11 +261,18 @@ export interface DomainSlice {
       >
     >,
   ) => Promise<void>;
+  /**
+   * Registra un'operazione del Quaderno; con `scarichi` valorizzato aggancia i
+   * lotti di magazzino nella STESSA transazione (scarico atomico §5.2: giacenza
+   * insufficiente o lotto scaduto ⇒ l'intera registrazione fallisce e
+   * l'eccezione `WarehouseError` risale al form).
+   */
   registraTrattamento: (
     input: Omit<
       RegistroTrattamento,
       "id" | "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
     >,
+    scarichi?: ScaricoRichiesta[],
   ) => Promise<RegistroTrattamento>;
   /**
    * Cancellazione protetta di una singola operazione del Quaderno (soft-delete
@@ -325,6 +339,41 @@ export interface DomainSlice {
       "tenant_id" | "id" | "created_at" | "updated_at" | "deleted_at"
     > & { id?: string },
   ) => Promise<Crop | null>;
+  /**
+   * Crea/aggiorna un prodotto di magazzino (categorie rigide, validazione per
+   * categoria nel DAL) e idrata lo store. Ritorna la riga o null senza DAL.
+   */
+  salvaProdotto: (
+    input: Omit<
+      Prodotto,
+      | "id"
+      | "tenant_id"
+      | "company_id"
+      | "avg_unit_cost"
+      | "created_at"
+      | "updated_at"
+      | "deleted_at"
+    > & { id?: string },
+  ) => Promise<Prodotto | null>;
+  /** Soft-delete di un prodotto di magazzino (i lotti restano storicizzati). */
+  eliminaProdotto: (id: string) => Promise<void>;
+  /**
+   * CARICO di un nuovo lotto: crea il lotto e aggiorna il CUMP del prodotto
+   * nella stessa transazione (§5.3), poi idrata prodotti e lotti nello store.
+   */
+  caricaLotto: (
+    input: Omit<
+      LottoProdotto,
+      | "id"
+      | "tenant_id"
+      | "quantity_on_hand"
+      | "created_at"
+      | "updated_at"
+      | "deleted_at"
+    > & { id?: string },
+  ) => Promise<LottoProdotto | null>;
+  /** Soft-delete di un lotto di magazzino. */
+  eliminaLotto: (id: string) => Promise<void>;
   /** Registra un campionamento di suolo (`soil_samples`) e idrata lo store. */
   salvaCampionamento: (
     input: Omit<
