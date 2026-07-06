@@ -499,21 +499,34 @@ create table if not exists products (
   tenant_id           uuid not null,
   company_id          uuid not null references companies (id),
   category            text not null check (
-    category in ('phytosanitary', 'fertilizer', 'seed', 'fuel')
+    category in ('phytosanitary', 'fertilizer', 'seed', 'fuel', 'other')
   ),
   name                text not null,
   unit                text not null default 'kg',
   registration_number text,
+  active_substance    text,
   npk_n               numeric(5, 2),
   npk_p               numeric(5, 2),
   npk_k               numeric(5, 2),
   uma_code            text,
+  supplier            text,
   avg_unit_cost       numeric(12, 4) not null default 0,
   notes               text,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
   deleted_at          timestamptz
 );
+
+-- Allineamento additivo per le istanze v16 create prima dell'estensione
+-- dell'anagrafica (sostanza attiva per gli agrofarmaci, fornitore comune,
+-- categoria residuale 'other' per lubrificanti/materiali di consumo).
+alter table products add column if not exists active_substance text;
+alter table products add column if not exists supplier text;
+alter table products
+  drop constraint if exists products_category_check;
+alter table products
+  add constraint products_category_check
+  check (category in ('phytosanitary', 'fertilizer', 'seed', 'fuel', 'other'));
 
 create index if not exists products_company_idx
   on products (company_id, category);

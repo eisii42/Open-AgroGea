@@ -800,14 +800,19 @@
       "phytosanitary": "Agrofarmaco",
       "fertilizer": "Concime",
       "seed": "Semente",
-      "fuel": "Carburante"
+      "fuel": "Carburante",
+      "other": "Altro / materiali"
     },
     "unit": "Unità di misura",
     "registrationNumber": "N. registrazione PAN",
+    "activeSubstance": "Sostanza attiva",
     "npkN": "Titolo N (%)",
     "npkP": "Titolo P (%)",
     "npkK": "Titolo K (%)",
     "umaCode": "Assegnazione UMA",
+    "supplier": "Fornitore",
+    "supplierPlaceholder": "es. Consorzio Agrario",
+    "initialLoad": "Carico iniziale (primo lotto)",
     "notes": "Note",
     "saveProduct": "Salva prodotto",
     "deleteProduct": "Elimina prodotto",
@@ -969,6 +974,33 @@
       "destination": "Destinazione"
     }
   },
+  "companyOverview": {
+    "generalTitle": "Andamento generale · {{year}}",
+    "warehouseTitle": "Magazzino",
+    "kpi": {
+      "totalArea": "Superficie totale",
+      "plots": "{{count}} appezzamenti",
+      "operationsYear": "Operazioni registrate",
+      "operationsSub": "Quaderno di Campagna, annata corrente",
+      "harvestYear": "Raccolto",
+      "harvestSub": "Somma dei conferimenti dell'annata",
+      "productCosts": "Costo prodotti",
+      "productCostsSub": "Scarichi di magazzino valorizzati a CUMP",
+      "products": "Prodotti in anagrafica",
+      "productsSub": "{{count}} lotti con giacenza",
+      "stockValue": "Valore giacenze",
+      "stockValueSub": "Valorizzazione al CUMP corrente",
+      "expiredLots": "Lotti scaduti",
+      "expiredLotsSub": "Con giacenza residua: uso bloccato",
+      "expiringLots": "In scadenza ({{days}} gg)",
+      "expiringLotsSub": "Da usare o smaltire con priorità"
+    },
+    "costsByField": "Costo prodotti per campo · {{year}}",
+    "noCosts": "Nessun costo prodotti registrato per l'annata: collega i lotti di magazzino alle attività del Quaderno.",
+    "field": "Campo",
+    "cost": "Costo",
+    "wholeFarm": "Intera azienda"
+  },
   "commandCenter": {
     "allCrops": "Tutte le colture",
     "campaignYear": "Annata agraria",
@@ -976,6 +1008,8 @@
     "crop": "Coltura",
     "downloadReport": "Download Executive Report",
     "noPlotsInScope": "Nessun appezzamento nello scope.",
+    "pageCompany": "Azienda",
+    "pageCrops": "Colture e appezzamenti",
     "plots": "Appezzamenti",
     "plotsAreaSummary": "{{count}} appezzamenti · {{area}} ha",
     "readOnlyBanner": {
@@ -1310,6 +1344,10 @@
       "panelRaccolta": {
         "label": "Registro raccolta",
         "descr": "Conferimenti e rese"
+      },
+      "panelMagazzino": {
+        "label": "Magazzino",
+        "descr": "Prodotti, lotti e giacenze"
       },
       "panelRegistro": {
         "label": "Registro geometrie",

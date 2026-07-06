@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   Sprout,
   TableProperties,
+  Warehouse,
   Wheat,
   X,
 } from "lucide-react";
@@ -88,6 +89,7 @@ const MODULE_GROUPS: ModuleGroup[] = [
       { id: "panelAcqua", Icon: Droplets },
       { id: "panelQuaderno", Icon: NotebookPen },
       { id: "panelRaccolta", Icon: Wheat },
+      { id: "panelMagazzino", Icon: Warehouse },
       { id: "panelSian", Icon: FileDown },
       { id: "panelStampa", Icon: Printer },
       { id: "panelRegistro", Icon: MousePointerClick },
@@ -140,6 +142,7 @@ function moduleItemText(t: TFunction, id: DashboardModuleId): { label: string; d
     panelAcqua: { label: t("userProfileSettingsPage.module.panelAcqua.label"), descr: t("userProfileSettingsPage.module.panelAcqua.descr") },
     panelQuaderno: { label: t("userProfileSettingsPage.module.panelQuaderno.label"), descr: t("userProfileSettingsPage.module.panelQuaderno.descr") },
     panelRaccolta: { label: t("userProfileSettingsPage.module.panelRaccolta.label"), descr: t("userProfileSettingsPage.module.panelRaccolta.descr") },
+    panelMagazzino: { label: t("userProfileSettingsPage.module.panelMagazzino.label"), descr: t("userProfileSettingsPage.module.panelMagazzino.descr") },
     panelSian: { label: t("userProfileSettingsPage.module.panelSian.label"), descr: t("userProfileSettingsPage.module.panelSian.descr") },
     panelStampa: { label: t("userProfileSettingsPage.module.panelStampa.label"), descr: t("userProfileSettingsPage.module.panelStampa.descr") },
     panelRegistro: { label: t("userProfileSettingsPage.module.panelRegistro.label"), descr: t("userProfileSettingsPage.module.panelRegistro.descr") },

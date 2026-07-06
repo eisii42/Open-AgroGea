@@ -26,6 +26,7 @@ const CATEGORIE: CategoriaProdotto[] = [
   "fertilizer",
   "seed",
   "fuel",
+  "other",
 ];
 
 const UNITA = ["kg", "l", "q", "t", "pz"];
@@ -162,9 +163,20 @@ export function MagazzinoPanel({ onClose }: { onClose: () => void }) {
 
       {nuovo ? (
         <ProdottoForm
-          onSubmit={async (input) => {
+          onSubmit={async (input, lottoIniziale) => {
+            // Prodotto + carico del lotto iniziale (giacenza di partenza): il
+            // carico aggiorna anche il CUMP dal costo unitario indicato.
             await conErrore(async () => {
-              await salvaProdotto(input);
+              const record = await salvaProdotto(input);
+              if (record) {
+                await caricaLotto({
+                  product_id: record.id,
+                  lot_number: lottoIniziale.lot_number,
+                  expires_at: lottoIniziale.expires_at,
+                  initial_quantity: lottoIniziale.initial_quantity,
+                  unit_cost: lottoIniziale.unit_cost,
+                });
+              }
               setNuovo(false);
             });
           }}
@@ -287,18 +299,31 @@ interface ProdottoFormInput {
   name: string;
   unit: string;
   registration_number: string | null;
+  active_substance: string | null;
   npk_n: number | null;
   npk_p: number | null;
   npk_k: number | null;
   uma_code: string | null;
+  supplier: string | null;
   notes: string | null;
+}
+
+/** Carico iniziale contestuale alla creazione del prodotto (giacenza di partenza). */
+interface LottoInizialeInput {
+  lot_number: string | null;
+  expires_at: string | null;
+  initial_quantity: number;
+  unit_cost: number;
 }
 
 function ProdottoForm({
   onSubmit,
   onCancel,
 }: {
-  onSubmit: (input: ProdottoFormInput) => Promise<void> | void;
+  onSubmit: (
+    input: ProdottoFormInput,
+    lottoIniziale: LottoInizialeInput,
+  ) => Promise<void> | void;
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
@@ -306,11 +331,18 @@ function ProdottoForm({
   const [nome, setNome] = useState("");
   const [unita, setUnita] = useState("kg");
   const [numeroRegistrazione, setNumeroRegistrazione] = useState("");
+  const [sostanzaAttiva, setSostanzaAttiva] = useState("");
   const [npkN, setNpkN] = useState("");
   const [npkP, setNpkP] = useState("");
   const [npkK, setNpkK] = useState("");
   const [umaCode, setUmaCode] = useState("");
+  const [fornitore, setFornitore] = useState("");
   const [note, setNote] = useState("");
+  // Carico iniziale (fix: quantità e lotto direttamente alla creazione).
+  const [numeroLotto, setNumeroLotto] = useState("");
+  const [scadenza, setScadenza] = useState("");
+  const [quantita, setQuantita] = useState("");
+  const [costo, setCosto] = useState("");
   const [saving, setSaving] = useState(false);
 
   const num = (s: string) => (s.trim() === "" ? null : Number(s));
@@ -320,22 +352,34 @@ function ProdottoForm({
     name: nome,
     unit: unita,
     registration_number: numeroRegistrazione.trim() || null,
+    active_substance: sostanzaAttiva.trim() || null,
     npk_n: num(npkN),
     npk_p: num(npkP),
     npk_k: num(npkK),
     uma_code: umaCode.trim() || null,
+    supplier: fornitore.trim() || null,
     notes: note.trim() || null,
   };
   // Stessa validazione RIGIDA del DAL, anticipata nel form (bottone disattivo).
   const errors = validateProdotto(draft);
-  const mancano = errors.length > 0;
+  // La giacenza iniziale è FONDAMENTALE: quantità > 0 e costo >= 0 richiesti.
+  const qtaNum = Number.parseFloat(quantita);
+  const costoNum = Number.parseFloat(costo);
+  const caricoValido =
+    Number.isFinite(qtaNum) && qtaNum > 0 && Number.isFinite(costoNum) && costoNum >= 0;
+  const mancano = errors.length > 0 || !caricoValido;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (saving || mancano) return;
     setSaving(true);
     try {
-      await onSubmit(draft);
+      await onSubmit(draft, {
+        lot_number: numeroLotto.trim() || null,
+        expires_at: scadenza || null,
+        initial_quantity: qtaNum,
+        unit_cost: costoNum,
+      });
     } finally {
       setSaving(false);
     }
@@ -388,15 +432,25 @@ function ProdottoForm({
       </div>
 
       {categoria === "phytosanitary" && (
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="mag-reg">{t("warehouse.registrationNumber")}</Label>
-          <Input
-            id="mag-reg"
-            value={numeroRegistrazione}
-            onChange={(e) => setNumeroRegistrazione(e.target.value)}
-            className="agro-num"
-            required
-          />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="mag-reg">{t("warehouse.registrationNumber")}</Label>
+            <Input
+              id="mag-reg"
+              value={numeroRegistrazione}
+              onChange={(e) => setNumeroRegistrazione(e.target.value)}
+              className="agro-num"
+              required
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="mag-sa">{t("warehouse.activeSubstance")}</Label>
+            <Input
+              id="mag-sa"
+              value={sostanzaAttiva}
+              onChange={(e) => setSostanzaAttiva(e.target.value)}
+            />
+          </div>
         </div>
       )}
 
@@ -440,6 +494,76 @@ function ProdottoForm({
           />
         </div>
       )}
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="mag-fornitore">{t("warehouse.supplier")}</Label>
+        <Input
+          id="mag-fornitore"
+          value={fornitore}
+          onChange={(e) => setFornitore(e.target.value)}
+          placeholder={t("warehouse.supplierPlaceholder")}
+        />
+      </div>
+
+      {/* Carico iniziale: lotto di produzione, scadenza, quantità e costo.
+          La quantità è obbligatoria: un prodotto nasce con la sua giacenza. */}
+      <section className="flex flex-col gap-3 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
+          {t("warehouse.initialLoad")}
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="mag-lotto">{t("warehouse.lotNumber")}</Label>
+            <Input
+              id="mag-lotto"
+              value={numeroLotto}
+              onChange={(e) => setNumeroLotto(e.target.value)}
+              className="agro-num"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="mag-scadenza">{t("warehouse.expiresAt")}</Label>
+            <Input
+              id="mag-scadenza"
+              type="date"
+              value={scadenza}
+              onChange={(e) => setScadenza(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="mag-quantita">
+              {t("warehouse.quantity")} ({unita})
+            </Label>
+            <Input
+              id="mag-quantita"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="any"
+              value={quantita}
+              onChange={(e) => setQuantita(e.target.value)}
+              className="agro-num"
+              required
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="mag-costo">
+              {t("warehouse.unitCost")} (€/{unita})
+            </Label>
+            <Input
+              id="mag-costo"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="any"
+              value={costo}
+              onChange={(e) => setCosto(e.target.value)}
+              className="agro-num"
+              required
+            />
+          </div>
+        </div>
+      </section>
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="mag-note">{t("warehouse.notes")}</Label>
@@ -555,10 +679,12 @@ function ProdottoDettaglio({
       <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] px-3 py-2 text-sm text-[var(--ink-2)]">
         {t(`warehouse.categoryLabel.${prodotto.category}` as never)}
         {prodotto.registration_number ? ` · ${prodotto.registration_number}` : ""}
+        {prodotto.active_substance ? ` · ${prodotto.active_substance}` : ""}
         {prodotto.npk_n != null
           ? ` · NPK ${prodotto.npk_n}-${prodotto.npk_p}-${prodotto.npk_k}`
           : ""}
         {prodotto.uma_code ? ` · UMA ${prodotto.uma_code}` : ""}
+        {prodotto.supplier ? ` · ${prodotto.supplier}` : ""}
         <br />
         {t("warehouse.stock")}{" "}
         <strong className="agro-num">

@@ -227,6 +227,7 @@ export function ModuleSidebar({
           labelKey: "nav.toolWarehouse",
           Icon: Warehouse,
           action: { kind: "panel", panel: "magazzino" },
+          flag: "panelMagazzino",
         },
       ],
     },
@@ -261,14 +262,9 @@ export function ModuleSidebar({
     },
   ];
 
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({
-    suolo: true,
-    coltura: true,
-    disegno: true,
-    qdc: true,
-    acqua: true,
-    magazzino: true,
-  });
+  // All'avvio TUTTI i moduli sono richiusi (solo l'elenco delle voci di primo
+  // livello): la sidebar si presenta compatta e l'utente espande ciò che serve.
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   return (
     <div

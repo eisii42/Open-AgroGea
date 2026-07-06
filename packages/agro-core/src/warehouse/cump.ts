@@ -79,7 +79,13 @@ export type ProdottoDraft = Pick<Prodotto, "category" | "name" | "unit"> &
   Partial<
     Pick<
       Prodotto,
-      "registration_number" | "npk_n" | "npk_p" | "npk_k" | "uma_code"
+      | "registration_number"
+      | "active_substance"
+      | "npk_n"
+      | "npk_p"
+      | "npk_k"
+      | "uma_code"
+      | "supplier"
     >
   >;
 
@@ -131,6 +137,7 @@ export function validateProdotto(
         });
       }
     },
+    other: () => {},
   };
   byCategory[draft.category]?.();
   return errors;

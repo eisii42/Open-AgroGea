@@ -185,6 +185,21 @@ describe("schema v16 / migrazione additiva", () => {
       assert.ok(nomi.includes(t), `manca la tabella ${t}`);
     }
 
+    // Estensione anagrafica (sostanza attiva, fornitore) + categoria residuale
+    // 'other': colonne presenti e CHECK aggiornato anche su istanze ri-migrate.
+    const cols = await db.query<{ column_name: string }>(
+      `select column_name from information_schema.columns where table_name='products'`,
+    );
+    const colNames = cols.rows.map((r) => r.column_name);
+    for (const c of ["active_substance", "supplier"]) {
+      assert.ok(colNames.includes(c), `products manca ${c}`);
+    }
+    await db.query(
+      `insert into products (id, tenant_id, company_id, category, name)
+       values (gen_random_uuid(), $1, '22222222-2222-2222-2222-222222222222', 'other', 'Filo per legatura')`,
+      [TENANT],
+    );
+
     // Il fallback testo libero è INTATTO (vincolo di migrazione §3).
     const legacy = await db.query<{ product_name: string; machinery_equipment: string }>(
       `select product_name, machinery_equipment from treatment_logs`,

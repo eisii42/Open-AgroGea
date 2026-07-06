@@ -539,13 +539,15 @@ export interface CatalogoVoce {
 
 /**
  * Categoria RIGIDA del prodotto di magazzino: determina i campi obbligatori
- * dell'anagrafica (vedi `validateProdotto` nel modulo warehouse).
+ * dell'anagrafica (vedi `validateProdotto` nel modulo warehouse). `other` è la
+ * categoria residuale (lubrificanti, materiali di consumo) senza campi extra.
  */
 export type CategoriaProdotto =
   | "phytosanitary"
   | "fertilizer"
   | "seed"
-  | "fuel";
+  | "fuel"
+  | "other";
 
 /**
  * Anagrafica prodotto di magazzino (`products`). I campi specifici di categoria
@@ -564,6 +566,8 @@ export interface Prodotto {
   unit: string;
   /** N. di registrazione ministeriale PAN (obbligatorio per gli agrofarmaci). */
   registration_number: string | null;
+  /** Sostanza attiva (agrofarmaci): auto-compila i form del Quaderno. */
+  active_substance: string | null;
   /** Titolo N % (obbligatorio per i concimi). */
   npk_n: number | null;
   /** Titolo P % (obbligatorio per i concimi). */
@@ -572,6 +576,8 @@ export interface Prodotto {
   npk_k: number | null;
   /** Codice assegnazione UMA (obbligatorio per il carburante agricolo). */
   uma_code: string | null;
+  /** Fornitore abituale (tracciabilità e riordini). */
+  supplier: string | null;
   /**
    * CUMP corrente (Costo Unitario Medio Ponderato): media ponderata mobile
    * sulle giacenze, aggiornata in transazione a ogni carico lotto.

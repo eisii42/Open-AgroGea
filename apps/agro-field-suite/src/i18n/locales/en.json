@@ -800,14 +800,19 @@
       "phytosanitary": "Plant protection product",
       "fertilizer": "Fertilizer",
       "seed": "Seed",
-      "fuel": "Fuel"
+      "fuel": "Fuel",
+      "other": "Other / supplies"
     },
     "unit": "Unit of measure",
     "registrationNumber": "PAN registration no.",
+    "activeSubstance": "Active substance",
     "npkN": "N content (%)",
     "npkP": "P content (%)",
     "npkK": "K content (%)",
     "umaCode": "UMA allocation",
+    "supplier": "Supplier",
+    "supplierPlaceholder": "e.g. farm co-op",
+    "initialLoad": "Initial load (first lot)",
     "notes": "Notes",
     "saveProduct": "Save product",
     "deleteProduct": "Delete product",
@@ -969,6 +974,33 @@
       "destination": "Destination"
     }
   },
+  "companyOverview": {
+    "generalTitle": "General overview · {{year}}",
+    "warehouseTitle": "Warehouse",
+    "kpi": {
+      "totalArea": "Total area",
+      "plots": "{{count}} plots",
+      "operationsYear": "Logged operations",
+      "operationsSub": "Field logbook, current season",
+      "harvestYear": "Harvest",
+      "harvestSub": "Sum of the season's deliveries",
+      "productCosts": "Product costs",
+      "productCostsSub": "Warehouse withdrawals valued at WAC",
+      "products": "Products in registry",
+      "productsSub": "{{count}} lots in stock",
+      "stockValue": "Stock value",
+      "stockValueSub": "Valued at current WAC",
+      "expiredLots": "Expired lots",
+      "expiredLotsSub": "With residual stock: use blocked",
+      "expiringLots": "Expiring ({{days}} days)",
+      "expiringLotsSub": "Use or dispose with priority"
+    },
+    "costsByField": "Product cost by field · {{year}}",
+    "noCosts": "No product costs recorded for the season: link warehouse lots to logbook activities.",
+    "field": "Field",
+    "cost": "Cost",
+    "wholeFarm": "Whole farm"
+  },
   "commandCenter": {
     "allCrops": "All crops",
     "campaignYear": "Crop year",
@@ -976,6 +1008,8 @@
     "crop": "Crop",
     "downloadReport": "Download Executive Report",
     "noPlotsInScope": "No plots in scope.",
+    "pageCompany": "Company",
+    "pageCrops": "Crops and fields",
     "plots": "Plots",
     "plotsAreaSummary": "{{count}} plots · {{area}} ha",
     "readOnlyBanner": {
@@ -1310,6 +1344,10 @@
       "panelRaccolta": {
         "label": "Harvest register",
         "descr": "Deliveries and yields"
+      },
+      "panelMagazzino": {
+        "label": "Warehouse",
+        "descr": "Products, lots and stock"
       },
       "panelRegistro": {
         "label": "Geometry register",

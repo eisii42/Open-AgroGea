@@ -463,6 +463,9 @@ export function OperazioneForm({
         if (p.registration_number) {
           setNumeroRegistrazione((corrente) => corrente || p.registration_number || "");
         }
+        if (p.active_substance) {
+          setSostanzaAttiva((corrente) => corrente || p.active_substance || "");
+        }
       }
     }
   }

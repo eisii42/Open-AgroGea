@@ -53,8 +53,20 @@ export class AgroDalWarehouse extends AgroDalLogbook {
   async upsertProdotto(
     input: Omit<
       Prodotto,
-      "id" | "tenant_id" | "avg_unit_cost" | "created_at" | "updated_at" | "deleted_at"
-    > & { id?: string; created_at?: string; avg_unit_cost?: number },
+      | "id"
+      | "tenant_id"
+      | "active_substance"
+      | "supplier"
+      | "avg_unit_cost"
+      | "created_at"
+      | "updated_at"
+      | "deleted_at"
+    > &
+      Partial<Pick<Prodotto, "active_substance" | "supplier">> & {
+        id?: string;
+        created_at?: string;
+        avg_unit_cost?: number;
+      },
   ): Promise<Prodotto> {
     const errors = validateProdotto(input);
     if (errors.length > 0) {
@@ -74,10 +86,12 @@ export class AgroDalWarehouse extends AgroDalLogbook {
       name: input.name.trim(),
       unit: input.unit.trim(),
       registration_number: input.registration_number ?? null,
+      active_substance: input.active_substance ?? null,
       npk_n: input.npk_n ?? null,
       npk_p: input.npk_p ?? null,
       npk_k: input.npk_k ?? null,
       uma_code: input.uma_code ?? null,
+      supplier: input.supplier ?? null,
       // Il CUMP sopravvive agli update anagrafici (lo muove solo il carico).
       avg_unit_cost: input.avg_unit_cost ?? esistente?.avg_unit_cost ?? 0,
       notes: input.notes ?? null,

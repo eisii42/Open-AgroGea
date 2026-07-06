@@ -800,14 +800,19 @@
       "phytosanitary": "Fitosanitario",
       "fertilizer": "Fertilizante",
       "seed": "Semilla",
-      "fuel": "Combustible"
+      "fuel": "Combustible",
+      "other": "Otros / materiales"
     },
     "unit": "Unidad de medida",
     "registrationNumber": "N.º de registro",
+    "activeSubstance": "Sustancia activa",
     "npkN": "Riqueza N (%)",
     "npkP": "Riqueza P (%)",
     "npkK": "Riqueza K (%)",
     "umaCode": "Asignación de gasóleo agrícola",
+    "supplier": "Proveedor",
+    "supplierPlaceholder": "p. ej. cooperativa agraria",
+    "initialLoad": "Carga inicial (primer lote)",
     "notes": "Notas",
     "saveProduct": "Guardar producto",
     "deleteProduct": "Eliminar producto",
@@ -969,6 +974,33 @@
       "destination": "Destino"
     }
   },
+  "companyOverview": {
+    "generalTitle": "Visión general · {{year}}",
+    "warehouseTitle": "Almacén",
+    "kpi": {
+      "totalArea": "Superficie total",
+      "plots": "{{count}} parcelas",
+      "operationsYear": "Operaciones registradas",
+      "operationsSub": "Cuaderno de campo, campaña actual",
+      "harvestYear": "Cosecha",
+      "harvestSub": "Suma de las entregas de la campaña",
+      "productCosts": "Coste de productos",
+      "productCostsSub": "Salidas de almacén valoradas a CMP",
+      "products": "Productos en el registro",
+      "productsSub": "{{count}} lotes con existencias",
+      "stockValue": "Valor de existencias",
+      "stockValueSub": "Valoración al CMP actual",
+      "expiredLots": "Lotes caducados",
+      "expiredLotsSub": "Con existencias residuales: uso bloqueado",
+      "expiringLots": "Próximos a caducar ({{days}} días)",
+      "expiringLotsSub": "Usar o eliminar con prioridad"
+    },
+    "costsByField": "Coste de productos por parcela · {{year}}",
+    "noCosts": "Sin costes de productos registrados en la campaña: vincula los lotes de almacén a las actividades del cuaderno.",
+    "field": "Parcela",
+    "cost": "Coste",
+    "wholeFarm": "Toda la explotación"
+  },
   "commandCenter": {
     "allCrops": "Todos los cultivos",
     "campaignYear": "Campaña agrícola",
@@ -976,6 +1008,8 @@
     "crop": "Cultivo",
     "downloadReport": "Descargar informe ejecutivo",
     "noPlotsInScope": "Ninguna parcela en el ámbito.",
+    "pageCompany": "Explotación",
+    "pageCrops": "Cultivos y parcelas",
     "plots": "Parcelas",
     "plotsAreaSummary": "{{count}} parcelas · {{area}} ha",
     "readOnlyBanner": {
@@ -1310,6 +1344,10 @@
       "panelRaccolta": {
         "label": "Registro de cosecha",
         "descr": "Entregas y rendimientos"
+      },
+      "panelMagazzino": {
+        "label": "Almacén",
+        "descr": "Productos, lotes y existencias"
       },
       "panelRegistro": {
         "label": "Registro de geometrías",

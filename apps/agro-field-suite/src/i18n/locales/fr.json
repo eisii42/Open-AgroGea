@@ -800,14 +800,19 @@
       "phytosanitary": "Produit phytosanitaire",
       "fertilizer": "Engrais",
       "seed": "Semence",
-      "fuel": "Carburant"
+      "fuel": "Carburant",
+      "other": "Autres / fournitures"
     },
     "unit": "Unité de mesure",
     "registrationNumber": "N° d'homologation",
+    "activeSubstance": "Substance active",
     "npkN": "Teneur N (%)",
     "npkP": "Teneur P (%)",
     "npkK": "Teneur K (%)",
     "umaCode": "Attribution carburant agricole",
+    "supplier": "Fournisseur",
+    "supplierPlaceholder": "ex. coopérative agricole",
+    "initialLoad": "Chargement initial (premier lot)",
     "notes": "Notes",
     "saveProduct": "Enregistrer le produit",
     "deleteProduct": "Supprimer le produit",
@@ -969,6 +974,33 @@
       "destination": "Destination"
     }
   },
+  "companyOverview": {
+    "generalTitle": "Vue générale · {{year}}",
+    "warehouseTitle": "Magasin",
+    "kpi": {
+      "totalArea": "Surface totale",
+      "plots": "{{count}} parcelles",
+      "operationsYear": "Opérations enregistrées",
+      "operationsSub": "Carnet de champ, campagne en cours",
+      "harvestYear": "Récolte",
+      "harvestSub": "Somme des livraisons de la campagne",
+      "productCosts": "Coût des produits",
+      "productCostsSub": "Sorties de magasin valorisées au CUMP",
+      "products": "Produits au registre",
+      "productsSub": "{{count}} lots en stock",
+      "stockValue": "Valeur du stock",
+      "stockValueSub": "Valorisation au CUMP actuel",
+      "expiredLots": "Lots périmés",
+      "expiredLotsSub": "Avec stock résiduel : utilisation bloquée",
+      "expiringLots": "Bientôt périmés ({{days}} jours)",
+      "expiringLotsSub": "À utiliser ou éliminer en priorité"
+    },
+    "costsByField": "Coût des produits par parcelle · {{year}}",
+    "noCosts": "Aucun coût de produits enregistré pour la campagne : liez les lots de magasin aux activités du carnet.",
+    "field": "Parcelle",
+    "cost": "Coût",
+    "wholeFarm": "Toute l'exploitation"
+  },
   "commandCenter": {
     "allCrops": "Toutes les cultures",
     "campaignYear": "Campagne agricole",
@@ -976,6 +1008,8 @@
     "crop": "Culture",
     "downloadReport": "Télécharger le rapport de synthèse",
     "noPlotsInScope": "Aucune parcelle dans le périmètre.",
+    "pageCompany": "Exploitation",
+    "pageCrops": "Cultures et parcelles",
     "plots": "Parcelles",
     "plotsAreaSummary": "{{count}} parcelles · {{area}} ha",
     "readOnlyBanner": {
@@ -1310,6 +1344,10 @@
       "panelRaccolta": {
         "label": "Registre de récolte",
         "descr": "Livraisons et rendements"
+      },
+      "panelMagazzino": {
+        "label": "Magasin",
+        "descr": "Produits, lots et stock"
       },
       "panelRegistro": {
         "label": "Registre des géométries",
