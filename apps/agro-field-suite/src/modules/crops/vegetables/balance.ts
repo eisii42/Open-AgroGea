@@ -2,10 +2,10 @@ import type { DatiMeteoGiorno, FaseFenologica, ParametriSuolo } from "@agrogea/t
 import {
   bilancioIdricoColtura,
   type BilancioColturaOutput,
-} from "../shared/bilancio";
+} from "../shared/balance";
 
-/** Bilancio idrico dell'olivo: Kc per fase della specie "olivo" (FAO-56). */
-export function bilancioOlivo(
+/** Bilancio idrico dell'orticoltura: Kc per fase della specie "pomodoro" (FAO-56). */
+export function bilancioOrticoltura(
   fase: FaseFenologica,
   meteo: DatiMeteoGiorno[],
   pioggiaSerie: number[],
@@ -13,7 +13,7 @@ export function bilancioOlivo(
   deplezioneIniziale = 0,
 ): BilancioColturaOutput {
   return bilancioIdricoColtura({
-    specie: "olivo",
+    specie: "pomodoro",
     fase,
     meteo,
     pioggiaSerie,

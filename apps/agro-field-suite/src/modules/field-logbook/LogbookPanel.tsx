@@ -17,14 +17,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useGeoCompliance } from "../compliance/useGeoCompliance";
 import { useCountryCatalog } from "../../hooks/useTenantCountry";
-import { ConfirmDeleteOperazione } from "./ConfirmDeleteOperazione";
-import { OperazioneDettaglioCard } from "./OperazioneDettaglioCard";
+import { ConfirmDeleteOperazione } from "./ConfirmDeleteOperation";
+import { OperazioneDettaglioCard } from "./OperationDetailCard";
 import {
   type AssegnazioneColtura,
   OPERAZIONI,
   OperazioneForm,
   operazioneSpec,
-} from "./OperazioneForm";
+} from "./OperationForm";
 
 const TIPO_COLOR: Record<string, string> = {
   phytosanitary: "var(--danger)",

@@ -1,7 +1,7 @@
 import type { CropModule } from "../types";
 import { dssOrticoltura } from "./dss";
 
-export { bilancioOrticoltura } from "./bilancio";
+export { bilancioOrticoltura } from "./balance";
 export { dssOrticoltura } from "./dss";
 
 /** Modulo coltura Orticoltura: tracker fenologico, specie di riferimento "pomodoro". */

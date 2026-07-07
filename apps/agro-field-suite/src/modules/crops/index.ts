@@ -37,8 +37,8 @@ export function cropModuleById(id: string): CropModule | undefined {
   return CROP_MODULES.find((modulo) => modulo.id === id);
 }
 
-export { bilancioIdricoColtura } from "./shared/bilancio";
-export { costruisciSerieDss } from "./shared/serieMeteo";
+export { bilancioIdricoColtura } from "./shared/balance";
+export { costruisciSerieDss } from "./shared/weather-series";
 export {
   eseguiDssModulo,
   esitiToRisultatiDss,
@@ -47,7 +47,7 @@ export {
 export type {
   BilancioColturaInput,
   BilancioColturaOutput,
-} from "./shared/bilancio";
+} from "./shared/balance";
 export type {
   CategoriaColtura,
   ContestoDss,

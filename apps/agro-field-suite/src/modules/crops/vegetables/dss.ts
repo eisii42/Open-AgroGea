@@ -1,5 +1,5 @@
 import type { DssModel } from "../types";
-import { creaDssAccumuloTermico } from "../shared/dssComuni";
+import { creaDssAccumuloTermico } from "../shared/dss-common";
 
 /**
  * DSS dell'orticoltura (specie di riferimento "pomodoro"). Tracker fenologico ad

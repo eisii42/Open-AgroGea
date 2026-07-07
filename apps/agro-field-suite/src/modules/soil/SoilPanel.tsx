@@ -27,13 +27,13 @@ import {
   type RisultatoAppezzamento,
   type StrategiaTemporale,
   useSuoloPipeline,
-} from "../../hooks/useSuoloPipeline";
+} from "../../hooks/useSoilPipeline";
 import {
   buildNdviScatter,
   correlazionePearson,
   ETICHETTE_VARIABILE,
   type VariabileSuolo,
-} from "./suolo-analytics";
+} from "./soil-analytics";
 
 /**
  * Pannello del modulo Suolo (refactor pipeline indici STAC). Riprogetta la

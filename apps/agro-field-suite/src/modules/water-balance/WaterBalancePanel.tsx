@@ -26,7 +26,7 @@ import {
   type RisultatoDssPlot,
   type TargetDss,
   useDssCalcolo,
-} from "../../hooks/useDssCalcolo";
+} from "../../hooks/useDssCalculation";
 import { useDssOverlayLayer } from "../../hooks/useDssOverlayLayer";
 import { cropModulePerColtura } from "../crops";
 import {

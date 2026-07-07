@@ -7,7 +7,7 @@ import {
   useAppStore,
 } from "@geolibre/core";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { SuoloJob, SuoloProgress, VraCells } from "../../workers/suolo.worker";
+import type { SuoloJob, SuoloProgress, VraCells } from "../../workers/soil.worker";
 import {
   generaZoneVra,
   type RisultatoZoneVra,
@@ -96,7 +96,7 @@ export function useVraGenerator() {
 
   useEffect(() => {
     const worker = new Worker(
-      new URL("../../workers/suolo.worker.ts", import.meta.url),
+      new URL("../../workers/soil.worker.ts", import.meta.url),
       { type: "module" },
     );
     workerRef.current = worker;

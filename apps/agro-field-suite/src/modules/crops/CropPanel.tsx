@@ -8,7 +8,7 @@ import { Button, cn } from "@geolibre/ui";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { type TargetDss, useDssCalcolo } from "../../hooks/useDssCalcolo";
+import { type TargetDss, useDssCalcolo } from "../../hooks/useDssCalculation";
 import { CropDataForm } from "./CropDataForm";
 import { cropModulePerColtura } from "./index";
 import { DssRiskCard } from "./shared/DssRiskCard";

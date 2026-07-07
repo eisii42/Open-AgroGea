@@ -18,7 +18,7 @@ import {
   isGeoJson,
   toFeatureCollection,
 } from "../modules/add-data/add-data";
-import { importaFascicoloSian } from "../modules/sian/importaFascicolo";
+import { importaFascicoloSian } from "../modules/sian/import-dossier";
 import {
   combinaLayer,
   type ExportFormat,

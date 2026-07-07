@@ -1,5 +1,5 @@
 import type { DssModel } from "../types";
-import { creaDssAccumuloTermico } from "../shared/dssComuni";
+import { creaDssAccumuloTermico } from "../shared/dss-common";
 
 /**
  * DSS della frutta (specie di riferimento "melo"). Tracker fenologico ad

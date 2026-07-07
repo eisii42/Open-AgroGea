@@ -1,7 +1,7 @@
 import type { CropModule } from "../types";
 import { dssFrutta } from "./dss";
 
-export { bilancioFrutta } from "./bilancio";
+export { bilancioFrutta } from "./balance";
 export { dssFrutta } from "./dss";
 
 /** Modulo coltura Frutta: tracker fenologico, specie di riferimento "melo". */

@@ -11,8 +11,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { useTenantCountry } from "../../hooks/useTenantCountry";
-import { ConfirmDeleteOperazione } from "./ConfirmDeleteOperazione";
-import { RaccoltaDettaglioCard } from "./RaccoltaDettaglioCard";
+import { ConfirmDeleteOperazione } from "./ConfirmDeleteOperation";
+import { RaccoltaDettaglioCard } from "./HarvestDetailCard";
 
 /**
  * Modulo Raccolta: lista degli eventi di raccolta + form di registrazione. Ogni

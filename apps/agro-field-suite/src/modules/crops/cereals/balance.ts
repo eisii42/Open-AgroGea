@@ -2,7 +2,7 @@ import type { DatiMeteoGiorno, FaseFenologica, ParametriSuolo } from "@agrogea/t
 import {
   bilancioIdricoColtura,
   type BilancioColturaOutput,
-} from "../shared/bilancio";
+} from "../shared/balance";
 
 /** Bilancio idrico dei cereali: Kc per fase della specie "frumento" (FAO-56). */
 export function bilancioCereali(

@@ -3,7 +3,7 @@ import {
   rischioOcchioPavone,
 } from "@agrogea/tools";
 import type { DssModel } from "../types";
-import { creaDssAccumuloTermico } from "../shared/dssComuni";
+import { creaDssAccumuloTermico } from "../shared/dss-common";
 
 /**
  * DSS dell'olivo. La mosca olearia (Bactrocera oleae) si modella sull'accumulo

@@ -20,7 +20,7 @@ import {
   BANDE_SUOLO,
   isIndiceSuolo,
   type IndiceVegetazionale,
-} from "./indici";
+} from "./indices";
 
 /** Endpoint STAC di GeoLibre: Microsoft Planetary Computer. */
 export const STAC_API_URL = "https://planetarycomputer.microsoft.com/api/stac/v1";

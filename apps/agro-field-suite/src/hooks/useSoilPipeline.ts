@@ -16,7 +16,7 @@ import type {
   PuntoSerie,
   SuoloJob,
   SuoloProgress,
-} from "../workers/suolo.worker";
+} from "../workers/soil.worker";
 
 /**
  * Pipeline indici del modulo Suolo (refactor STAC). Orchestrazione main-thread
@@ -24,7 +24,7 @@ import type {
  * strategie temporali) e del worker di calcolo. Per ogni appezzamento:
  *
  *   1. bbox del poligono → `cercaSerieScene` (serie storica filtrata);
- *   2. worker `suolo.worker` → medie per indice e per data + overlay RGBA
+ *   2. worker `soil.worker` → medie per indice e per data + overlay RGBA
  *      dell'indice primario sulla scena più recente;
  *   3. l'overlay viene iniettato come layer `image` georeferenziato nello store
  *      GeoLibre (sopra la basemap, persistente al cambio basemap via syncLayers);
@@ -156,7 +156,7 @@ export function useSuoloPipeline() {
 
   useEffect(() => {
     const worker = new Worker(
-      new URL("../workers/suolo.worker.ts", import.meta.url),
+      new URL("../workers/soil.worker.ts", import.meta.url),
       { type: "module" },
     );
     workerRef.current = worker;

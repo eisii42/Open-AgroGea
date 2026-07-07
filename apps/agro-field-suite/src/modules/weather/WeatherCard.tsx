@@ -7,7 +7,7 @@ import {
   type PrevisioneDashboard,
   WeatherSyncService,
 } from "../../lib/WeatherSyncService";
-import { infoMeteoCodice } from "../../lib/meteoCodici";
+import { infoMeteoCodice } from "../../lib/weather-codes";
 
 /**
  * Scheda meteo dell'header (di fianco allo switcher azienda): condizioni

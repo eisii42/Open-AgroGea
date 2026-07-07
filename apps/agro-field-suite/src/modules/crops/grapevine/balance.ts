@@ -2,10 +2,10 @@ import type { DatiMeteoGiorno, FaseFenologica, ParametriSuolo } from "@agrogea/t
 import {
   bilancioIdricoColtura,
   type BilancioColturaOutput,
-} from "../shared/bilancio";
+} from "../shared/balance";
 
-/** Bilancio idrico della frutta: Kc per fase della specie "melo" (FAO-56). */
-export function bilancioFrutta(
+/** Bilancio idrico della vite: Kc per fase della specie "vite" (FAO-56). */
+export function bilancioVite(
   fase: FaseFenologica,
   meteo: DatiMeteoGiorno[],
   pioggiaSerie: number[],
@@ -13,7 +13,7 @@ export function bilancioFrutta(
   deplezioneIniziale = 0,
 ): BilancioColturaOutput {
   return bilancioIdricoColtura({
-    specie: "melo",
+    specie: "vite",
     fase,
     meteo,
     pioggiaSerie,

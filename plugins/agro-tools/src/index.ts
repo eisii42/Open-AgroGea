@@ -19,7 +19,7 @@ export {
   type IndiceStats,
   type IndiceSuolo,
   type IndiceVegetazionale,
-} from "./indici";
+} from "./indices";
 
 // -- Overlay raster d'indice sulla mappa (refactor modulo Suolo) --
 export {
@@ -41,7 +41,7 @@ export {
   type Coltura,
   type FaseFenologica,
   type MatriceColtura,
-} from "./fenologia";
+} from "./phenology";
 
 // -- Zonazione VRA (Modulo 1) --
 export {
@@ -50,7 +50,7 @@ export {
   type ClasseVigore,
   type LogicaVRA,
   type RisultatoZonazione,
-} from "./zonazione";
+} from "./zoning";
 
 // -- Agrometeo: ET0/ETc/bilancio idrico (Modulo 2) --
 export {
@@ -76,7 +76,7 @@ export {
   saxtonRawls,
   type FrazioniTessitura,
   type OpzioniSaxtonRawls,
-} from "./suolo";
+} from "./soil";
 
 // -- DSS fitopatologico (Modulo 3) --
 export {
@@ -95,7 +95,7 @@ export {
   type GiornoPeronospora,
   type LivelloRischio,
   type PuntoTermico,
-} from "./fitopatologia";
+} from "./phytopathology";
 
 // -- Clip raster sul poligono + proiezione UTM (Modulo 1) --
 export {

@@ -1,7 +1,7 @@
 import type { CropModule } from "../types";
 import { dssOlivo } from "./dss";
 
-export { bilancioOlivo } from "./bilancio";
+export { bilancioOlivo } from "./balance";
 export { dssOlivo } from "./dss";
 
 /** Modulo coltura Olivo: DSS mosca olearia, specie fenologica "olivo". */

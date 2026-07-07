@@ -1,5 +1,5 @@
 import type { DssModel } from "../types";
-import { creaDssAccumuloTermico } from "../shared/dssComuni";
+import { creaDssAccumuloTermico } from "../shared/dss-common";
 
 /**
  * DSS dei cereali (specie di riferimento "frumento"). Tracker fenologico ad

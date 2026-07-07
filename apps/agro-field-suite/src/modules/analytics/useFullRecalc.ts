@@ -1,10 +1,10 @@
 import { colturaPerAppezzamento, useAgroStore } from "@agrogea/core";
 import { useCallback, useRef, useState } from "react";
-import { useDssCalcolo } from "../../hooks/useDssCalcolo";
+import { useDssCalcolo } from "../../hooks/useDssCalculation";
 import {
   type OpzioniSuolo,
   useSuoloPipeline,
-} from "../../hooks/useSuoloPipeline";
+} from "../../hooks/useSoilPipeline";
 import { cropModulePerColtura } from "../crops";
 
 /**

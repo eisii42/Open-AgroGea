@@ -1,6 +1,6 @@
 import type { LivelloRischioDss } from "@agrogea/core";
 import { AlertTriangle } from "lucide-react";
-import type { RisultatoDssPlot } from "../../../hooks/useDssCalcolo";
+import type { RisultatoDssPlot } from "../../../hooks/useDssCalculation";
 
 /**
  * Scheda DSS per appezzamento. Sostituisce il vecchio grafico a barre con una

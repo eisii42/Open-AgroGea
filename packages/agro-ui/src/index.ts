@@ -7,4 +7,4 @@ export {
   TrattamentoForm,
   type TrattamentoFormProps,
   type TrattamentoFormValues,
-} from "./components/TrattamentoForm";
+} from "./components/TreatmentForm";
