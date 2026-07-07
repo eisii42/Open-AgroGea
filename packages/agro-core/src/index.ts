@@ -155,9 +155,13 @@ export {
   type ValidationError,
 } from "./field/pan-validation";
 export {
+  dichiarativiMancanti,
   sianCompleta,
   sianMancanti,
+  sistemaDichiarativo,
+  type CampoDichiarativoMancante,
   type CampoSianMancante,
+  type SistemaDichiarativo,
 } from "./compliance/sian-campaign";
 export {
   DEFAULT_COUNTRY,

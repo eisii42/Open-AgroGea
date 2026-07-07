@@ -1,7 +1,8 @@
 import {
+  dichiarativiMancanti,
   type RegistroTrattamento,
   type ScaricoRichiesta,
-  sianMancanti,
+  sistemaDichiarativo,
   type TipoOperazione,
   useAgroStore,
 } from "@agrogea/core";
@@ -93,14 +94,15 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
           const base =
             appezzamenti.find((a) => a.id === c.plot_id)?.user_plot_name ??
             t("quadernoPanel.fieldFallbackName", { id: c.plot_id.slice(0, 6) });
-          // Badge compliance: dichiarativi SIAN incompleti (solo Italia),
-          // visibile a ogni selezione del campo durante la stagione.
-          const sianKo =
-            countryCode === "IT" && sianMancanti(c).length > 0;
+          // Badge compliance: dichiarativi incompleti per il sistema del paese
+          // (IT → SIAN, ES → SIEX), visibile a ogni selezione del campo.
+          const sistema = sistemaDichiarativo(countryCode);
+          const dichiarativiKo =
+            sistema != null && dichiarativiMancanti(countryCode, c).length > 0;
           return {
             campoCampagnaId: c.id,
             appezzamentoId: c.plot_id,
-            nome: sianKo ? `${base} · SIAN ✗` : base,
+            nome: dichiarativiKo ? `${base} · ${sistema} ✗` : base,
             codiceColturaSian: c.crop_external_code,
             superficieHa: c.declared_area_ha,
           };

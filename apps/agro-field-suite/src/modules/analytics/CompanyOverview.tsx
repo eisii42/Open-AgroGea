@@ -1,7 +1,8 @@
 import {
+  dichiarativiMancanti,
   EXPIRY_WARNING_DAYS_DEFAULT,
   type CostoProdottiCampo,
-  sianMancanti,
+  sistemaDichiarativo,
   statoScadenza,
   useAgroStore,
 } from "@agrogea/core";
@@ -128,19 +129,20 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
   const euro = (v: number) =>
     v.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  // Compliance SIAN (Italia): campagne APERTE dell'annata con dichiarativi
-  // incompleti. Il click porta alla scheda Dati coltura del primo campo.
+  // Compliance dichiarativa (IT → SIAN, ES → SIEX): campagne APERTE dell'annata
+  // con dati incompleti. Il click porta alla scheda Dati coltura del primo campo.
+  const sistema = sistemaDichiarativo(countryCode);
   const campagneSianKo = useMemo(
     () =>
-      countryCode === "IT"
+      sistema
         ? campiCampagna.filter(
             (c) =>
               c.deleted_at == null &&
               c.closed_at == null &&
-              sianMancanti(c).length > 0,
+              dichiarativiMancanti(countryCode, c).length > 0,
           )
         : [],
-    [countryCode, campiCampagna],
+    [sistema, countryCode, campiCampagna],
   );
 
   return (
@@ -155,7 +157,10 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
           }}
           className="flex items-center gap-2 rounded-[var(--r-2)] border border-[var(--warn)] bg-[var(--warn-l)] px-3 py-2 text-left text-sm font-medium text-[var(--warn)] hover:opacity-90"
         >
-          ⚠ {t("companyOverview.sianAlert", { count: campagneSianKo.length })}
+          ⚠ {t("companyOverview.sianAlert", {
+            count: campagneSianKo.length,
+            system: sistema,
+          })}
         </button>
       )}
 

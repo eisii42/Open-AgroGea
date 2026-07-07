@@ -395,14 +395,21 @@
     "closeCampaign": "Cerrar la campaña {{year}} de {{crop}}: la parcela queda libre",
     "closeCampaignHintAnnual": "El cultivo anual termina con la cosecha: mapa y DSS vuelven a neutro, una nueva siembra puede empezar enseguida.",
     "closeCampaignHintPerennial": "Cultivo perenne: cerrar solo al final del ciclo (arranque). Normalmente permanece abierta.",
-    "sianMissingTitle": "Datos SIAN incompletos para esta parcela",
-    "sianMissingHint": "Faltan: {{fields}}. Sin estos datos, la exportación SIAN de la campaña quedará incompleta.",
+    "sianMissingTitle": "Datos {{system}} incompletos para esta parcela",
+    "sianMissingHint": "Faltan: {{fields}}. Sin estos datos, la exportación {{system}} de la campaña quedará incompleta.",
     "sianCompleteNow": "Completar ahora (Datos de cultivo)",
-    "sianOverride": "Registrar igualmente sin datos SIAN",
-    "sianField": {
-      "crop_external_code": "código de cultivo SIAN",
-      "reference_parcel_external_id": "parcela de referencia",
-      "agricultural_parcel_external_id": "parcela agrícola SIAN"
+    "sianOverride": "Registrar igualmente sin datos {{system}}",
+    "declField": {
+      "IT": {
+        "crop_external_code": "código de cultivo SIAN",
+        "reference_parcel_external_id": "parcela de referencia (isola)",
+        "agricultural_parcel_external_id": "parcela agrícola SIAN"
+      },
+      "ES": {
+        "crop_external_code": "código de cultivo (catálogo MAPA)",
+        "reference_parcel_external_id": "parcela de referencia SIGPAC",
+        "agricultural_parcel_external_id": "recinto SIGPAC"
+      }
     },
     "saveAction": "Guardar",
     "emptyState": "No hay cosechas registradas para esta empresa.",
@@ -1035,7 +1042,7 @@
     "field": "Parcela",
     "cost": "Coste",
     "wholeFarm": "Toda la explotación",
-    "sianAlert": "{{count}} campañas abiertas sin datos SIAN — pulsa para completar los datos declarativos en Datos de cultivo"
+    "sianAlert": "{{count}} campañas abiertas sin datos {{system}} — pulsa para completar los datos declarativos en Datos de cultivo"
   },
   "commandCenter": {
     "allCrops": "Todos los cultivos",

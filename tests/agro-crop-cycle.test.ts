@@ -3,7 +3,12 @@ import { describe, it } from "node:test";
 import { PGlite } from "@electric-sql/pglite";
 import { AgroDal } from "../packages/agro-core/src/db/dal";
 import { AGRO_LOCAL_SCHEMA_SQL } from "../packages/agro-core/src/db/schema";
-import { sianCompleta, sianMancanti } from "../packages/agro-core/src/compliance/sian-campaign";
+import {
+  dichiarativiMancanti,
+  sianCompleta,
+  sianMancanti,
+  sistemaDichiarativo,
+} from "../packages/agro-core/src/compliance/sian-campaign";
 import { colturaPerAppezzamento } from "../packages/agro-core/src/store/feature-collections";
 import type { CampoCampagna, Crop } from "../packages/agro-core/src/types";
 
@@ -188,6 +193,25 @@ describe("compliance SIAN / campi dichiarativi mancanti", () => {
     };
     assert.deepEqual(sianMancanti(completa), []);
     assert.equal(sianCompleta(completa), true);
+  });
+
+  it("country-aware: IT→SIAN, ES→SIEX, altri paesi senza gate", () => {
+    assert.equal(sistemaDichiarativo("IT"), "SIAN");
+    assert.equal(sistemaDichiarativo("ES"), "SIEX");
+    assert.equal(sistemaDichiarativo("FR"), null);
+    assert.equal(sistemaDichiarativo(null), null);
+
+    const vuota = {
+      crop_external_code: null,
+      reference_parcel_external_id: null,
+      agricultural_parcel_external_id: null,
+    };
+    // Stessa terna richiesta per IT (SIAN) ed ES (SIEX/SIGPAC)...
+    assert.equal(dichiarativiMancanti("IT", vuota).length, 3);
+    assert.equal(dichiarativiMancanti("ES", vuota).length, 3);
+    // ...nessun vincolo per i paesi senza sistema gateato.
+    assert.deepEqual(dichiarativiMancanti("FR", vuota), []);
+    assert.deepEqual(dichiarativiMancanti("EU", vuota), []);
   });
 });
 

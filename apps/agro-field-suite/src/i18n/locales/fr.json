@@ -395,14 +395,21 @@
     "closeCampaign": "Clore la campagne {{year}} de {{crop}} : la parcelle redevient libre",
     "closeCampaignHintAnnual": "La culture annuelle se termine à la récolte : carte et DSS redeviennent neutres, un nouveau semis peut repartir aussitôt.",
     "closeCampaignHintPerennial": "Culture pérenne : à clore seulement en fin de cycle (arrachage). Elle reste normalement ouverte.",
-    "sianMissingTitle": "Données SIAN incomplètes pour cette parcelle",
-    "sianMissingHint": "Manquent : {{fields}}. Sans ces données, l'export SIAN de la campagne sera incomplet.",
+    "sianMissingTitle": "Données {{system}} incomplètes pour cette parcelle",
+    "sianMissingHint": "Manquent : {{fields}}. Sans ces données, l'export {{system}} de la campagne sera incomplet.",
     "sianCompleteNow": "Compléter maintenant (Données culture)",
-    "sianOverride": "Enregistrer quand même sans données SIAN",
-    "sianField": {
-      "crop_external_code": "code culture SIAN",
-      "reference_parcel_external_id": "parcelle de référence",
-      "agricultural_parcel_external_id": "parcelle agricole SIAN"
+    "sianOverride": "Enregistrer quand même sans données {{system}}",
+    "declField": {
+      "IT": {
+        "crop_external_code": "code culture SIAN",
+        "reference_parcel_external_id": "parcelle de référence (isola)",
+        "agricultural_parcel_external_id": "parcelle agricole SIAN"
+      },
+      "ES": {
+        "crop_external_code": "code culture (catalogue MAPA)",
+        "reference_parcel_external_id": "parcelle de référence SIGPAC",
+        "agricultural_parcel_external_id": "recinto SIGPAC"
+      }
     },
     "saveAction": "Enregistrer",
     "emptyState": "Aucune récolte enregistrée pour cette entreprise.",
@@ -1035,7 +1042,7 @@
     "field": "Parcelle",
     "cost": "Coût",
     "wholeFarm": "Toute l'exploitation",
-    "sianAlert": "{{count}} campagnes ouvertes sans données SIAN — cliquez pour compléter les données déclaratives dans Données culture"
+    "sianAlert": "{{count}} campagnes ouvertes sans données {{system}} — cliquez pour compléter les données déclaratives dans Données culture"
   },
   "commandCenter": {
     "allCrops": "Toutes les cultures",

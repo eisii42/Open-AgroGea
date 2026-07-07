@@ -1,4 +1,9 @@
-import { type Raccolta, sianMancanti, useAgroStore } from "@agrogea/core";
+import {
+  dichiarativiMancanti,
+  type Raccolta,
+  sistemaDichiarativo,
+  useAgroStore,
+} from "@agrogea/core";
 import { FieldSheet } from "@agrogea/ui";
 import { Button, Input, Label, Select } from "@geolibre/ui";
 import { Trash2 } from "lucide-react";
@@ -51,8 +56,10 @@ export function RaccoltaPanel({ onClose }: { onClose: () => void }) {
     (s) => s.apriColturaPerAppezzamento,
   );
   const sync = useAgroStore((s) => s.sync);
-  // Compliance SIAN (solo Italia): il paese risolto governa il gate.
+  // Compliance dichiarativa: il paese risolto sceglie il sistema (IT → SIAN,
+  // ES → SIEX/CUE); gli altri paesi non hanno gate.
   const { countryCode } = useTenantCountry();
+  const sistema = sistemaDichiarativo(countryCode);
 
   const [daEliminare, setDaEliminare] = useState<Raccolta | null>(null);
   const [notifica, setNotifica] = useState<string | null>(null);
@@ -112,12 +119,11 @@ export function RaccoltaPanel({ onClose }: { onClose: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appId, isAnnuale, cropCampo?.id]);
 
-  // -- compliance SIAN (Italia): dati dichiarativi mancanti sulla campagna ----
-  // Gate consapevole, non blocco duro: senza dati SIAN il salvataggio richiede
-  // la spunta esplicita "Registra comunque" (o la compilazione via CTA).
+  // -- compliance dichiarativa (SIAN/SIEX): campi mancanti sulla campagna -----
+  // Gate consapevole, non blocco duro: senza dati dichiarativi il salvataggio
+  // richiede la spunta esplicita "Registra comunque" (o la compilazione via CTA).
   const mancantiSian = useMemo(
-    () =>
-      countryCode === "IT" && campoAperto ? sianMancanti(campoAperto) : [],
+    () => (campoAperto ? dichiarativiMancanti(countryCode, campoAperto) : []),
     [countryCode, campoAperto],
   );
   const [senzaSian, setSenzaSian] = useState(false);
@@ -128,27 +134,27 @@ export function RaccoltaPanel({ onClose }: { onClose: () => void }) {
 
   const canSubmit = data !== "" && quintaliValidi && sianOk && !saving;
 
-  /** Etichette leggibili dei campi SIAN mancanti (per il banner). */
+  /** Etichette leggibili dei campi mancanti, nella semantica del paese. */
   const etichetteMancanti = mancantiSian
-    .map((campo) => t(`raccoltaPanel.sianField.${campo}` as never))
+    .map((campo) => t(`raccoltaPanel.declField.${countryCode}.${campo}` as never))
     .join(", ");
 
-  // Badge "SIAN ✗" nel selettore: campi con campagna aperta ma dichiarativi
-  // incompleti (solo Italia) — visibili PRIMA di arrivare al salvataggio.
+  // Badge "SIAN/SIEX ✗" nel selettore: campi con campagna aperta ma
+  // dichiarativi incompleti — visibili PRIMA di arrivare al salvataggio.
   const plotsSianIncompleti = useMemo(() => {
     const out = new Set<string>();
-    if (countryCode !== "IT") return out;
+    if (!sistema) return out;
     for (const c of campiCampagna) {
       if (
         c.deleted_at == null &&
         c.closed_at == null &&
-        sianMancanti(c).length > 0
+        dichiarativiMancanti(countryCode, c).length > 0
       ) {
         out.add(c.plot_id);
       }
     }
     return out;
-  }, [countryCode, campiCampagna]);
+  }, [sistema, countryCode, campiCampagna]);
 
   function resetForm() {
     setAppId("");
@@ -247,22 +253,23 @@ export function RaccoltaPanel({ onClose }: { onClose: () => void }) {
               {appezzamenti.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.user_plot_name}
-                  {plotsSianIncompleti.has(a.id) ? " · SIAN ✗" : ""}
+                  {plotsSianIncompleti.has(a.id) ? ` · ${sistema} ✗` : ""}
                 </option>
               ))}
             </Select>
           </div>
 
-          {/* Compliance SIAN (Italia): dichiarativi mancanti sulla campagna del
-              campo scelto. CTA per completare subito o override consapevole. */}
+          {/* Compliance dichiarativa (SIAN/SIEX): campi mancanti sulla campagna
+              del campo scelto. CTA per completare subito o override consapevole. */}
           {mancantiSian.length > 0 && (
             <div className="flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--warn)] bg-[var(--warn-l)] px-3 py-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--warn)]">
-                {t("raccoltaPanel.sianMissingTitle")}
+                {t("raccoltaPanel.sianMissingTitle", { system: sistema })}
               </p>
               <p className="text-xs text-[var(--ink-2)]">
                 {t("raccoltaPanel.sianMissingHint", {
                   fields: etichetteMancanti,
+                  system: sistema,
                 })}
               </p>
               <Button
@@ -280,7 +287,7 @@ export function RaccoltaPanel({ onClose }: { onClose: () => void }) {
                   onChange={(e) => setSenzaSian(e.target.checked)}
                   className="h-4 w-4 accent-[var(--warn)]"
                 />
-                {t("raccoltaPanel.sianOverride")}
+                {t("raccoltaPanel.sianOverride", { system: sistema })}
               </label>
             </div>
           )}

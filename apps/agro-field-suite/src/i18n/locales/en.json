@@ -395,14 +395,21 @@
     "closeCampaign": "Close the {{year}} campaign of {{crop}}: the field becomes free",
     "closeCampaignHintAnnual": "The annual crop ends with the harvest: map and DSS turn neutral, a new sowing can start right away.",
     "closeCampaignHintPerennial": "Perennial crop: close only at end of cycle (grubbing-up). Normally it stays open.",
-    "sianMissingTitle": "Incomplete SIAN data for this field",
-    "sianMissingHint": "Missing: {{fields}}. Without this data the season's SIAN export will be incomplete.",
+    "sianMissingTitle": "Incomplete {{system}} data for this field",
+    "sianMissingHint": "Missing: {{fields}}. Without this data the season's {{system}} export will be incomplete.",
     "sianCompleteNow": "Complete now (Crop data)",
-    "sianOverride": "Save anyway without SIAN data",
-    "sianField": {
-      "crop_external_code": "SIAN crop code",
-      "reference_parcel_external_id": "reference parcel",
-      "agricultural_parcel_external_id": "SIAN agricultural parcel"
+    "sianOverride": "Save anyway without {{system}} data",
+    "declField": {
+      "IT": {
+        "crop_external_code": "SIAN crop code",
+        "reference_parcel_external_id": "reference parcel (isola)",
+        "agricultural_parcel_external_id": "SIAN agricultural parcel"
+      },
+      "ES": {
+        "crop_external_code": "crop code (MAPA catalogue)",
+        "reference_parcel_external_id": "SIGPAC reference parcel",
+        "agricultural_parcel_external_id": "SIGPAC recinto"
+      }
     },
     "saveAction": "Save",
     "emptyState": "No harvests recorded for this company.",
@@ -1035,7 +1042,7 @@
     "field": "Field",
     "cost": "Cost",
     "wholeFarm": "Whole farm",
-    "sianAlert": "{{count}} open campaigns without SIAN data — click to complete the declaratory data in Crop data"
+    "sianAlert": "{{count}} open campaigns without {{system}} data — click to complete the declaratory data in Crop data"
   },
   "commandCenter": {
     "allCrops": "All crops",
