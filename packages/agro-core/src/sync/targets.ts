@@ -162,7 +162,7 @@ export const PULL_TABLES: { tabella: SyncTable; columns: string }[] = [
  * `agro_push_mutations`, che apre la connessione tokio-postgres verso il
  * PostgreSQL privato del cliente (rete locale/VPN). La stringa di connessione
  * non transita mai per il JS: il comando la risolve dal keystore cifrato
- * usando l'id del profilo presente nelle claims di licenza.
+ * usando l'id del profile presente nelle claims di licenza.
  */
 export class OnPremiseSyncTarget implements SyncTarget {
   readonly tipo = "on_premise" as const;
@@ -179,7 +179,7 @@ export class OnPremiseSyncTarget implements SyncTarget {
       );
     }
     return tauriInvoke<SyncPushResult>("agro_push_mutations", {
-      profilo: this.profiloConnessione,
+      profile: this.profiloConnessione,
       tenantId: this.tenantId,
       mutations: JSON.stringify(toWirePayload(batch)),
     });
@@ -206,7 +206,7 @@ export class OnPremiseSyncTarget implements SyncTarget {
     const data = await tauriInvoke<Record<string, Record<string, unknown>[]>>(
       "agro_pull_mutations",
       {
-        profilo: this.profiloConnessione,
+        profile: this.profiloConnessione,
         tenantId: this.tenantId,
         watermarks: JSON.stringify(watermarks),
       },

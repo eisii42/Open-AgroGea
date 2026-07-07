@@ -6,7 +6,7 @@
  *   1. **Anagrafica (primaria):** il paese impostato nell'indirizzo legale
  *      dell'azienda (`Company.paese`, ISO 3166-1 alpha-2).
  *   2. **Validazione spaziale (cross-check):** le coordinate reali dei poligoni
- *      degli appezzamenti. Se i campi cadono fuori dai confini nazionali
+ *      degli plots. Se i campi cadono fuori dai confini nazionali
  *      dell'indirizzo, si emette un alert e/o si aggiorna il contesto normativo
  *      del singolo sotto-appezzamento. Include il rilevamento rapido di
  *      coordinate invertite (lat/lon scambiate), causa comune di drift.
@@ -163,12 +163,12 @@ export function checkPlotCountry(
 
 /**
  * Risolve il `country_code` del tenant combinando l'anagrafica (primaria) e il
- * cross-check spaziale sulle geometrie degli appezzamenti.
+ * cross-check spaziale sulle geometrie degli plots.
  *
  * Logica:
  *   - se l'anagrafica indica un paese valido → è la sorgente autorevole;
  *   - altrimenti si tenta la rilevazione dalle coordinate (paese maggioritario
- *     fra gli appezzamenti);
+ *     fra gli plots);
  *   - altrimenti `fallback` (default {@link DEFAULT_COUNTRY}).
  *
  * In tutti i casi popola `checks`/`warnings` con le anomalie spaziali, così la
@@ -179,7 +179,7 @@ export function resolveCountry(
   input: {
     /** Paese dell'indirizzo legale (ISO alpha-2 o nome); `null` se assente. */
     addressCountry?: string | null;
-    /** Geometrie degli appezzamenti per il cross-check (opzionale). */
+    /** Geometrie degli plots per il cross-check (opzionale). */
     plots?: PlotGeometry[];
   },
   fallback: CountryCode = DEFAULT_COUNTRY,
@@ -244,7 +244,7 @@ export function resolveCountry(
 /**
  * Versione "per sotto-appezzamento": ritorna, per ciascun appezzamento, il paese
  * che ne governa il contesto normativo. Un campo fuori dal paese del tenant è
- * regolato dal paese in cui ricade davvero (se supportato), permettendo aziende
+ * regolato dal paese in cui ricade davvero (se supportato), permettendo companies
  * transfrontaliere. Usa il bounding box, quindi è rapido e privo di dipendenze.
  */
 export function resolvePerPlotCountry(
@@ -260,7 +260,7 @@ export function resolvePerPlotCountry(
   return out;
 }
 
-/** Utility: bbox combinato di più appezzamenti (per inquadrare la mappa). */
+/** Utility: bbox combinato di più plots (per inquadrare la mappa). */
 export function plotsBoundingBox(
   plots: PlotGeometry[],
 ): [number, number, number, number] | null {

@@ -70,7 +70,7 @@ export interface BilancioSintesi {
 
 /** Esito del calcolo per UN appezzamento. */
 export interface DssPlotResult {
-  appezzamentoId: string;
+  plotId: string;
   name: string;
   modulo: CropModule;
   esiti: DssOutcome[];
@@ -157,9 +157,9 @@ function numeroMeta(value: unknown): number | undefined {
  */
 function biofixGdd(
   appezzamento: Plot,
-  trattamenti: TreatmentLog[],
+  treatments: TreatmentLog[],
 ): string {
-  const ultimaSemina = trattamenti
+  const ultimaSemina = treatments
     .filter((t) => t.operation_type === "sowing" && t.executed_at)
     .sort((a, b) => b.executed_at.localeCompare(a.executed_at))[0];
   if (ultimaSemina) return ultimaSemina.executed_at.slice(0, 10);
@@ -175,8 +175,8 @@ function biofixGdd(
 /** Contesto azienda condiviso dal ciclo multi-plot (risolto una volta sola). */
 interface ContestoCalcolo {
   dal: AgroDal;
-  aziendaAttivaId: string;
-  configMeteo: CompanyWeatherConfig | null;
+  activeCompanyId: string;
+  weatherConfig: CompanyWeatherConfig | null;
   crops: Crop[];
 }
 
@@ -190,10 +190,10 @@ async function calcolaPlot(
   target: DssTarget,
   opzioni: OpzioniCalcoloDss,
 ): Promise<DssPlotResult> {
-  const { dal, aziendaAttivaId, configMeteo, crops } = ctx;
+  const { dal, activeCompanyId, weatherConfig, crops } = ctx;
   const { appezzamento, modulo } = target;
   const base: DssPlotResult = {
-    appezzamentoId: appezzamento.id,
+    plotId: appezzamento.id,
     name: appezzamento.user_plot_name,
     modulo,
     esiti: [],
@@ -207,7 +207,7 @@ async function calcolaPlot(
 
   // Campagna attiva, coltura e operazioni: biofix (semina), profondità radicale
   // (tratto coltura) e apporti irrigui.
-  const campi = await dal.listCampiCampagna({ appezzamentoId: appezzamento.id });
+  const campi = await dal.listCampiCampagna({ plotId: appezzamento.id });
   const campagna = campi[0];
   const cropRecord = campagna
     ? crops.find((c) => c.id === campagna.crop_id) ?? null
@@ -215,19 +215,19 @@ async function calcolaPlot(
   const profonditaRadiciCrop = numeroMeta(
     cropRecord?.crop_metadata?.profondita_radici,
   );
-  const trattamenti = await dal.listTrattamenti(aziendaAttivaId, {
-    appezzamentoId: appezzamento.id,
+  const treatments = await dal.listTrattamenti(activeCompanyId, {
+    plotId: appezzamento.id,
     limit: 1000,
   });
 
-  const biofix = biofixGdd(appezzamento, trattamenti);
+  const biofix = biofixGdd(appezzamento, treatments);
 
   // 0) Storico stagionale (colture ad accumulo): backfill gated via Archive API.
   if (modulo.seasonalAccumulation) {
     try {
       await WeatherSyncService.assicuraStoricoGdd({
         dal,
-        aziendaId: aziendaAttivaId,
+        companyId: activeCompanyId,
         appezzamentoPrincipale: appezzamento,
         dataInizio: biofix,
       });
@@ -244,9 +244,9 @@ async function calcolaPlot(
   try {
     const res = await WeatherSyncService.assicuraDatiMeteo({
       dal,
-      aziendaId: aziendaAttivaId,
+      companyId: activeCompanyId,
       appezzamentoPrincipale: appezzamento,
-      config: configMeteo,
+      config: weatherConfig,
     });
     lettureRaw = res.letture;
     series = buildDssSeries(res.letture);
@@ -260,7 +260,7 @@ async function calcolaPlot(
     const dopo = new Date(
       Date.now() - GIORNI_FINESTRA * 24 * 3600 * 1000,
     ).toISOString();
-    const letture = await dal.listLettureMeteo(aziendaAttivaId, {
+    const letture = await dal.listLettureMeteo(activeCompanyId, {
       dopo,
       limit: 30_000,
     });
@@ -269,7 +269,7 @@ async function calcolaPlot(
     meteo = {
       fetched: false,
       inserite: 0,
-      fonte: configMeteo?.data_source ?? "public_api",
+      fonte: weatherConfig?.data_source ?? "public_api",
       motivo:
         errFetch instanceof Error
           ? i18n.t("useDssCalcolo.offlineFallback", { error: errFetch.message })
@@ -283,14 +283,14 @@ async function calcolaPlot(
   let statoIdrico: StatoIdricoCampo | undefined;
   let suolo: ParametriSuoloRisolti | null = null;
   if (!opzioni.skipWaterBalance && lettureRaw.length > 0) {
-    const campionamenti = await dal.listCampionamenti(aziendaAttivaId);
-    suolo = await new SoilDataResolver().risolvi(appezzamento, campionamenti, {
+    const soilSamples = await dal.listCampionamenti(activeCompanyId);
+    suolo = await new SoilDataResolver().risolvi(appezzamento, soilSamples, {
       mappaCustom: opzioni.mappaCustom,
       profonditaRadiciM: profonditaRadiciCrop,
     });
     const out = calcolaBilancioIdrico({
       letture: lettureRaw,
-      irrigazioni: apportiIrriguiDaTrattamenti(trattamenti, appezzamento.area_ha),
+      irrigazioni: apportiIrriguiDaTrattamenti(treatments, appezzamento.area_ha),
       coltura: modulo.mainSpecies,
       phase: faseFenologica(appezzamento),
       suolo: suolo.parametri,
@@ -397,15 +397,15 @@ export function useDssCalcolo() {
       if (targets.length === 0) return;
       setStato((s) => ({ ...s, phase: "calcolo", message: undefined }));
       try {
-        const { dal, aziendaAttivaId, configMeteo, crops } =
+        const { dal, activeCompanyId, weatherConfig, crops } =
           useAgroStore.getState();
-        if (!dal || !aziendaAttivaId) {
+        if (!dal || !activeCompanyId) {
           throw new Error(i18n.t("useDssCalcolo.noActiveCompany"));
         }
         const ctx: ContestoCalcolo = {
           dal,
-          aziendaAttivaId,
-          configMeteo,
+          activeCompanyId,
+          weatherConfig,
           crops,
         };
 
@@ -417,7 +417,7 @@ export function useDssCalcolo() {
             // Un errore su un campo non blocca gli altri: si registra come esito
             // vuoto con message dedicato.
             risultati.push({
-              appezzamentoId: target.appezzamento.id,
+              plotId: target.appezzamento.id,
               name: target.appezzamento.user_plot_name,
               modulo: target.modulo,
               esiti: [],

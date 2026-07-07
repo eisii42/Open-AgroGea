@@ -11,8 +11,8 @@ import { AgroDalBase } from "./dal-base";
 import { nowIso, type Row } from "./write";
 
 /**
- * Strato anagrafico del DAL: aziende, posti collaboratore, colture,
- * appezzamenti e stato di Campagna Agraria.
+ * Strato anagrafico del DAL: companies, posti collaboratore, colture,
+ * plots e stato di Campagna Agraria.
  */
 export class AgroDalRegistry extends AgroDalBase {
   // -- companies -------------------------------------------------------------
@@ -75,7 +75,7 @@ export class AgroDalRegistry extends AgroDalBase {
     return row;
   }
 
-  /** Posti dell'intero tenant (tutte le aziende), non eliminati. */
+  /** Posti dell'intero tenant (tutte le companies), non eliminati. */
   async listMemberships(): Promise<TenantMembership[]> {
     const result = await this.db.query<TenantMembership>(
       `select * from tenant_memberships
@@ -177,7 +177,7 @@ export class AgroDalRegistry extends AgroDalBase {
    * transazionale dato+outbox come ogni scrittura, ma non ricalcola l'area né
    * tocca la geometria. La riga deve esistere.
    */
-  async aggiornaNdviMedio(id: string, ndviMedio: number): Promise<void> {
+  async aggiornaNdviMedio(id: string, meanNdvi: number): Promise<void> {
     const ts = nowIso();
     const result = await this.db.query<Plot>(
       `select * from plots_registry where id = $1 and deleted_at is null`,
@@ -189,7 +189,7 @@ export class AgroDalRegistry extends AgroDalBase {
     }
     const row: Plot = {
       ...corrente,
-      last_ndvi_mean: ndviMedio,
+      last_ndvi_mean: meanNdvi,
       updated_at: ts,
     };
     await this.writeWithOutbox(
@@ -203,12 +203,12 @@ export class AgroDalRegistry extends AgroDalBase {
     await this.softDelete("plots_registry", id);
   }
 
-  async listAppezzamenti(aziendaId: string): Promise<Plot[]> {
+  async listAppezzamenti(companyId: string): Promise<Plot[]> {
     const result = await this.db.query<Plot>(
       `select * from plots_registry
        where company_id = $1 and deleted_at is null
        order by user_plot_name`,
-      [aziendaId],
+      [companyId],
     );
     return result.rows;
   }
@@ -273,7 +273,7 @@ export class AgroDalRegistry extends AgroDalBase {
    * Percorso transazionale dato+outbox; no-op se la riga non esiste o è già
    * chiusa. Ritorna la riga aggiornata o null.
    */
-  async chiudiCampagna(
+  async closeCampaign(
     id: string,
     closedAt?: string,
   ): Promise<PlotCampaign | null> {
@@ -299,7 +299,7 @@ export class AgroDalRegistry extends AgroDalBase {
   }
 
   async listCampiCampagna(
-    options: { anno?: number; appezzamentoId?: string } = {},
+    options: { anno?: number; plotId?: string } = {},
   ): Promise<PlotCampaign[]> {
     const conditions = ["tenant_id = $1", "deleted_at is null"];
     const params: unknown[] = [this.tenantId];
@@ -307,8 +307,8 @@ export class AgroDalRegistry extends AgroDalBase {
       params.push(options.anno);
       conditions.push(`campaign_year = $${params.length}`);
     }
-    if (options.appezzamentoId) {
-      params.push(options.appezzamentoId);
+    if (options.plotId) {
+      params.push(options.plotId);
       conditions.push(`plot_id = $${params.length}`);
     }
     const result = await this.db.query<PlotCampaign>(

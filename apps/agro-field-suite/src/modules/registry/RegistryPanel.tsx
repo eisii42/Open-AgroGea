@@ -19,7 +19,7 @@ import { CompanyDataIo } from "./CompanyDataIo";
  * Pannello "Anagrafica Company" (scheda dedicata sotto Impostazioni Company).
  * Banner laterale a sezioni per inserire tutti i dati e i codici dell'azienda
  * attiva — identità, codici fiscali/agricoli, sede/contatti, referente. Salva
- * via `aggiornaAzienda` → DAL → outbox: stessa logica di sync di ogni altro dato
+ * via `updateCompany` → DAL → outbox: stessa logica di sync di ogni altro dato
  * (mutazione accodata, backup in coda, risoluzione LWW).
  */
 
@@ -152,12 +152,12 @@ function statoIniziale(azienda: Company | undefined): FormState {
 
 export function RegistryPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
-  const readOnly = useReadOnly(aziendaAttivaId);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
+  const readOnly = useReadOnly(activeCompanyId);
   const azienda = useAgroStore((s) =>
-    s.aziende.find((a) => a.id === s.aziendaAttivaId),
+    s.companies.find((a) => a.id === s.activeCompanyId),
   );
-  const aggiornaAzienda = useAgroStore((s) => s.aggiornaAzienda);
+  const updateCompany = useAgroStore((s) => s.updateCompany);
 
   const SEZIONI = getSezioni(t);
   const [sezioneId, setSezioneId] = useState(SEZIONI[0].id);
@@ -172,7 +172,7 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
     setForm(statoIniziale(azienda));
     setStato("idle");
     // azienda.updated_at copre sia il cambio azienda sia l'idratazione da pull.
-  }, [aziendaAttivaId, azienda?.updated_at]);
+  }, [activeCompanyId, azienda?.updated_at]);
 
   const setCampo = (key: CampoChiave, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -189,7 +189,7 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
         patch[k] =
           k === "business_name" ? v || azienda.business_name : v || null;
       }
-      await aggiornaAzienda(patch as unknown as Partial<Company>);
+      await updateCompany(patch as unknown as Partial<Company>);
       setStato("fatto");
     } catch (err) {
       setStato("errore");
@@ -206,7 +206,7 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
       title={t("anagraficaPanel.title")}
       onClose={onClose}
       footer={
-        aziendaAttivaId ? (
+        activeCompanyId ? (
           <Button
             className="min-h-[var(--touch-min)] w-full"
             disabled={stato === "salvo" || readOnly}
@@ -227,7 +227,7 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
         {t("anagraficaPanel.subtitle")}
       </p>
 
-      {!aziendaAttivaId ? (
+      {!activeCompanyId ? (
         <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] p-2 text-sm text-[var(--ink-3)]">
           {t("anagraficaPanel.selectCompany")}
         </p>

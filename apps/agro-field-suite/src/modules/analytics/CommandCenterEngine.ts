@@ -182,12 +182,12 @@ export interface AnalyticsResult {
 
 /** Bundle di dominio in ingresso al motore (materializzato dal DAL/store). */
 export interface AnalyticsInput {
-  appezzamenti: Plot[];
+  plots: Plot[];
   crops: Crop[];
   /** Stato di campagna di TUTTE le annate disponibili (per il confronto storico). */
-  campiCampagna: PlotCampaign[];
-  trattamenti: TreatmentLog[];
-  raccolte: Harvest[];
+  campaignFields: PlotCampaign[];
+  treatments: TreatmentLog[];
+  harvests: Harvest[];
   dssRisultati: DssResult[];
   weather: WeatherReading[];
   soilIndices: SoilWaterIndex[];
@@ -197,7 +197,7 @@ export interface AnalyticsInput {
   /**
    * Appezzamenti isolati dal filtro multi-plot / cross-filtering (Modulo 2).
    * Vuoto = nessun filtro per plot (tutto lo scope coltura/annata). Quando
-   * valorizzato, restringe lo scope a questi appezzamenti e tutti i KPI si
+   * valorizzato, restringe lo scope a questi plots e tutti i KPI si
    * ricalcolano di conseguenza.
    */
   selectedPlotIds: string[];
@@ -371,11 +371,11 @@ function plotNdviBaseline(plot: Plot): number | null {
  */
 export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
   const {
-    appezzamenti,
+    plots,
     crops,
-    campiCampagna,
-    trattamenti,
-    raccolte,
+    campaignFields,
+    treatments,
+    harvests,
     dssRisultati,
     weather,
     soilIndices,
@@ -387,9 +387,9 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
 
   const plotFilter = new Set(selectedPlotIds);
   const hasPlotFilter = plotFilter.size > 0;
-  const livePlots = appezzamenti.filter((a) => a.deleted_at == null);
+  const livePlots = plots.filter((a) => a.deleted_at == null);
 
-  const liveCampaigns = campiCampagna.filter((c) => c.deleted_at == null);
+  const liveCampaigns = campaignFields.filter((c) => c.deleted_at == null);
   const yearCampaigns = liveCampaigns.filter(
     (c) =>
       c.campaign_year === campaignYear && (!cropId || c.crop_id === cropId),
@@ -507,7 +507,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
   });
 
   // -- Operazioni fitosanitarie + confronto storico (generico) --------------
-  const phytoCur = trattamenti.filter(
+  const phytoCur = treatments.filter(
     (t) =>
       t.deleted_at == null &&
       t.operation_type === "phytosanitary" &&
@@ -515,7 +515,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
       plotIds.has(t.plot_id) &&
       yearOf(t.executed_at) === campaignYear,
   );
-  const phytoPrev = trattamenti.filter(
+  const phytoPrev = treatments.filter(
     (t) =>
       t.deleted_at == null &&
       t.operation_type === "phytosanitary" &&
@@ -536,20 +536,20 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
     trendPct: phytoTrend,
     trendLabel: `vs ${campaignYear - 1}`,
     spark: monthly,
-    // Meno trattamenti = meglio (efficienza input): higherIsBetter=false.
+    // Meno treatments = meglio (efficienza input): higherIsBetter=false.
     severity: severityFromTrend(phytoTrend, false),
     editableParams: [],
   });
 
   // -- Raccolto totale + resa per ha + confronto storico (generico) ---------
-  const harvestCur = raccolte.filter(
+  const harvestCur = harvests.filter(
     (r) =>
       r.deleted_at == null &&
       ((r.plot_campaign_id != null && campaignIds.has(r.plot_campaign_id)) ||
         (r.plot_id != null && plotIds.has(r.plot_id))) &&
       yearOf(r.harvested_at) === campaignYear,
   );
-  const harvestPrev = raccolte.filter(
+  const harvestPrev = harvests.filter(
     (r) =>
       r.deleted_at == null &&
       r.plot_id != null &&
@@ -575,7 +575,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
   });
 
   // -- Autonomia idrica RAW% (Modulo 1.1 + 3.3) -----------------------------
-  // ETc per ettaro = MEDIA giornaliera tra gli appezzamenti (mm, intensiva), NON
+  // ETc per ettaro = MEDIA giornaliera tra gli plots (mm, intensiva), NON
   // somma cumulativa (fix del valore aberrante). Il consumo idrico recente
   // (media ETc sugli ultimi N giorni) alimenta il contatore predittivo dei
   // giorni di autonomia prima dello stress idrico severo.
@@ -774,7 +774,7 @@ interface DatedValue {
 }
 
 /**
- * Aggrega una metrica idrica per data su più appezzamenti. Gli indici idrici
+ * Aggrega una metrica idrica per data su più plots. Gli indici idrici
  * (et0/etc/depletion/raw/awc) sono in mm, grandezze INTENSIVE (già per unità di
  * superficie): vanno mediati tra i poligoni, NON sommati (la somma su N campi
  * gonfiava l'ETc — Modulo 1.1). `mode` distingue media (default) da somma.
@@ -823,7 +823,7 @@ function buildInsights(args: {
     out.push(insight(
       "insight_water",
       "Irrigazione consigliata",
-      `La deplezione radicale media (${Math.round(stressMean * 100)}%) ha superato la soglia di allerta (${Math.round(params.waterStressThreshold * 100)}%). Pianifica un turno irriguo per riportare il profilo sotto RAW.`,
+      `La deplezione radicale media (${Math.round(stressMean * 100)}%) ha superato la soglia di allerta (${Math.round(params.waterStressThreshold * 100)}%). Pianifica un turno irriguo per riportare il profile sotto RAW.`,
       "danger",
     ));
   }
@@ -837,12 +837,12 @@ function buildInsights(args: {
     ));
   }
 
-  // Operazioni + NDVI: molti trattamenti a fronte di vigore basso.
+  // Operazioni + NDVI: molti treatments a fronte di vigore basso.
   if (ndviMean != null && ndviMean < 0.45 && phytoCur.length >= 4) {
     out.push(insight(
       "insight_efficiency",
       "Efficienza input da rivedere",
-      `${phytoCur.length} trattamenti con vigore medio basso (NDVI ${ndviMean.toFixed(2)}): la risposta vegetativa non giustifica l'intensità degli input. Verifica avversità e strategia agronomica.`,
+      `${phytoCur.length} treatments con vigore medio basso (NDVI ${ndviMean.toFixed(2)}): la risposta vegetativa non giustifica l'intensità degli input. Verifica avversità e strategia agronomica.`,
       "warn",
     ));
   }

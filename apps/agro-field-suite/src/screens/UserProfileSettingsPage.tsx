@@ -51,7 +51,7 @@ const CLOUD_MODULE_IDS: ReadonlySet<DashboardModuleId> = new Set<DashboardModule
 /**
  * Pagina di gestione delle Impostazioni di Sistema (Modulo Profilo). Pannello
  * a tutto schermo, organizzato in schede (Card) verticali, raggiunto dal menù
- * profilo della Top Bar e dalla Command Palette.
+ * profile della Top Bar e dalla Command Palette.
  *
  *   §1 Personalizzazione interfaccia & moduli GeoLibre (toggle granulari che
  *      pilotano la visibilità di pannelli, strumenti e basemap a schermo);

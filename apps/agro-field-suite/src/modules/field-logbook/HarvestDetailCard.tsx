@@ -2,7 +2,7 @@
  * Scheda dettaglio di una raccolta: modale centrale in sola lettura con TUTTE le
  * informazioni registrate (cultivar, destinazione, quantità, lotto, note).
  * Speculare a {@link OperationDetailCard} del Quaderno; si apre al tap/click
- * su una voce della lista del registro raccolte.
+ * su una voce della lista del registro harvests.
  */
 import type { Harvest } from "@agrogea/core";
 import { Trash2, Wheat, X } from "lucide-react";

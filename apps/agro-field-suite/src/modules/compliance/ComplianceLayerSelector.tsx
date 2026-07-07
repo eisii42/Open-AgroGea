@@ -13,7 +13,7 @@ import { useComplianceLayerAnalysis } from "./useComplianceLayerAnalysis";
  * Store; alla scelta di un layer e del tipo di vincolo che rappresenta, marca il
  * layer (`metadata.compliance`) — così i badge per-appezzamento reagiscono in
  * tutta l'app — e innesca il motore spaziale DuckDB per calcolare quali
- * appezzamenti del tenant intersecano il layer, aggiornando i badge di allerta.
+ * plots del tenant intersecano il layer, aggiornando i badge di allerta.
  */
 
 const TIPI: TipoVincolo[] = ["zvn", "sic", "zps", "eudr"];
@@ -21,7 +21,7 @@ const TIPI: TipoVincolo[] = ["zvn", "sic", "zps", "eudr"];
 export function ComplianceLayerSelector() {
   const layers = useAppStore((s) => s.layers);
   const updateLayer = useAppStore((s) => s.updateLayer);
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
+  const plots = useAgroStore((s) => s.plots);
 
   const [layerId, setLayerId] = useState<string>("");
   const [tipo, setTipo] = useState<TipoVincolo>("zvn");
@@ -38,7 +38,7 @@ export function ComplianceLayerSelector() {
   const layerScelto = layerEsterni.find((l) => l.id === layerId) ?? null;
   const geojson = (layerScelto?.geojson as FeatureCollection | undefined) ?? null;
 
-  const analisi = useComplianceLayerAnalysis(appezzamenti, geojson);
+  const analisi = useComplianceLayerAnalysis(plots, geojson);
 
   /** Classifica il layer selezionato come vincolo `tipo` (tag app-wide). */
   function classifica(nextTipo: TipoVincolo) {
@@ -76,7 +76,7 @@ export function ComplianceLayerSelector() {
         </p>
         <p className="mb-2 text-xs text-[var(--ink-4)]">
           Seleziona un layer esterno caricato con «Aggiungi dati» e indica quale
-          vincolo rappresenta. L'analisi di intersezione con gli appezzamenti è
+          vincolo rappresenta. L'analisi di intersezione con gli plots è
           istantanea.
         </p>
       </div>
@@ -166,7 +166,7 @@ export function ComplianceLayerSelector() {
                   </span>
                   <p className="text-[11px] text-[var(--ink-4)]">
                     I badge di dettaglio (tetto azoto, due diligence) sono
-                    aggiornati sulle schede degli appezzamenti coinvolti.
+                    aggiornati sulle schede degli plots coinvolti.
                   </p>
                 </div>
               ) : analisi.eseguita ? (

@@ -36,8 +36,8 @@ export class WarehouseError extends Error {
 }
 
 /**
- * Strato "Magazzino" del DAL (0.2.0): anagrafica prodotti (categorie rigide),
- * lotti con scadenza/giacenza, carico con aggiornamento CUMP e scarico ATOMICO
+ * Strato "Magazzino" del DAL (0.2.0): anagrafica products (categorie rigide),
+ * lots con scadenza/giacenza, carico con aggiornamento CUMP e scarico ATOMICO
  * agganciato alle attività del Quaderno. Ogni scrittura segue il percorso
  * transazionale dato+outbox; le operazioni multi-riga (carico, scarico,
  * storno) vivono in UN'UNICA transazione: o si conferma tutto, o niente.
@@ -48,7 +48,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
   /**
    * Crea o aggiorna un prodotto di magazzino. Valida i campi obbligatori della
    * categoria (`validateProduct`); il CUMP (`avg_unit_cost`) NON si imposta da
-   * qui: lo aggiorna solo il carico lotti ({@link caricaLotto}).
+   * qui: lo aggiorna solo il carico lots ({@link receiveLot}).
    */
   async upsertProdotto(
     input: Omit<
@@ -118,11 +118,11 @@ export class AgroDalWarehouse extends AgroDalLogbook {
   }
 
   async listProdotti(
-    aziendaId: string,
+    companyId: string,
     options: { categoria?: Product["category"] } = {},
   ): Promise<Product[]> {
     const conditions = ["company_id = $1", "deleted_at is null"];
-    const params: unknown[] = [aziendaId];
+    const params: unknown[] = [companyId];
     if (options.categoria) {
       params.push(options.categoria);
       conditions.push(`category = $${params.length}`);
@@ -147,7 +147,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
    * prodotto (media ponderata sulla giacenza complessiva corrente) nella
    * STESSA transazione, con entrambe le voci di outbox. §5.3.
    */
-  async caricaLotto(
+  async receiveLot(
     input: Omit<
       ProductLot,
       "id" | "tenant_id" | "quantity_on_hand" | "created_at" | "updated_at" | "deleted_at"
@@ -175,7 +175,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
       deleted_at: null,
     };
     await this.db.transaction(async (tx: Transaction) => {
-      // Giacenza complessiva PRIMA del carico (tutti i lotti vivi del prodotto):
+      // Giacenza complessiva PRIMA del carico (tutti i lots vivi del prodotto):
       // è il peso della media ponderata mobile.
       const giacenza = await tx.query<{ q: number | string | null }>(
         `select coalesce(sum(quantity_on_hand), 0) as q from product_lots
@@ -217,7 +217,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
   }
 
   async listLotti(
-    aziendaId: string,
+    companyId: string,
     options: { productId?: string; soloDisponibili?: boolean } = {},
   ): Promise<ProductLot[]> {
     const conditions = [
@@ -225,7 +225,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
       "l.deleted_at is null",
       "p.deleted_at is null",
     ];
-    const params: unknown[] = [aziendaId];
+    const params: unknown[] = [companyId];
     if (options.productId) {
       params.push(options.productId);
       conditions.push(`l.product_id = $${params.length}`);
@@ -248,7 +248,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
    * (alert §5.1). L'ordinamento mette prima le scadenze più urgenti.
    */
   async listLottiInScadenza(
-    aziendaId: string,
+    companyId: string,
     warningDays: number,
   ): Promise<ProductLot[]> {
     const result = await this.db.query<ProductLot>(
@@ -260,7 +260,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
          and l.expires_at is not null
          and l.expires_at <= (current_date + $2::int)
        order by l.expires_at`,
-      [aziendaId, warningDays],
+      [companyId, warningDays],
     );
     return result.rows;
   }
@@ -269,10 +269,10 @@ export class AgroDalWarehouse extends AgroDalLogbook {
     await this.softDelete("product_lots", id);
   }
 
-  // -- scarico atomico (attività ↔ lotti) --------------------------------------
+  // -- scarico atomico (attività ↔ lots) --------------------------------------
 
   /**
-   * Registra un'attività del Quaderno E scarica i lotti richiesti in UN'UNICA
+   * Registra un'attività del Quaderno E scarica i lots richiesti in UN'UNICA
    * transazione (§5.2): se un lotto è scaduto, inesistente o la giacenza
    * andrebbe sotto zero, l'INTERA operazione fallisce (nessuno scarico
    * parziale, nessuna attività orfana). Il costo imputato è quantità × CUMP
@@ -325,7 +325,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
             `Lotto ${richiesta.product_lot_id} inesistente: registrazione annullata.`,
           );
         }
-        // Uso di lotti scaduti BLOCCATO (comportamento §5.1, esplicitato in UI).
+        // Uso di lots scaduti BLOCCATO (comportamento §5.1, esplicitato in UI).
         if (lotExpired(lotto)) {
           throw new WarehouseError(
             "expired_lot",
@@ -397,7 +397,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
 
   /**
    * Soft-delete di un'operazione del Quaderno con STORNO magazzino: tombstone
-   * dell'attività e dei suoi scarichi + reintegro delle giacenze dei lotti,
+   * dell'attività e dei suoi scarichi + reintegro delle giacenze dei lots,
    * tutto in un'unica transazione (l'inventario resta coerente). Sostituisce
    * {@link AgroDalLogbook.deleteTrattamento} per le attività con scarichi.
    */
@@ -468,12 +468,12 @@ export class AgroDalWarehouse extends AgroDalLogbook {
   }
 
   /**
-   * Costo vivo dei prodotti scaricati, aggregato per campo trattato (§5.4):
+   * Costo vivo dei products scaricati, aggregato per campo trattato (§5.4):
    * base del bilancio di campo (0.4.0). `plot_id` null = operazioni "intera
    * azienda".
    */
   async costiProdottiPerCampo(
-    aziendaId: string,
+    companyId: string,
     options: { dal?: string; al?: string } = {},
   ): Promise<FieldProductCost[]> {
     const conditions = [
@@ -481,7 +481,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
       "a.deleted_at is null",
       "t.deleted_at is null",
     ];
-    const params: unknown[] = [aziendaId];
+    const params: unknown[] = [companyId];
     if (options.dal) {
       params.push(options.dal);
       conditions.push(`t.executed_at >= $${params.length}`);

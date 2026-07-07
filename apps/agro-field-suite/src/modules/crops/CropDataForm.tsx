@@ -50,12 +50,12 @@ export function CropDataForm({
 }) {
   const { t } = useTranslation();
   const dal = useAgroStore((s) => s.dal);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const crops = useAgroStore((s) => s.crops);
-  const campagnaAttiva = useAgroStore((s) => s.campagnaAttiva);
-  const setCampagnaAttiva = useAgroStore((s) => s.setCampagnaAttiva);
-  const salvaCrop = useAgroStore((s) => s.salvaCrop);
-  const salvaCampoCampagna = useAgroStore((s) => s.salvaCampoCampagna);
+  const activeCampaign = useAgroStore((s) => s.activeCampaign);
+  const setActiveCampaign = useAgroStore((s) => s.setActiveCampaign);
+  const saveCrop = useAgroStore((s) => s.saveCrop);
+  const savePlotCampaign = useAgroStore((s) => s.savePlotCampaign);
 
   // Cataloghi di stato filtrati per il country_code risolto del tenant (Modulo 3):
   // specie e varietà del registro nazionale per i quick-pick guidati. Se vuoti,
@@ -71,7 +71,7 @@ export function CropDataForm({
     let vivo = true;
     if (!dal) return;
     void dal
-      .listCampiCampagna({ appezzamentoId: appezzamento.id })
+      .listCampiCampagna({ plotId: appezzamento.id })
       .then((rows) => {
         if (vivo) setPlotCampaigns(rows);
       });
@@ -85,9 +85,9 @@ export function CropDataForm({
   const [ultimaSemina, setUltimaSemina] = useState<string | null>(null);
   useEffect(() => {
     let vivo = true;
-    if (!dal || !aziendaAttivaId) return;
+    if (!dal || !activeCompanyId) return;
     void dal
-      .listTrattamenti(aziendaAttivaId, { appezzamentoId: appezzamento.id, limit: 200 })
+      .listTrattamenti(activeCompanyId, { plotId: appezzamento.id, limit: 200 })
       .then((rows) => {
         if (!vivo) return;
         const semina = rows.find((t) => t.operation_type === "sowing");
@@ -96,7 +96,7 @@ export function CropDataForm({
     return () => {
       vivo = false;
     };
-  }, [dal, aziendaAttivaId, appezzamento.id, reloadKey]);
+  }, [dal, activeCompanyId, appezzamento.id, reloadKey]);
 
   const [category, setCategory] = useState<string>("");
   const [commonName, setCommonName] = useState("");
@@ -120,9 +120,9 @@ export function CropDataForm({
   // Prefill quando cambia appezzamento, annata attiva o l'elenco campagne.
   useEffect(() => {
     const current =
-      plotCampaigns.find((c) => c.campaign_year === campagnaAttiva) ?? null;
+      plotCampaigns.find((c) => c.campaign_year === activeCampaign) ?? null;
     const previous = plotCampaigns
-      .filter((c) => c.campaign_year < campagnaAttiva)
+      .filter((c) => c.campaign_year < activeCampaign)
       .sort((a, b) => b.campaign_year - a.campaign_year)[0] ?? null;
     const source = current ?? previous;
     const crop = source ? crops.find((c) => c.id === source.crop_id) ?? null : null;
@@ -150,7 +150,7 @@ export function CropDataForm({
     setCropCode(source?.crop_external_code ?? "");
     setVarietyCode(source?.variety_external_code ?? "");
     setEsito("idle");
-  }, [appezzamento.id, appezzamento.area_ha, campagnaAttiva, plotCampaigns, crops]);
+  }, [appezzamento.id, appezzamento.area_ha, activeCampaign, plotCampaigns, crops]);
 
   const schema = cropFormSchema(t, category);
   // Annuali (semina/trapianto ogni campagna) vs perenni (anno d'impianto).
@@ -221,7 +221,7 @@ export function CropDataForm({
         cropMetadata[f.key] = f.type === "number" ? Number(raw) : raw;
       }
 
-      const crop = await salvaCrop({
+      const crop = await saveCrop({
         id: editCropId,
         common_name: commonName.trim(),
         scientific_name: scientificName.trim() || null,
@@ -230,11 +230,11 @@ export function CropDataForm({
       });
       if (!crop) throw new Error(t("cropDataForm.noActiveCompany"));
 
-      const camp = await salvaCampoCampagna({
+      const camp = await savePlotCampaign({
         id: editCampaignId,
         plot_id: appezzamento.id,
         crop_id: crop.id,
-        campaign_year: campagnaAttiva,
+        campaign_year: activeCampaign,
         declared_area_ha: areaNum as number,
         reference_parcel_external_id: refParcel.trim() || null,
         agricultural_parcel_external_id: agriParcel.trim() || null,
@@ -266,18 +266,18 @@ export function CropDataForm({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => void setCampagnaAttiva(campagnaAttiva - 1)}
+            onClick={() => void setActiveCampaign(activeCampaign - 1)}
             className="flex h-7 w-7 items-center justify-center rounded-[var(--r-1)] text-[var(--ink-3)] hover:bg-[var(--panel)]"
             aria-label={t("cropDataForm.previousYear")}
           >
             −
           </button>
           <span className="agro-num min-w-[3ch] text-center text-sm font-semibold">
-            {campagnaAttiva}
+            {activeCampaign}
           </span>
           <button
             type="button"
-            onClick={() => void setCampagnaAttiva(campagnaAttiva + 1)}
+            onClick={() => void setActiveCampaign(activeCampaign + 1)}
             className="flex h-7 w-7 items-center justify-center rounded-[var(--r-1)] text-[var(--ink-3)] hover:bg-[var(--panel)]"
             aria-label={t("cropDataForm.nextYear")}
           >
@@ -290,7 +290,7 @@ export function CropDataForm({
         <p className="rounded-[var(--r-2)] border border-[var(--accent-bd)] bg-[var(--accent-l)] px-3 py-2 text-xs text-[var(--accent)]">
           {t("cropDataForm.prefilledFromCampaign", {
             copiedFrom,
-            campaignYear: campagnaAttiva,
+            campaignYear: activeCampaign,
           })}
         </p>
       )}
@@ -439,7 +439,7 @@ export function CropDataForm({
           {/* Stato annuale (tabella plots_campaign) */}
           <section className="flex flex-col gap-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
-              {t("cropDataForm.campaignDeclarativeData", { campaignYear: campagnaAttiva })}
+              {t("cropDataForm.campaignDeclarativeData", { campaignYear: activeCampaign })}
             </p>
             {isAnnuale && (
               <div className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2 text-xs">
@@ -519,7 +519,7 @@ export function CropDataForm({
           )}
           {esito === "ok" && (
             <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] p-2 text-sm text-[var(--accent)]">
-              {t("cropDataForm.cropSaved", { campaignYear: campagnaAttiva })}
+              {t("cropDataForm.cropSaved", { campaignYear: activeCampaign })}
             </p>
           )}
 

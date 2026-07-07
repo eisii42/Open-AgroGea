@@ -9,7 +9,7 @@ import type {
 /**
  * Esportazione configurabile del Quaderno di Campagna in CSV (Modulo QDC).
  *
- * Tracciato ispirato ai campi del registro trattamenti SIAN, ma **interamente
+ * Tracciato ispirato ai campi del registro treatments SIAN, ma **interamente
  * componibile**: l'utente sceglie quali colonne includere, in che ordine, con
  * quale separatore, e applica filtri temporali e spaziali. Questo lascia spazio
  * a cambiamenti normativi o richieste particolari senza toccare il codice.
@@ -277,8 +277,8 @@ export const CONFIG_SIAN_DEFAULT: SianExportConfig = {
  * o coltura, perché non hanno un riferimento spaziale da confrontare.
  */
 export function filtraTrattamentiSian(
-  trattamenti: TreatmentLog[],
-  appezzamenti: Plot[],
+  treatments: TreatmentLog[],
+  plots: Plot[],
   filtri: SianFiltri,
 ): TreatmentLog[] {
   const daTs = filtri.dal ? new Date(`${filtri.dal}T00:00:00`).getTime() : null;
@@ -293,7 +293,7 @@ export function filtraTrattamentiSian(
       : null;
   const includiSenza = filtri.includiSenzaAppezzamento ?? true;
 
-  return trattamenti.filter((t) => {
+  return treatments.filter((t) => {
     const ts = new Date(t.executed_at).getTime();
     if (daTs != null && ts < daTs) return false;
     if (aTs != null && ts > aTs) return false;
@@ -350,20 +350,20 @@ function risolviCampo(
  * lo stato di campagna corrente, non una fotografia al momento dell'operazione.
  */
 export function buildSianCsv(
-  trattamenti: TreatmentLog[],
-  appezzamenti: Plot[],
+  treatments: TreatmentLog[],
+  plots: Plot[],
   config: SianExportConfig = CONFIG_SIAN_DEFAULT,
-  campiCampagna: PlotCampaign[] = [],
+  campaignFields: PlotCampaign[] = [],
   // Risolve l'etichetta di intestazione per colonna; default = etichetta IT
   // hardcoded (usata dai test e da chi consuma il modulo fuori dalla UI).
   resolveLabel: (col: SianColumn) => string = (col) => col.label,
   ctx: SianColumnContext = {},
 ): string {
-  const perId = new Map(appezzamenti.map((a) => [a.id, a]));
-  const perCampo = new Map(campiCampagna.map((c) => [c.id, c]));
+  const perId = new Map(plots.map((a) => [a.id, a]));
+  const perCampo = new Map(campaignFields.map((c) => [c.id, c]));
   // Indice appezzamento+anno per il fallback di risoluzione campagna.
   const perPlotAnno = new Map<string, PlotCampaign[]>();
-  for (const c of campiCampagna) {
+  for (const c of campaignFields) {
     if (c.deleted_at != null) continue;
     const key = `${c.plot_id}:${c.campaign_year}`;
     const list = perPlotAnno.get(key) ?? [];
@@ -372,7 +372,7 @@ export function buildSianCsv(
   }
   const cols = risolviColonne(config.colonne);
   const sep = config.separatore;
-  const righe = trattamenti.map((t) => {
+  const righe = treatments.map((t) => {
     const app = t.plot_id ? perId.get(t.plot_id) : undefined;
     const campo = risolviCampo(t, perCampo, perPlotAnno);
     return cols.map((c) => csvCell(c.value(t, app, campo, ctx), sep)).join(sep);
@@ -386,16 +386,16 @@ export function buildSianCsv(
 /**
  * Mappa gli eventi di raccolta (`harvest_logs`) in operazioni sintetiche del
  * Quaderno (`operation_type = "harvest"`), così confluiscono nello STESSO
- * export del registro trattamenti (requisito QDCA: la raccolta è parte del
+ * export del registro treatments (requisito QDCA: la raccolta è parte del
  * Quaderno di Campagna). La cultivar diventa il "prodotto", i kg la quantità
  * totale, la destinazione è congelata in `weather_conditions.destinazione` (bag
  * di metadati in memoria, mai persistito). L'aggancio alla campagna (`plot_id`,
  * `plot_campaign_id`) è preservato per la risoluzione dei codici SIAN.
  */
 export function raccolteToOperazioni(
-  raccolte: Harvest[],
+  harvests: Harvest[],
 ): TreatmentLog[] {
-  return raccolte
+  return harvests
     .filter((r) => r.deleted_at == null)
     .map((r) => ({
       id: r.id,
@@ -463,19 +463,19 @@ export function scaricaSianCsv(
  * usata dal dialog di export. Ritorna il nome del file scaricato.
  */
 export function esportaSianCsv(
-  trattamenti: TreatmentLog[],
-  appezzamenti: Plot[],
+  treatments: TreatmentLog[],
+  plots: Plot[],
   nomeAzienda = "azienda",
   config: SianExportConfig = CONFIG_SIAN_DEFAULT,
-  campiCampagna: PlotCampaign[] = [],
+  campaignFields: PlotCampaign[] = [],
   resolveLabel?: (col: SianColumn) => string,
   ctx: SianColumnContext = {},
 ): string {
   const csv = buildSianCsv(
-    trattamenti,
-    appezzamenti,
+    treatments,
+    plots,
     config,
-    campiCampagna,
+    campaignFields,
     resolveLabel,
     ctx,
   );

@@ -34,14 +34,14 @@ const ROLE_META: Record<TeamRole, { label: string; plural: string; Icon: typeof 
  */
 export function TeamPanel({ readOnly = false }: { readOnly?: boolean }) {
   const { t } = useTranslation();
-  const companyId = useAgroStore((s) => s.aziendaAttivaId);
-  const plan = useAgroStore((s) => s.profilo?.license_plan ?? null);
+  const companyId = useAgroStore((s) => s.activeCompanyId);
+  const plan = useAgroStore((s) => s.profile?.license_plan ?? null);
 
   const seats = useSeatUsage(plan, companyId);
   const memberships = useCompanyMemberships(companyId);
 
   // L'abbonato principale occupa un posto OWNER dell'azienda: registrandolo
-  // (idempotente, per le aziende legacy) i contatori partono da "Owners 1/…" e
+  // (idempotente, per le companies legacy) i contatori partono da "Owners 1/…" e
   // gli inviti sono validati sui posti residui.
   useEffect(() => {
     if (companyId) void ensurePrincipalOwner(companyId);

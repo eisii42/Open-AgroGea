@@ -309,11 +309,11 @@ function plotFeatureCollection(appezzamento: Plot): FeatureCollection {
  * restano in JS (mappa per id), così DuckDB esegue unicamente il filtro spaziale.
  */
 function sampleFeatureCollection(
-  campionamenti: SoilSample[],
+  soilSamples: SoilSample[],
 ): { fc: FeatureCollection; byId: Map<string, SoilSample> } {
   const byId = new Map<string, SoilSample>();
   const features: Feature[] = [];
-  for (const c of campionamenti) {
+  for (const c of soilSamples) {
     if (c.deleted_at != null || !c.sampling_position) continue;
     byId.set(c.id, c);
     features.push({
@@ -337,7 +337,7 @@ export class SoilDataResolver {
    */
   async risolvi(
     appezzamento: Plot,
-    campionamenti: SoilSample[],
+    soilSamples: SoilSample[],
     opzioni: OpzioniRisoluzione = {},
   ): Promise<ParametriSuoloRisolti> {
     const opzSaxton = {
@@ -362,7 +362,7 @@ export class SoilDataResolver {
           };
         }
       } catch {
-        // mappa custom illeggibile/senza tessitura: si prova coi campionamenti.
+        // mappa custom illeggibile/senza tessitura: si prova coi soilSamples.
       }
     }
 
@@ -370,7 +370,7 @@ export class SoilDataResolver {
     try {
       const agg = await this.daCampionamenti(
         appezzamento,
-        campionamenti,
+        soilSamples,
         opzioni.tolleranzaVicinanzaDeg ?? TOLLERANZA_VICINANZA_DEG,
       );
       if (agg) {
@@ -456,10 +456,10 @@ export class SoilDataResolver {
   /** Tier 2: filtra i campioni interni/vicini al poligono e aggrega la tessitura. */
   private async daCampionamenti(
     appezzamento: Plot,
-    campionamenti: SoilSample[],
+    soilSamples: SoilSample[],
     tolleranzaDeg: number,
   ): Promise<Aggregato | null> {
-    const { fc, byId } = sampleFeatureCollection(campionamenti);
+    const { fc, byId } = sampleFeatureCollection(soilSamples);
     if (fc.features.length === 0) return null;
 
     const { SpatialAnalysisEngine } = await import(

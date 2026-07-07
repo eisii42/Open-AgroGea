@@ -45,9 +45,9 @@ export type VraStato =
 
 const VRA_LAYER_PREFIX = "agrogea-vra-";
 
-function iniettaVraLayer(appezzamentoId: string, risultato: RisultatoZoneVra) {
+function iniettaVraLayer(plotId: string, risultato: RisultatoZoneVra) {
   const store = useAppStore.getState();
-  const id = `${VRA_LAYER_PREFIX}${appezzamentoId}`;
+  const id = `${VRA_LAYER_PREFIX}${plotId}`;
   const layer: GeoLibreLayer = {
     id,
     name: `VRA · ${risultato.lavorazione}`,
@@ -69,7 +69,7 @@ function iniettaVraLayer(appezzamentoId: string, risultato: RisultatoZoneVra) {
     },
     metadata: { agrogea: true, vra: true },
     geojson: risultato.fc,
-    sourcePath: `agrogea://vra-${appezzamentoId}`,
+    sourcePath: `agrogea://vra-${plotId}`,
   };
   if (store.layers.some((l) => l.id === id)) {
     store.updateLayer(id, { geojson: risultato.fc, style: layer.style });
@@ -92,7 +92,7 @@ function scarica(nome: string, contenuto: string | Uint8Array, mime: string) {
 export function useVraGenerator() {
   const [stato, setStato] = useState<VraStato>({ fase: "idle" });
   const workerRef = useRef<Worker | null>(null);
-  const registraTrasferimento = useAgroStore((s) => s.registraTrasferimento);
+  const recordTransfer = useAgroStore((s) => s.recordTransfer);
 
   useEffect(() => {
     const worker = new Worker(
@@ -205,13 +205,13 @@ export function useVraGenerator() {
         );
       }
       // Tracciabilità: tag di export nel giornale dei trasferimenti.
-      void registraTrasferimento({
+      void recordTransfer({
         operation_type: "export",
         file_format: formato,
         file_name: nomeFile,
       });
     },
-    [stato, registraTrasferimento],
+    [stato, recordTransfer],
   );
 
   const reset = useCallback(() => setStato({ fase: "idle" }), []);

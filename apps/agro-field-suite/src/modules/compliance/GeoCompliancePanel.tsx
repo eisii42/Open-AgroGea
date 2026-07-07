@@ -8,7 +8,7 @@ import { ComplianceLayerSelector } from "./ComplianceLayerSelector";
  * nella barra). Qui si SELEZIONA un layer esterno già caricato e lo si classifica
  * come vincolo (ZVN, SIC/ZPS, EUDR): il layer viene marcato `metadata.compliance`
  * — così gli alert e il tetto azoto lo raccolgono automaticamente — e il motore
- * spaziale calcola le intersezioni con gli appezzamenti del tenant.
+ * spaziale calcola le intersezioni con gli plots del tenant.
  */
 export function GeoCompliancePanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();

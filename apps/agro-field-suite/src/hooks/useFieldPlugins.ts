@@ -31,7 +31,7 @@ const DRAW_MODE_BY_INTENT = {
 
 /** Layer semantico GeoLibre per ciascun tipo selezionabile. */
 const AGRO_LAYER_BY_KIND: Record<SelectableKind, string> = {
-  appezzamento: "agrogea-appezzamenti",
+  appezzamento: "agrogea-plots",
   infrastruttura: "agrogea-infrastrutture",
   poi: "agrogea-poi",
 };

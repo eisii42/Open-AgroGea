@@ -1,7 +1,7 @@
 /**
  * Simboli delle operazioni del Quaderno sulla mappa (toggle "Mostra sulla
  * mappa"). Crea marker HTML (icone lucide per tipo operazione) SOLO quando il
- * toggle è attivo (`operazioniMappaIds !== null`) e li rimuove allo spegnimento.
+ * toggle è attivo (`mapOperationIds !== null`) e li rimuove allo spegnimento.
  *
  * Renderizza unicamente le operazioni VISIBILI nel registro (gli ID arrivano già
  * filtrati dal LogbookPanel). Più operazioni sullo stesso appezzamento NON si
@@ -96,9 +96,9 @@ export function OperationMarkers({
   mapControllerRef: RefObject<MapController | null>;
   mapReady: boolean;
 }) {
-  const ids = useAgroStore((s) => s.operazioniMappaIds);
-  const trattamenti = useAgroStore((s) => s.trattamenti);
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
+  const ids = useAgroStore((s) => s.mapOperationIds);
+  const treatments = useAgroStore((s) => s.treatments);
+  const plots = useAgroStore((s) => s.plots);
 
   // Posizioni: una per operazione visibile, raggruppate per appezzamento e
   // disposte ad anello attorno al centroid (offset in pixel → niente overlap).
@@ -106,11 +106,11 @@ export function OperationMarkers({
     if (!ids) return [];
     const idSet = new Set(ids);
     const centroids = new Map<string, [number, number]>();
-    for (const a of appezzamenti) {
+    for (const a of plots) {
       centroids.set(a.id, centroid(a.geometry) as [number, number]);
     }
     const byPlot = new Map<string, TreatmentLog[]>();
-    for (const t of trattamenti) {
+    for (const t of treatments) {
       if (t.deleted_at != null || !idSet.has(t.id)) continue;
       if (!t.plot_id || !centroids.has(t.plot_id)) continue;
       const arr = byPlot.get(t.plot_id) ?? [];
@@ -133,7 +133,7 @@ export function OperationMarkers({
       });
     }
     return out;
-  }, [ids, trattamenti, appezzamenti]);
+  }, [ids, treatments, plots]);
 
   // Crea/distrugge i marker MapLibre quando le posizioni cambiano.
   const [slots, setSlots] = useState<Slot[]>([]);

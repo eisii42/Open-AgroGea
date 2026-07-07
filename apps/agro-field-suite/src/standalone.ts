@@ -9,7 +9,7 @@
  *   - il Sync Engine usa il target `local` (nessuna push verso il cloud).
  *
  * I moduli agronomici (dss/soil/analytics/vra/crops) NON cambiano: leggono già
- * solo lo store locale filtrato per `aziendaAttivaId`, che il bootstrap qui
+ * solo lo store locale filtrato per `activeCompanyId`, che il bootstrap qui
  * sotto popola senza alcuna dipendenza dal control plane.
  */
 
@@ -41,14 +41,14 @@ export function bootstrapStandalone(): Promise<void> {
       offlineUnlocked: true,
     });
 
-    // Apre l'azienda esistente o crea quella di default. `creaAzienda` e
-    // `switchTenant` impostano da sé `aziendaAttivaId`, sbloccando la dashboard.
-    const aziende = useAgroStore.getState().aziende;
-    const prima = aziende.find((a) => a.deleted_at == null) ?? aziende[0];
+    // Apre l'azienda esistente o crea quella di default. `createCompany` e
+    // `switchTenant` impostano da sé `activeCompanyId`, sbloccando la dashboard.
+    const companies = useAgroStore.getState().companies;
+    const prima = companies.find((a) => a.deleted_at == null) ?? companies[0];
     if (prima) {
       await useAgroStore.getState().switchTenant(prima.id);
     } else {
-      await useAgroStore.getState().creaAzienda(LOCAL_COMPANY_DEFAULT);
+      await useAgroStore.getState().createCompany(LOCAL_COMPANY_DEFAULT);
     }
   })();
   return bootstrapPromise;

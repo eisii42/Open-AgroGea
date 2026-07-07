@@ -88,15 +88,15 @@ export function ModuleSidebar({
   const flags = useSettingsStore((s) => s.dashboardLayout);
   // Sola lettura (ruolo VIEWER): gli strumenti che MUTANO la geometria/i Field
   // Attributes (disegno, Modifica/Elimina) vanno disattivati.
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
-  const readOnly = useReadOnly(aziendaAttivaId);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
+  const readOnly = useReadOnly(activeCompanyId);
 
   // Dialog di configurazione dell'export SIAN (filtri + struttura CSV).
   const [sianOpen, setSianOpen] = useState(false);
 
-  // Badge alert Magazzino (v17): lotti con giacenza scaduti o in scadenza.
-  const lotti = useAgroStore((s) => s.lotti);
-  const magazzinoAlerts = lotti.filter(
+  // Badge alert Magazzino (v17): lots con giacenza scaduti o in scadenza.
+  const lots = useAgroStore((s) => s.lots);
+  const magazzinoAlerts = lots.filter(
     (l) =>
       l.deleted_at == null &&
       Number(l.quantity_on_hand) > 0 &&

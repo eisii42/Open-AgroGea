@@ -26,7 +26,7 @@ export interface IngressiSintesiCampo {
   rischioPatologico01: number;
   /** Ultimo NDVI medio dell'appezzamento (`last_ndvi_mean`), o null. */
   ndvi: number | null;
-  /** Azoto dei campionamenti (`soil_samples.nitrogen`, mg/kg), o null. */
+  /** Azoto dei soilSamples (`soil_samples.nitrogen`, mg/kg), o null. */
   azoto?: number | null;
   /** Sostanza organica (`soil_samples.organic_matter`, %), o null. */
   sostanzaOrganica?: number | null;
@@ -197,16 +197,16 @@ export interface FieldSummary {
 
 /**
  * Costruisce l'overlay coropletico: ogni appezzamento diventa una feature
- * poligonale colorata in base al punteggio sintetico. Gli appezzamenti senza
+ * poligonale colorata in base al punteggio sintetico. Gli plots senza
  * sintesi disponibile sono omessi (nessun colore arbitrario).
  */
 export function costruisciOverlayDss(
-  appezzamenti: Plot[],
+  plots: Plot[],
   sintesiPerCampo: Map<string, FieldSummary>,
   rampa: ColorRamp,
 ): FeatureCollection {
   const features: Feature[] = [];
-  for (const a of appezzamenti) {
+  for (const a of plots) {
     const sintesi = sintesiPerCampo.get(a.id);
     if (!sintesi) continue;
     const score = clamp01(sintesi.rischio01);

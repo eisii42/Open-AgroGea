@@ -32,8 +32,8 @@ const TIPI_ASSET_LINEA = ["condotta", "recinzione", "rete-antigrandine", "strada
 const TIPI_ASSET_PUNTO = ["pozzo", "trappola", "sensore-iot", "ingresso", "fabbricato"];
 
 export function DataEntrySheet({ pending }: { pending: PendingGeometry }) {
-  const salvaAppezzamento = useAgroStore((s) => s.salvaAppezzamentoDisegnato);
-  const salvaAsset = useAgroStore((s) => s.salvaAssetDisegnato);
+  const salvaAppezzamento = useAgroStore((s) => s.saveDrawnPlot);
+  const salvaAsset = useAgroStore((s) => s.saveDrawnAsset);
   const clearPending = useAgroStore((s) => s.clearPendingGeometry);
 
   // Risolve la scheda dati: rimuove lo sketch provvisorio dall'engine (così
@@ -109,7 +109,7 @@ function AppezzamentoForm({
   onSave: (attrs: PlotDrawAttrs) => Promise<void>;
 }) {
   const { t } = useTranslation();
-  const readOnly = useReadOnly(useAgroStore((s) => s.aziendaAttivaId));
+  const readOnly = useReadOnly(useAgroStore((s) => s.activeCompanyId));
   const [nome, setNome] = useState("");
   const [irrigazione, setIrrigazione] = useState("");
   const [saving, setSaving] = useState(false);
@@ -204,7 +204,7 @@ function AssetForm({
   }) => Promise<void>;
 }) {
   const { t } = useTranslation();
-  const readOnly = useReadOnly(useAgroStore((s) => s.aziendaAttivaId));
+  const readOnly = useReadOnly(useAgroStore((s) => s.activeCompanyId));
   const isLinea = pending.kind === "line";
   const tipi = isLinea ? TIPI_ASSET_LINEA : TIPI_ASSET_PUNTO;
   const [nome, setNome] = useState("");

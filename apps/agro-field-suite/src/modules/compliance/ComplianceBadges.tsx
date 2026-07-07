@@ -17,9 +17,9 @@ export function ComplianceBadges({
   appezzamento: Plot;
 }) {
   const valuta = useComplianceVincoli();
-  const aziende = useAgroStore((s) => s.aziende);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
-  const registraTrasferimento = useAgroStore((s) => s.registraTrasferimento);
+  const companies = useAgroStore((s) => s.companies);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
+  const recordTransfer = useAgroStore((s) => s.recordTransfer);
 
   const esito = useMemo(
     () => valuta(appezzamento.geometry),
@@ -31,7 +31,7 @@ export function ComplianceBadges({
   const scaricaReport = () => {
     const report = buildDueDiligenceReport({
       appezzamentoNome: appezzamento.user_plot_name,
-      aziendaNome: aziende.find((a) => a.id === aziendaAttivaId)?.business_name,
+      aziendaNome: companies.find((a) => a.id === activeCompanyId)?.business_name,
       geometria: appezzamento.geometry,
       areaHa: appezzamento.area_ha,
       vincoli: esito.vincoli,
@@ -46,7 +46,7 @@ export function ComplianceBadges({
     a.click();
     URL.revokeObjectURL(url);
     // Tracciabilità: tag di export nel giornale dei trasferimenti.
-    void registraTrasferimento({
+    void recordTransfer({
       operation_type: "export",
       file_format: "geojson",
       file_name: nomeFile,

@@ -55,9 +55,9 @@ export function AddDataControl() {
   const { t } = useTranslation();
   const addLayer = useAppStore((s) => s.addLayer);
   const layers = useAppStore((s) => s.layers);
-  const registraTrasferimento = useAgroStore((s) => s.registraTrasferimento);
-  const campagnaAttiva = useAgroStore((s) => s.campagnaAttiva);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
+  const recordTransfer = useAgroStore((s) => s.recordTransfer);
+  const activeCampaign = useAgroStore((s) => s.activeCampaign);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
 
   const [open, setOpen] = useState(false);
   const [modo, setModo] = useState<ModoImport>("mappa");
@@ -139,7 +139,7 @@ export function AddDataControl() {
         sourcePath: `agrogea://${id}`,
       };
       addLayer(layer);
-      await registraTrasferimento({
+      await recordTransfer({
         operation_type: "import",
         file_format: formato,
         file_name: file.name,
@@ -159,7 +159,7 @@ export function AddDataControl() {
 
   /**
    * Export in blocco dell'intera configurazione cartografica aziendale (tutti i
-   * layer proiettati nello store: appezzamenti, infrastrutture, POI, raccolte,
+   * layer proiettati nello store: plots, infrastrutture, POI, harvests,
    * mappe DSS…) in uno dei formati GIS della filiera. Serializzazione pura,
    * tracciata nel giornale dei trasferimenti.
    */
@@ -184,7 +184,7 @@ export function AddDataControl() {
     try {
       const artifact = serializzaVettoriale(fc, format, "agrogea_configurazione");
       downloadArtifact(artifact);
-      await registraTrasferimento({
+      await recordTransfer({
         operation_type: "export",
         file_format: format as FileFormat,
         file_name: artifact.filename,
@@ -206,7 +206,7 @@ export function AddDataControl() {
   async function onFileSian(file: File) {
     setErrore(null);
     setEsito(null);
-    if (!aziendaAttivaId) {
+    if (!activeCompanyId) {
       setErrore(t("addDataControl.selectCompanyFirst"));
       return;
     }
@@ -220,8 +220,8 @@ export function AddDataControl() {
         setErrore(t("addDataControl.noFieldsRecognized"));
         return;
       }
-      const esitoImport = await importaFascicoloSian(campi, campagnaAttiva);
-      await registraTrasferimento({
+      const esitoImport = await importaFascicoloSian(campi, activeCampaign);
+      await recordTransfer({
         operation_type: "import",
         file_format: formato === "csv" ? "csv" : "shapefile",
         file_name: file.name,
@@ -229,13 +229,13 @@ export function AddDataControl() {
       setEsito(
         esitoImport.saltati
           ? t("addDataControl.sianImportResultSkipped", {
-              year: campagnaAttiva,
+              year: activeCampaign,
               created: esitoImport.creati,
               updated: esitoImport.aggiornati,
               skipped: esitoImport.saltati,
             })
           : t("addDataControl.sianImportResult", {
-              year: campagnaAttiva,
+              year: activeCampaign,
               created: esitoImport.creati,
               updated: esitoImport.aggiornati,
             }),
@@ -297,7 +297,7 @@ export function AddDataControl() {
           <p className="mb-2.5 text-xs text-[var(--ink-4)]">
             {modo === "mappa"
               ? t("addDataControl.mapModeDescription")
-              : t("addDataControl.sianModeDescription", { year: campagnaAttiva })}
+              : t("addDataControl.sianModeDescription", { year: activeCampaign })}
           </p>
 
           <label

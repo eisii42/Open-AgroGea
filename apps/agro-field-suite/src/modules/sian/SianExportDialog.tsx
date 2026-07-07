@@ -82,17 +82,17 @@ export function SianExportDialog({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const trattamenti = useAgroStore((s) => s.trattamenti);
-  const raccolte = useAgroStore((s) => s.raccolte);
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
-  const campiCampagna = useAgroStore((s) => s.campiCampagna);
+  const treatments = useAgroStore((s) => s.treatments);
+  const harvests = useAgroStore((s) => s.harvests);
+  const plots = useAgroStore((s) => s.plots);
+  const campaignFields = useAgroStore((s) => s.campaignFields);
   const crops = useAgroStore((s) => s.crops);
-  const aziende = useAgroStore((s) => s.aziende);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
+  const companies = useAgroStore((s) => s.companies);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const agroDal = useAgroStore((s) => s.dal);
-  const registraTrasferimento = useAgroStore((s) => s.registraTrasferimento);
+  const recordTransfer = useAgroStore((s) => s.recordTransfer);
 
-  const azienda = aziende.find((a) => a.id === aziendaAttivaId);
+  const azienda = companies.find((a) => a.id === activeCompanyId);
 
   // Campagne di TUTTI gli anni (lo store ne tiene solo l'anno attivo): servono a
   // risolvere i codici SIAN delle operazioni di annate diverse. Caricate
@@ -108,14 +108,14 @@ export function SianExportDialog({
       alive = false;
     };
   }, [open, agroDal]);
-  const campiExport = campiTutti.length > 0 ? campiTutti : campiCampagna;
+  const campiExport = campiTutti.length > 0 ? campiTutti : campaignFields;
 
-  // Sorgente unica del QDCA: registro trattamenti + raccolte mappate come
+  // Sorgente unica del QDCA: registro treatments + harvests mappate come
   // operazioni sintetiche (operation_type = "harvest"), così l'export copre
   // l'intero Quaderno di Campagna Agraria.
   const operazioni = useMemo(
-    () => [...trattamenti, ...raccolteToOperazioni(raccolte)],
-    [trattamenti, raccolte],
+    () => [...treatments, ...raccolteToOperazioni(harvests)],
+    [treatments, harvests],
   );
 
   // -- filtri temporali --
@@ -135,12 +135,12 @@ export function SianExportDialog({
 
   const coltureDisponibili = useMemo<string[]>(() => {
     const set = new Set<string>();
-    for (const a of appezzamenti) {
-      const c = cropForPlot(a.id, campiCampagna, crops);
+    for (const a of plots) {
+      const c = cropForPlot(a.id, campaignFields, crops);
       if (c) set.add(c);
     }
     return [...set];
-  }, [appezzamenti, campiCampagna, crops]);
+  }, [plots, campaignFields, crops]);
 
   const filtri: SianFiltri = useMemo(
     () => ({
@@ -155,8 +155,8 @@ export function SianExportDialog({
   );
 
   const righeFiltrate = useMemo(
-    () => filtraTrattamentiSian(operazioni, appezzamenti, filtri),
-    [operazioni, appezzamenti, filtri],
+    () => filtraTrattamentiSian(operazioni, plots, filtri),
+    [operazioni, plots, filtri],
   );
 
   const colonneNonSelezionate = COLONNE_SIAN.filter(
@@ -188,7 +188,7 @@ export function SianExportDialog({
     };
     const nomeFile = esportaSianCsv(
       righeFiltrate,
-      appezzamenti,
+      plots,
       azienda?.business_name,
       config,
       campiExport,
@@ -196,7 +196,7 @@ export function SianExportDialog({
       // Etichetta del tipo operazione nella lingua attiva (mai il codice inglese).
       { resolveOperationType: (op) => etichettaTipo(t, op) },
     );
-    void registraTrasferimento({
+    void recordTransfer({
       operation_type: "export",
       file_format: "csv",
       file_name: nomeFile,
@@ -279,18 +279,18 @@ export function SianExportDialog({
             <div>
               <Label>{t("sianExportDialog.plots")} {appIds.length > 0 && `(${appIds.length})`}</Label>
               <div className="mt-1 flex max-h-32 flex-col gap-1 overflow-y-auto rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2">
-                {appezzamenti.length === 0 ? (
+                {plots.length === 0 ? (
                   <span className="text-xs text-[var(--ink-4)]">
                     {t("sianExportDialog.noPlot")}
                   </span>
                 ) : (
-                  appezzamenti.map((a) => (
+                  plots.map((a) => (
                     <CheckRow
                       key={a.id}
                       checked={appIds.includes(a.id)}
                       onChange={() => toggleInArray(appIds, a.id, setAppIds)}
                       label={`${a.user_plot_name} · ${
-                        cropForPlot(a.id, campiCampagna, crops) ?? "—"
+                        cropForPlot(a.id, campaignFields, crops) ?? "—"
                       }`}
                     />
                   ))

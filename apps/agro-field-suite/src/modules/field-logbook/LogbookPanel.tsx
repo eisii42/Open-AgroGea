@@ -44,31 +44,31 @@ const TIPO_COLOR: Record<string, string> = {
  */
 export function LogbookPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
-  const trattamenti = useAgroStore((s) => s.trattamenti);
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
-  const campiCampagna = useAgroStore((s) => s.campiCampagna);
+  const treatments = useAgroStore((s) => s.treatments);
+  const plots = useAgroStore((s) => s.plots);
+  const campaignFields = useAgroStore((s) => s.campaignFields);
   const valutaCompliance = useGeoCompliance();
   // Cataloghi di stato filtrati per il country_code risolto del tenant (Modulo 3):
   // i dropdown Product/Concime mostrano solo le voci del registro nazionale.
   const { voci: fitosanitari, countryCode } = useCountryCatalog("phytosanitary");
   const { voci: concimi } = useCountryCatalog("fertilizer");
-  // Magazzino (0.2.0): anagrafica e lotti per la sezione di scarico del form.
-  const prodotti = useAgroStore((s) => s.prodotti);
-  const lotti = useAgroStore((s) => s.lotti);
+  // Magazzino (0.2.0): anagrafica e lots per la sezione di scarico del form.
+  const products = useAgroStore((s) => s.products);
+  const lots = useAgroStore((s) => s.lots);
   const sync = useAgroStore((s) => s.sync);
-  const registraTrattamento = useAgroStore((s) => s.registraTrattamento);
-  const salvaCampionamento = useAgroStore((s) => s.salvaCampionamento);
-  const eliminaTrattamento = useAgroStore((s) => s.eliminaTrattamento);
+  const recordTreatment = useAgroStore((s) => s.recordTreatment);
+  const saveSoilSample = useAgroStore((s) => s.saveSoilSample);
+  const deleteTreatment = useAgroStore((s) => s.deleteTreatment);
   // Automazione v17: semina con semente → scheda coltura + campagna agraria.
-  const salvaCrop = useAgroStore((s) => s.salvaCrop);
-  const salvaCampoCampagna = useAgroStore((s) => s.salvaCampoCampagna);
-  const campagnaAttiva = useAgroStore((s) => s.campagnaAttiva);
-  const quadernoApriAppezzamentoId = useAgroStore(
-    (s) => s.quadernoApriAppezzamentoId,
+  const saveCrop = useAgroStore((s) => s.saveCrop);
+  const savePlotCampaign = useAgroStore((s) => s.savePlotCampaign);
+  const activeCampaign = useAgroStore((s) => s.activeCampaign);
+  const logbookOpenPlotId = useAgroStore(
+    (s) => s.logbookOpenPlotId,
   );
-  const consumaQuadernoApri = useAgroStore((s) => s.consumaQuadernoApri);
-  const operazioniMappaIds = useAgroStore((s) => s.operazioniMappaIds);
-  const setOperazioniMappaIds = useAgroStore((s) => s.setOperazioniMappaIds);
+  const consumeLogbookOpen = useAgroStore((s) => s.consumeLogbookOpen);
+  const mapOperationIds = useAgroStore((s) => s.mapOperationIds);
+  const setMapOperationIds = useAgroStore((s) => s.setMapOperationIds);
 
   // Tipo operazione in compilazione (null = nessun form aperto); `chooser`
   // mostra il selettore impilato di tutti i tipi operazione.
@@ -88,11 +88,11 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   // (abilita l'auto-assegnazione alla semina).
   const campiCampagnaOptions = useMemo<CampoCampagnaOption[]>(
     () =>
-      campiCampagna
+      campaignFields
         .filter((c) => c.closed_at == null && c.deleted_at == null)
         .map((c) => {
           const base =
-            appezzamenti.find((a) => a.id === c.plot_id)?.user_plot_name ??
+            plots.find((a) => a.id === c.plot_id)?.user_plot_name ??
             t("quadernoPanel.fieldFallbackName", { id: c.plot_id.slice(0, 6) });
           // Badge compliance: dichiarativi incompleti per il sistema del paese
           // (IT → SIAN, ES → SIEX), visibile a ogni selezione del campo.
@@ -101,13 +101,13 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
             sistema != null && missingDeclarative(countryCode, c).length > 0;
           return {
             campoCampagnaId: c.id,
-            appezzamentoId: c.plot_id,
+            plotId: c.plot_id,
             nome: dichiarativiKo ? `${base} · ${sistema} ✗` : base,
             codiceColturaSian: c.crop_external_code,
             superficieHa: c.declared_area_ha,
           };
         }),
-    [campiCampagna, appezzamenti, countryCode],
+    [campaignFields, plots, countryCode],
   );
 
   function apriForm(type: OperationType) {
@@ -120,7 +120,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
 
   // "Ripeti operazione" (v17): riapre il form del tipo giusto precompilato dal
   // record esistente; la data resta oggi e gli scarichi si riscelgono sui
-  // lotti attuali del magazzino.
+  // lots attuali del magazzino.
   function ripetiOperazione(op: TreatmentLog) {
     setFormDefaults({
       plot_id: op.plot_id,
@@ -166,15 +166,15 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   // lavorazioni di quell'appezzamento (il "Nuovo record" qui sotto eredita il
   // filtro come default, così registrare resta a un tap di distanza).
   useEffect(() => {
-    if (quadernoApriAppezzamentoId) {
-      setFiltroAppId(quadernoApriAppezzamentoId);
+    if (logbookOpenPlotId) {
+      setFiltroAppId(logbookOpenPlotId);
       setFormType(null);
       setChooser(false);
-      consumaQuadernoApri();
+      consumeLogbookOpen();
     }
-  }, [quadernoApriAppezzamentoId, consumaQuadernoApri]);
+  }, [logbookOpenPlotId, consumeLogbookOpen]);
 
-  // Con `scarichi` valorizzato l'attività scarica i lotti di magazzino nella
+  // Con `scarichi` valorizzato l'attività scarica i lots di magazzino nella
   // stessa transazione: un errore (giacenza/lotto scaduto) risale al form, che
   // resta aperto e mostra il messaggio. `assegnazione` (semina di una semente
   // su campo libero, v17) crea scheda coltura + campagna agraria in automatico.
@@ -183,9 +183,9 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     scarichi?: IssueRequest[],
     assegnazione?: AssegnazioneColtura | null,
   ) {
-    await registraTrattamento(values, scarichi);
+    await recordTreatment(values, scarichi);
     if (assegnazione) {
-      const crop = await salvaCrop({
+      const crop = await saveCrop({
         common_name: assegnazione.species,
         scientific_name: assegnazione.scientificName,
         variety_name: assegnazione.varietyName,
@@ -197,10 +197,10 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
         },
       });
       if (crop) {
-        await salvaCampoCampagna({
+        await savePlotCampaign({
           plot_id: assegnazione.plotId,
           crop_id: crop.id,
-          campaign_year: campagnaAttiva,
+          campaign_year: activeCampaign,
           declared_area_ha: assegnazione.declaredAreaHa,
           reference_parcel_external_id: null,
           agricultural_parcel_external_id: null,
@@ -216,9 +216,9 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
 
   // Campionamento di suolo: scrive sulla tabella dedicata `soil_samples`.
   async function handleSubmitSoil(
-    input: Parameters<typeof salvaCampionamento>[0],
+    input: Parameters<typeof saveSoilSample>[0],
   ) {
-    await salvaCampionamento(input);
+    await saveSoilSample(input);
     setFormType(null);
     setFormDefaultAppId("");
     setFormDefaults(null);
@@ -240,7 +240,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   async function confermaEliminazione() {
     if (!daEliminare) return;
     const etichetta = etichettaOperazione(daEliminare);
-    await eliminaTrattamento(daEliminare.id);
+    await deleteTreatment(daEliminare.id);
     setDaEliminare(null);
     setNotifica(t("quadernoPanel.notification.removed", { label: etichetta }));
   }
@@ -248,29 +248,29 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   const filtrati = useMemo(() => {
     const daTs = filtroDa ? new Date(filtroDa).setHours(0, 0, 0, 0) : null;
     const aTs = filtroA ? new Date(filtroA).setHours(23, 59, 59, 999) : null;
-    return trattamenti.filter((t) => {
+    return treatments.filter((t) => {
       if (filtroAppId && t.plot_id !== filtroAppId) return false;
       const ts = new Date(t.executed_at).getTime();
       if (daTs != null && ts < daTs) return false;
       if (aTs != null && ts > aTs) return false;
       return true;
     });
-  }, [trattamenti, filtroAppId, filtroDa, filtroA]);
+  }, [treatments, filtroAppId, filtroDa, filtroA]);
 
   const filtriAttivi = Boolean(filtroAppId || filtroDa || filtroA);
 
   // Toggle "Mostra sulla mappa": proietta come simboli SOLO le operazioni
   // attualmente visibili nel registro (rispetta i filtri). Mentre è attivo,
   // il set di ID resta allineato alla lista filtrata.
-  const mappaAttiva = operazioniMappaIds !== null;
+  const mappaAttiva = mapOperationIds !== null;
   useEffect(() => {
     if (!mappaAttiva) return;
-    setOperazioniMappaIds(filtrati.map((t) => t.id));
-  }, [filtrati, mappaAttiva, setOperazioniMappaIds]);
+    setMapOperationIds(filtrati.map((t) => t.id));
+  }, [filtrati, mappaAttiva, setMapOperationIds]);
 
   const toggleMappa = () => {
-    if (mappaAttiva) setOperazioniMappaIds(null);
-    else setOperazioniMappaIds(filtrati.map((t) => t.id));
+    if (mappaAttiva) setMapOperationIds(null);
+    else setMapOperationIds(filtrati.map((t) => t.id));
   };
 
   return (
@@ -309,12 +309,12 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
         <OperationForm
           key={formNonce}
           operationType={formType}
-          appezzamenti={appezzamenti}
-          campiCampagna={campiCampagnaOptions}
+          plots={plots}
+          campaignFields={campiCampagnaOptions}
           prodottiCatalogo={fitosanitari}
           concimiCatalogo={concimi}
-          prodottiMagazzino={prodotti}
-          lottiMagazzino={lotti}
+          prodottiMagazzino={products}
+          lottiMagazzino={lots}
           valutaCompliance={valutaCompliance}
           defaultAppezzamentoId={formDefaultAppId}
           defaults={formDefaults ?? undefined}
@@ -387,7 +387,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setFiltroAppId(e.target.value)}
               >
                 <option value="">{t("quadernoPanel.filter.allPlots")}</option>
-                {appezzamenti.map((a) => (
+                {plots.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.user_plot_name}
                   </option>
@@ -429,14 +429,14 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
 
           {filtrati.length === 0 ? (
             <p className="py-8 text-center text-sm text-[var(--ink-3)]">
-              {trattamenti.length === 0
+              {treatments.length === 0
                 ? t("quadernoPanel.empty.noRecords")
                 : t("quadernoPanel.empty.noFilterMatch")}
             </p>
           ) : (
             <ul className="flex flex-col gap-2">
               {filtrati.map((trattamento) => {
-                const appezzamento = appezzamenti.find(
+                const appezzamento = plots.find(
                   (a) => a.id === trattamento.plot_id,
                 );
                 return (
@@ -526,7 +526,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
         <OperationDetailCard
           operazione={dettaglio}
           appezzamentoNome={
-            appezzamenti.find((a) => a.id === dettaglio.plot_id)?.user_plot_name ??
+            plots.find((a) => a.id === dettaglio.plot_id)?.user_plot_name ??
             null
           }
           onClose={() => setDettaglio(null)}

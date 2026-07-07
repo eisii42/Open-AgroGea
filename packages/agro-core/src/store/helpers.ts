@@ -27,7 +27,7 @@ export const OFFLINE_SNAPSHOT: SyncSnapshot = {
 export const MAX_GEOMETRY_HISTORY = 50;
 
 /**
- * Profilo sintetico dalle claims correnti, usato come ripiego quando il profilo
+ * Profilo sintetico dalle claims correnti, usato come ripiego quando il profile
  * non è leggibile online (sblocco offline, o control plane non raggiungibile):
  * lo stato di licenza ricade su `licenzaAttiva` delle claims.
  */
@@ -50,14 +50,14 @@ export function profiloDaClaims(claims: TenantClaims): UserProfile {
  */
 export function isViewerReadOnly(args: {
   memberships: TenantMembership[];
-  aziendaAttivaId: string | null;
+  activeCompanyId: string | null;
   email: string | null;
 }): boolean {
-  if (!args.aziendaAttivaId || !args.email) return false;
+  if (!args.activeCompanyId || !args.email) return false;
   const email = args.email.trim().toLowerCase();
   const membership = args.memberships.find(
     (m) =>
-      m.company_id === args.aziendaAttivaId &&
+      m.company_id === args.activeCompanyId &&
       m.deleted_at == null &&
       (m.status === "active" || m.status === "invited") &&
       m.email.trim().toLowerCase() === email,
@@ -65,9 +65,9 @@ export function isViewerReadOnly(args: {
   return membership?.role === "VIEWER";
 }
 
-/** Email dell'utente corrente (sessione remota, ripiego sul profilo). */
+/** Email dell'utente corrente (sessione remota, ripiego sul profile). */
 export function currentEmail(s: AgroState): string | null {
-  return s.session?.user?.email ?? s.profilo?.email ?? null;
+  return s.session?.user?.email ?? s.profile?.email ?? null;
 }
 
 /**
@@ -82,7 +82,7 @@ export function assertWritable(get: StoreGet): void {
   if (
     isViewerReadOnly({
       memberships: s.memberships,
-      aziendaAttivaId: s.aziendaAttivaId,
+      activeCompanyId: s.activeCompanyId,
       email: currentEmail(s),
     })
   ) {
@@ -109,7 +109,7 @@ export async function persistiGeometriaSuDal(
   if (!dal) return null;
 
   if (kind === "appezzamento") {
-    const existing = get().appezzamenti.find((a) => a.id === id);
+    const existing = get().plots.find((a) => a.id === id);
     if (!existing) return null;
     const before = existing.geometry;
     const record = await dal.upsertAppezzamento({
@@ -117,7 +117,7 @@ export async function persistiGeometriaSuDal(
       geometry: geometry as Polygon | MultiPolygon,
     });
     set((s) => ({
-      appezzamenti: [...s.appezzamenti.filter((a) => a.id !== record.id), record],
+      plots: [...s.plots.filter((a) => a.id !== record.id), record],
     }));
     syncRouter?.notifyLocalWrite();
     return { before };
@@ -140,12 +140,12 @@ export async function persistiGeometriaSuDal(
   }
 
   // POI = campionamento georeferenziato (Point).
-  const existing = get().campionamenti.find((c) => c.id === id);
+  const existing = get().soilSamples.find((c) => c.id === id);
   if (!existing || geometry.type !== "Point") return null;
   const before = existing.sampling_position;
   const record = await dal.upsertCampionamento({ ...existing, sampling_position: geometry });
   set((s) => ({
-    campionamenti: [...s.campionamenti.filter((c) => c.id !== record.id), record],
+    soilSamples: [...s.soilSamples.filter((c) => c.id !== record.id), record],
   }));
   syncRouter?.notifyLocalWrite();
   return { before };

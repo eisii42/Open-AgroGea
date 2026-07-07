@@ -3,7 +3,7 @@
  *
  * Punti d'ingresso:
  *   * {@link SoilDataResolver} — risoluzione θFC/θPWP da mappa custom (Tier 1),
- *     campionamenti georeferenziati via DuckDB Spatial + Saxton-Rawls (Tier 2),
+ *     soilSamples georeferenziati via DuckDB Spatial + Saxton-Rawls (Tier 2),
  *     metadata/default (Tier 3);
  *   * export dello storico umidità in GeoJSON/Shapefile/CSV localizzato.
  *

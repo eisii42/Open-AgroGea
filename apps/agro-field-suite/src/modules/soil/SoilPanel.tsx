@@ -39,7 +39,7 @@ import {
  * Pannello del modulo Suolo (refactor pipeline indici STAC). Riprogetta la
  * vecchia "Analisi NDVI" in un'analisi multi-criterio:
  *   * checkbox degli indici calcolabili via STAC (NDVI/NDRE/MSAVI2/SAVI/NDWI);
- *   * multi-selezione degli appezzamenti su cui calcolare;
+ *   * multi-selezione degli plots su cui calcolare;
  *   * filtro cloud cover (slider %);
  *   * strategia temporale: ultima immagine, ultimi 15/30 gg o intervallo
  *     personalizzato (con grafico di trend dell'index nel tempo).
@@ -118,7 +118,7 @@ function isoDate(offsetGiorni = 0): string {
 
 /**
  * Dati per il line chart. Con un solo appezzamento: una linea per index. Con
- * più appezzamenti: una linea per appezzamento sull'index primario.
+ * più plots: una linea per appezzamento sull'index primario.
  */
 function buildChartData(
   risultati: RisultatoAppezzamento[],
@@ -156,18 +156,18 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const INDICI = useMemo(() => getIndici(t), [t]);
   const STRATEGIE = useMemo(() => getStrategie(t), [t]);
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
-  const campionamenti = useAgroStore((s) => s.campionamenti);
+  const plots = useAgroStore((s) => s.plots);
+  const soilSamples = useAgroStore((s) => s.soilSamples);
   const crops = useAgroStore((s) => s.crops);
-  const campiCampagna = useAgroStore((s) => s.campiCampagna);
-  const selezionatoId = useAgroStore((s) => s.appezzamentoSelezionatoId);
+  const campaignFields = useAgroStore((s) => s.campaignFields);
+  const selezionatoId = useAgroStore((s) => s.selectedPlotId);
   const { stato, calcola, reset } = useSuoloPipeline();
 
   // Pannello Charts: scatter NDVI (Y) ↔ variabile chimica del suolo (X).
   const [varX, setVarX] = useState<VariabileSuolo>("ph");
   const scatter = useMemo(
-    () => buildNdviScatter(appezzamenti, campionamenti, varX),
-    [appezzamenti, campionamenti, varX],
+    () => buildNdviScatter(plots, soilSamples, varX),
+    [plots, soilSamples, varX],
   );
   const correlazione = useMemo(() => correlazionePearson(scatter), [scatter]);
 
@@ -240,7 +240,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
       cloudCoverMax: cloudCover,
       strategia,
     };
-    const target = appezzamenti.filter((a) => apzSel.has(a.id));
+    const target = plots.filter((a) => apzSel.has(a.id));
     void calcola(target, opzioni);
   };
 
@@ -315,13 +315,13 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
           <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
             {t("suoloPanel.plots.title", { count: apzSel.size })}
           </p>
-          {appezzamenti.length === 0 ? (
+          {plots.length === 0 ? (
             <p className="text-sm text-[var(--ink-3)]">
               {t("suoloPanel.plots.none")}
             </p>
           ) : (
             <div className="flex max-h-40 flex-col gap-1 overflow-y-auto">
-              {appezzamenti.map((a) => (
+              {plots.map((a) => (
                 <label
                   key={a.id}
                   className="flex items-center gap-2 rounded-[var(--r-2)] px-2 py-1.5 hover:bg-[var(--panel-2)]"
@@ -334,7 +334,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
                   />
                   <span className="flex-1 truncate text-sm">{a.user_plot_name}</span>
                   <span className="text-xs text-[var(--ink-4)]">
-                    {cropForPlot(a.id, campiCampagna, crops) ?? "—"}
+                    {cropForPlot(a.id, campaignFields, crops) ?? "—"}
                   </span>
                 </label>
               ))}
@@ -467,7 +467,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
               const ultimo = r.series.at(-1);
               return (
                 <div
-                  key={r.appezzamentoId}
+                  key={r.plotId}
                   className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2"
                 >
                   <p className="text-sm font-semibold">{r.name}</p>
@@ -564,7 +564,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
         )}
 
         {/* Charts · scatter NDVI ↔ chimica del suolo (indipendente dal calcolo
-            STAC: usa l'NDVI in cache e i campionamenti già a DB). */}
+            STAC: usa l'NDVI in cache e i soilSamples già a DB). */}
         <section className="flex flex-col gap-2 border-t border-[var(--line)] pt-3">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">

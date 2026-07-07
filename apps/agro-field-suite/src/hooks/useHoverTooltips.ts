@@ -26,7 +26,7 @@ export interface HoverState {
   props: Record<string, unknown>;
 }
 
-const APPEZZAMENTI_ID = "agrogea-appezzamenti";
+const APPEZZAMENTI_ID = "agrogea-plots";
 const INFRASTRUTTURE_ID = "agrogea-infrastrutture";
 const POI_ID = "agrogea-poi";
 

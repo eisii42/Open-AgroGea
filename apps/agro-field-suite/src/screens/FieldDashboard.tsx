@@ -128,8 +128,8 @@ export function FieldDashboard() {
   const { t } = useTranslation();
   const openPanels = useAgroStore((s) => s.openPanels);
   const togglePanel = useAgroStore((s) => s.togglePanel);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
-  const readOnly = useReadOnly(aziendaAttivaId);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
+  const readOnly = useReadOnly(activeCompanyId);
   const sidebarCollapsed = useAgroStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useAgroStore((s) => s.toggleSidebar);
   const pendingGeometry = useAgroStore((s) => s.pendingGeometry);
@@ -205,7 +205,7 @@ export function FieldDashboard() {
             controllerRef={mapControllerRef}
             onControllerReady={() => setMapReady(true)}
             // Vista 2D fissa (Mercatore): ottimale per il disegno tecnico di
-            // appezzamenti e infrastrutture; niente toggle globo.
+            // plots e infrastrutture; niente toggle globo.
             projection={{ type: "mercator" }}
           />
         </div>
@@ -275,7 +275,7 @@ export function FieldDashboard() {
         {/* Legenda a gradiente degli indici: compare con gli overlay attivi. */}
         <Colorbar />
 
-        {/* Legenda colture: colore/icona per specie negli appezzamenti attivi. */}
+        {/* Legenda colture: colore/icona per specie negli plots attivi. */}
         {!platform.isMobile && (
           <CropLegend mapControllerRef={mapControllerRef} />
         )}
@@ -336,9 +336,9 @@ export function FieldDashboard() {
             <GeoCompliancePanel onClose={() => togglePanel("geocompliance")} />
           )}
           {/* Impostazioni Profilo: pagina a tutto schermo (non un drawer), sopra
-              mappa e pannelli. Raggiunta dal menù profilo e dalla Command Palette. */}
-          {openPanels.includes("profilo") && (
-            <UserProfileSettingsPage onClose={() => togglePanel("profilo")} />
+              mappa e pannelli. Raggiunta dal menù profile e dalla Command Palette. */}
+          {openPanels.includes("profile") && (
+            <UserProfileSettingsPage onClose={() => togglePanel("profile")} />
           )}
           {/* Registro: drawer destro come la scheda dettaglio. Quando un
               elemento è selezionato lascia il posto alla scheda e riappare alla

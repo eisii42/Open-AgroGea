@@ -29,8 +29,8 @@ export interface Diagnostics {
 
 export function useDiagnostics(): Diagnostics {
   const sync = useAgroStore((s) => s.sync);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
-  const configMeteo = useAgroStore((s) => s.configMeteo);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
+  const weatherConfig = useAgroStore((s) => s.weatherConfig);
 
   return useMemo(() => {
     const issues: DiagnosticIssue[] = [];
@@ -54,7 +54,7 @@ export function useDiagnostics(): Diagnostics {
     }
 
     // Company attiva senza configurazione meteo: il DSS/cache meteo non parte.
-    if (aziendaAttivaId && !configMeteo) {
+    if (activeCompanyId && !weatherConfig) {
       issues.push({
         id: "weather-missing",
         severity: "warn",
@@ -63,5 +63,5 @@ export function useDiagnostics(): Diagnostics {
     }
 
     return { count: issues.length, issues };
-  }, [sync.state, sync.lastError, sync.pendingCount, aziendaAttivaId, configMeteo]);
+  }, [sync.state, sync.lastError, sync.pendingCount, activeCompanyId, weatherConfig]);
 }

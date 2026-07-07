@@ -41,7 +41,7 @@ function isArrowTargetReserved(target: EventTarget | null): boolean {
  * dimensioni del canvas → nessun resize/flash al rientro.
  */
 export function App() {
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const activeView = useAgroStore((s) => s.activeView);
   // Il Command Center si monta alla prima visita e poi resta vivo (lazy +
   // keep-alive): anche i suoi filtri/stato sopravvivono al cambio vista.
@@ -71,7 +71,7 @@ export function App() {
 
   // Finché il bootstrap non ha impostato l'azienda locale: schermata vuota
   // (frazioni di secondo, tutto in locale).
-  if (!aziendaAttivaId) return null;
+  if (!activeCompanyId) return null;
 
   const mapActive = activeView !== "command-center";
 
@@ -88,7 +88,7 @@ export function App() {
           }
           aria-hidden={!mapActive}
         >
-          <FieldDashboard key={aziendaAttivaId} />
+          <FieldDashboard key={activeCompanyId} />
         </div>
         {ccVisited.current && (
           <div
@@ -100,7 +100,7 @@ export function App() {
             aria-hidden={mapActive}
           >
             <Suspense fallback={null}>
-              <CommandCenter key={aziendaAttivaId} />
+              <CommandCenter key={activeCompanyId} />
             </Suspense>
           </div>
         )}

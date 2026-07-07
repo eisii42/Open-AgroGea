@@ -34,11 +34,11 @@ export interface ChartData {
 
 /** Bundle di dominio (già nello scope dei filtri) passato ai builder. */
 export interface DashboardData {
-  appezzamenti: Plot[];
+  plots: Plot[];
   crops: Crop[];
   campaigns: PlotCampaign[];
-  trattamenti: TreatmentLog[];
-  raccolte: Harvest[];
+  treatments: TreatmentLog[];
+  harvests: Harvest[];
   soilIndices: SoilWaterIndex[];
   weather: WeatherReading[];
   dssRisultati: DssResult[];
@@ -87,7 +87,7 @@ export function r1(n: number): number {
 // Preset multi-serie
 // ---------------------------------------------------------------------------
 
-/** Bilancio idrico giornaliero (media sugli appezzamenti nello scope, ultimi ~75gg). */
+/** Bilancio idrico giornaliero (media sugli plots nello scope, ultimi ~75gg). */
 function buildWaterBalance(d: DashboardData): ChartData {
   const byDay = new Map<
     string,
@@ -178,7 +178,7 @@ interface SoilDay {
   n: number;
 }
 
-/** Media giornaliera (tra appezzamenti) degli indici idrici, ordinata per data. */
+/** Media giornaliera (tra plots) degli indici idrici, ordinata per data. */
 function soilDaily(d: DashboardData): [string, SoilDay][] {
   const m = new Map<string, SoilDay>();
   for (const s of d.soilIndices) {
@@ -359,7 +359,7 @@ function buildInfectionMeteo(d: DashboardData): ChartData {
 /** Azoto distribuito CUMULATO (kg) dalle fertilizzazioni (titolo NPK × quantità). */
 function buildNitrogenCumulative(d: DashboardData): ChartData {
   const byDay = new Map<string, number>();
-  for (const t of d.trattamenti) {
+  for (const t of d.treatments) {
     if (t.deleted_at != null || t.operation_type !== "fertilization") continue;
     const npct = nitrogenPct(t.npk_ratio);
     const qty = t.total_quantity;
@@ -463,7 +463,7 @@ function inRange(v: string | Date, range: TemporalRange): boolean {
 
 /**
  * Restringe il bundle al periodo dato per CAMPO DATA di ogni entità (operazioni,
- * raccolte, indici idrici, meteo, DSS). Anagrafiche/colture/campagne restano (sono
+ * harvests, indici idrici, meteo, DSS). Anagrafiche/colture/campagne restano (sono
  * metadati, non eventi datati). `from`/`to` entrambi null = nessun filtro.
  */
 export function filterByRange(
@@ -473,8 +473,8 @@ export function filterByRange(
   if (!range.from && !range.to) return data;
   return {
     ...data,
-    trattamenti: data.trattamenti.filter((t) => inRange(t.executed_at, range)),
-    raccolte: data.raccolte.filter((r) => inRange(r.harvested_at, range)),
+    treatments: data.treatments.filter((t) => inRange(t.executed_at, range)),
+    harvests: data.harvests.filter((r) => inRange(r.harvested_at, range)),
     soilIndices: data.soilIndices.filter((s) => inRange(s.date, range)),
     weather: data.weather.filter((w) => inRange(w.measured_at, range)),
     dssRisultati: data.dssRisultati.filter((d) => inRange(d.calculated_at, range)),

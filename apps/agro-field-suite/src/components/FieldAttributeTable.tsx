@@ -50,8 +50,8 @@ function getAgroExpressionSnippets(t: TFunction): ExpressionSnippet[] {
  */
 function getTableOptions(t: TFunction): { layerId: string; label: string }[] {
   return [
-    { layerId: "agrogea-raccolte", label: t("fieldAttributeTable.harvests") },
-    { layerId: "agrogea-appezzamenti", label: t("fieldAttributeTable.plots") },
+    { layerId: "agrogea-harvests", label: t("fieldAttributeTable.harvests") },
+    { layerId: "agrogea-plots", label: t("fieldAttributeTable.plots") },
   ];
 }
 

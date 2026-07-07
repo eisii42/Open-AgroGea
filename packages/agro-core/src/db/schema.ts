@@ -40,10 +40,10 @@
  * tabelle di dominio; `tenant_memberships` aggiunta al CHECK di `sync_outbox`.
  *
  * v16 — additiva: Magazzino (0.2.0). Tre tabelle sincronizzate:
- *   * `products` — anagrafica prodotti a categorie RIGIDE (agrofarmaci, concimi,
+ *   * `products` — anagrafica products a categorie RIGIDE (agrofarmaci, concimi,
  *     sementi, carburante) con i campi specifici di categoria e il CUMP corrente
  *     (`avg_unit_cost`, media ponderata mobile aggiornata a ogni carico);
- *   * `product_lots` — lotti con scadenza, giacenza corrente e costo di carico.
+ *   * `product_lots` — lots con scadenza, giacenza corrente e costo di carico.
  *     Il CHECK `quantity_on_hand >= 0` è la guardia ATOMICA dello scarico: uno
  *     scarico che porterebbe la giacenza sotto zero fa fallire l'intera
  *     transazione (nessuno scarico parziale);
@@ -83,7 +83,7 @@ create table if not exists agro_meta (
   value text not null
 );
 
--- companies — anagrafica legale/fiscale/agricola dell'azienda (ex aziende).
+-- companies — anagrafica legale/fiscale/agricola dell'azienda (ex companies).
 create table if not exists companies (
   id                  uuid primary key,
   tenant_id           uuid not null,
@@ -199,8 +199,8 @@ create index if not exists plots_campaign_crop_idx
   on plots_campaign (crop_id);
 
 -- treatment_logs — registro operazioni del Quaderno di Campagna (unificato:
--- fitosanitari, fertilizzazioni, irrigazioni, lavorazioni, semine, raccolte,
--- campionamenti, rilievi; discriminati da operation_type).
+-- fitosanitari, fertilizzazioni, irrigazioni, lavorazioni, semine, harvests,
+-- soilSamples, rilievi; discriminati da operation_type).
 create table if not exists treatment_logs (
   id                  uuid primary key,
   tenant_id           uuid not null,
@@ -333,7 +333,7 @@ create index if not exists harvest_logs_company_idx
 -- dal sync router verso il data plane remoto (ex outbox_mutazioni).
 create table if not exists sync_outbox (
   mutation_id uuid primary key,
-  -- Nessun CHECK enumerato sul nome tabella: i valori sono prodotti SOLO dal DAL
+  -- Nessun CHECK enumerato sul nome tabella: i valori sono products SOLO dal DAL
   -- (tipizzati lato TS) e l'enumerazione richiedeva una migrazione fragile a ogni
   -- nuova tabella sincronizzata (un batch di schema interrotto lasciava il vincolo
   -- stantio → violazioni al boot). La validazione vive a valle nel sync target.
@@ -513,7 +513,7 @@ create index if not exists product_catalogs_country_idx
 
 -- v16 — Magazzino (0.2.0) ----------------------------------------------------
 
--- products — anagrafica prodotti di magazzino a categorie RIGIDE. La categoria
+-- products — anagrafica products di magazzino a categorie RIGIDE. La categoria
 -- determina i campi obbligatori (enforced lato TS in validateProduct, come
 -- la validazione PAN; qui le colonne restano nullable per non irrigidire le
 -- migrazioni): agrofarmaci → registration_number (registro PAN); concimi →
@@ -561,7 +561,7 @@ alter table products
 create index if not exists products_company_idx
   on products (company_id, category);
 
--- product_lots — lotti di magazzino: numero lotto, scadenza, giacenza corrente
+-- product_lots — lots di magazzino: numero lotto, scadenza, giacenza corrente
 -- e costo unitario di carico (input del CUMP). Il CHECK "quantity_on_hand >= 0"
 -- è la guardia ATOMICA dello scarico: la transazione che porterebbe la giacenza
 -- sotto zero fallisce per intero (nessuno stato parziale/inconsistente).

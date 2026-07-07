@@ -72,7 +72,7 @@ export const STAZIONE_OPEN_METEO = "open-meteo";
 
 export interface MeteoFetchOptions {
   dal: AgroDal;
-  aziendaId: string;
+  companyId: string;
   /** Plot da cui prendere le coordinate (il "principale"). */
   appezzamentoPrincipale: Plot | null;
   /** Config già caricata; se assente il servizio la legge dal DAL. */
@@ -224,7 +224,7 @@ function buildOpenMeteoUrl(lon: number, lat: number): string {
 }
 
 async function fetchOpenMeteo(
-  aziendaId: string,
+  companyId: string,
   lon: number,
   lat: number,
 ): Promise<LetturaMeteoInput[]> {
@@ -244,7 +244,7 @@ async function fetchOpenMeteo(
     return {
       // id idempotente (UUIDv5 dalla chiave naturale): un re-import sovrascrive.
       id: idLettura(`${STAZIONE_OPEN_METEO}:${rilevatoIl}`),
-      company_id: aziendaId,
+      company_id: companyId,
       station_id: STAZIONE_OPEN_METEO,
       measured_at: rilevatoIl,
       air_temperature: h.temperature_2m[i] ?? null,
@@ -286,7 +286,7 @@ function isoGiorno(ms: number): string {
  * l'aggregazione giornaliera dei DSS ricava tMin/tMax corretti senza dati orari.
  */
 async function fetchArchivioGdd(
-  aziendaId: string,
+  companyId: string,
   lon: number,
   lat: number,
   daISO: string,
@@ -317,7 +317,7 @@ async function fetchArchivioGdd(
     // Riga "minima" (mattino).
     righe.push({
       id: idLettura(`${STAZIONE_OPEN_METEO}:arch:${giorno}:min`),
-      company_id: aziendaId,
+      company_id: companyId,
       station_id: STAZIONE_OPEN_METEO,
       measured_at: `${giorno}T06:00:00.000Z`,
       air_temperature: tMin ?? tMax ?? null,
@@ -332,7 +332,7 @@ async function fetchArchivioGdd(
     // Riga "massima" (pomeriggio), porta anche la pioggia del giorno.
     righe.push({
       id: idLettura(`${STAZIONE_OPEN_METEO}:arch:${giorno}:max`),
-      company_id: aziendaId,
+      company_id: companyId,
       station_id: STAZIONE_OPEN_METEO,
       measured_at: `${giorno}T14:00:00.000Z`,
       air_temperature: tMax ?? tMin ?? null,
@@ -359,7 +359,7 @@ async function fetchArchivioGdd(
  * registrare un adapter = aggiungere una entry in `ADAPTER_CENTRALINE`.
  */
 type AdapterCentralina = (
-  aziendaId: string,
+  companyId: string,
   config: CompanyWeatherConfig,
 ) => Promise<LetturaMeteoInput[]>;
 
@@ -375,7 +375,7 @@ const ADAPTER_CENTRALINE: Record<string, AdapterCentralina> = {
 };
 
 async function fetchStazionePrivata(
-  aziendaId: string,
+  companyId: string,
   config: CompanyWeatherConfig,
 ): Promise<LetturaMeteoInput[]> {
   const modello = (config.station_model ?? "").trim().toLowerCase();
@@ -391,7 +391,7 @@ async function fetchStazionePrivata(
   if (!config.station_api_key || !config.station_device_id) {
     throw new Error(i18n.t("weatherSyncService.privateStationCredentialsRequired"));
   }
-  return adapter(aziendaId, config);
+  return adapter(companyId, config);
 }
 
 // ---------------------------------------------------------------------------
@@ -407,9 +407,9 @@ export const WeatherSyncService = {
   async assicuraDatiMeteo(
     opzioni: MeteoFetchOptions,
   ): Promise<MeteoFetchResult> {
-    const { dal, aziendaId, appezzamentoPrincipale, force } = opzioni;
+    const { dal, companyId, appezzamentoPrincipale, force } = opzioni;
     const config =
-      opzioni.config ?? (await dal.getConfigMeteo(aziendaId)) ?? null;
+      opzioni.config ?? (await dal.getConfigMeteo(companyId)) ?? null;
     const fonte: WeatherDataSource = config?.data_source ?? "public_api";
 
     const eta = minutiDa(config?.last_weather_pull_at ?? null);
@@ -417,7 +417,7 @@ export const WeatherSyncService = {
 
     // Lucchetto orario: dati ancora freschi → si legge dalla cache locale.
     if (dentroLock && !force) {
-      const letture = await leggiSerie(dal, aziendaId);
+      const letture = await leggiSerie(dal, companyId);
       return {
         fetched: false,
         fonte,
@@ -434,13 +434,13 @@ export const WeatherSyncService = {
     let nuove: LetturaMeteoInput[];
     if (fonte === "private_station") {
       if (!config) throw new Error(i18n.t("weatherSyncService.missingStationConfig"));
-      nuove = await fetchStazionePrivata(aziendaId, config);
+      nuove = await fetchStazionePrivata(companyId, config);
     } else {
       if (!appezzamentoPrincipale?.geometry) {
         throw new Error(i18n.t("weatherSyncService.noPlotGeometryForStation"));
       }
       const [lon, lat] = centroid(appezzamentoPrincipale.geometry);
-      nuove = await fetchOpenMeteo(aziendaId, lon, lat);
+      nuove = await fetchOpenMeteo(companyId, lon, lat);
     }
 
     // Dati API ricomputabili → scrittura locale bulk (no outbox), veloce.
@@ -448,9 +448,9 @@ export const WeatherSyncService = {
       fonte === "private_station"
         ? await dal.insertLettureMeteo(nuove) // stazione autorevole → sync
         : await dal.insertLettureMeteoLocali(nuove);
-    await dal.touchWeatherPull(aziendaId, new Date().toISOString());
+    await dal.touchWeatherPull(companyId, new Date().toISOString());
 
-    const letture = await leggiSerie(dal, aziendaId);
+    const letture = await leggiSerie(dal, companyId);
     return { fetched: true, fonte, letture, inserite };
   },
 
@@ -464,16 +464,16 @@ export const WeatherSyncService = {
    */
   async assicuraStoricoGdd(opzioni: {
     dal: AgroDal;
-    aziendaId: string;
+    companyId: string;
     appezzamentoPrincipale: Plot | null;
     /** Biofix dell'accumulo (ISO date): si scarica fin qui all'indietro. */
     dataInizio: string;
   }): Promise<{ backfilled: number }> {
-    const { dal, aziendaId, appezzamentoPrincipale, dataInizio } = opzioni;
+    const { dal, companyId, appezzamentoPrincipale, dataInizio } = opzioni;
     if (!appezzamentoPrincipale?.geometry) return { backfilled: 0 };
 
     const inizio = dataInizio.slice(0, 10);
-    const min = await dal.minRilevatoMeteo(aziendaId);
+    const min = await dal.minRilevatoMeteo(companyId);
     // Storico già abbastanza profondo da coprire il biofix → niente da fare.
     if (min && min.slice(0, 10) <= inizio) return { backfilled: 0 };
 
@@ -492,7 +492,7 @@ export const WeatherSyncService = {
     if (inizio > aISO) return { backfilled: 0 }; // nessun buco da colmare
 
     const [lon, lat] = centroid(appezzamentoPrincipale.geometry);
-    const righe = await fetchArchivioGdd(aziendaId, lon, lat, inizio, aISO);
+    const righe = await fetchArchivioGdd(companyId, lon, lat, inizio, aISO);
     const backfilled = await dal.insertLettureMeteoLocali(righe);
     return { backfilled };
   },
@@ -505,14 +505,14 @@ export const WeatherSyncService = {
    * apertura e cambi azienda non consumano quota oltre una volta l'ora.
    */
   async previsioneDashboard(opzioni: {
-    aziendaId: string;
+    companyId: string;
     lon: number;
     lat: number;
     /** Ignora il lucchetto orario (pulsante "aggiorna"). */
     force?: boolean;
   }): Promise<PrevisioneDashboard> {
-    const { aziendaId, lon, lat, force } = opzioni;
-    const cached = cachePrevisione.get(aziendaId);
+    const { companyId, lon, lat, force } = opzioni;
+    const cached = cachePrevisione.get(companyId);
     if (
       cached &&
       !force &&
@@ -548,7 +548,7 @@ export const WeatherSyncService = {
       recuperatoIl: new Date().toISOString(),
     };
 
-    cachePrevisione.set(aziendaId, { at: Date.now(), data });
+    cachePrevisione.set(companyId, { at: Date.now(), data });
     return data;
   },
 };
@@ -564,10 +564,10 @@ export const WeatherSyncService = {
  */
 async function leggiSerie(
   dal: AgroDal,
-  aziendaId: string,
+  companyId: string,
 ): Promise<WeatherReading[]> {
   const dopo = new Date(
     Date.now() - GIORNI_LETTURA * 24 * 3600 * 1000,
   ).toISOString();
-  return dal.listLettureMeteo(aziendaId, { dopo, limit: 30_000 });
+  return dal.listLettureMeteo(companyId, { dopo, limit: 30_000 });
 }

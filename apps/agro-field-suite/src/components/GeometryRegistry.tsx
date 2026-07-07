@@ -16,7 +16,7 @@ import type { TFunction } from "i18next";
 
 /**
  * Registro di tutte le geometrie dell'azienda attiva (Modulo 4 §gestione).
- * Elenca appezzamenti, infrastrutture e POI: il tap su una voce inquadra
+ * Elenca plots, infrastrutture e POI: il tap su una voce inquadra
  * l'elemento sulla mappa e apre la sua scheda di dettaglio/editing (da cui si
  * modifica la geometria/i metadati o si elimina in sicurezza). È la superficie
  * di gestione dichiarata dalla voce "Modifica / Elimina" del menu disegno.
@@ -120,19 +120,19 @@ export function GeometryRegistry({
   mapControllerRef: RefObject<MapController | null>;
 }) {
   const { t } = useTranslation();
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
+  const plots = useAgroStore((s) => s.plots);
   const assets = useAgroStore((s) => s.assets);
-  const campionamenti = useAgroStore((s) => s.campionamenti);
+  const soilSamples = useAgroStore((s) => s.soilSamples);
   const selectFeatureOnMap = useAgroStore((s) => s.selectFeatureOnMap);
 
   const groups: { titolo: string; entries: Entry[] }[] = [
-    { titolo: t("registroGeometrie.plots"), entries: appezzamenti.map((a) => appezzamentoEntry(a, t)) },
+    { titolo: t("registroGeometrie.plots"), entries: plots.map((a) => appezzamentoEntry(a, t)) },
     { titolo: t("registroGeometrie.infrastructures"), entries: assets.map((a) => assetEntry(a, t)) },
-    { titolo: t("registroGeometrie.pointsOfInterest"), entries: campionamenti.map((c) => campionamentoEntry(c, t)) },
+    { titolo: t("registroGeometrie.pointsOfInterest"), entries: soilSamples.map((c) => campionamentoEntry(c, t)) },
   ];
 
   const totale =
-    appezzamenti.length + assets.length + campionamenti.length;
+    plots.length + assets.length + soilSamples.length;
 
   const locate = (geometry: Geometry) => {
     const bounds = geometryBounds(geometry);

@@ -10,7 +10,7 @@ import {
 
 /**
  * Motore di ANALISI LIBERA della dashboard aziendale: l'utente sceglie un'ENTITÀ
- * (appezzamenti, operazioni, raccolte, bilancio idrico, meteo, DSS), una
+ * (plots, operazioni, harvests, bilancio idrico, meteo, DSS), una
  * DIMENSIONE su cui raggruppare e una FUNZIONE (conteggio/somma/media/min/max)
  * applicata a una MISURA. Il risultato è una {@link ChartData} pronta per il
  * renderer. Tutto puro e in-memory sui dati già filtrati.
@@ -84,12 +84,12 @@ function prettyModel(modelName: string): string {
 
 /** Mappa plot_id → nome appezzamento. */
 function plotNames(data: DashboardData): Map<string, string> {
-  return new Map(data.appezzamenti.map((a) => [a.id, a.user_plot_name]));
+  return new Map(data.plots.map((a) => [a.id, a.user_plot_name]));
 }
 
 /** Mappa plot_id → superficie (ha), per i rapporti per ettaro (es. resa/ha). */
 function plotAreas(data: DashboardData): Map<string, number> {
-  return new Map(data.appezzamenti.map((a) => [a.id, a.area_ha]));
+  return new Map(data.plots.map((a) => [a.id, a.area_ha]));
 }
 
 /** Mappa plot_campaign_id → nome appezzamento (per il bilancio idrico). */
@@ -122,7 +122,7 @@ export const ENTITIES: EntityDef[] = [
       const cropName = new Map(d.crops.map((c) => [c.id, c.common_name]));
       const plotCrop = new Map<string, string>();
       for (const c of d.campaigns) plotCrop.set(c.plot_id, cropName.get(c.crop_id) ?? "—");
-      return d.appezzamenti.map((a) => ({
+      return d.plots.map((a) => ({
         nome: a.user_plot_name,
         coltura: plotCrop.get(a.id) ?? "—",
         irrigazione: a.irrigation_type ?? "—",
@@ -149,7 +149,7 @@ export const ENTITIES: EntityDef[] = [
     rows: (d) => {
       const names = plotNames(d);
       const areas = plotAreas(d);
-      return d.trattamenti
+      return d.treatments
         .filter((t) => t.deleted_at == null)
         .map((t) => ({
           tipo: OP_LABEL[t.operation_type] ?? t.operation_type,
@@ -178,7 +178,7 @@ export const ENTITIES: EntityDef[] = [
     rows: (d) => {
       const names = plotNames(d);
       const areas = plotAreas(d);
-      return d.raccolte
+      return d.harvests
         .filter((r) => r.deleted_at == null)
         .map((r) => ({
           cultivar: r.cultivar ?? "—",

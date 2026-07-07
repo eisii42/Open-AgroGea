@@ -18,7 +18,7 @@ export function Colorbar() {
   const layers = useAppStore((s) => s.layers);
 
   // Una sola legenda per TIPO di indice, anche con più mappe/overlay dello
-  // stesso indice attivi (es. NDVI su più appezzamenti/date): la rampa è
+  // stesso indice attivi (es. NDVI su più plots/date): la rampa è
   // identica, quindi le voci duplicate vengono collassate.
   const indici = useMemo(() => {
     const set = new Set<VegetationIndex>();

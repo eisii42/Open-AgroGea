@@ -11,7 +11,7 @@ import i18n from "../../i18n";
  *
  * Per ogni campo decodificato:
  *   * se l'appezzamento FISICO non esiste (nessun match per id SIAN) e c'è una
- *     geometria poligonale → crea la riga immutabile in `appezzamenti`,
+ *     geometria poligonale → crea la riga immutabile in `plots`,
  *     marcandone l'id SIAN nei metadata per i re-import futuri;
  *   * se esiste già (perimetria immutata) → ne riusa l'identità;
  *   * in entrambi i casi → popola/aggiorna `campi_campagna` sull'anno indicato
@@ -36,15 +36,15 @@ export async function importaFascicoloSian(
   anno: number,
 ): Promise<EsitoImportSian> {
   const stato = useAgroStore.getState();
-  const { aziendaAttivaId } = stato;
+  const { activeCompanyId } = stato;
   const dal = stato.dal;
-  if (!dal || !aziendaAttivaId) {
+  if (!dal || !activeCompanyId) {
     throw new Error(i18n.t("importaFascicolo.noActiveCompany"));
   }
 
-  // Snapshot mutabile degli appezzamenti per abbinare anche le entità create
+  // Snapshot mutabile degli plots per abbinare anche le entità create
   // durante questo stesso import (più campi possono condividere l'id fisico).
-  const esistenti = stato.appezzamenti.map((a) => ({
+  const esistenti = stato.plots.map((a) => ({
     id: a.id,
     metadata: a.metadata,
   }));
@@ -74,9 +74,9 @@ export async function importaFascicoloSian(
   };
 
   for (const campo of campi) {
-    let appezzamentoId = abbinaAppezzamentoEsistente(campo, esistenti);
+    let plotId = abbinaAppezzamentoEsistente(campo, esistenti);
 
-    if (!appezzamentoId) {
+    if (!plotId) {
       if (!isPoligono(campo.geometria)) {
         esito.saltati += 1;
         continue;
@@ -92,7 +92,7 @@ export async function importaFascicoloSian(
             });
       const creato = await dal.upsertAppezzamento({
         id: crypto.randomUUID(),
-        company_id: aziendaAttivaId,
+        company_id: activeCompanyId,
         // L'appezzamento è l'entità FISICA: la coltura vive in plots_campaign/crops.
         user_plot_name: nome,
         cadastral_sheet: null,
@@ -108,7 +108,7 @@ export async function importaFascicoloSian(
           reference_parcel_external_id: campo.reference_parcel_external_id,
         },
       });
-      appezzamentoId = creato.id;
+      plotId = creato.id;
       esistenti.push({ id: creato.id, metadata: creato.metadata });
       esito.creati += 1;
     } else {
@@ -116,7 +116,7 @@ export async function importaFascicoloSian(
     }
 
     await dal.upsertCampoCampagna({
-      plot_id: appezzamentoId,
+      plot_id: plotId,
       crop_id: await risolviCropId(campo),
       campaign_year: anno,
       reference_parcel_external_id: campo.reference_parcel_external_id,
@@ -128,7 +128,7 @@ export async function importaFascicoloSian(
   }
 
   // Allinea l'anno attivo all'import e ricarica il dominio (notifica il sync).
-  await useAgroStore.getState().setCampagnaAttiva(anno);
+  await useAgroStore.getState().setActiveCampaign(anno);
   await useAgroStore.getState().refreshDomainData();
   stato.syncRouter?.notifyLocalWrite();
 

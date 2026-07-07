@@ -49,7 +49,7 @@ function punteggioComando(comando: ComandoBase, tokens: string[]): number {
 
 /**
  * Filtra e ordina i comandi per la query. Query vuota → tutti i comandi
- * nell'ordine originale (azioni prima, poi appezzamenti, come passati). Con
+ * nell'ordine originale (azioni prima, poi plots, come passati). Con
  * query → solo quelli che contengono TUTTI i token, ordinati per punteggio
  * decrescente; a parità, titolo più corto e poi ordine originale (stabile).
  */

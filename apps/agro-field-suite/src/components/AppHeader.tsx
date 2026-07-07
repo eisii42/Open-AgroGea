@@ -21,7 +21,7 @@ import { WeatherCard } from "../modules/weather/WeatherCard";
 
 /**
  * Header della suite (Modulo UI §6): logo, switcher azienda, LED di stato sync
- * (verde/ambra/rosso/grigio sull'outbox PGlite), selettore tema e menu profilo.
+ * (verde/ambra/rosso/grigio sull'outbox PGlite), selettore tema e menu profile.
  * Barra fissa in alto; la mappa vive sotto e non viene mai rimontata.
  */
 
@@ -53,8 +53,8 @@ export function AppHeader({
   onOpenCommandPalette?: () => void;
 }) {
   const { t } = useTranslation();
-  const aziende = useAgroStore((s) => s.aziende);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
+  const companies = useAgroStore((s) => s.companies);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const sync = useAgroStore((s) => s.sync);
   const theme = useAgroStore((s) => s.theme);
   const setTheme = useAgroStore((s) => s.setTheme);
@@ -63,7 +63,7 @@ export function AppHeader({
   const setActiveView = useAgroStore((s) => s.setActiveView);
   const flags = useSettingsStore((s) => s.dashboardLayout);
 
-  const azienda = aziende.find((a) => a.id === aziendaAttivaId);
+  const azienda = companies.find((a) => a.id === activeCompanyId);
   const led = syncLed(sync.state, sync.pendingCount, t);
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -222,10 +222,10 @@ export function AppHeader({
         </button>
 
         {/* Menu di Aiuto: Command Palette, scorciatoie, diagnostica, feedback,
-            aggiornamenti, informazioni. Accanto al menu profilo. */}
+            aggiornamenti, informazioni. Accanto al menu profile. */}
         <HelpMenu onOpenCommandPalette={onOpenCommandPalette ?? (() => {})} />
 
-        {/* Menu profilo */}
+        {/* Menu profile */}
         <div className="relative" ref={menuRef}>
           <button
             type="button"
@@ -241,8 +241,8 @@ export function AppHeader({
                 type="button"
                 onClick={() => {
                   setMenuOpen(false);
-                  if (!useAgroStore.getState().openPanels.includes("profilo")) {
-                    togglePanel("profilo");
+                  if (!useAgroStore.getState().openPanels.includes("profile")) {
+                    togglePanel("profile");
                   }
                 }}
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--panel-2)]"

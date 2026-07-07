@@ -3,9 +3,9 @@ import type { FeatureCollection } from "geojson";
 import { useEffect, useState } from "react";
 
 /**
- * Analisi spaziale (DuckDB Spatial) tra gli appezzamenti del tenant in PGlite e
+ * Analisi spaziale (DuckDB Spatial) tra gli plots del tenant in PGlite e
  * un layer esterno selezionato nel pannello Geo-compliance. Calcola via
- * `selectByLocation` quali appezzamenti intersecano le geometrie del layer,
+ * `selectByLocation` quali plots intersecano le geometrie del layer,
  * aggiornando reattivamente lo stato che alimenta i badge di allerta.
  *
  * Il motore WASM è caricato on-demand (import dinamico) per non gravare sul
@@ -15,7 +15,7 @@ import { useEffect, useState } from "react";
 export interface ComplianceAnalysisResult {
   loading: boolean;
   error: string | null;
-  /** Id degli appezzamenti che intersecano il layer esterno selezionato. */
+  /** Id degli plots che intersecano il layer esterno selezionato. */
   appezzamentiColpiti: string[];
   /** True dopo almeno un'esecuzione conclusa (per distinguere "vuoto" da "mai"). */
   eseguita: boolean;
@@ -28,13 +28,13 @@ const VUOTO: ComplianceAnalysisResult = {
   eseguita: false,
 };
 
-/** FeatureCollection degli appezzamenti con `id` in properties (per il join). */
+/** FeatureCollection degli plots con `id` in properties (per il join). */
 function appezzamentiFeatureCollection(
-  appezzamenti: Plot[],
+  plots: Plot[],
 ): FeatureCollection {
   return {
     type: "FeatureCollection",
-    features: appezzamenti.map((a) => ({
+    features: plots.map((a) => ({
       type: "Feature",
       geometry: a.geometry,
       properties: { id: a.id, nome: a.user_plot_name },
@@ -43,13 +43,13 @@ function appezzamentiFeatureCollection(
 }
 
 export function useComplianceLayerAnalysis(
-  appezzamenti: Plot[],
+  plots: Plot[],
   layerGeojson: FeatureCollection | null,
 ): ComplianceAnalysisResult {
   const [stato, setStato] = useState<ComplianceAnalysisResult>(VUOTO);
 
   useEffect(() => {
-    if (!layerGeojson || appezzamenti.length === 0) {
+    if (!layerGeojson || plots.length === 0) {
       setStato(VUOTO);
       return;
     }
@@ -64,7 +64,7 @@ export function useComplianceLayerAnalysis(
         const engine = SpatialAnalysisEngine.instance();
         await engine.registerGeoJson(
           "compliance_appezzamenti",
-          appezzamentiFeatureCollection(appezzamenti),
+          appezzamentiFeatureCollection(plots),
         );
         await engine.registerGeoJson("compliance_layer", layerGeojson);
         const res = await engine.selectByLocation({
@@ -98,7 +98,7 @@ export function useComplianceLayerAnalysis(
     return () => {
       annullato = true;
     };
-  }, [appezzamenti, layerGeojson]);
+  }, [plots, layerGeojson]);
 
   return stato;
 }

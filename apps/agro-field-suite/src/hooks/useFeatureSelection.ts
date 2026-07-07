@@ -25,7 +25,7 @@ import { type RefObject, useEffect } from "react";
  * casi serve all'engine per posare/spostare vertici).
  */
 
-const APPEZZAMENTI_ID = "agrogea-appezzamenti";
+const APPEZZAMENTI_ID = "agrogea-plots";
 const INFRASTRUTTURE_ID = "agrogea-infrastrutture";
 const POI_ID = "agrogea-poi";
 const SCOUTING_ID = "agrogea-scouting";
@@ -65,11 +65,11 @@ export function useFeatureSelection(
   mapReady: boolean,
 ): void {
   const selectFeatureOnMap = useAgroStore((s) => s.selectFeatureOnMap);
-  const apriQuadernoPerAppezzamento = useAgroStore(
-    (s) => s.apriQuadernoPerAppezzamento,
+  const openLogbookForPlot = useAgroStore(
+    (s) => s.openLogbookForPlot,
   );
-  const apriScoutingPerOsservazione = useAgroStore(
-    (s) => s.apriScoutingPerOsservazione,
+  const openScoutingForObservation = useAgroStore(
+    (s) => s.openScoutingForObservation,
   );
 
   useEffect(() => {
@@ -106,7 +106,7 @@ export function useFeatureSelection(
 
       // Punto scouting → scheda della nota nel pannello Scouting.
       if (top.layer.id === SCOUTING_LAYER) {
-        apriScoutingPerOsservazione(id);
+        openScoutingForObservation(id);
         return;
       }
 
@@ -114,7 +114,7 @@ export function useFeatureSelection(
       if (!layerKind) return;
       // Plot → Quaderno filtrato sulle sue lavorazioni; altri → dettaglio.
       if (layerKind.kind === "appezzamento") {
-        apriQuadernoPerAppezzamento(id);
+        openLogbookForPlot(id);
       } else {
         void selectFeatureOnMap({ kind: layerKind.kind, id });
       }
@@ -128,7 +128,7 @@ export function useFeatureSelection(
     mapControllerRef,
     mapReady,
     selectFeatureOnMap,
-    apriQuadernoPerAppezzamento,
-    apriScoutingPerOsservazione,
+    openLogbookForPlot,
+    openScoutingForObservation,
   ]);
 }

@@ -74,14 +74,14 @@ export async function buildCompanySnapshot(
     dal.listAssets(id),
     dal.listOsservazioniScouting(id, { limit: FULL }),
     // plots_campaign e crops sono a livello tenant: si filtrano sugli
-    // appezzamenti/colture di QUESTA azienda.
+    // plots/colture di QUESTA azienda.
     dal.listCampiCampagna(),
     dal.listCrops(),
   ]);
   const t = groupByPlot(treatments);
   const s = groupByPlot(soilSamples);
   const h = groupByPlot(harvests);
-  // Campagne agrarie (associazione coltura↔appezzamento) dei soli appezzamenti
+  // Campagne agrarie (associazione coltura↔appezzamento) dei soli plots
   // dell'azienda, raggruppate per appezzamento.
   const plotIds = new Set(plots.map((p) => p.id));
   const campaigns = allCampaigns.filter((cc) => plotIds.has(cc.plot_id));
@@ -188,7 +188,7 @@ export async function importCompanyData(
     }
   };
 
-  // Colture PRIMA degli appezzamenti/campagne: le campagne (plots_campaign)
+  // Colture PRIMA degli plots/campagne: le campagne (plots_campaign)
   // referenziano `crop_id`. Le crops sono a livello tenant (niente company_id):
   // `tenant_id` è forzato dal DAL.
   for (const crop of snapshot.crops) {

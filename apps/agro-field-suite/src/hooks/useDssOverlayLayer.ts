@@ -16,7 +16,7 @@ import {
 /**
  * Proietta l'overlay coropletico del risk DSS nel Layer Store NATIVO di
  * GeoLibre (Modulo 3). Riusa il meccanismo data-driven già provato dalla VRA
- * (`vectorStyleMode: "categorized"`): gli appezzamenti si colorano verde/giallo/
+ * (`vectorStyleMode: "categorized"`): gli plots si colorano verde/giallo/
  * rosso in base alla proprietà `livello` sintetizzata. Flusso unidirezionale,
  * mai su MapLibre direttamente, come `useFieldLayers`.
  *
@@ -33,7 +33,7 @@ const STOPS_DSS: VectorStyleStop[] = [
 ];
 
 export interface DssOverlayParams {
-  appezzamenti: Plot[];
+  plots: Plot[];
   /** Punteggio sintetico 0..1 per appezzamento (id → sintesi). */
   sintesiPerCampo: Map<string, FieldSummary>;
   /** CropType prevalente, per la calibrazione della rampa/legenda. */
@@ -52,7 +52,7 @@ function rimuoviLayer(): void {
 }
 
 export function useDssOverlayLayer(params: DssOverlayParams): void {
-  const { appezzamenti, sintesiPerCampo, coltura, attivo, styleEpoch = 0 } = params;
+  const { plots, sintesiPerCampo, coltura, attivo, styleEpoch = 0 } = params;
 
   useEffect(() => {
     if (!attivo || sintesiPerCampo.size === 0) {
@@ -60,7 +60,7 @@ export function useDssOverlayLayer(params: DssOverlayParams): void {
       return;
     }
     const rampa = rampaRischioDss(coltura);
-    const geojson = costruisciOverlayDss(appezzamenti, sintesiPerCampo, rampa);
+    const geojson = costruisciOverlayDss(plots, sintesiPerCampo, rampa);
     if (geojson.features.length === 0) {
       rimuoviLayer();
       return;
@@ -94,5 +94,5 @@ export function useDssOverlayLayer(params: DssOverlayParams): void {
       sourcePath: `agrogea://${DSS_OVERLAY_LAYER_ID}`,
     };
     store.addLayer(layer);
-  }, [appezzamenti, sintesiPerCampo, coltura, attivo, styleEpoch]);
+  }, [plots, sintesiPerCampo, coltura, attivo, styleEpoch]);
 }

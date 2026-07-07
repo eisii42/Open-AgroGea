@@ -47,7 +47,7 @@ function kpiRows(kpis: KpiResult[]): string[] {
   return out;
 }
 
-function treatmentRows(trattamenti: TreatmentLog[]): string[] {
+function treatmentRows(treatments: TreatmentLog[]): string[] {
   const out = [
     row([
       "Data",
@@ -62,7 +62,7 @@ function treatmentRows(trattamenti: TreatmentLog[]): string[] {
       "Note",
     ]),
   ];
-  for (const t of trattamenti) {
+  for (const t of treatments) {
     out.push(
       row([
         new Date(t.executed_at).toLocaleDateString("it-IT"),
@@ -81,11 +81,11 @@ function treatmentRows(trattamenti: TreatmentLog[]): string[] {
   return out;
 }
 
-function harvestRows(raccolte: Harvest[]): string[] {
+function harvestRows(harvests: Harvest[]): string[] {
   const out = [
     row(["Data", "Cultivar", "Quantità (kg)", "Destinazione", "Note"]),
   ];
-  for (const r of raccolte) {
+  for (const r of harvests) {
     out.push(
       row([
         new Date(r.harvested_at).toLocaleDateString("it-IT"),
@@ -101,15 +101,15 @@ function harvestRows(raccolte: Harvest[]): string[] {
 
 /**
  * Costruisce il contenuto CSV dell'executive report: intestazione di contesto,
- * blocco KPI, blocco operazioni e blocco raccolte, separati da righe vuote.
+ * blocco KPI, blocco operazioni e blocco harvests, separati da righe vuote.
  */
 export function buildExecutiveReportCsv(args: {
   result: AnalyticsResult;
-  trattamenti: TreatmentLog[];
-  raccolte: Harvest[];
+  treatments: TreatmentLog[];
+  harvests: Harvest[];
   companyName: string;
 }): string {
-  const { result, trattamenti, raccolte, companyName } = args;
+  const { result, treatments, harvests, companyName } = args;
   const { summary, kpis } = result;
   const lines: string[] = [];
 
@@ -127,11 +127,11 @@ export function buildExecutiveReportCsv(args: {
   lines.push("");
 
   lines.push(row(["Operazioni (Quaderno di Campagna)"]));
-  lines.push(...treatmentRows(trattamenti));
+  lines.push(...treatmentRows(treatments));
   lines.push("");
 
   lines.push(row(["Raccolte"]));
-  lines.push(...harvestRows(raccolte));
+  lines.push(...harvestRows(harvests));
 
   return BOM_UTF8 + lines.join("\r\n");
 }

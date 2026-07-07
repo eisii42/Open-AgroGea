@@ -28,13 +28,13 @@ export const ETICHETTE_VARIABILE: Record<VariabileSuolo, string> = {
 
 /** Un punto dello scatter: chimica del suolo (X) vs ultimo NDVI medio (Y). */
 export interface PuntoScatterSuolo {
-  appezzamentoId: string;
+  plotId: string;
   name: string;
-  /** Media della variabile chimica sui campionamenti dell'appezzamento. */
+  /** Media della variabile chimica sui soilSamples dell'appezzamento. */
   x: number;
   /** Ultimo NDVI medio dell'appezzamento (cache STAC). */
   y: number;
-  /** Numero di campionamenti che concorrono alla media X. */
+  /** Numero di soilSamples che concorrono alla media X. */
   n: number;
 }
 
@@ -45,11 +45,11 @@ function media(values: number[]): number | null {
 
 /** Media per appezzamento di una variabile chimica (ignora i valori nulli). */
 export function mediaCampionamentiPerAppezzamento(
-  campionamenti: SoilSample[],
+  soilSamples: SoilSample[],
   variabile: VariabileSuolo,
 ): Map<string, { media: number; n: number }> {
   const byApz = new Map<string, number[]>();
-  for (const c of campionamenti) {
+  for (const c of soilSamples) {
     if (c.plot_id == null || c.deleted_at != null) continue;
     const value = c[variabile];
     if (typeof value !== "number" || Number.isNaN(value)) continue;
@@ -71,18 +71,18 @@ export function mediaCampionamentiPerAppezzamento(
  * variabile scelta.
  */
 export function buildNdviScatter(
-  appezzamenti: Plot[],
-  campionamenti: SoilSample[],
+  plots: Plot[],
+  soilSamples: SoilSample[],
   variabile: VariabileSuolo,
 ): PuntoScatterSuolo[] {
-  const medie = mediaCampionamentiPerAppezzamento(campionamenti, variabile);
+  const medie = mediaCampionamentiPerAppezzamento(soilSamples, variabile);
   const punti: PuntoScatterSuolo[] = [];
-  for (const apz of appezzamenti) {
+  for (const apz of plots) {
     const ndvi = apz.last_ndvi_mean;
     const chim = medie.get(apz.id);
     if (ndvi == null || Number.isNaN(ndvi) || !chim) continue;
     punti.push({
-      appezzamentoId: apz.id,
+      plotId: apz.id,
       name: apz.user_plot_name,
       x: Math.round(chim.media * 1000) / 1000,
       y: Math.round(ndvi * 1000) / 1000,

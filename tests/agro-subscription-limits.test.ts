@@ -67,7 +67,7 @@ describe("subscription-limits / schema dei piani", () => {
     });
   });
 
-  it("standard: 5 aziende, owner 1, manager 1, viewer 2", () => {
+  it("standard: 5 companies, owner 1, manager 1, viewer 2", () => {
     assert.deepEqual(PLAN_LIMITS.standard, {
       max_companies: 5,
       max_owners_per_company: 1,
@@ -76,7 +76,7 @@ describe("subscription-limits / schema dei piani", () => {
     });
   });
 
-  it("plus: aziende illimitate, owner 10, manager 2, viewer 3", () => {
+  it("plus: companies illimitate, owner 10, manager 2, viewer 3", () => {
     assert.deepEqual(PLAN_LIMITS.plus, {
       max_companies: UNLIMITED,
       max_owners_per_company: 10,
@@ -110,7 +110,7 @@ describe("subscription-limits / schema dei piani", () => {
     assert.equal(seatLimitForRole("base", "MANAGER"), 0);
   });
 
-  it("companyLimit espone il massimo aziende del piano", () => {
+  it("companyLimit espone il massimo companies del piano", () => {
     assert.equal(companyLimit("base"), 1);
     assert.equal(companyLimit("standard"), 5);
     assert.equal(companyLimit("plus"), UNLIMITED);
@@ -121,8 +121,8 @@ describe("subscription-limits / schema dei piani", () => {
 // Modulo 2 — Company Creation Guard
 // ---------------------------------------------------------------------------
 
-describe("Company Creation Guard / quota aziende", () => {
-  it("standard consente fino a 5 aziende", () => {
+describe("Company Creation Guard / quota companies", () => {
+  it("standard consente fino a 5 companies", () => {
     assert.equal(canCreateCompany("standard", 4), true);
     assert.equal(canCreateCompany("standard", 5), false);
   });

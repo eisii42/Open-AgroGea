@@ -13,7 +13,7 @@
  *     esteso `agrogea` (RFC 7946 consente membri aggiuntivi a livello root);
  *   - ogni `Feature` porta `properties.kind` che la discrimina:
  *       · "plot"     → appezzamento (`plots_registry`) con i log del Quaderno di
- *                      Campagna (trattamenti, suolo, raccolte) annidati;
+ *                      Campagna (treatments, suolo, harvests) annidati;
  *       · "asset"    → infrastruttura (`infrastructure_assets`: pozzi, trappole,
  *                      sensori, fabbricati…) — i POI puntuali e le geometrie CAD;
  *       · "scouting" → rilievo GPS di campo (`scouting_observations`).

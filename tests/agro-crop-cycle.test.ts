@@ -15,7 +15,7 @@ import type { PlotCampaign, Crop } from "../packages/agro-core/src/types";
 /**
  * Ciclo colturale v17: chiusura della campagna al raccolto (closed_at),
  * secondo raccolto nello stesso anno (indice unico parziale sulle campagne
- * aperte), metadata estensibile dei prodotti (identità colturale sementi) e
+ * aperte), metadata estensibile dei products (identità colturale sementi) e
  * risoluzione coltura→appezzamento che ignora le campagne chiuse.
  */
 
@@ -47,7 +47,7 @@ async function seedPlot(dal: TestDal): Promise<{ companyId: string; plotId: stri
 }
 
 describe("v17 / chiusura campagna e secondo raccolto", () => {
-  it("chiudiCampagna imposta closed_at; una nuova semina crea una NUOVA riga", async () => {
+  it("closeCampaign imposta closed_at; una nuova semina crea una NUOVA riga", async () => {
     const dal = await TestDal.create();
     const { plotId } = await seedPlot(dal);
     const crop = await dal.upsertCrop({
@@ -70,10 +70,10 @@ describe("v17 / chiusura campagna e secondo raccolto", () => {
     assert.equal(prima.closed_at, null);
 
     // Raccolto → chiusura del ciclo.
-    const chiusa = await dal.chiudiCampagna(prima.id);
+    const chiusa = await dal.closeCampaign(prima.id);
     assert.ok(chiusa?.closed_at, "closed_at non impostato");
     // Idempotenza: richiudere una campagna chiusa è un no-op.
-    assert.equal(await dal.chiudiCampagna(prima.id), null);
+    assert.equal(await dal.closeCampaign(prima.id), null);
 
     // Secondo raccolto: nuova semina nello stesso anno → riga NUOVA (la
     // campagna chiusa non viene riusata né riaperta).
@@ -90,7 +90,7 @@ describe("v17 / chiusura campagna e secondo raccolto", () => {
     assert.notEqual(seconda.id, prima.id);
     assert.equal(seconda.closed_at, null);
 
-    const tutte = await dal.listCampiCampagna({ appezzamentoId: plotId });
+    const tutte = await dal.listCampiCampagna({ plotId: plotId });
     assert.equal(tutte.length, 2);
   });
 
@@ -118,7 +118,7 @@ describe("v17 / chiusura campagna e secondo raccolto", () => {
   });
 });
 
-describe("v17 / metadata prodotti (identità colturale sementi)", () => {
+describe("v17 / metadata products (identità colturale sementi)", () => {
   it("upsertProdotto persiste e preserva il metadata jsonb", async () => {
     const dal = await TestDal.create();
     const { companyId } = await seedPlot(dal);

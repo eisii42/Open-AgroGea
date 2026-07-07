@@ -71,7 +71,7 @@ export interface InviteRequest {
   plan: string | null | undefined;
   companyId: string;
   role: TeamRole;
-  /** Stato corrente dei membri (di tutte le aziende: viene filtrato per company). */
+  /** Stato corrente dei membri (di tutte le companies: viene filtrato per company). */
   memberships: TenantMembership[];
 }
 

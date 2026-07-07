@@ -1,9 +1,9 @@
 /**
- * Legenda colture: mostra, per gli appezzamenti dell'azienda attiva, l'elenco
+ * Legenda colture: mostra, per gli plots dell'azienda attiva, l'elenco
  * delle specie presenti con il rispettivo colore ad hoc e icona, più la voce
  * neutra "Senza coltura" se almeno un appezzamento non ha coltura nell'annata.
  *
- * Si nasconde quando non ci sono appezzamenti o il layer è invisibile.
+ * Si nasconde quando non ci sono plots o il layer è invisibile.
  */
 import {
   cropStyle,
@@ -17,7 +17,7 @@ import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { cropIcon } from "../../lib/cropIcon";
 
-const LAYER_ID = "agrogea-appezzamenti";
+const LAYER_ID = "agrogea-plots";
 const HIGHLIGHT_MS = 1000;
 
 interface LegendEntry {
@@ -30,12 +30,12 @@ interface LegendEntry {
 export function CropLegend({
   mapControllerRef,
 }: {
-  /** Se assente, il click sulle voci non evidenzia gli appezzamenti sulla mappa. */
+  /** Se assente, il click sulle voci non evidenzia gli plots sulla mappa. */
   mapControllerRef?: RefObject<MapController | null>;
 }) {
   const { t } = useTranslation();
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
-  const campiCampagna = useAgroStore((s) => s.campiCampagna);
+  const plots = useAgroStore((s) => s.plots);
+  const campaignFields = useAgroStore((s) => s.campaignFields);
   const crops = useAgroStore((s) => s.crops);
   const layerVisible = useAppStore(
     (s) => s.layers.find((l) => l.id === LAYER_ID)?.visible ?? false,
@@ -100,8 +100,8 @@ export function CropLegend({
   const { entries, uncropped } = useMemo(() => {
     const byKind = new Map<string, LegendEntry>();
     let noCrop = 0;
-    for (const a of appezzamenti) {
-      const camp = campiCampagna.find(
+    for (const a of plots) {
+      const camp = campaignFields.find(
         (c) => c.plot_id === a.id && c.deleted_at == null,
       );
       const crop = camp ? crops.find((cr) => cr.id === camp.crop_id) : null;
@@ -122,9 +122,9 @@ export function CropLegend({
       entries: [...byKind.values()].sort((x, y) => y.count - x.count),
       uncropped: noCrop,
     };
-  }, [appezzamenti, campiCampagna, crops]);
+  }, [plots, campaignFields, crops]);
 
-  if (!layerVisible || appezzamenti.length === 0) return null;
+  if (!layerVisible || plots.length === 0) return null;
   if (entries.length === 0 && uncropped === 0) return null;
 
   return (

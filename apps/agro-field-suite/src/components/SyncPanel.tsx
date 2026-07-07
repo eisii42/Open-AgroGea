@@ -39,9 +39,9 @@ export function SyncPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const sync = useAgroStore((s) => s.sync);
   const syncRouter = useAgroStore((s) => s.syncRouter);
-  const caricaCodaSync = useAgroStore((s) => s.caricaCodaSync);
-  const eliminaMutazioneCoda = useAgroStore((s) => s.eliminaMutazioneCoda);
-  const svuotaCodaSync = useAgroStore((s) => s.svuotaCodaSync);
+  const loadSyncQueue = useAgroStore((s) => s.loadSyncQueue);
+  const deleteQueuedMutation = useAgroStore((s) => s.deleteQueuedMutation);
+  const clearSyncQueue = useAgroStore((s) => s.clearSyncQueue);
 
   const [coda, setCoda] = useState<OutboxMutation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,11 +50,11 @@ export function SyncPanel({ onClose }: { onClose: () => void }) {
   const ricarica = useCallback(async () => {
     setLoading(true);
     try {
-      setCoda(await caricaCodaSync());
+      setCoda(await loadSyncQueue());
     } finally {
       setLoading(false);
     }
-  }, [caricaCodaSync]);
+  }, [loadSyncQueue]);
 
   // Ricarica all'apertura e a ogni cambio del conteggio in coda.
   useEffect(() => {
@@ -64,7 +64,7 @@ export function SyncPanel({ onClose }: { onClose: () => void }) {
   const elimina = async (id: string) => {
     setBusy(true);
     try {
-      await eliminaMutazioneCoda(id);
+      await deleteQueuedMutation(id);
       await ricarica();
     } finally {
       setBusy(false);
@@ -74,7 +74,7 @@ export function SyncPanel({ onClose }: { onClose: () => void }) {
   const svuota = async () => {
     setBusy(true);
     try {
-      await svuotaCodaSync();
+      await clearSyncQueue();
       await ricarica();
     } finally {
       setBusy(false);

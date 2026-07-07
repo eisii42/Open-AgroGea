@@ -18,7 +18,7 @@ import { DssRiskCard } from "./shared/DssRiskCard";
  *   * {@link ColturaDatiPanel} — form smart per inserire la coltura (singolo
  *     appezzamento) su `crops` + `plots_campaign`;
  *   * {@link ColturaDssPanel} — modelli previsionali (DSS) su UNO O PIÙ
- *     appezzamenti (come la pipeline indici), con scheda di risk colorata.
+ *     plots (come la pipeline indici), con scheda di risk colorata.
  * La coltura del DSS è risolta dalla Campagna Agraria attiva (→ crops).
  */
 
@@ -31,9 +31,9 @@ function PlotSelect({
   onChange: (id: string) => void;
 }) {
   const { t } = useTranslation();
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
+  const plots = useAgroStore((s) => s.plots);
   const crops = useAgroStore((s) => s.crops);
-  const campiCampagna = useAgroStore((s) => s.campiCampagna);
+  const campaignFields = useAgroStore((s) => s.campaignFields);
   return (
     <label className="flex flex-col gap-1 text-sm">
       <span className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
@@ -44,8 +44,8 @@ function PlotSelect({
         onChange={(e) => onChange(e.target.value)}
         className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-1.5 text-sm"
       >
-        {appezzamenti.map((a) => {
-          const c = cropForPlot(a.id, campiCampagna, crops);
+        {plots.map((a) => {
+          const c = cropForPlot(a.id, campaignFields, crops);
           return (
             <option key={a.id} value={a.id}>
               {a.user_plot_name}
@@ -64,27 +64,27 @@ function useSelectedPlot(): {
   setScelto: (id: string) => void;
   vuoto: boolean;
 } {
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
-  const selezionatoId = useAgroStore((s) => s.appezzamentoSelezionatoId);
+  const plots = useAgroStore((s) => s.plots);
+  const selezionatoId = useAgroStore((s) => s.selectedPlotId);
   const [scelto, setScelto] = useState<string>(
-    selezionatoId ?? appezzamenti[0]?.id ?? "",
+    selezionatoId ?? plots[0]?.id ?? "",
   );
 
   // CTA "Completa ora" della compliance SIAN (v17): la scheda si apre già
   // puntata sull'appezzamento richiesto (pattern Quaderno/Scouting).
-  const colturaApriAppezzamentoId = useAgroStore(
-    (s) => s.colturaApriAppezzamentoId,
+  const cropOpenPlotId = useAgroStore(
+    (s) => s.cropOpenPlotId,
   );
-  const consumaColturaApri = useAgroStore((s) => s.consumaColturaApri);
+  const consumeCropOpen = useAgroStore((s) => s.consumeCropOpen);
   useEffect(() => {
-    if (colturaApriAppezzamentoId) {
-      setScelto(colturaApriAppezzamentoId);
-      consumaColturaApri();
+    if (cropOpenPlotId) {
+      setScelto(cropOpenPlotId);
+      consumeCropOpen();
     }
-  }, [colturaApriAppezzamentoId, consumaColturaApri]);
+  }, [cropOpenPlotId, consumeCropOpen]);
 
-  const appezzamento = appezzamenti.find((a) => a.id === scelto) ?? null;
-  return { appezzamento, scelto, setScelto, vuoto: appezzamenti.length === 0 };
+  const appezzamento = plots.find((a) => a.id === scelto) ?? null;
+  return { appezzamento, scelto, setScelto, vuoto: plots.length === 0 };
 }
 
 /** Pannello "Dati coltura": inserimento smart della coltura per Campagna. */
@@ -109,13 +109,13 @@ export function ColturaDatiPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** Pannello "CropType · DSS": modelli previsionali su uno o più appezzamenti. */
+/** Pannello "CropType · DSS": modelli previsionali su uno o più plots. */
 export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
+  const plots = useAgroStore((s) => s.plots);
   const crops = useAgroStore((s) => s.crops);
-  const campiCampagna = useAgroStore((s) => s.campiCampagna);
-  const selezionatoId = useAgroStore((s) => s.appezzamentoSelezionatoId);
+  const campaignFields = useAgroStore((s) => s.campaignFields);
+  const selezionatoId = useAgroStore((s) => s.selectedPlotId);
   const { stato, calcola } = useDssCalcolo();
 
   const [sel, setSel] = useState<Set<string>>(
@@ -123,8 +123,8 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
       new Set(
         selezionatoId
           ? [selezionatoId]
-          : appezzamenti[0]
-            ? [appezzamenti[0].id]
+          : plots[0]
+            ? [plots[0].id]
             : [],
       ),
   );
@@ -137,18 +137,18 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
       return next;
     });
 
-  // Target = appezzamenti selezionati con una coltura/modulo DSS risolvibile.
+  // Target = plots selezionati con una coltura/modulo DSS risolvibile.
   const targets = useMemo<DssTarget[]>(() => {
     const out: DssTarget[] = [];
-    for (const a of appezzamenti) {
+    for (const a of plots) {
       if (!sel.has(a.id)) continue;
       const modulo = cropModuleForCrop(
-        cropForPlot(a.id, campiCampagna, crops),
+        cropForPlot(a.id, campaignFields, crops),
       );
       if (modulo) out.push({ appezzamento: a, modulo });
     }
     return out;
-  }, [appezzamenti, sel, campiCampagna, crops]);
+  }, [plots, sel, campaignFields, crops]);
 
   const senzaModulo = [...sel].filter(
     (id) => !targets.some((t) => t.appezzamento.id === id),
@@ -175,20 +175,20 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
       }
     >
       <div className="flex flex-col gap-4">
-        {appezzamenti.length === 0 ? (
+        {plots.length === 0 ? (
           <p className="py-8 text-center text-sm text-[var(--ink-3)]">
             {t("colturaPanel.noPlotAvailable")}
           </p>
         ) : (
           <>
-            {/* Multi-selezione appezzamenti (come la pipeline indici). */}
+            {/* Multi-selezione plots (come la pipeline indici). */}
             <section>
               <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
                 {t("colturaPanel.plotsCount", { count: sel.size })}
               </p>
               <div className="flex max-h-40 flex-col gap-1 overflow-y-auto">
-                {appezzamenti.map((a) => {
-                  const col = cropForPlot(a.id, campiCampagna, crops);
+                {plots.map((a) => {
+                  const col = cropForPlot(a.id, campaignFields, crops);
                   return (
                     <label
                       key={a.id}
@@ -228,7 +228,7 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
             {stato.phase === "completato" && (
               <div className="flex flex-col gap-3">
                 {stato.risultati.map((r) => (
-                  <DssRiskCard key={r.appezzamentoId} risultato={r} />
+                  <DssRiskCard key={r.plotId} risultato={r} />
                 ))}
               </div>
             )}

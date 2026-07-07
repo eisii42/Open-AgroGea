@@ -20,10 +20,10 @@ import {
 } from "./membership-guard";
 import type { TeamRole } from "./subscription-limits";
 
-/** Email dell'utente autenticato (sessione cloud, con ripiego sul profilo). */
+/** Email dell'utente autenticato (sessione cloud, con ripiego sul profile). */
 function getCurrentEmail(): string | null {
   const s = useAgroStore.getState();
-  return s.session?.user?.email ?? s.profilo?.email ?? null;
+  return s.session?.user?.email ?? s.profile?.email ?? null;
 }
 
 /** Membership (non eliminate) di una specifica azienda. */
@@ -74,7 +74,7 @@ export function useInviteDecision(
 export function useCurrentRole(companyId: string | null): TeamRole | null {
   const memberships = useAgroStore((s) => s.memberships);
   const email = useAgroStore(
-    (s) => s.session?.user?.email ?? s.profilo?.email ?? null,
+    (s) => s.session?.user?.email ?? s.profile?.email ?? null,
   );
   return useMemo(
     () => (companyId ? roleInCompany(memberships, companyId, email) : null),
@@ -114,7 +114,7 @@ export async function inviteMember(input: {
     role: input.role,
     memberships,
   });
-  await useAgroStore.getState().salvaMembership({
+  await useAgroStore.getState().saveMembership({
     company_id: input.companyId,
     email: input.email.trim(),
     role: input.role,
@@ -126,7 +126,7 @@ export async function inviteMember(input: {
 
 /** Revoca (libera il posto) una membership: soft-delete sincronizzato. */
 export async function revokeMembership(id: string): Promise<void> {
-  await useAgroStore.getState().eliminaMembership(id);
+  await useAgroStore.getState().deleteMembership(id);
 }
 
 /**

@@ -7,7 +7,7 @@ import {
 } from "../packages/agro-core/src/crop-colors";
 
 describe("crop-colors", () => {
-  it("usa il grigio neutro per appezzamenti senza coltura", () => {
+  it("usa il grigio neutro per plots senza coltura", () => {
     assert.equal(cropColor(null), NO_CROP_COLOR);
     assert.equal(cropColor(""), NO_CROP_COLOR);
     assert.equal(cropColor(undefined), NO_CROP_COLOR);

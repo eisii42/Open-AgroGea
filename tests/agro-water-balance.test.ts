@@ -50,7 +50,7 @@ describe("waterBalanceFao66 — equazione di depletion", () => {
     }
   });
 
-  it("la percolation profonda è > 0 solo quando l'apporto satura il profilo", () => {
+  it("la percolation profonda è > 0 solo quando l'apporto satura il profile", () => {
     // Dr iniziale 5 mm, rain 30 mm, nessuna ETc: 25 mm percolano via.
     const { series } = waterBalanceFao66(SUOLO, [0], [30], [0], 5);
     assert.equal(series[0].percolation, 25);
@@ -139,8 +139,8 @@ describe("apportoIrriguoMm / apportiIrriguiDaTrattamenti", () => {
     assert.equal(apportoIrriguoMm(10_000, 0), 0);
   });
 
-  it("estrae solo i trattamenti di tipo irrigation con volume", () => {
-    const trattamenti = [
+  it("estrae solo i treatments di tipo irrigation con volume", () => {
+    const treatments = [
       {
         operation_type: "irrigation",
         water_volume_l: 20_000,
@@ -157,7 +157,7 @@ describe("apportoIrriguoMm / apportiIrriguiDaTrattamenti", () => {
         executed_at: "2026-06-03T08:00:00Z",
       },
     ] as unknown as TreatmentLog[];
-    const apporti = apportiIrriguiDaTrattamenti(trattamenti, 2);
+    const apporti = apportiIrriguiDaTrattamenti(treatments, 2);
     assert.equal(apporti.length, 1);
     assert.equal(apporti[0].data, "2026-06-01");
     assert.equal(apporti[0].mm, 1); // 20000 / (2 ha · 10000)

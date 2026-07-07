@@ -3,7 +3,7 @@
  * del tenant attivo e ne deriva i cataloghi di stato filtrati.
  *
  *   * {@link useTenantCountry} — paese risolto (anagrafica + cross-check spaziale
- *     sulle geometrie degli appezzamenti) con eventuali warning per la UI.
+ *     sulle geometrie degli plots) con eventuali warning per la UI.
  *   * {@link useCountryCatalog} — voci di catalogo (coltura/fitosanitario/concime/
  *     varietà) del solo paese del tenant, per i dropdown dei form dinamici.
  */
@@ -18,17 +18,17 @@ import { useEffect, useMemo, useState } from "react";
 
 /** Paese risolto del tenant attivo (anagrafica primaria + cross-check coordinate). */
 export function useTenantCountry(): CountryResolution {
-  const aziende = useAgroStore((s) => s.aziende);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
+  const companies = useAgroStore((s) => s.companies);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
+  const plots = useAgroStore((s) => s.plots);
 
   return useMemo(() => {
-    const azienda = aziende.find((a) => a.id === aziendaAttivaId);
+    const azienda = companies.find((a) => a.id === activeCompanyId);
     return resolveCountry({
       addressCountry: azienda?.country ?? null,
-      plots: appezzamenti.map((a) => ({ plotId: a.id, geometria: a.geometry })),
+      plots: plots.map((a) => ({ plotId: a.id, geometria: a.geometry })),
     });
-  }, [aziende, aziendaAttivaId, appezzamenti]);
+  }, [companies, activeCompanyId, plots]);
 }
 
 /**

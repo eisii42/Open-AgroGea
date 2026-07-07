@@ -163,7 +163,7 @@ export class SpatialAnalysisEngine {
    * una colonna `jsonb`) e le registra come tabella DuckDB. Ponte OLTP→OLAP.
    *
    * @param pg          Istanza PGlite del tenant (vedi openTenantDb).
-   * @param source.table       Tabella sorgente (es. `appezzamenti`).
+   * @param source.table       Tabella sorgente (es. `plots`).
    * @param source.geomColumn  Colonna geometria GeoJSON (es. `geometria`).
    * @param source.where       Filtro opzionale (già sanificato dal chiamante).
    */

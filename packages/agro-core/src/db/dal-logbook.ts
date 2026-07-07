@@ -23,11 +23,11 @@ const ETICHETTE_OPERAZIONE: Record<string, string> = {
 };
 
 /**
- * Strato "registrazioni di campo" del DAL: Quaderno di Campagna (trattamenti),
- * raccolte, campionamenti suolo, rilievi scouting e asset infrastrutturali.
+ * Strato "registrazioni di campo" del DAL: Quaderno di Campagna (treatments),
+ * harvests, soilSamples suolo, rilievi scouting e asset infrastrutturali.
  */
 export class AgroDalLogbook extends AgroDalRegistry {
-  // -- registro trattamenti (Quaderno di Campagna) ---------------------------
+  // -- registro treatments (Quaderno di Campagna) ---------------------------
 
   async insertTrattamento(
     input: Omit<
@@ -61,13 +61,13 @@ export class AgroDalLogbook extends AgroDalRegistry {
   }
 
   async listTrattamenti(
-    aziendaId: string,
-    options: { appezzamentoId?: string; limit?: number } = {},
+    companyId: string,
+    options: { plotId?: string; limit?: number } = {},
   ): Promise<TreatmentLog[]> {
     const conditions = ["company_id = $1", "deleted_at is null"];
-    const params: unknown[] = [aziendaId];
-    if (options.appezzamentoId) {
-      params.push(options.appezzamentoId);
+    const params: unknown[] = [companyId];
+    if (options.plotId) {
+      params.push(options.plotId);
       conditions.push(`plot_id = $${params.length}`);
     }
     params.push(options.limit ?? 200);
@@ -86,22 +86,22 @@ export class AgroDalLogbook extends AgroDalRegistry {
    * dettaglio: la più recente per `executed_at`, con etichetta pronta
    * "[Operazione] - [Data]". Null se l'appezzamento non ha registrazioni.
    */
-  async ultimaOperazione(
-    appezzamentoId: string,
+  async lastOperation(
+    plotId: string,
   ): Promise<LastOperation | null> {
     const result = await this.db.query<TreatmentLog>(
       `select * from treatment_logs
        where plot_id = $1 and deleted_at is null
        order by executed_at desc
        limit 1`,
-      [appezzamentoId],
+      [plotId],
     );
     const t = result.rows[0];
     if (!t) return null;
     const nomeOp = ETICHETTE_OPERAZIONE[t.operation_type] ?? t.operation_type;
     const data = new Date(t.executed_at).toLocaleDateString("it-IT");
     return {
-      plot_id: appezzamentoId,
+      plot_id: plotId,
       operation_type: t.operation_type,
       executed_at: t.executed_at,
       product_name: t.product_name,
@@ -109,7 +109,7 @@ export class AgroDalLogbook extends AgroDalRegistry {
     };
   }
 
-  // -- campionamenti suolo (Modulo 1) ----------------------------------------
+  // -- soilSamples suolo (Modulo 1) ----------------------------------------
 
   async upsertCampionamento(
     input: Omit<
@@ -137,12 +137,12 @@ export class AgroDalLogbook extends AgroDalRegistry {
     await this.softDelete("soil_samples", id);
   }
 
-  async listCampionamenti(aziendaId: string): Promise<SoilSample[]> {
+  async listCampionamenti(companyId: string): Promise<SoilSample[]> {
     const result = await this.db.query<SoilSample>(
       `select * from soil_samples
        where company_id = $1 and deleted_at is null
        order by sampled_at desc`,
-      [aziendaId],
+      [companyId],
     );
     return result.rows;
   }
@@ -177,13 +177,13 @@ export class AgroDalLogbook extends AgroDalRegistry {
   }
 
   async listRaccolte(
-    aziendaId: string,
-    options: { appezzamentoId?: string; limit?: number } = {},
+    companyId: string,
+    options: { plotId?: string; limit?: number } = {},
   ): Promise<Harvest[]> {
     const conditions = ["company_id = $1", "deleted_at is null"];
-    const params: unknown[] = [aziendaId];
-    if (options.appezzamentoId) {
-      params.push(options.appezzamentoId);
+    const params: unknown[] = [companyId];
+    if (options.plotId) {
+      params.push(options.plotId);
       conditions.push(`plot_id = $${params.length}`);
     }
     params.push(options.limit ?? 1000);
@@ -227,11 +227,11 @@ export class AgroDalLogbook extends AgroDalRegistry {
   }
 
   async listAssets(
-    aziendaId: string,
+    companyId: string,
     options: { categoria?: "fixed" | "mobile" } = {},
   ): Promise<InfrastructureAsset[]> {
     const conditions = ["company_id = $1", "deleted_at is null"];
-    const params: unknown[] = [aziendaId];
+    const params: unknown[] = [companyId];
     if (options.categoria) {
       params.push(options.categoria);
       conditions.push(`category = $${params.length}`);

@@ -54,8 +54,8 @@ export function useFullRecalc(onDone?: () => void) {
 
   const run = useCallback(async () => {
     if (runningRef.current) return;
-    const { appezzamenti, crops, campiCampagna } = useAgroStore.getState();
-    const plots = appezzamenti.filter((a) => a.deleted_at == null);
+    const { plots: allPlots, crops, campaignFields } = useAgroStore.getState();
+    const plots = allPlots.filter((a) => a.deleted_at == null);
     if (plots.length === 0) return;
 
     runningRef.current = true;
@@ -78,7 +78,7 @@ export function useFullRecalc(onDone?: () => void) {
 
       // 2) DSS patologici + bilancio idrico (solo se la coltura ha un modulo).
       const modulo = cropModuleForCrop(
-        cropForPlot(plot.id, campiCampagna, crops),
+        cropForPlot(plot.id, campaignFields, crops),
       );
       if (modulo) {
         setState((s) => ({

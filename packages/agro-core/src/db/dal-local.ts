@@ -81,11 +81,11 @@ export class AgroDalLocal extends AgroDalWarehouse {
   }
 
   async listLettureMeteo(
-    aziendaId: string,
+    companyId: string,
     options: { stazioneId?: string; dopo?: string; limit?: number } = {},
   ): Promise<WeatherReading[]> {
     const conditions = ["company_id = $1", "deleted_at is null"];
-    const params: unknown[] = [aziendaId];
+    const params: unknown[] = [companyId];
     if (options.stazioneId) {
       params.push(options.stazioneId);
       conditions.push(`station_id = $${params.length}`);
@@ -109,11 +109,11 @@ export class AgroDalLocal extends AgroDalWarehouse {
    * Timestamp della lettura meteo più vecchia dell'azienda (ISO), o null. Usato
    * dal backfill storico per evitare richieste ridondanti all'Archive API.
    */
-  async minRilevatoMeteo(aziendaId: string): Promise<string | null> {
+  async minRilevatoMeteo(companyId: string): Promise<string | null> {
     const result = await this.db.query<{ m: string | null }>(
       `select min(measured_at) as m from weather_readings
        where company_id = $1 and deleted_at is null`,
-      [aziendaId],
+      [companyId],
     );
     const m = result.rows[0]?.m ?? null;
     return m ? new Date(m).toISOString() : null;
@@ -121,10 +121,10 @@ export class AgroDalLocal extends AgroDalWarehouse {
 
   // -- config meteo azienda (Modulo Meteo, local-only) -----------------------
 
-  async getConfigMeteo(aziendaId: string): Promise<CompanyWeatherConfig | null> {
+  async getConfigMeteo(companyId: string): Promise<CompanyWeatherConfig | null> {
     const result = await this.db.query<CompanyWeatherConfig>(
       `select * from weather_config where company_id = $1`,
-      [aziendaId],
+      [companyId],
     );
     return result.rows[0] ?? null;
   }
@@ -192,11 +192,11 @@ export class AgroDalLocal extends AgroDalWarehouse {
   }
 
   /** Aggiorna SOLO il lucchetto orario dopo un pull meteo riuscito. */
-  async touchWeatherPull(aziendaId: string, quando: string): Promise<void> {
-    const corrente = await this.getConfigMeteo(aziendaId);
+  async touchWeatherPull(companyId: string, quando: string): Promise<void> {
+    const corrente = await this.getConfigMeteo(companyId);
     if (!corrente) {
       await this.upsertConfigMeteo({
-        company_id: aziendaId,
+        company_id: companyId,
         last_weather_pull_at: quando,
       });
       return;
@@ -205,7 +205,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
       `update weather_config
        set last_weather_pull_at = $2, updated_at = $2
        where company_id = $1`,
-      [aziendaId, quando],
+      [companyId, quando],
     );
   }
 
@@ -216,7 +216,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
    * appezzamento: semantica "ultimo valore per modello".
    */
   async salvaDssRisultati(
-    appezzamentoId: string,
+    plotId: string,
     risultati: Array<
       Pick<DssResult, "model_name" | "risk_level" | "output_value"> & {
         calculated_at?: string;
@@ -226,7 +226,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
     const ts = nowIso();
     const righe: DssResult[] = risultati.map((r) => ({
       id: uuidv4(),
-      plot_id: appezzamentoId,
+      plot_id: plotId,
       model_name: r.model_name,
       risk_level: r.risk_level,
       output_value: r.output_value,
@@ -238,7 +238,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
         await tx.query(
           `delete from dss_results
            where plot_id = $1 and model_name = any($2::text[])`,
-          [appezzamentoId, modelli],
+          [plotId, modelli],
         );
       }
       for (const r of righe) {
@@ -261,7 +261,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
   }
 
   async listDssRisultati(
-    appezzamentoId: string,
+    plotId: string,
     options: { limit?: number } = {},
   ): Promise<DssResult[]> {
     const result = await this.db.query<DssResult>(
@@ -269,7 +269,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
        where plot_id = $1
        order by calculated_at desc
        limit $2`,
-      [appezzamentoId, options.limit ?? 200],
+      [plotId, options.limit ?? 200],
     );
     return result.rows;
   }

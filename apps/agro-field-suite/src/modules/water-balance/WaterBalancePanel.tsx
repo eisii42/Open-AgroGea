@@ -47,7 +47,7 @@ import { downloadArtifact } from "../../services/gis/geo-export";
 /**
  * Pannello "Acqua · Bilancio idrico" (Modulo 1, FAO 56/66), ora MULTI-APPEZZAMENTO
  * (come la pipeline indici). Esegue in locale il bilancio idrico sull'ultimo meteo
- * di PGlite per gli appezzamenti scelti e ne mostra, per ciascuno, la depletion
+ * di PGlite per gli plots scelti e ne mostra, per ciascuno, la depletion
  * radicale Dr day per day (con la soglia RAW), l'autonomia residua e lo
  * stato di stress. Compone gli engine puri via {@link useDssCalcolo}; la series
  * giornaliera è persistita in `soil_water_indices` quando il campo ha una campagna
@@ -117,19 +117,19 @@ function serieAStoricoUmidita(
 
 export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
+  const plots = useAgroStore((s) => s.plots);
   const crops = useAgroStore((s) => s.crops);
-  const campiCampagna = useAgroStore((s) => s.campiCampagna);
-  const selezionatoId = useAgroStore((s) => s.appezzamentoSelezionatoId);
-  const registraTrasferimento = useAgroStore((s) => s.registraTrasferimento);
+  const campaignFields = useAgroStore((s) => s.campaignFields);
+  const selezionatoId = useAgroStore((s) => s.selectedPlotId);
+  const recordTransfer = useAgroStore((s) => s.recordTransfer);
 
   const [sel, setSel] = useState<Set<string>>(
     () =>
       new Set(
         selezionatoId
           ? [selezionatoId]
-          : appezzamenti[0]
-            ? [appezzamenti[0].id]
+          : plots[0]
+            ? [plots[0].id]
             : [],
       ),
   );
@@ -157,18 +157,18 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
       | FeatureCollection
       | undefined) ?? null;
 
-  // Target = appezzamenti selezionati con coltura/modulo (serve il Kc per l'ETc).
+  // Target = plots selezionati con coltura/modulo (serve il Kc per l'ETc).
   const targets = useMemo<DssTarget[]>(() => {
     const out: DssTarget[] = [];
-    for (const a of appezzamenti) {
+    for (const a of plots) {
       if (!sel.has(a.id)) continue;
       const modulo = cropModuleForCrop(
-        cropForPlot(a.id, campiCampagna, crops),
+        cropForPlot(a.id, campaignFields, crops),
       );
       if (modulo) out.push({ appezzamento: a, modulo });
     }
     return out;
-  }, [appezzamenti, sel, campiCampagna, crops]);
+  }, [plots, sel, campaignFields, crops]);
 
   const senzaModulo = [...sel].filter(
     (id) => !targets.some((t) => t.appezzamento.id === id),
@@ -177,7 +177,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
   const completato = stato.phase === "completato";
 
   const esporta = async (r: DssPlotResult, formato: MoistureHistoryFormat) => {
-    const appezzamento = appezzamenti.find((a) => a.id === r.appezzamentoId);
+    const appezzamento = plots.find((a) => a.id === r.plotId);
     if (!appezzamento || r.bilancioSerie.length === 0) return;
     setEsportando(true);
     try {
@@ -190,7 +190,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
         "_",
       );
       downloadArtifact(serializeMoistureHistory(fc, formato, base));
-      await registraTrasferimento({
+      await recordTransfer({
         operation_type: "export",
         file_format: formato,
         file_name: `${base}.${formato === "shapefile" ? "zip" : formato}`,
@@ -201,15 +201,15 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
   };
 
   // Overlay coropletico del risk sintetico (stress idrico + NDVI) per campo,
-  // aggregato su TUTTI gli appezzamenti calcolati.
+  // aggregato su TUTTI gli plots calcolati.
   const overlayAppezzamenti = useMemo(
     () =>
       completato
         ? stato.risultati
-            .map((r) => appezzamenti.find((a) => a.id === r.appezzamentoId))
+            .map((r) => plots.find((a) => a.id === r.plotId))
             .filter((a): a is Plot => a != null)
         : [],
-    [completato, stato.risultati, appezzamenti],
+    [completato, stato.risultati, plots],
   );
 
   const sintesiPerCampo = useMemo(() => {
@@ -217,7 +217,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
     if (!completato) return m;
     for (const r of stato.risultati) {
       if (!r.bilancio) continue;
-      const appz = appezzamenti.find((a) => a.id === r.appezzamentoId);
+      const appz = plots.find((a) => a.id === r.plotId);
       const idrico = r.vettori.find((v) => v.categoria === "idrico");
       const patologico = r.vettori
         .filter((v) => v.categoria === "fitopatologico")
@@ -230,13 +230,13 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
         },
         summaryCalibration(r.modulo.mainSpecies, "piena"),
       );
-      m.set(r.appezzamentoId, { rischio01: score });
+      m.set(r.plotId, { rischio01: score });
     }
     return m;
-  }, [completato, stato.risultati, appezzamenti]);
+  }, [completato, stato.risultati, plots]);
 
   useDssOverlayLayer({
-    appezzamenti: overlayAppezzamenti,
+    plots: overlayAppezzamenti,
     sintesiPerCampo,
     coltura: stato.risultati[0]?.modulo.mainSpecies ?? "vite",
     attivo: mostraOverlay && completato,
@@ -262,20 +262,20 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
       }
     >
       <div className="flex flex-col gap-4">
-        {appezzamenti.length === 0 ? (
+        {plots.length === 0 ? (
           <p className="py-8 text-center text-sm text-[var(--ink-3)]">
             {t("bilancioIdricoPanel.noPlots")}
           </p>
         ) : (
           <>
-            {/* Multi-selezione appezzamenti. */}
+            {/* Multi-selezione plots. */}
             <section>
               <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
                 {t("bilancioIdricoPanel.plotsCount", { count: sel.size })}
               </p>
               <div className="flex max-h-40 flex-col gap-1 overflow-y-auto">
-                {appezzamenti.map((a) => {
-                  const col = cropForPlot(a.id, campiCampagna, crops);
+                {plots.map((a) => {
+                  const col = cropForPlot(a.id, campaignFields, crops);
                   return (
                     <label
                       key={a.id}
@@ -358,7 +358,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
                 <div className="flex flex-col gap-3">
                   {stato.risultati.map((r) => (
                     <WaterResultCard
-                      key={r.appezzamentoId}
+                      key={r.plotId}
                       risultato={r}
                       esportando={esportando}
                       onExport={(f) => void esporta(r, f)}
@@ -403,7 +403,7 @@ function WaterResultCard({
   );
 
   // Totale irrigato nel periodo (mm): rende ESPLICITO che il bilancio conteggia
-  // gli apporti irrigui, anche quando — a profilo umido — percolano senza ridurre Dr.
+  // gli apporti irrigui, anche quando — a profile umido — percolano senza ridurre Dr.
   const irrigazioneTotale = useMemo(
     () => bilancioSerie.reduce((s, g) => s + (g.irrigation ?? 0), 0),
     [bilancioSerie],

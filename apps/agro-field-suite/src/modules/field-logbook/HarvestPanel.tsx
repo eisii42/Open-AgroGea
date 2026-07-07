@@ -16,7 +16,7 @@ import { HarvestDetailCard } from "./HarvestDetailCard";
 
 /**
  * Modulo Harvest: lista degli eventi di raccolta + form di registrazione. Ogni
- * insert passa da `salvaRaccolta` (PGlite + outbox nella stessa transazione) e
+ * insert passa da `saveHarvest` (PGlite + outbox nella stessa transazione) e
  * idrata lo store; il layer "Raccolte" e i grafici della tabella attributi
  * (Barre: somma/media di `quantita_kg` per `cultivar`/`destinazione`) si
  * aggiornano di conseguenza.
@@ -44,16 +44,16 @@ function oggiInputDate(): string {
 
 export function HarvestPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
-  const raccolte = useAgroStore((s) => s.raccolte);
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
-  const campiCampagna = useAgroStore((s) => s.campiCampagna);
+  const harvests = useAgroStore((s) => s.harvests);
+  const plots = useAgroStore((s) => s.plots);
+  const campaignFields = useAgroStore((s) => s.campaignFields);
   const crops = useAgroStore((s) => s.crops);
-  const campagnaAttiva = useAgroStore((s) => s.campagnaAttiva);
-  const salvaRaccolta = useAgroStore((s) => s.salvaRaccolta);
-  const eliminaRaccolta = useAgroStore((s) => s.eliminaRaccolta);
-  const chiudiCampagna = useAgroStore((s) => s.chiudiCampagna);
-  const apriColturaPerAppezzamento = useAgroStore(
-    (s) => s.apriColturaPerAppezzamento,
+  const activeCampaign = useAgroStore((s) => s.activeCampaign);
+  const saveHarvest = useAgroStore((s) => s.saveHarvest);
+  const deleteHarvest = useAgroStore((s) => s.deleteHarvest);
+  const closeCampaign = useAgroStore((s) => s.closeCampaign);
+  const openCropForPlot = useAgroStore(
+    (s) => s.openCropForPlot,
   );
   const sync = useAgroStore((s) => s.sync);
   // Compliance dichiarativa: il paese risolto sceglie il sistema (IT → SIAN,
@@ -83,14 +83,14 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
   const campoAperto = useMemo(
     () =>
       appId
-        ? campiCampagna.find(
+        ? campaignFields.find(
             (c) =>
               c.plot_id === appId &&
               c.deleted_at == null &&
               c.closed_at == null,
           ) ?? null
         : null,
-    [campiCampagna, appId],
+    [campaignFields, appId],
   );
   const cropCampo = useMemo(
     () =>
@@ -144,7 +144,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
   const plotsSianIncompleti = useMemo(() => {
     const out = new Set<string>();
     if (!sistema) return out;
-    for (const c of campiCampagna) {
+    for (const c of campaignFields) {
       if (
         c.deleted_at == null &&
         c.closed_at == null &&
@@ -154,7 +154,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
       }
     }
     return out;
-  }, [sistema, countryCode, campiCampagna]);
+  }, [sistema, countryCode, campaignFields]);
 
   function resetForm() {
     setAppId("");
@@ -180,7 +180,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
   async function confermaEliminazione() {
     if (!daEliminare) return;
     const etichetta = etichettaRaccolta(daEliminare);
-    await eliminaRaccolta(daEliminare.id);
+    await deleteHarvest(daEliminare.id);
     setDaEliminare(null);
     setNotifica(t("raccoltaPanel.removedNotice", { label: etichetta }));
   }
@@ -189,7 +189,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
     if (!canSubmit) return;
     setSaving(true);
     try {
-      await salvaRaccolta({
+      await saveHarvest({
         plot_id: appId || null,
         // Aggancio alla campagna APERTA del campo (le chiuse sono storia).
         plot_campaign_id: campoAperto?.id ?? null,
@@ -205,7 +205,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
       // v17: il raccolto di un'annuale chiude il ciclo colturale — il campo
       // torna libero (mappa neutra, DSS spento, nuova semina possibile).
       if (chiudi && campoAperto) {
-        await chiudiCampagna(campoAperto.id);
+        await closeCampaign(campoAperto.id);
       }
       resetForm();
       setShowForm(false);
@@ -250,7 +250,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
               onChange={(e) => setAppId(e.target.value)}
             >
               <option value="">{t("logbook.common.wholeFarm")}</option>
-              {appezzamenti.map((a) => (
+              {plots.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.user_plot_name}
                   {plotsSianIncompleti.has(a.id) ? ` · ${sistema} ✗` : ""}
@@ -276,7 +276,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
                 type="button"
                 variant="outline"
                 className="min-h-[36px] self-start px-2 text-xs"
-                onClick={() => apriColturaPerAppezzamento(appId)}
+                onClick={() => openCropForPlot(appId)}
               >
                 {t("raccoltaPanel.sianCompleteNow")}
               </Button>
@@ -375,7 +375,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
                     crop: cropCampo.variety_name
                       ? `${cropCampo.common_name} (${cropCampo.variety_name})`
                       : cropCampo.common_name,
-                    year: campagnaAttiva,
+                    year: activeCampaign,
                   })}
                 </span>
                 <span className="block text-[11px] text-[var(--ink-3)]">
@@ -407,14 +407,14 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
             </Button>
           </div>
         </div>
-      ) : raccolte.length === 0 ? (
+      ) : harvests.length === 0 ? (
         <p className="py-8 text-center text-sm text-[var(--ink-3)]">
           {t("raccoltaPanel.emptyState")}
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {raccolte.map((r) => {
-            const appezzamento = appezzamenti.find(
+          {harvests.map((r) => {
+            const appezzamento = plots.find(
               (a) => a.id === r.plot_id,
             );
             return (
@@ -489,7 +489,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
         <HarvestDetailCard
           raccolta={dettaglio}
           appezzamentoNome={
-            appezzamenti.find((a) => a.id === dettaglio.plot_id)?.user_plot_name ??
+            plots.find((a) => a.id === dettaglio.plot_id)?.user_plot_name ??
             null
           }
           onClose={() => setDettaglio(null)}

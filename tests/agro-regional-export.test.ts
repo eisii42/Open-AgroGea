@@ -89,9 +89,9 @@ function tratt(plotId: string): TreatmentLog {
 }
 
 const input: RegionalExportInput = {
-  trattamenti: [tratt("p1")],
-  appezzamenti: [plot("p1", "Vigna Alta")],
-  campiCampagna: [campaign("p1")],
+  treatments: [tratt("p1")],
+  plots: [plot("p1", "Vigna Alta")],
+  campaignFields: [campaign("p1")],
   aziendaName: "Tenuta Demo",
 };
 

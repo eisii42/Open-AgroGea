@@ -17,7 +17,7 @@ import type { TenantClaims } from "./types";
 /**
  * Tenant locale fisso dell'edizione standalone. UUID v4 statico e riservato:
  * identifica l'unica istanza PGlite locale del dispositivo. Coincide con l'`id`
- * del profilo sintetico ({@link localTenantClaims}).
+ * del profile sintetico ({@link localTenantClaims}).
  */
 export const LOCAL_TENANT_ID = "00000000-0000-4000-8000-000000000001";
 
@@ -39,7 +39,7 @@ export function localTenantClaims(): TenantClaims {
 
 /**
  * Company di default creata al primo avvio standalone, così la dashboard ha un
- * `aziendaAttivaId` valido (chiave di filtro PGlite dei moduli agronomici)
+ * `activeCompanyId` valido (chiave di filtro PGlite dei moduli agronomici)
  * senza passare dalla schermata di selezione workspace.
  */
 export const LOCAL_COMPANY_DEFAULT: NewCompanyInput = {

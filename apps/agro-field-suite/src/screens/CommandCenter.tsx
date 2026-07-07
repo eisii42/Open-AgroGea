@@ -45,32 +45,32 @@ type CommandCenterPage = "crops" | "company";
  * Data Command Center (`/command-center`): centro nevralgico dell'analisi dati,
  * disaccoppiato dalla vista mappa (la mappa MapLibre è smontata dall'App quando
  * questa vista è attiva, liberando risorse hardware). Diviso in DUE pagine:
- *   * «Colture e appezzamenti» — l'analisi agronomica: filtri gerarchici
- *     (annata → coltura → appezzamenti), griglia KPI configurabile, dashboard
+ *   * «Colture e plots» — l'analisi agronomica: filtri gerarchici
+ *     (annata → coltura → plots), griglia KPI configurabile, dashboard
  *     editabile, calendario operativo e Raw Data Inspector con cross-filtering;
  *   * «Company» — l'andamento generale: superficie/operazioni/raccolto
- *     dell'annata, stato del Magazzino (valore giacenze a CUMP, lotti scaduti e
- *     in scadenza), costo prodotti imputato per campo e backup/ripristino.
+ *     dell'annata, stato del Magazzino (valore giacenze a CUMP, lots scaduti e
+ *     in scadenza), costo products imputato per campo e backup/ripristino.
  * Il contesto aziendale vive nello store e sopravvive allo switch di vista.
  */
 export function CommandCenter() {
   const { t } = useTranslation();
-  const aziende = useAgroStore((s) => s.aziende);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
+  const companies = useAgroStore((s) => s.companies);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
+  const plots = useAgroStore((s) => s.plots);
   const crops = useAgroStore((s) => s.crops);
-  const trattamenti = useAgroStore((s) => s.trattamenti);
-  const raccolte = useAgroStore((s) => s.raccolte);
-  const campagnaAttiva = useAgroStore((s) => s.campagnaAttiva);
-  const registraTrasferimento = useAgroStore((s) => s.registraTrasferimento);
+  const treatments = useAgroStore((s) => s.treatments);
+  const harvests = useAgroStore((s) => s.harvests);
+  const activeCampaign = useAgroStore((s) => s.activeCampaign);
+  const recordTransfer = useAgroStore((s) => s.recordTransfer);
 
   // Sola lettura (Modulo 4): un VIEWER non può lanciare i ricalcoli che mutano
   // il database (DSS, indici, bilancio idrico). L'export resta consentito.
-  const readOnly = useReadOnly(aziendaAttivaId);
+  const readOnly = useReadOnly(activeCompanyId);
 
   // Pagina attiva: analisi colturale (default) o andamento generale azienda.
   const [page, setPage] = useState<CommandCenterPage>("crops");
-  const [campaignYear, setCampaignYear] = useState(campagnaAttiva);
+  const [campaignYear, setCampaignYear] = useState(activeCampaign);
   const [cropId, setCropId] = useState<string | null>(null);
   const [selectedPlotIds, setSelectedPlotIds] = useState<string[]>([]);
   const [params, setParams] = useState<KpiParams>(() => loadKpiParams());
@@ -120,7 +120,7 @@ export function CommandCenter() {
   // Appezzamenti selezionabili nel filtro multi-plot (entro lo scope base).
   const plotOptions = useMemo(
     () =>
-      appezzamenti
+      plots
         .filter(
           (a) =>
             a.deleted_at == null &&
@@ -128,7 +128,7 @@ export function CommandCenter() {
         )
         .map((a) => ({ id: a.id, name: a.user_plot_name }))
         .sort((a, b) => a.name.localeCompare(b.name)),
-    [appezzamenti, scopePlotIds],
+    [plots, scopePlotIds],
   );
 
   // Scope EFFETTIVO per calendario e KPI: il filtro multi-plot vince sullo scope
@@ -144,58 +144,58 @@ export function CommandCenter() {
 
   const scopedTrattamenti = useMemo(
     () =>
-      trattamenti.filter(
+      treatments.filter(
         (t) =>
           t.deleted_at == null &&
           inEffective(t.plot_id) &&
           new Date(t.executed_at).getUTCFullYear() === campaignYear,
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [trattamenti, effectivePlotIds, campaignYear],
+    [treatments, effectivePlotIds, campaignYear],
   );
   const scopedRaccolte = useMemo(
     () =>
-      raccolte.filter(
+      harvests.filter(
         (r) =>
           r.deleted_at == null &&
           inEffective(r.plot_id) &&
           new Date(r.harvested_at).getUTCFullYear() === campaignYear,
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [raccolte, effectivePlotIds, campaignYear],
+    [harvests, effectivePlotIds, campaignYear],
   );
 
-  // Operazioni/raccolte ristrette ai SOLI appezzamenti (tutte le annate): è il
+  // Operazioni/harvests ristrette ai SOLI plots (tutte le annate): è il
   // filtro temporale della dashboard a scegliere il periodo, non l'annata KPI.
   const plotTrattamenti = useMemo(
-    () => trattamenti.filter((t) => t.deleted_at == null && inEffective(t.plot_id)),
+    () => treatments.filter((t) => t.deleted_at == null && inEffective(t.plot_id)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [trattamenti, effectivePlotIds],
+    [treatments, effectivePlotIds],
   );
   const plotRaccolte = useMemo(
-    () => raccolte.filter((r) => r.deleted_at == null && inEffective(r.plot_id)),
+    () => harvests.filter((r) => r.deleted_at == null && inEffective(r.plot_id)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [raccolte, effectivePlotIds],
+    [harvests, effectivePlotIds],
   );
 
   // Bundle per i grafici della dashboard editabile: scopato per APPEZZAMENTO (non
   // per annata) — il filtro temporale del componente sceglie il periodo.
   const dashboardData = useMemo<DashboardData>(
     () => ({
-      appezzamenti: appezzamenti.filter(
+      plots: plots.filter(
         (a) => a.deleted_at == null && inEffective(a.id),
       ),
       crops,
       campaigns: data.allCampaigns.filter((c) => c.deleted_at == null),
-      trattamenti: plotTrattamenti,
-      raccolte: plotRaccolte,
+      treatments: plotTrattamenti,
+      harvests: plotRaccolte,
       soilIndices: data.soilIndices,
       weather: data.weather,
       dssRisultati: data.dssRisultati,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      appezzamenti,
+      plots,
       crops,
       data.allCampaigns,
       data.soilIndices,
@@ -208,15 +208,15 @@ export function CommandCenter() {
   );
 
   const companyName =
-    aziende.find((a) => a.id === aziendaAttivaId)?.business_name ??
+    companies.find((a) => a.id === activeCompanyId)?.business_name ??
     t("commandCenter.company");
 
   const onExport = () => {
     if (!data.result) return;
     const csv = buildExecutiveReportCsv({
       result: data.result,
-      trattamenti: scopedTrattamenti,
-      raccolte: scopedRaccolte,
+      treatments: scopedTrattamenti,
+      harvests: scopedRaccolte,
       companyName,
     });
     const filename = executiveReportFilename(companyName, campaignYear);
@@ -225,7 +225,7 @@ export function CommandCenter() {
       blobPart: csv,
       mime: "text/csv;charset=utf-8",
     });
-    void registraTrasferimento({
+    void recordTransfer({
       operation_type: "export",
       file_format: "csv",
       file_name: filename,
@@ -442,10 +442,10 @@ export function CommandCenter() {
 
             {/* Dashboard aziendale editabile: grafici riordinabili/eliminabili
                 e creabili da qualsiasi sorgente dati. */}
-            {aziendaAttivaId && (
+            {activeCompanyId && (
               <CustomDashboard
                 data={dashboardData}
-                companyId={aziendaAttivaId}
+                companyId={activeCompanyId}
                 campaignYear={campaignYear}
               />
             )}
@@ -454,8 +454,8 @@ export function CommandCenter() {
               <OperationsCalendar
                 campaignYear={campaignYear}
                 plotIds={effectivePlotIds}
-                trattamenti={trattamenti}
-                raccolte={raccolte}
+                treatments={treatments}
+                harvests={harvests}
                 dssRisultati={data.dssRisultati}
               />
               <RawDataInspector

@@ -46,9 +46,9 @@ function scarica(nome: string, contenuto: BlobPart, mime: string) {
 export function PrintComposer({ onClose, mapControllerRef }: Props) {
   const { t } = useTranslation();
   const layers = useAppStore((s) => s.layers);
-  const aziende = useAgroStore((s) => s.aziende);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
-  const azienda = aziende.find((a) => a.id === aziendaAttivaId);
+  const companies = useAgroStore((s) => s.companies);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
+  const azienda = companies.find((a) => a.id === activeCompanyId);
 
   const [titolo, setTitolo] = useState(
     `${azienda?.business_name ?? "AgroGea"} · ${new Date().toLocaleDateString("it-IT")}`,

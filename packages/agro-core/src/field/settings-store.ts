@@ -44,11 +44,11 @@ export interface SettingsState {
   resetLayout: () => void;
   setUnits: (patch: Partial<UnitSystem>) => void;
   /**
-   * Idrata le preferenze dal profilo remoto (al login), se presenti: il control
+   * Idrata le preferenze dal profile remoto (al login), se presenti: il control
    * plane vince per garantire la coerenza cross-device. Persiste anche in
    * localStorage così l'avvio offline successivo parte già allineato.
    */
-  hydrateFromProfile: (profilo: UserProfile | null) => void;
+  hydrateFromProfile: (profile: UserProfile | null) => void;
   /** Forza la sincronizzazione remota immediata (annulla il debounce). */
   flushRemote: () => Promise<void>;
 }
@@ -108,15 +108,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
       scheduleRemotePush();
     },
 
-    hydrateFromProfile: (profilo) => {
-      if (!profilo) return;
+    hydrateFromProfile: (profile) => {
+      if (!profile) return;
       const updates: Partial<SettingsState> = {};
-      if (profilo.dashboard_layout_config) {
-        const merged = mergeDashboardLayout(profilo.dashboard_layout_config);
+      if (profile.dashboard_layout_config) {
+        const merged = mergeDashboardLayout(profile.dashboard_layout_config);
         persistDashboardLayout(merged);
         updates.dashboardLayout = merged;
       }
-      const remoteUnits = profilo.preferences?.units;
+      const remoteUnits = profile.preferences?.units;
       if (remoteUnits) {
         const units: UnitSystem = {
           area: remoteUnits.area ?? DEFAULT_UNITS.area,

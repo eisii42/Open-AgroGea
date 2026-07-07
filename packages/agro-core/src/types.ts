@@ -25,7 +25,7 @@ export type StorageConfig =
   | {
       tipo: "on_premise";
       /**
-       * Identificatore del profilo di connessione PostgreSQL privato del
+       * Identificatore del profile di connessione PostgreSQL privato del
        * cliente. La stringa di connessione vera non transita mai nel JS: vive
        * nello store cifrato di Tauri ed è risolta dal comando Rust
        * `agro_push_mutations` a partire da questo id.
@@ -64,9 +64,9 @@ export interface TenantClaims {
 export type LicenseStatus = "active" | "inactive";
 
 /**
- * Piano licenza: governa quote di aziende e posti collaboratore (lineup unico a
- * 3 livelli: `base` single-user/1 azienda, `standard` 5 aziende+team, `plus`
- * aziende illimitate+team ampio). I codici legacy (`free`/`flat_3`/`enterprise`)
+ * Piano licenza: governa quote di companies e posti collaboratore (lineup unico a
+ * 3 livelli: `base` single-user/1 azienda, `standard` 5 companies+team, `plus`
+ * companies illimitate+team ampio). I codici legacy (`free`/`flat_3`/`enterprise`)
  * restano accettati a runtime e ricondotti dal client (`normalizePlan`).
  */
 export type LicensePlan = "base" | "standard" | "plus" | (string & {});
@@ -541,7 +541,7 @@ export interface CatalogEntry {
 }
 
 // ---------------------------------------------------------------------------
-// Magazzino (0.2.0): anagrafica prodotti, lotti, scarichi per attività
+// Magazzino (0.2.0): anagrafica products, lots, scarichi per attività
 // ---------------------------------------------------------------------------
 
 /**
@@ -651,7 +651,7 @@ export interface IssueRequest {
   quantity: number;
 }
 
-/** Costo vivo dei prodotti imputato a un campo (aggregato per il bilancio 0.4.0). */
+/** Costo vivo dei products imputato a un campo (aggregato per il bilancio 0.4.0). */
 export interface FieldProductCost {
   /** Plot trattato; null = operazioni "intera azienda". */
   plot_id: string | null;
@@ -774,7 +774,7 @@ export type FieldPanel =
   | "anagrafica"
   | "impostazioni"
   | "geocompliance"
-  | "profilo"
+  | "profile"
   | "scouting";
 
 /** Rilievo GPS in campo, sincronizzato via outbox come le altre tabelle. */
@@ -832,7 +832,7 @@ export type PlotsFeatureCollection = FeatureCollection<
 >;
 
 /**
- * Layer delle raccolte: punti (o feature senza geometria) le cui properties
+ * Layer delle harvests: punti (o feature senza geometria) le cui properties
  * alimentano i grafici del Modulo Harvest nella tabella attributi.
  */
 export type HarvestsFeatureCollection = FeatureCollection<

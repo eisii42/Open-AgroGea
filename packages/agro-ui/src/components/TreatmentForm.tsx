@@ -25,7 +25,7 @@ const TREATMENT_FIELD_KEY: Record<string, string> = {
 
 /**
  * Form di registrazione del Quaderno di Campagna (Design.md → QDCForm), allineato
- * agli obblighi PAN/SIAN per i trattamenti fitosanitari:
+ * agli obblighi PAN/SIAN per i treatments fitosanitari:
  *   * selettore del campo per Campagna Agraria (nome utente + codice coltura SIAN);
  *   * data trattamento, avversità (dropdown rigorosa), prodotto commerciale,
  *     n. registrazione ministeriale, sostanza attiva, dose+unità, volume acqua,
@@ -68,7 +68,7 @@ export type TrattamentoFormValues = Omit<
 /** Opzione di campo per la Campagna Agraria selezionata (nome + codice SIAN). */
 export interface CampoCampagnaOption {
   campoCampagnaId: string;
-  appezzamentoId: string;
+  plotId: string;
   nome: string;
   codiceColturaSian: string | null;
   superficieHa: number | null;
@@ -83,7 +83,7 @@ export interface ComplianceTrattamento {
 }
 
 export interface TrattamentoFormProps {
-  appezzamenti: Plot[];
+  plots: Plot[];
   onSubmit: (values: TrattamentoFormValues) => Promise<void> | void;
   onCancel?: () => void;
   /** Plot pre-selezionato (es. apertura dal popup del campo). */
@@ -92,7 +92,7 @@ export interface TrattamentoFormProps {
    * Campi validi per la Campagna Agraria attiva. Se forniti, il selettore mostra
    * questi (nome + codice coltura SIAN) e l'operazione aggancia `plot_campaign_id`.
    */
-  campiCampagna?: CampoCampagnaOption[];
+  campaignFields?: CampoCampagnaOption[];
   /**
    * Valuta i vincoli geografici dell'appezzamento (iniettata dall'app, che
    * legge i layer ZVN/SIC-ZPS). Tiene @agrogea/ui disaccoppiato dal motore.
@@ -107,11 +107,11 @@ export interface TrattamentoFormProps {
 }
 
 export function TreatmentForm({
-  appezzamenti,
+  plots,
   onSubmit,
   onCancel,
   defaultAppezzamentoId,
-  campiCampagna,
+  campaignFields,
   valutaCompliance,
   prodottiCatalogo,
 }: TrattamentoFormProps) {
@@ -122,17 +122,17 @@ export function TreatmentForm({
     key: string,
     options?: Record<string, unknown>,
   ) => string;
-  const usaCampagna = (campiCampagna?.length ?? 0) > 0;
+  const usaCampagna = (campaignFields?.length ?? 0) > 0;
   const usaCatalogo = (prodottiCatalogo?.length ?? 0) > 0;
 
   const [tipo, setTipo] = useState<OperationType>("phytosanitary");
-  const [appezzamentoId, setAppezzamentoId] = useState<string>(
+  const [plotId, setAppezzamentoId] = useState<string>(
     defaultAppezzamentoId ?? "",
   );
   const [campoCampagnaId, setCampoCampagnaId] = useState<string>(() => {
     if (!usaCampagna || !defaultAppezzamentoId) return "";
     return (
-      campiCampagna?.find((c) => c.appezzamentoId === defaultAppezzamentoId)
+      campaignFields?.find((c) => c.plotId === defaultAppezzamentoId)
         ?.campoCampagnaId ?? ""
     );
   });
@@ -152,13 +152,13 @@ export function TreatmentForm({
   const [saving, setSaving] = useState(false);
 
   const appezzamento = useMemo(
-    () => appezzamenti.find((a) => a.id === appezzamentoId) ?? null,
-    [appezzamenti, appezzamentoId],
+    () => plots.find((a) => a.id === plotId) ?? null,
+    [plots, plotId],
   );
 
   const campoSel = useMemo(
-    () => campiCampagna?.find((c) => c.campoCampagnaId === campoCampagnaId) ?? null,
-    [campiCampagna, campoCampagnaId],
+    () => campaignFields?.find((c) => c.campoCampagnaId === campoCampagnaId) ?? null,
+    [campaignFields, campoCampagnaId],
   );
 
   // Superficie autorevole per i calcoli: dichiarata di campagna o quella fisica.
@@ -184,7 +184,7 @@ export function TreatmentForm({
     quantitaTotale != null &&
     quantitaTotale > compliance.azotoMaxTotaleKg;
 
-  // Validazione PAN completa (Modulo 3) solo per i trattamenti fitosanitari;
+  // Validazione PAN completa (Modulo 3) solo per i treatments fitosanitari;
   // per gli altri tipi (irrigazione, lavorazione…) restano i vincoli minimi.
   const fito = tipo === "phytosanitary";
   const panErrors = useMemo<ValidationError[]>(
@@ -217,8 +217,8 @@ export function TreatmentForm({
 
   function selezionaCampagna(value: string) {
     setCampoCampagnaId(value);
-    const opt = campiCampagna?.find((c) => c.campoCampagnaId === value);
-    setAppezzamentoId(opt?.appezzamentoId ?? "");
+    const opt = campaignFields?.find((c) => c.campoCampagnaId === value);
+    setAppezzamentoId(opt?.plotId ?? "");
   }
 
   // Selezione dal catalogo nazionale: auto-compila sostanza attiva e n. registrazione.
@@ -238,7 +238,7 @@ export function TreatmentForm({
     try {
       await onSubmit({
         operation_type: tipo,
-        plot_id: appezzamentoId || null,
+        plot_id: plotId || null,
         plot_campaign_id: campoCampagnaId || null,
         product_name: prodotto || null,
         registration_number: numeroRegistrazione || null,
@@ -309,7 +309,7 @@ export function TreatmentForm({
               onChange={(e) => selezionaCampagna(e.target.value)}
             >
               <option value="">{t("logbook.common.wholeFarm")}</option>
-              {campiCampagna?.map((c) => (
+              {campaignFields?.map((c) => (
                 <option key={c.campoCampagnaId} value={c.campoCampagnaId}>
                   {c.nome}
                   {c.codiceColturaSian ? ` · SIAN ${c.codiceColturaSian}` : ""}
@@ -319,11 +319,11 @@ export function TreatmentForm({
           ) : (
             <Select
               id="qdc-appezzamento"
-              value={appezzamentoId}
+              value={plotId}
               onChange={(e) => setAppezzamentoId(e.target.value)}
             >
               <option value="">{t("logbook.common.wholeFarm")}</option>
-              {appezzamenti.map((a) => (
+              {plots.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.user_plot_name}
                   {a.area_ha != null

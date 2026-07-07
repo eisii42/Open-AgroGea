@@ -49,8 +49,8 @@ const LAVORAZIONE_I18N_KEY: Record<TipoLavorazione, string> = {
 
 export function VraPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
-  const selezionatoId = useAgroStore((s) => s.appezzamentoSelezionatoId);
+  const plots = useAgroStore((s) => s.plots);
+  const selezionatoId = useAgroStore((s) => s.selectedPlotId);
   const { stato, genera, esporta, reset } = useVraGenerator();
 
   const [apzId, setApzId] = useState(selezionatoId ?? "");
@@ -71,7 +71,7 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
     });
   }, [zone]);
 
-  const apz = appezzamenti.find((a) => a.id === apzId);
+  const apz = plots.find((a) => a.id === apzId);
   const unita = UNITA_LAVORAZIONE[lavorazione];
   const inCorso = stato.fase === "lavorazione";
   const puoGenerare = apz != null && !inCorso;
@@ -100,7 +100,7 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
           <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
             {t("logbook.common.plot")}
           </p>
-          {appezzamenti.length === 0 ? (
+          {plots.length === 0 ? (
             <p className="text-sm text-[var(--ink-3)]">
               {t("vraPanel.noPlotAvailable")}
             </p>
@@ -111,7 +111,7 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
               className="w-full rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-2 text-sm"
             >
               <option value="">{t("logbook.common.select")}</option>
-              {appezzamenti.map((a) => (
+              {plots.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.user_plot_name}
                 </option>

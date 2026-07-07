@@ -87,16 +87,16 @@ function volumeIrriguoLitri(t: TreatmentLog): number | null {
 }
 
 /**
- * Estrae gli apporti irrigui giornalieri (mm) dai trattamenti di tipo
+ * Estrae gli apporti irrigui giornalieri (mm) dai treatments di tipo
  * `irrigation`: il volume d'acqua registrato sull'operazione (`total_quantity`,
  * con fallback su `water_volume_l`), riportato a lama d'acqua sulla superficie
  * dell'appezzamento.
  */
 export function apportiIrriguiDaTrattamenti(
-  trattamenti: TreatmentLog[],
+  treatments: TreatmentLog[],
   areaHa: number,
 ): ApportoIrriguo[] {
-  return trattamenti
+  return treatments
     .filter((t) => t.operation_type === "irrigation")
     .map((t) => ({
       data: giornoDi(t.executed_at),

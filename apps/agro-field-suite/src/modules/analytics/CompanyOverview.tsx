@@ -15,33 +15,33 @@ import { useTenantCountry } from "../../hooks/useTenantCountry";
 /**
  * Pagina "Company" del Data Command Center: andamento GENERALE dell'azienda
  * (superficie, campi, operazioni e raccolto dell'annata) e stato del Magazzino
- * (valore giacenze a CUMP, lotti scaduti/in scadenza, costo prodotti imputato
- * per campo). Complementare alla pagina "Colture e appezzamenti", che resta
+ * (valore giacenze a CUMP, lots scaduti/in scadenza, costo products imputato
+ * per campo). Complementare alla pagina "Colture e plots", che resta
  * focalizzata sull'analisi agronomica per coltura/campo.
  */
 export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
   const { t } = useTranslation();
   const dal = useAgroStore((s) => s.dal);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
-  const trattamenti = useAgroStore((s) => s.trattamenti);
-  const raccolte = useAgroStore((s) => s.raccolte);
-  const prodotti = useAgroStore((s) => s.prodotti);
-  const lotti = useAgroStore((s) => s.lotti);
-  const campiCampagna = useAgroStore((s) => s.campiCampagna);
-  const apriColturaPerAppezzamento = useAgroStore(
-    (s) => s.apriColturaPerAppezzamento,
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
+  const plots = useAgroStore((s) => s.plots);
+  const treatments = useAgroStore((s) => s.treatments);
+  const harvests = useAgroStore((s) => s.harvests);
+  const products = useAgroStore((s) => s.products);
+  const lots = useAgroStore((s) => s.lots);
+  const campaignFields = useAgroStore((s) => s.campaignFields);
+  const openCropForPlot = useAgroStore(
+    (s) => s.openCropForPlot,
   );
   const setActiveView = useAgroStore((s) => s.setActiveView);
   const { countryCode } = useTenantCountry();
 
-  // Costo prodotti per campo dell'annata (aggregato DAL su activity_products).
+  // Costo products per campo dell'annata (aggregato DAL su activity_products).
   const [costiCampo, setCostiCampo] = useState<FieldProductCost[]>([]);
   useEffect(() => {
-    if (!dal || !aziendaAttivaId) return;
+    if (!dal || !activeCompanyId) return;
     let attivo = true;
     void dal
-      .costiProdottiPerCampo(aziendaAttivaId, {
+      .costiProdottiPerCampo(activeCompanyId, {
         dal: `${campaignYear}-01-01T00:00:00.000Z`,
         al: `${campaignYear}-12-31T23:59:59.999Z`,
       })
@@ -51,60 +51,60 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
     return () => {
       attivo = false;
     };
-    // `lotti` come dipendenza: ogni scarico/storno cambia i costi imputati.
-  }, [dal, aziendaAttivaId, campaignYear, lotti]);
+    // `lots` come dipendenza: ogni scarico/storno cambia i costi imputati.
+  }, [dal, activeCompanyId, campaignYear, lots]);
 
   const vivi = useMemo(
-    () => appezzamenti.filter((a) => a.deleted_at == null),
-    [appezzamenti],
+    () => plots.filter((a) => a.deleted_at == null),
+    [plots],
   );
   const superficieTotale = vivi.reduce((s, a) => s + Number(a.area_ha ?? 0), 0);
 
   const operazioniAnno = useMemo(
     () =>
-      trattamenti.filter(
+      treatments.filter(
         (tr) =>
           tr.deleted_at == null &&
           new Date(tr.executed_at).getUTCFullYear() === campaignYear,
       ).length,
-    [trattamenti, campaignYear],
+    [treatments, campaignYear],
   );
   const raccoltoAnnoKg = useMemo(
     () =>
-      raccolte
+      harvests
         .filter(
           (r) =>
             r.deleted_at == null &&
             new Date(r.harvested_at).getUTCFullYear() === campaignYear,
         )
         .reduce((s, r) => s + Number(r.quantity_kg ?? 0), 0),
-    [raccolte, campaignYear],
+    [harvests, campaignYear],
   );
 
   // -- stato magazzino ---------------------------------------------------------
   const giacenzaPerProdotto = useMemo(() => {
     const map = new Map<string, number>();
-    for (const l of lotti) {
+    for (const l of lots) {
       if (l.deleted_at != null) continue;
       map.set(l.product_id, (map.get(l.product_id) ?? 0) + Number(l.quantity_on_hand));
     }
     return map;
-  }, [lotti]);
+  }, [lots]);
 
   // Valore delle giacenze valorizzate al CUMP corrente di ciascun prodotto.
   const valoreGiacenze = useMemo(
     () =>
-      prodotti.reduce(
+      products.reduce(
         (sum, p) =>
           sum + (giacenzaPerProdotto.get(p.id) ?? 0) * Number(p.avg_unit_cost),
         0,
       ),
-    [prodotti, giacenzaPerProdotto],
+    [products, giacenzaPerProdotto],
   );
 
   const lottiConGiacenza = useMemo(
-    () => lotti.filter((l) => l.deleted_at == null && Number(l.quantity_on_hand) > 0),
-    [lotti],
+    () => lots.filter((l) => l.deleted_at == null && Number(l.quantity_on_hand) > 0),
+    [lots],
   );
   const lottiScaduti = lottiConGiacenza.filter(
     (l) => expiryStatus(l.expires_at) === "expired",
@@ -112,8 +112,8 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
   const lottiInScadenza = lottiConGiacenza.filter(
     (l) => expiryStatus(l.expires_at) === "expiring",
   );
-  // Scorta minima (v17): prodotti sotto la soglia di riordino.
-  const sottoScorta = prodotti.filter((p) => {
+  // Scorta minima (v17): products sotto la soglia di riordino.
+  const sottoScorta = products.filter((p) => {
     const min = p.metadata?.["min_stock"];
     return (
       typeof min === "number" && (giacenzaPerProdotto.get(p.id) ?? 0) < min
@@ -122,7 +122,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
 
   const nomeCampo = (plotId: string | null): string =>
     plotId
-      ? appezzamenti.find((a) => a.id === plotId)?.user_plot_name ??
+      ? plots.find((a) => a.id === plotId)?.user_plot_name ??
         plotId.slice(0, 8)
       : t("companyOverview.wholeFarm");
 
@@ -135,14 +135,14 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
   const campagneSianKo = useMemo(
     () =>
       sistema
-        ? campiCampagna.filter(
+        ? campaignFields.filter(
             (c) =>
               c.deleted_at == null &&
               c.closed_at == null &&
               missingDeclarative(countryCode, c).length > 0,
           )
         : [],
-    [sistema, countryCode, campiCampagna],
+    [sistema, countryCode, campaignFields],
   );
 
   return (
@@ -152,7 +152,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
         <button
           type="button"
           onClick={() => {
-            apriColturaPerAppezzamento(campagneSianKo[0].plot_id);
+            openCropForPlot(campagneSianKo[0].plot_id);
             setActiveView("map");
           }}
           className="flex items-center gap-2 rounded-[var(--r-2)] border border-[var(--warn)] bg-[var(--warn-l)] px-3 py-2 text-left text-sm font-medium text-[var(--warn)] hover:opacity-90"
@@ -206,7 +206,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
           <KpiCard
             Icon={Boxes}
             label={t("companyOverview.kpi.products")}
-            value={String(prodotti.length)}
+            value={String(products.length)}
             tone={sottoScorta > 0 ? "warn" : undefined}
             sub={
               t("companyOverview.kpi.productsSub", {
@@ -242,7 +242,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
         </div>
       </section>
 
-      {/* Costo prodotti imputato per campo (base del bilancio di campo 0.4.0) */}
+      {/* Costo products imputato per campo (base del bilancio di campo 0.4.0) */}
       <section className="rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] p-3">
         <h3 className="mb-2 text-sm font-semibold text-[var(--ink)]">
           {t("companyOverview.costsByField", { year: campaignYear })}

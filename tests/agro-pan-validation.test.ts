@@ -30,7 +30,7 @@ function fields(errors: { field: string }[]): string[] {
   return errors.map((e) => e.field).sort();
 }
 
-describe("PAN validation / trattamenti fitosanitari", () => {
+describe("PAN validation / treatments fitosanitari", () => {
   it("una bozza completa e valida non produce errori", () => {
     assert.deepEqual(validateTreatmentLog(validTreatment), []);
   });

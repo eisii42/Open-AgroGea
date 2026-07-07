@@ -32,9 +32,9 @@ type Status =
 export function CompanyDataIo() {
   const { t } = useTranslation();
   const dal = useAgroStore((s) => s.dal);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const company = useAgroStore((s) =>
-    s.aziende.find((a) => a.id === s.aziendaAttivaId),
+    s.companies.find((a) => a.id === s.activeCompanyId),
   );
   const [status, setStatus] = useState<Status>({ kind: "idle" });
 
@@ -58,7 +58,7 @@ export function CompanyDataIo() {
   }
 
   async function handleImport() {
-    if (!dal || !company || !aziendaAttivaId) return;
+    if (!dal || !company || !activeCompanyId) return;
     const file = await pickCompanyFile();
     if (!file) return;
     const conferma = STANDALONE
@@ -68,7 +68,7 @@ export function CompanyDataIo() {
     setStatus({ kind: "busy", op: "import" });
     try {
       const raw = JSON.parse(await file.text());
-      const s = await importCompanyData(dal, raw, aziendaAttivaId);
+      const s = await importCompanyData(dal, raw, activeCompanyId);
       setStatus({
         kind: "ok",
         msg: t("companyDataIo.importSuccess", {

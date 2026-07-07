@@ -26,12 +26,12 @@ import type {
  */
 export function cropForPlot(
   plotId: string,
-  campiCampagna: PlotCampaign[],
+  campaignFields: PlotCampaign[],
   crops: Crop[],
 ): string | null {
   // Le campagne CHIUSE (raccolto delle annuali, v17) non contano: il campo è
   // tornato libero e la mappa/DSS lo trattano come senza coltura.
-  const camp = campiCampagna.find(
+  const camp = campaignFields.find(
     (c) => c.plot_id === plotId && c.deleted_at == null && c.closed_at == null,
   );
   if (!camp) return null;
@@ -44,10 +44,10 @@ export function cropForPlot(
 /** CropType (record `crops`) associata a un appezzamento nell'annata attiva. */
 function cropPerAppezzamento(
   plotId: string,
-  campiCampagna: PlotCampaign[],
+  campaignFields: PlotCampaign[],
   crops: Crop[],
 ): Crop | null {
-  const camp = campiCampagna.find(
+  const camp = campaignFields.find(
     (c) => c.plot_id === plotId && c.deleted_at == null && c.closed_at == null,
   );
   if (!camp) return null;
@@ -63,26 +63,26 @@ function cropPerAppezzamento(
  */
 export function cropLabelPerAppezzamento(
   plotId: string,
-  campiCampagna: PlotCampaign[],
+  campaignFields: PlotCampaign[],
   crops: Crop[],
 ): string | null {
-  const crop = cropPerAppezzamento(plotId, campiCampagna, crops);
+  const crop = cropPerAppezzamento(plotId, campaignFields, crops);
   if (!crop) return null;
   return crop.variety_name
     ? `${crop.common_name} (${crop.variety_name})`
     : crop.common_name;
 }
 
-/** FeatureCollection degli appezzamenti dell'azienda attiva, pronta per MapLibre. */
+/** FeatureCollection degli plots dell'azienda attiva, pronta per MapLibre. */
 export function plotsToFeatureCollection(
-  appezzamenti: Plot[],
-  campiCampagna: PlotCampaign[] = [],
+  plots: Plot[],
+  campaignFields: PlotCampaign[] = [],
   crops: Crop[] = [],
 ): PlotsFeatureCollection {
   return {
     type: "FeatureCollection",
-    features: appezzamenti.map((a) => {
-      const crop = cropPerAppezzamento(a.id, campiCampagna, crops);
+    features: plots.map((a) => {
+      const crop = cropPerAppezzamento(a.id, campaignFields, crops);
       const kind = crop?.common_name ?? null;
       // Colore ad hoc per specie (grigio neutro se senza coltura). Iniettato
       // come proprietà simplestyle per-feature → onorato dal renderer GeoLibre.
@@ -138,19 +138,19 @@ export function assetsToFeatureCollection(
 }
 
 /**
- * FeatureCollection delle raccolte (Modulo Harvest). Le properties (cultivar,
+ * FeatureCollection delle harvests (Modulo Harvest). Le properties (cultivar,
  * destinazione, quantita_kg) alimentano i grafici della tabella attributi (es.
- * Barre: somma/media di `quantita_kg` per `cultivar`/`destinazione`). Le raccolte
+ * Barre: somma/media di `quantita_kg` per `cultivar`/`destinazione`). Le harvests
  * prive di geometria vengono emesse con un Point al centroid dell'appezzamento
  * collegato, se fornito tramite la mappa `centroidi`; altrimenti sono escluse dal
  * layer cartografico ma restano nei dati per i grafici via store.
  */
 export function harvestsToFeatureCollection(
-  raccolte: Harvest[],
+  harvests: Harvest[],
   centroidi?: Map<string, Point>,
 ): HarvestsFeatureCollection {
   const features: HarvestsFeatureCollection["features"] = [];
-  for (const r of raccolte) {
+  for (const r of harvests) {
     const geometry =
       r.geometry ??
       (r.plot_id ? centroidi?.get(r.plot_id) ?? null : null);
@@ -180,11 +180,11 @@ export function harvestsToFeatureCollection(
  * appezzamento restano fuori dal layer cartografico ma nei dati via store.
  */
 export function treatmentsToFeatureCollection(
-  trattamenti: TreatmentLog[],
+  treatments: TreatmentLog[],
   centroidi?: Map<string, Point>,
 ): FeatureCollection<Point> {
   const features: Feature<Point>[] = [];
-  for (const t of trattamenti) {
+  for (const t of treatments) {
     const geometry = t.plot_id
       ? centroidi?.get(t.plot_id) ?? null
       : null;
@@ -210,16 +210,16 @@ export function treatmentsToFeatureCollection(
 }
 
 /**
- * FeatureCollection dei Punti di Interesse. Qui i POI sono i campionamenti
+ * FeatureCollection dei Punti di Interesse. Qui i POI sono i soilSamples
  * suolo georeferenziati più gli asset puntuali (pozzi, trappole, sensori)
  * disegnati come Point: entrambi hanno geometria puntuale.
  */
 export function poiToFeatureCollection(
-  campionamenti: SoilSample[],
+  soilSamples: SoilSample[],
 ): FeatureCollection {
   return {
     type: "FeatureCollection",
-    features: campionamenti.map((c) => ({
+    features: soilSamples.map((c) => ({
       type: "Feature",
       id: c.id,
       geometry: c.sampling_position,

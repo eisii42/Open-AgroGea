@@ -49,7 +49,7 @@ export function useComplianceVincoli() {
 }
 
 /**
- * Espone la valutazione di geo-compliance per il form trattamenti. I layer
+ * Espone la valutazione di geo-compliance per il form treatments. I layer
  * vincolanti sono i layer dello store GeoLibre marcati con
  * `metadata.compliance = "zvn" | "sic" | "zps"` (caricati dall'utente come
  * cartografia regionale). Senza tali layer non c'è vincolo.

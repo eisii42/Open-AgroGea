@@ -314,7 +314,7 @@ describe("buildSianCsv · tipo operazione localizzato", () => {
   });
 });
 
-describe("raccolteToOperazioni · le raccolte rientrano nel QDCA", () => {
+describe("raccolteToOperazioni · le harvests rientrano nel QDCA", () => {
   it("mappa cultivar→prodotto, kg→quantità, destinazione e tipo harvest", () => {
     const ops = raccolteToOperazioni([
       raccolta("r1", "a1", "2026-09-15T08:00:00.000Z", {
@@ -347,7 +347,7 @@ describe("raccolteToOperazioni · le raccolte rientrano nel QDCA", () => {
     assert.equal(csv, ";");
   });
 
-  it("esclude le raccolte cancellate (tombstone)", () => {
+  it("esclude le harvests cancellate (tombstone)", () => {
     const ops = raccolteToOperazioni([
       raccolta("r1", "a1", "2026-09-15T08:00:00.000Z", {
         deleted_at: "2026-10-01T00:00:00.000Z",

@@ -27,9 +27,9 @@ import {
 
 /** Dati grezzi dell'export (registro + anagrafica fisica + stato di campagna). */
 export interface RegionalExportInput {
-  trattamenti: TreatmentLog[];
-  appezzamenti: Plot[];
-  campiCampagna: PlotCampaign[];
+  treatments: TreatmentLog[];
+  plots: Plot[];
+  campaignFields: PlotCampaign[];
   aziendaName?: string;
 }
 
@@ -62,9 +62,9 @@ function isoDate(iso: string): string {
 export function flattenOperations(
   input: RegionalExportInput,
 ): NeutralOperation[] {
-  const plotById = new Map(input.appezzamenti.map((a) => [a.id, a]));
-  const campaignById = new Map(input.campiCampagna.map((c) => [c.id, c]));
-  return input.trattamenti.map((t) => {
+  const plotById = new Map(input.plots.map((a) => [a.id, a]));
+  const campaignById = new Map(input.campaignFields.map((c) => [c.id, c]));
+  return input.treatments.map((t) => {
     const plot = t.plot_id ? plotById.get(t.plot_id) : undefined;
     const campaign = t.plot_campaign_id
       ? campaignById.get(t.plot_campaign_id)
@@ -201,10 +201,10 @@ export function makeItExporter(
     bom: config.bom,
     build: (input) =>
       buildSianCsv(
-        input.trattamenti,
-        input.appezzamenti,
+        input.treatments,
+        input.plots,
         config,
-        input.campiCampagna,
+        input.campaignFields,
       ),
     fileName: (name) => `quaderno-sian-${slug(name)}-${oggi()}.csv`,
   };

@@ -52,7 +52,7 @@ interface OpFieldSpec {
   activeSubstance?: boolean;
   targetDisease?: boolean;
   dose?: boolean;
-  /** Volume d'acqua della botte/atomizzatore (litri) — trattamenti fitosanitari. */
+  /** Volume d'acqua della botte/atomizzatore (litri) — treatments fitosanitari. */
   waterVolume?: boolean;
   /** Apporto irriguo in mm/hl (lama d'acqua o volume) — irrigazione. */
   irrigationAmount?: boolean;
@@ -242,14 +242,14 @@ const numStr = (v: number | null | undefined) => (v == null ? "" : String(v));
 
 export interface OperazioneFormProps {
   operationType: OperationType;
-  appezzamenti: Plot[];
-  campiCampagna?: CampoCampagnaOption[];
+  plots: Plot[];
+  campaignFields?: CampoCampagnaOption[];
   prodottiCatalogo?: CatalogEntry[];
   concimiCatalogo?: CatalogEntry[];
   /**
-   * Anagrafica e lotti del Magazzino (0.2.0). Se ci sono prodotti della
+   * Anagrafica e lots del Magazzino (0.2.0). Se ci sono products della
    * categoria pertinente al tipo operazione, il form mostra la sezione
-   * "Scarico da magazzino": prodotto → lotto → quantità. I lotti SCADUTI sono
+   * "Scarico da magazzino": prodotto → lotto → quantità. I lots SCADUTI sono
    * mostrati ma NON selezionabili (uso bloccato, §5.1).
    */
   prodottiMagazzino?: Product[];
@@ -258,7 +258,7 @@ export interface OperazioneFormProps {
   defaultAppezzamentoId?: string | null;
   /**
    * Salvataggio dell'operazione; `scarichi` non vuoto attiva lo scarico
-   * ATOMICO dei lotti (§5.2): un errore (giacenza/lotto scaduto) annulla tutto
+   * ATOMICO dei lots (§5.2): un errore (giacenza/lotto scaduto) annulla tutto
    * e risale qui, dove il form lo mostra senza chiudersi. `assegnazione` è la
    * proposta di coltura da una semina (automazione v17), null se disattivata.
    */
@@ -272,15 +272,15 @@ export interface OperazioneFormProps {
   onCancel?: () => void;
   /**
    * Valori iniziali per "Ripeti operazione": precompila i campi dal record
-   * esistente (la data resta oggi, gli scarichi si riscelgono sui lotti attuali).
+   * esistente (la data resta oggi, gli scarichi si riscelgono sui lots attuali).
    */
   defaults?: Partial<TrattamentoFormValues>;
 }
 
 export function OperationForm({
   operationType,
-  appezzamenti,
-  campiCampagna,
+  plots,
+  campaignFields,
   prodottiCatalogo,
   concimiCatalogo,
   prodottiMagazzino,
@@ -295,7 +295,7 @@ export function OperationForm({
   const { t } = useTranslation();
   const spec = operazioneSpec(operationType);
   const f = spec.fields;
-  const usaCampagna = (campiCampagna?.length ?? 0) > 0;
+  const usaCampagna = (campaignFields?.length ?? 0) > 0;
   const catalogo =
     f.product === "phyto"
       ? prodottiCatalogo
@@ -309,11 +309,11 @@ export function OperationForm({
   // da ripetere (la data resta oggi).
   const opMemory = useMemo(loadOperatorMemory, []);
   const initialApp = defaultAppezzamentoId || defaults?.plot_id || "";
-  const [appezzamentoId, setAppezzamentoId] = useState(initialApp);
+  const [plotId, setAppezzamentoId] = useState(initialApp);
   const [campoCampagnaId, setCampoCampagnaId] = useState(() => {
     if (!usaCampagna || !initialApp) return "";
     return (
-      campiCampagna?.find((c) => c.appezzamentoId === initialApp)
+      campaignFields?.find((c) => c.plotId === initialApp)
         ?.campoCampagnaId ?? ""
     );
   });
@@ -380,12 +380,12 @@ export function OperationForm({
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const appezzamento = useMemo(
-    () => appezzamenti.find((a) => a.id === appezzamentoId) ?? null,
-    [appezzamenti, appezzamentoId],
+    () => plots.find((a) => a.id === plotId) ?? null,
+    [plots, plotId],
   );
   const campoSel = useMemo(
-    () => campiCampagna?.find((c) => c.campoCampagnaId === campoCampagnaId) ?? null,
-    [campiCampagna, campoCampagnaId],
+    () => campaignFields?.find((c) => c.campoCampagnaId === campoCampagnaId) ?? null,
+    [campaignFields, campoCampagnaId],
   );
   const superficie = campoSel?.superficieHa ?? appezzamento?.area_ha ?? null;
   const isSampling = operationType === "sampling";
@@ -544,7 +544,7 @@ export function OperationForm({
   }, [totalePrevisto, baseDose, prodottiCategoria]);
 
   // -- automazione semina → coltura di campagna (v17) -------------------------
-  const campagnaAttiva = useAgroStore((s) => s.campagnaAttiva);
+  const activeCampaign = useAgroStore((s) => s.activeCampaign);
   const seedProdotto =
     operationType === "sowing"
       ? prodottiCategoria.find((p) => p.id === scarichiRows[0]?.productId) ?? null
@@ -552,12 +552,12 @@ export function OperationForm({
   // Il campo scelto non ha una campagna APERTA per l'annata: la semina può
   // assegnargli la coltura (crops + plots_campaign) automaticamente.
   const plotSenzaCampagna = Boolean(
-    appezzamentoId &&
-      !(campiCampagna ?? []).some((c) => c.appezzamentoId === appezzamentoId),
+    plotId &&
+      !(campaignFields ?? []).some((c) => c.plotId === plotId),
   );
   const [assegnaColtura, setAssegnaColtura] = useState(true);
   const proponiAssegnazione = Boolean(
-    seedProdotto && appezzamentoId && plotSenzaCampagna,
+    seedProdotto && plotId && plotSenzaCampagna,
   );
   const metaSeed = (seedProdotto?.metadata ?? {}) as Record<string, unknown>;
   const metaSeedStr = (key: string): string | null => {
@@ -568,7 +568,7 @@ export function OperationForm({
   const assegnazione: AssegnazioneColtura | null =
     proponiAssegnazione && assegnaColtura && superficie != null
       ? {
-          plotId: appezzamentoId,
+          plotId: plotId,
           species: speciesName,
           scientificName: metaSeedStr("scientific_name"),
           varietyName: metaSeedStr("variety_name"),
@@ -586,7 +586,7 @@ export function OperationForm({
   function selezionaCampagna(value: string) {
     setCampoCampagnaId(value);
     setAppezzamentoId(
-      campiCampagna?.find((c) => c.campoCampagnaId === value)?.appezzamentoId ?? "",
+      campaignFields?.find((c) => c.campoCampagnaId === value)?.plotId ?? "",
     );
   }
 
@@ -666,7 +666,7 @@ export function OperationForm({
   }
 
   /**
-   * Divide la quantità della riga su più lotti in ordine FEFO (v17): la riga
+   * Divide la quantità della riga su più lots in ordine FEFO (v17): la riga
    * viene sostituita da una riga per lotto finché la quantità è coperta.
    * No-op se la giacenza complessiva del prodotto non basta.
    */
@@ -719,7 +719,7 @@ export function OperationForm({
 
       await onSubmit({
         operation_type: operationType,
-        plot_id: appezzamentoId || null,
+        plot_id: plotId || null,
         plot_campaign_id: campoCampagnaId || null,
         product_name: f.product
           ? prodotto || null
@@ -806,7 +806,7 @@ export function OperationForm({
               <option value="">
                 {soilMode ? t("logbook.common.select") : t("logbook.common.wholeFarm")}
               </option>
-              {campiCampagna?.map((c) => (
+              {campaignFields?.map((c) => (
                 <option key={c.campoCampagnaId} value={c.campoCampagnaId}>
                   {c.nome}
                   {c.codiceColturaSian ? ` · ${c.codiceColturaSian}` : ""}
@@ -814,11 +814,11 @@ export function OperationForm({
               ))}
             </Select>
           ) : (
-            <Select id="op-app" value={appezzamentoId} onChange={(e) => setAppezzamentoId(e.target.value)}>
+            <Select id="op-app" value={plotId} onChange={(e) => setAppezzamentoId(e.target.value)}>
               <option value="">
                 {soilMode ? t("logbook.common.select") : t("logbook.common.wholeFarm")}
               </option>
-              {appezzamenti.map((a) => (
+              {plots.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.user_plot_name}
                   {a.area_ha != null ? ` · ${a.area_ha.toFixed(2)} ha` : ""}
@@ -1155,7 +1155,7 @@ export function OperationForm({
                     ? ` (${metaSeedStr("variety_name")})`
                     : ""),
                 plot: appezzamento?.user_plot_name ?? "",
-                year: campagnaAttiva,
+                year: activeCampaign,
               })}
             </span>
             <span className="block text-[11px] text-[var(--ink-3)]">

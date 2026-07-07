@@ -151,7 +151,7 @@ export interface SessionSlice {
    * onboarding. `null` finché non risolto; il consumo lato UI decide il
    * blocco di "attesa approvazione" quando `stato_licenza !== 'active'`.
    */
-  profilo: UserProfile | null;
+  profile: UserProfile | null;
   /** true quando lo sblocco è avvenuto offline (PIN) e non c'è JWT fresco. */
   offlineUnlocked: boolean;
 
@@ -165,16 +165,16 @@ export interface SessionSlice {
     options?: { session?: AuthSession | null; offlineUnlocked?: boolean },
   ) => Promise<void>;
   endSession: () => void;
-  /** Ricarica il profilo/licenza dal control plane (pulsante "Ricontrolla"). */
-  refreshProfilo: () => Promise<UserProfile | null>;
+  /** Ricarica il profile/licenza dal control plane (pulsante "Ricontrolla"). */
+  refreshProfile: () => Promise<UserProfile | null>;
 
   // -- coda di sincronizzazione (outbox) --
   /** Carica la coda di mutazioni non ancora sincronizzate (per il pannello Sync). */
-  caricaCodaSync: () => Promise<OutboxMutation[]>;
+  loadSyncQueue: () => Promise<OutboxMutation[]>;
   /** Rimuove una voce dalla coda di sync (non sincronizzerà più). */
-  eliminaMutazioneCoda: (mutationId: string) => Promise<void>;
+  deleteQueuedMutation: (mutationId: string) => Promise<void>;
   /** Svuota l'intera coda di mutazioni non sincronizzate. */
-  svuotaCodaSync: () => Promise<void>;
+  clearSyncQueue: () => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -182,43 +182,43 @@ export interface SessionSlice {
 // ---------------------------------------------------------------------------
 
 export interface DomainSlice {
-  aziende: Company[];
-  aziendaAttivaId: string | null;
-  appezzamenti: Plot[];
+  companies: Company[];
+  activeCompanyId: string | null;
+  plots: Plot[];
   /** Specie/varietà coltivate del workspace (catalogo `crops`). */
   crops: Crop[];
-  trattamenti: TreatmentLog[];
+  treatments: TreatmentLog[];
   /** Infrastrutture (CAD-GIS): layer "infrastrutture". */
   assets: InfrastructureAsset[];
   /** Campionamenti suolo georeferenziati: layer "poi". */
-  campionamenti: SoilSample[];
-  /** Eventi di raccolta dell'azienda attiva (Modulo Harvest): layer "raccolte". */
-  raccolte: Harvest[];
+  soilSamples: SoilSample[];
+  /** Eventi di raccolta dell'azienda attiva (Modulo Harvest): layer "harvests". */
+  harvests: Harvest[];
   /** Configurazione meteo dell'azienda attiva (Modulo Meteo), o null. */
-  configMeteo: CompanyWeatherConfig | null;
+  weatherConfig: CompanyWeatherConfig | null;
   /** Giornale dei trasferimenti dati (import/export), più recenti prima. */
   dataTransferLogs: DataTransferLog[];
   /** Anno della Campagna Agraria attiva (filtra i campi burocratici/registri). */
-  campagnaAttiva: number;
+  activeCampaign: number;
   /** Stato di campagna dei campi (SIAN/AGEA) dell'anno attivo. */
-  campiCampagna: PlotCampaign[];
+  campaignFields: PlotCampaign[];
   /** Posti collaboratore del workspace (multiutente), idratati dal DAL. */
   memberships: TenantMembership[];
-  /** Anagrafica prodotti di magazzino dell'azienda attiva (Modulo Magazzino). */
-  prodotti: Product[];
-  /** Lotti di magazzino (tutti i prodotti dell'azienda attiva). */
-  lotti: ProductLot[];
+  /** Anagrafica products di magazzino dell'azienda attiva (Modulo Magazzino). */
+  products: Product[];
+  /** Lotti di magazzino (tutti i products dell'azienda attiva). */
+  lots: ProductLot[];
 
-  setAziendaAttiva: (aziendaId: string | null) => Promise<void>;
+  setActiveCompany: (companyId: string | null) => Promise<void>;
   /**
    * Cambio di workspace (azienda) richiesto dalla pagina di selezione: pulisce
    * lo stato derivato, isola le tabelle locali PGlite sul nuovo `tenant_id`
    * (sottoinsieme filtrato per azienda) e aggiorna lo stato React. La cache di
    * rendering dei vettori della mappa sulla WebView viene azzerata dal remount
-   * della dashboard (`key={aziendaAttivaId}` in App), che ricostruisce mappa e
+   * della dashboard (`key={activeCompanyId}` in App), che ricostruisce mappa e
    * sorgenti da zero.
    */
-  switchTenant: (aziendaId: string) => Promise<void>;
+  switchTenant: (companyId: string) => Promise<void>;
   /**
    * Crea una nuova azienda (workspace) durante l'onboarding: INSERT remoto
    * (online) — soggetto ai vincoli server-side su licenza e limite di piano —
@@ -226,20 +226,20 @@ export interface DomainSlice {
    * database (messaggio del vincolo) al chiamante per il banner di errore nel
    * form.
    */
-  creaAzienda: (input: NewCompanyInput) => Promise<Company>;
+  createCompany: (input: NewCompanyInput) => Promise<Company>;
   /**
    * Crea/aggiorna un posto collaboratore (`tenant_memberships`) via DAL → outbox
    * e idrata lo store. La quota per ruolo/piano è verificata a monte dal
    * chiamante (field-suite `MembershipGuard`): qui si persiste soltanto.
    */
-  salvaMembership: (
+  saveMembership: (
     input: Omit<
       TenantMembership,
       "id" | "tenant_id" | "created_at" | "updated_at" | "deleted_at"
     > & { id?: string },
   ) => Promise<TenantMembership | null>;
   /** Soft-delete (tombstone sincronizzato) di un posto collaboratore. */
-  eliminaMembership: (id: string) => Promise<void>;
+  deleteMembership: (id: string) => Promise<void>;
   /**
    * Garantisce il posto OWNER dell'abbonato principale per un'azienda (così i
    * contatori partono da "Owners 1/…" e gli inviti sono validati sui posti
@@ -251,9 +251,9 @@ export interface DomainSlice {
    * UPDATE alfanumerico dell'anagrafica dell'azienda attiva (preserva i campi
    * non passati). Scrive via DAL → outbox come ogni altra mutazione di dominio.
    */
-  aggiornaAzienda: (patch: Partial<Company>) => Promise<void>;
+  updateCompany: (patch: Partial<Company>) => Promise<void>;
   /** Salva la configurazione meteo dell'azienda attiva e idrata lo store. */
-  salvaConfigMeteo: (
+  saveWeatherConfig: (
     patch: Partial<
       Omit<
         CompanyWeatherConfig,
@@ -263,11 +263,11 @@ export interface DomainSlice {
   ) => Promise<void>;
   /**
    * Registra un'operazione del Quaderno; con `scarichi` valorizzato aggancia i
-   * lotti di magazzino nella STESSA transazione (scarico atomico §5.2: giacenza
+   * lots di magazzino nella STESSA transazione (scarico atomico §5.2: giacenza
    * insufficiente o lotto scaduto ⇒ l'intera registrazione fallisce e
    * l'eccezione `WarehouseError` risale al form).
    */
-  registraTrattamento: (
+  recordTreatment: (
     input: Omit<
       TreatmentLog,
       "id" | "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
@@ -279,20 +279,20 @@ export interface DomainSlice {
    * via DAL → outbox) e rimozione reattiva dalla lista. La conferma invasiva
    * (banner + toggle) è responsabilità della UI: qui si esegue solo il DELETE.
    */
-  eliminaTrattamento: (id: string) => Promise<void>;
+  deleteTreatment: (id: string) => Promise<void>;
   /**
    * UPDATE alfanumerico di un'operazione del Quaderno esistente (preserva i
    * campi non passati). Upsert via DAL → outbox come ogni mutazione di dominio;
    * usato dall'editing inline del Command Center (calendario / Raw Data Inspector).
    */
-  aggiornaTrattamento: (
+  updateTreatment: (
     id: string,
     patch: Partial<TreatmentLog>,
   ) => Promise<TreatmentLog | null>;
   /** Salva la cache NDVI di un appezzamento (pipeline STAC) e idrata lo store. */
-  salvaNdviMedio: (appezzamentoId: string, ndviMedio: number) => Promise<void>;
+  saveMeanNdvi: (plotId: string, meanNdvi: number) => Promise<void>;
   /** Registra/aggiorna un evento di raccolta (Modulo Harvest) e idrata lo store. */
-  salvaRaccolta: (
+  saveHarvest: (
     input: Partial<
       Omit<
         Harvest,
@@ -303,27 +303,27 @@ export interface DomainSlice {
   /**
    * Cancellazione protetta di un evento di raccolta (soft-delete via DAL →
    * outbox) e rimozione reattiva dalla lista. La conferma invasiva è
-   * responsabilità della UI, come per {@link eliminaTrattamento}.
+   * responsabilità della UI, come per {@link deleteTreatment}.
    */
-  eliminaRaccolta: (id: string) => Promise<void>;
+  deleteHarvest: (id: string) => Promise<void>;
   /**
    * Registra un trasferimento dati (import/export) nel giornale locale e
    * aggiorna reattivamente il feed dei tag. Ritorna la voce creata (per un tag
    * immediato) o null se non c'è un DAL attivo.
    */
-  registraTrasferimento: (
+  recordTransfer: (
     input: Pick<
       DataTransferLog,
       "operation_type" | "file_format" | "file_name"
     >,
   ) => Promise<DataTransferLog | null>;
   /** Imposta l'anno della Campagna Agraria attiva e ricarica i campi di campagna. */
-  setCampagnaAttiva: (anno: number) => Promise<void>;
+  setActiveCampaign: (anno: number) => Promise<void>;
   /**
    * Crea/aggiorna lo stato di Campagna Agraria di un campo (SIAN/AGEA) e idrata
    * lo store. Ritorna la riga o null senza azienda attiva.
    */
-  salvaCampoCampagna: (
+  savePlotCampaign: (
     input: Omit<
       PlotCampaign,
       "id" | "tenant_id" | "closed_at" | "created_at" | "updated_at" | "deleted_at"
@@ -335,12 +335,12 @@ export interface DomainSlice {
    * il campo torna libero (mappa neutra, DSS spento) e una nuova semina può
    * ripartire nello stesso anno. Idrata lo store con la riga chiusa.
    */
-  chiudiCampagna: (id: string) => Promise<void>;
+  closeCampaign: (id: string) => Promise<void>;
   /**
    * Crea/aggiorna una specie/varietà coltivata (`crops`) e idrata lo store.
    * Ritorna la riga o null senza DAL attivo.
    */
-  salvaCrop: (
+  saveCrop: (
     input: Omit<
       Crop,
       "tenant_id" | "id" | "created_at" | "updated_at" | "deleted_at"
@@ -350,7 +350,7 @@ export interface DomainSlice {
    * Crea/aggiorna un prodotto di magazzino (categorie rigide, validazione per
    * categoria nel DAL) e idrata lo store. Ritorna la riga o null senza DAL.
    */
-  salvaProdotto: (
+  saveProduct: (
     input: Omit<
       Product,
       | "id"
@@ -364,13 +364,13 @@ export interface DomainSlice {
     > &
       Partial<Pick<Product, "metadata">> & { id?: string },
   ) => Promise<Product | null>;
-  /** Soft-delete di un prodotto di magazzino (i lotti restano storicizzati). */
-  eliminaProdotto: (id: string) => Promise<void>;
+  /** Soft-delete di un prodotto di magazzino (i lots restano storicizzati). */
+  deleteProduct: (id: string) => Promise<void>;
   /**
    * CARICO di un nuovo lotto: crea il lotto e aggiorna il CUMP del prodotto
-   * nella stessa transazione (§5.3), poi idrata prodotti e lotti nello store.
+   * nella stessa transazione (§5.3), poi idrata products e lots nello store.
    */
-  caricaLotto: (
+  receiveLot: (
     input: Omit<
       ProductLot,
       | "id"
@@ -382,9 +382,9 @@ export interface DomainSlice {
     > & { id?: string },
   ) => Promise<ProductLot | null>;
   /** Soft-delete di un lotto di magazzino. */
-  eliminaLotto: (id: string) => Promise<void>;
+  deleteLot: (id: string) => Promise<void>;
   /** Registra un campionamento di suolo (`soil_samples`) e idrata lo store. */
-  salvaCampionamento: (
+  saveSoilSample: (
     input: Omit<
       SoilSample,
       "id" | "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
@@ -404,34 +404,34 @@ export interface UiSlice {
   openPanels: FieldPanel[];
   /** Sidebar moduli compressa (modalità mappa a schermo intero). */
   sidebarCollapsed: boolean;
-  appezzamentoSelezionatoId: string | null;
+  selectedPlotId: string | null;
   /** Ultima operazione dell'appezzamento selezionato (scheda dettaglio). */
-  ultimaOperazione: LastOperation | null;
+  lastOperation: LastOperation | null;
   /**
    * Plot per cui aprire il Quaderno filtrato sulle sue lavorazioni
    * (click sul campo in mappa). `null` = nessuna richiesta pendente. Il
    * LogbookPanel lo consuma all'apertura impostando il filtro.
    */
-  quadernoApriAppezzamentoId: string | null;
+  logbookOpenPlotId: string | null;
   /**
    * Osservazione scouting da aprire in scheda dettaglio (click sul punto in
    * mappa). `null` = nessuna richiesta pendente. Il FieldCollectionTool lo
    * consuma all'apertura mostrando la scheda della nota.
    */
-  scoutingApriOsservazioneId: string | null;
+  scoutingOpenObservationId: string | null;
   /**
    * Plot su cui aprire la scheda "Dati coltura" già puntata (CTA
    * "Completa ora" della compliance SIAN, v17). `null` = nessuna richiesta
    * pendente; il ColturaDatiPanel la consuma all'apertura.
    */
-  colturaApriAppezzamentoId: string | null;
+  cropOpenPlotId: string | null;
   /**
    * Operazioni del Quaderno da renderizzare come simboli sulla mappa (toggle
    * "Mostra sulla mappa"). `null` = layer spento (nessun simbolo creato); array
    * = gli ID delle SOLE operazioni attualmente visibili nel registro (rispetta
    * i filtri temporali/appezzamento applicati nel pannello).
    */
-  operazioniMappaIds: string[] | null;
+  mapOperationIds: string[] | null;
   /**
    * `true` mentre il tool Scouting è in attesa di un tap sulla mappa per posare
    * la nota. Inibisce la selezione globale delle feature (`useFeatureSelection`),
@@ -447,21 +447,21 @@ export interface UiSlice {
   setSidebarCollapsed: (collapsed: boolean) => void;
   togglePanel: (panel: FieldPanel) => void;
   setPanelMode: (mode: PanelMode) => void;
-  selectAppezzamento: (id: string | null) => Promise<void>;
+  selectPlot: (id: string | null) => Promise<void>;
   /** Apre il Quaderno filtrato sulle lavorazioni dell'appezzamento (click sul campo). */
-  apriQuadernoPerAppezzamento: (appezzamentoId: string | null) => void;
+  openLogbookForPlot: (plotId: string | null) => void;
   /** Consuma la richiesta di apertura Quaderno (chiamata dal LogbookPanel). */
-  consumaQuadernoApri: () => void;
+  consumeLogbookOpen: () => void;
   /** Apre il pannello Scouting con la scheda della nota (click sul punto in mappa). */
-  apriScoutingPerOsservazione: (osservazioneId: string | null) => void;
+  openScoutingForObservation: (observationId: string | null) => void;
   /** Consuma la richiesta di apertura Scouting (chiamata dal FieldCollectionTool). */
-  consumaScoutingApri: () => void;
+  consumeScoutingOpen: () => void;
   /** Apre la scheda "Dati coltura" puntata sull'appezzamento (CTA compliance SIAN). */
-  apriColturaPerAppezzamento: (appezzamentoId: string | null) => void;
+  openCropForPlot: (plotId: string | null) => void;
   /** Consuma la richiesta di apertura Dati coltura (chiamata dal ColturaDatiPanel). */
-  consumaColturaApri: () => void;
+  consumeCropOpen: () => void;
   /** Imposta gli ID delle operazioni da mostrare come simboli in mappa (null = spento). */
-  setOperazioniMappaIds: (ids: string[] | null) => void;
+  setMapOperationIds: (ids: string[] | null) => void;
   /** Attiva/disattiva l'attesa di un tap per posare la nota scouting. */
   setScoutingPlacing: (placing: boolean) => void;
 }
@@ -486,11 +486,11 @@ export interface GeometrySlice {
   /** Pila redo delle modifiche geometriche (DAL-aware). */
   geometryRedo: GeometrySnapshot[];
 
-  salvaAppezzamentoDisegnato: (
+  saveDrawnPlot: (
     geometria: Plot["geometry"],
     attrs?: PlotDrawAttrs,
   ) => Promise<Plot | null>;
-  salvaAssetDisegnato: (
+  saveDrawnAsset: (
     geometria: Geometry,
     attrs?: AssetDrawAttrs,
   ) => Promise<InfrastructureAsset | null>;
@@ -517,17 +517,17 @@ export interface GeometrySlice {
    */
   applyEditedGeometry: (geometry: Geometry) => Promise<void>;
   /** Annulla l'ultima modifica geometrica (riapplica `before` al DAL). */
-  undoGeometria: () => Promise<void>;
+  undoGeometry: () => Promise<void>;
   /** Ripristina la modifica geometrica annullata (riapplica `after` al DAL). */
-  redoGeometria: () => Promise<void>;
-  eliminaElemento: (kind: SelectableKind, id: string) => Promise<void>;
+  redoGeometry: () => Promise<void>;
+  deleteElement: (kind: SelectableKind, id: string) => Promise<void>;
   /** UPDATE alfanumerico di un appezzamento esistente (preserva i campi non passati). */
-  aggiornaAppezzamento: (
+  updatePlot: (
     id: string,
     patch: Partial<Plot>,
   ) => Promise<void>;
   /** UPDATE alfanumerico di un asset/infrastruttura esistente. */
-  aggiornaAsset: (
+  updateAsset: (
     id: string,
     patch: Partial<InfrastructureAsset>,
   ) => Promise<void>;

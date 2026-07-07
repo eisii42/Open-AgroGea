@@ -7,7 +7,7 @@
 import type { Feature, Geometry } from "geojson";
 import { ETICHETTE_VINCOLO, type TipoVincolo } from "./geo-compliance";
 
-/** Cut-off della Regolamentazione EUDR (prodotti a deforestazione zero). */
+/** Cut-off della Regolamentazione EUDR (products a deforestazione zero). */
 export const EUDR_CUTOFF = "2020-12-31";
 
 export interface DatiDueDiligence {

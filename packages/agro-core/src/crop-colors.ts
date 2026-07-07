@@ -2,7 +2,7 @@
  * Mappatura colore + icona per tipo di coltura.
  *
  * Modulo PURO (zero dipendenze React): l'app risolve la `CropIconKey` in un
- * componente icona concreto (lucide). Gli appezzamenti senza coltura associata
+ * componente icona concreto (lucide). Gli plots senza coltura associata
  * ricevono un colore neutro (grigio); ogni specie coltivata ha un colore ad hoc
  * stabile, così la mappa è leggibile a colpo d'occhio.
  *
@@ -11,7 +11,7 @@
  * colore/icona perché entrambi sono "Vite".
  */
 
-/** Colore neutro per gli appezzamenti privi di coltura nell'annata attiva. */
+/** Colore neutro per gli plots privi di coltura nell'annata attiva. */
 export const NO_CROP_COLOR = "#9ca3af";
 
 /** Chiave icona simbolica, risolta dall'app in un componente lucide concreto. */

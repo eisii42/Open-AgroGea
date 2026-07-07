@@ -43,12 +43,12 @@ export function DetailEditSheet({
 }: {
   selected: SelectedFeatureRef;
 }) {
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
+  const plots = useAgroStore((s) => s.plots);
   const assets = useAgroStore((s) => s.assets);
-  const campionamenti = useAgroStore((s) => s.campionamenti);
+  const soilSamples = useAgroStore((s) => s.soilSamples);
 
   if (selected.kind === "appezzamento") {
-    const record = appezzamenti.find((a) => a.id === selected.id);
+    const record = plots.find((a) => a.id === selected.id);
     if (!record) return null;
     return <AppezzamentoEdit record={record} />;
   }
@@ -57,7 +57,7 @@ export function DetailEditSheet({
     if (!record) return null;
     return <AssetEdit record={record} />;
   }
-  const record = campionamenti.find((c) => c.id === selected.id);
+  const record = soilSamples.find((c) => c.id === selected.id);
   if (!record) return null;
   return <CampionamentoEdit record={record} />;
 }
@@ -140,7 +140,7 @@ function DangerZone({
   elementName: string;
 }) {
   const { t } = useTranslation();
-  const eliminaElemento = useAgroStore((s) => s.eliminaElemento);
+  const deleteElement = useAgroStore((s) => s.deleteElement);
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -155,7 +155,7 @@ function DangerZone({
         open={open}
         elementName={elementName}
         onClose={() => setOpen(false)}
-        onConfirm={() => eliminaElemento(kind, id)}
+        onConfirm={() => deleteElement(kind, id)}
       />
     </>
   );
@@ -182,9 +182,9 @@ function useCloseDetail(id: string) {
 
 function AppezzamentoEdit({ record }: { record: Plot }) {
   const { t } = useTranslation();
-  const aggiorna = useAgroStore((s) => s.aggiornaAppezzamento);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
-  const readOnly = useReadOnly(aziendaAttivaId);
+  const aggiorna = useAgroStore((s) => s.updatePlot);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
+  const readOnly = useReadOnly(activeCompanyId);
   const close = useCloseDetail(record.id);
   const ctrl = useGeomEdit("appezzamento", record.id);
 
@@ -524,9 +524,9 @@ function SuoloComposizioneSection({
 
 function AssetEdit({ record }: { record: InfrastructureAsset }) {
   const { t } = useTranslation();
-  const aggiorna = useAgroStore((s) => s.aggiornaAsset);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
-  const readOnly = useReadOnly(aziendaAttivaId);
+  const aggiorna = useAgroStore((s) => s.updateAsset);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
+  const readOnly = useReadOnly(activeCompanyId);
   const close = useCloseDetail(record.id);
   const ctrl = useGeomEdit("infrastruttura", record.id);
 

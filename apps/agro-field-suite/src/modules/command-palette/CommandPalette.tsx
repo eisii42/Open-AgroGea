@@ -44,13 +44,13 @@ export function CommandPalette({
   undoRedo,
 }: CommandPaletteProps) {
   const { t } = useTranslation();
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
+  const plots = useAgroStore((s) => s.plots);
   const crops = useAgroStore((s) => s.crops);
-  const campiCampagna = useAgroStore((s) => s.campiCampagna);
+  const campaignFields = useAgroStore((s) => s.campaignFields);
   const openPanels = useAgroStore((s) => s.openPanels);
   const togglePanel = useAgroStore((s) => s.togglePanel);
   const setDrawIntent = useAgroStore((s) => s.setDrawIntent);
-  const selectAppezzamento = useAgroStore((s) => s.selectAppezzamento);
+  const selectPlot = useAgroStore((s) => s.selectPlot);
   const setActiveView = useAgroStore((s) => s.setActiveView);
   const flags = useSettingsStore((s) => s.dashboardLayout);
 
@@ -148,11 +148,11 @@ export function CommandPalette({
         flag: "panelMeteo",
       },
       {
-        id: "act-profilo",
+        id: "act-profile",
         titolo: t("commandPalette.actions.profileSettings"),
         categoria: "azione",
-        paroleChiave: ["profilo", "preferenze", "lingua", "unità", "moduli", "account"],
-        esegui: apriPannello("profilo"),
+        paroleChiave: ["profile", "preferenze", "lingua", "unità", "moduli", "account"],
+        esegui: apriPannello("profile"),
       },
       // Switch di vista: la freccia → è la scorciatoia globale registrata in
       // App.tsx (← riporta alla mappa). La palette vive nella vista mappa,
@@ -197,8 +197,8 @@ export function CommandPalette({
       });
     }
 
-    const navigazione: Comando[] = appezzamenti.map((apz) => {
-      const coltura = cropForPlot(apz.id, campiCampagna, crops);
+    const navigazione: Comando[] = plots.map((apz) => {
+      const coltura = cropForPlot(apz.id, campaignFields, crops);
       return {
       id: `apz-${apz.id}`,
       titolo: apz.user_plot_name,
@@ -208,7 +208,7 @@ export function CommandPalette({
       esegui: () => {
         const bounds = boundingBox(apz.geometry);
         mapControllerRef.current?.fitBounds(bounds);
-        void selectAppezzamento(apz.id);
+        void selectPlot(apz.id);
         onClose();
       },
       };
@@ -218,13 +218,13 @@ export function CommandPalette({
     const azioniVisibili = azioni.filter((a) => !a.flag || flags[a.flag]);
     return [...azioniVisibili, ...navigazione];
   }, [
-    appezzamenti,
+    plots,
     crops,
-    campiCampagna,
+    campaignFields,
     openPanels,
     togglePanel,
     setDrawIntent,
-    selectAppezzamento,
+    selectPlot,
     setActiveView,
     mapControllerRef,
     onClose,

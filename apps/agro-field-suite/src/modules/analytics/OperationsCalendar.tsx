@@ -21,7 +21,7 @@ import { useTranslation } from "react-i18next";
  * da `treatment_logs` (operazioni eseguite e pianificate), `harvest_logs` (date
  * di raccolta) e dagli alert DSS (giorni a rischio malattia elevato). Al clic su
  * un giorno apre il dettaglio degli eventi con modifica rapida del record in
- * PGlite (note/data per i trattamenti, quantità/data per le raccolte).
+ * PGlite (note/data per i treatments, quantità/data per le harvests).
  */
 
 function opLabel(t: TFunction, type: OperationType): string {
@@ -109,15 +109,15 @@ function todayKey(): string {
 export function OperationsCalendar({
   campaignYear,
   plotIds,
-  trattamenti,
-  raccolte,
+  treatments,
+  harvests,
   dssRisultati,
 }: {
   campaignYear: number;
   /** Appezzamenti nello scope (null = tutta l'azienda). */
   plotIds: Set<string> | null;
-  trattamenti: TreatmentLog[];
-  raccolte: Harvest[];
+  treatments: TreatmentLog[];
+  harvests: Harvest[];
   dssRisultati: DssResult[];
 }) {
   const { t } = useTranslation();
@@ -132,7 +132,7 @@ export function OperationsCalendar({
   const events = useMemo<CalEvent[]>(() => {
     const out: CalEvent[] = [];
     const today = todayKey();
-    for (const op of trattamenti) {
+    for (const op of treatments) {
       if (op.deleted_at != null || !inScope(op.plot_id)) continue;
       const day = dayKey(op.executed_at);
       out.push({
@@ -145,7 +145,7 @@ export function OperationsCalendar({
         future: day > today,
       });
     }
-    for (const r of raccolte) {
+    for (const r of harvests) {
       if (r.deleted_at != null || !inScope(r.plot_id)) continue;
       const day = dayKey(r.harvested_at);
       out.push({
@@ -173,7 +173,7 @@ export function OperationsCalendar({
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trattamenti, raccolte, dssRisultati, plotIds, t]);
+  }, [treatments, harvests, dssRisultati, plotIds, t]);
 
   const eventsByDay = useMemo(() => {
     const map = new Map<string, CalEvent[]>();
@@ -286,8 +286,8 @@ export function OperationsCalendar({
         <DayDetail
           day={selectedDay}
           events={eventsByDay.get(selectedDay) ?? []}
-          trattamenti={trattamenti}
-          raccolte={raccolte}
+          treatments={treatments}
+          harvests={harvests}
           dssRisultati={dssRisultati}
           onClose={() => setSelectedDay(null)}
         />
@@ -303,15 +303,15 @@ export function OperationsCalendar({
 function DayDetail({
   day,
   events,
-  trattamenti,
-  raccolte,
+  treatments,
+  harvests,
   dssRisultati,
   onClose,
 }: {
   day: string;
   events: CalEvent[];
-  trattamenti: TreatmentLog[];
-  raccolte: Harvest[];
+  treatments: TreatmentLog[];
+  harvests: Harvest[];
   dssRisultati: DssResult[];
   onClose: () => void;
 }) {
@@ -377,13 +377,13 @@ function DayDetail({
                   </button>
                   {open && e.kind === "treatment" && (
                     <TreatmentEditor
-                      record={trattamenti.find((t) => t.id === e.refId)}
+                      record={treatments.find((t) => t.id === e.refId)}
                       onDone={() => setOpenKey(null)}
                     />
                   )}
                   {open && e.kind === "harvest" && (
                     <HarvestEditor
-                      record={raccolte.find((r) => r.id === e.refId)}
+                      record={harvests.find((r) => r.id === e.refId)}
                       onDone={() => setOpenKey(null)}
                     />
                   )}
@@ -414,8 +414,8 @@ function TreatmentEditor({
   onDone: () => void;
 }) {
   const { t } = useTranslation();
-  const aggiorna = useAgroStore((s) => s.aggiornaTrattamento);
-  const elimina = useAgroStore((s) => s.eliminaTrattamento);
+  const aggiorna = useAgroStore((s) => s.updateTreatment);
+  const elimina = useAgroStore((s) => s.deleteTreatment);
   const [product, setProduct] = useState(record?.product_name ?? "");
   const [date, setDate] = useState(
     record ? dayKey(record.executed_at) : "",
@@ -493,8 +493,8 @@ function HarvestEditor({
   onDone: () => void;
 }) {
   const { t } = useTranslation();
-  const salva = useAgroStore((s) => s.salvaRaccolta);
-  const elimina = useAgroStore((s) => s.eliminaRaccolta);
+  const salva = useAgroStore((s) => s.saveHarvest);
+  const elimina = useAgroStore((s) => s.deleteHarvest);
   const [qty, setQty] = useState(record?.quantity_kg?.toString() ?? "");
   const [date, setDate] = useState(
     record ? dayKey(record.harvested_at) : "",

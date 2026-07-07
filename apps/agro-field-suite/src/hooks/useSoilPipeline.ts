@@ -48,7 +48,7 @@ export interface OpzioniSuolo {
 }
 
 export interface RisultatoAppezzamento {
-  appezzamentoId: string;
+  plotId: string;
   name: string;
   series: PuntoSerie[];
 }
@@ -119,9 +119,9 @@ function rimuoviOverlay(): void {
 }
 
 /** Inietta l'overlay raster come layer `image` sopra gli altri layer (in cima). */
-function iniettaOverlay(appezzamentoId: string, overlay: OverlayRaster): void {
+function iniettaOverlay(plotId: string, overlay: OverlayRaster): void {
   const store = useAppStore.getState();
-  const id = `${OVERLAY_PREFIX}${appezzamentoId}`;
+  const id = `${OVERLAY_PREFIX}${plotId}`;
   const layer: GeoLibreLayer = {
     id,
     name: `Indice ${overlay.index.toUpperCase()}`,
@@ -135,7 +135,7 @@ function iniettaOverlay(appezzamentoId: string, overlay: OverlayRaster): void {
     opacity: 0.85,
     style: { ...DEFAULT_LAYER_STYLE },
     metadata: { agrogea: true, overlay: true, index: overlay.index },
-    sourcePath: `agrogea://overlay-${appezzamentoId}`,
+    sourcePath: `agrogea://overlay-${plotId}`,
   };
   if (store.layers.some((l) => l.id === id)) {
     store.updateLayer(id, {
@@ -150,7 +150,7 @@ function iniettaOverlay(appezzamentoId: string, overlay: OverlayRaster): void {
 }
 
 export function useSuoloPipeline() {
-  const salvaNdviMedio = useAgroStore((s) => s.salvaNdviMedio);
+  const saveMeanNdvi = useAgroStore((s) => s.saveMeanNdvi);
   const [stato, setStato] = useState<SuoloStato>({ phase: "idle" });
   const workerRef = useRef<Worker | null>(null);
 
@@ -193,14 +193,14 @@ export function useSuoloPipeline() {
   );
 
   const calcola = useCallback(
-    async (appezzamenti: Plot[], opzioni: OpzioniSuolo) => {
-      if (appezzamenti.length === 0 || opzioni.indici.length === 0) return;
+    async (plots: Plot[], opzioni: OpzioniSuolo) => {
+      if (plots.length === 0 || opzioni.indici.length === 0) return;
       rimuoviOverlay();
       const risultati: RisultatoAppezzamento[] = [];
 
       try {
         const strategia = opzioni.strategia;
-        // Parametri di ricerca STAC comuni a tutti gli appezzamenti: intervallo
+        // Parametri di ricerca STAC comuni a tutti gli plots: intervallo
         // esplicito per l'analisi personalizzata (capato a 60 gg), altrimenti N
         // giorni indietro ("ultima" usa una finestra ampia per trovare l'ultimo
         // passaggio utile).
@@ -215,13 +215,13 @@ export function useSuoloPipeline() {
         const giorniRicerca =
           strategia.tipo === "intervallo" ? strategia.giorni + 90 : 120;
 
-        for (let i = 0; i < appezzamenti.length; i++) {
-          const apz = appezzamenti[i];
+        for (let i = 0; i < plots.length; i++) {
+          const apz = plots[i];
           setStato({
             phase: "lavorazione",
             etichetta: `Ricerca scene · ${apz.user_plot_name}`,
             appezzamentoCorrente: i + 1,
-            appezzamentiTotali: appezzamenti.length,
+            appezzamentiTotali: plots.length,
           });
 
           const bbox = boundingBox(apz.geometry);
@@ -238,7 +238,7 @@ export function useSuoloPipeline() {
           }
           if (serieScene.length === 0) {
             risultati.push({
-              appezzamentoId: apz.id,
+              plotId: apz.id,
               name: apz.user_plot_name,
               series: [],
             });
@@ -264,7 +264,7 @@ export function useSuoloPipeline() {
               phase: "lavorazione",
               etichetta: `Calcolo indici · ${apz.user_plot_name} (scena ${p.scenaCorrente}/${p.sceneTotali})`,
               appezzamentoCorrente: i + 1,
-              appezzamentiTotali: appezzamenti.length,
+              appezzamentiTotali: plots.length,
             });
           });
 
@@ -274,11 +274,11 @@ export function useSuoloPipeline() {
           // = più recente), così la scheda appezzamento la mostra offline.
           const ndviRecente = series.at(-1)?.medie.ndvi;
           if (ndviRecente != null && !Number.isNaN(ndviRecente)) {
-            await salvaNdviMedio(apz.id, Math.round(ndviRecente * 1000) / 1000);
+            await saveMeanNdvi(apz.id, Math.round(ndviRecente * 1000) / 1000);
           }
 
           risultati.push({
-            appezzamentoId: apz.id,
+            plotId: apz.id,
             name: apz.user_plot_name,
             series,
           });
@@ -297,7 +297,7 @@ export function useSuoloPipeline() {
         });
       }
     },
-    [eseguiJob, salvaNdviMedio],
+    [eseguiJob, saveMeanNdvi],
   );
 
   const reset = useCallback(() => {

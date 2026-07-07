@@ -16,7 +16,7 @@ const NUMERIC_PARSERS = {
 
 /**
  * Gestione delle istanze PGlite locali: un database isolato per tenant, così
- * un agronomo che gestisce più aziende non può mai mescolarne i dati e lo
+ * un agronomo che gestisce più companies non può mai mescolarne i dati e lo
  * sblocco offline (PIN/biometria) apre solo l'istanza del tenant associato.
  *
  * Persistenza: IndexedDB (`idb://`) sia nel browser sia nella WebView Tauri.

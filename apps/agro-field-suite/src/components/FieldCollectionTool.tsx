@@ -60,12 +60,12 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
   const addLayer = useAppStore((s) => s.addLayer);
   const updateLayer = useAppStore((s) => s.updateLayer);
   const layers = useAppStore((s) => s.layers);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const dal = useAgroStore((s) => s.dal);
-  const scoutingApriOsservazioneId = useAgroStore(
-    (s) => s.scoutingApriOsservazioneId,
+  const scoutingOpenObservationId = useAgroStore(
+    (s) => s.scoutingOpenObservationId,
   );
-  const consumaScoutingApri = useAgroStore((s) => s.consumaScoutingApri);
+  const consumeScoutingOpen = useAgroStore((s) => s.consumeScoutingOpen);
   const setScoutingPlacing = useAgroStore((s) => s.setScoutingPlacing);
 
   const [mode, setMode] = useState<Mode>("idle");
@@ -93,35 +93,35 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
 
   useEffect(() => {
     void loadObservations();
-  }, [dal, aziendaAttivaId]);
+  }, [dal, activeCompanyId]);
 
   // Click sul punto in mappa (useFeatureSelection → store): apre la scheda della
   // nota corrispondente, caricando il registro se necessario.
   useEffect(() => {
-    if (!scoutingApriOsservazioneId) return;
+    if (!scoutingOpenObservationId) return;
     const apri = async () => {
       let lista = observations;
-      if (lista.length === 0 && dal && aziendaAttivaId) {
+      if (lista.length === 0 && dal && activeCompanyId) {
         try {
-          lista = await dal.listOsservazioniScouting(aziendaAttivaId);
+          lista = await dal.listOsservazioniScouting(activeCompanyId);
           setObservations(lista);
           syncLayerToStore(lista);
         } catch {
           /* tabella non pronta */
         }
       }
-      const trovata = lista.find((o) => o.id === scoutingApriOsservazioneId);
+      const trovata = lista.find((o) => o.id === scoutingOpenObservationId);
       if (trovata) setDetailObs(trovata);
-      consumaScoutingApri();
+      consumeScoutingOpen();
     };
     void apri();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scoutingApriOsservazioneId]);
+  }, [scoutingOpenObservationId]);
 
   async function loadObservations() {
-    if (!dal || !aziendaAttivaId) return;
+    if (!dal || !activeCompanyId) return;
     try {
-      const obs = await dal.listOsservazioniScouting(aziendaAttivaId);
+      const obs = await dal.listOsservazioniScouting(activeCompanyId);
       setObservations(obs);
       syncLayerToStore(obs);
     } catch {
@@ -207,7 +207,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
     if (!upload) return null;
     try {
       const ext = file.name.split(".").pop() ?? "jpg";
-      const path = `${tenantId}/${aziendaAttivaId}/${obsId}.${ext}`;
+      const path = `${tenantId}/${activeCompanyId}/${obsId}.${ext}`;
       return await upload(path, file);
     } catch {
       return null;
@@ -215,7 +215,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
   }
 
   async function salva() {
-    if (!pendingPoint || !aziendaAttivaId || !dal) return;
+    if (!pendingPoint || !activeCompanyId || !dal) return;
     setSaving(true);
     setError(null);
     try {
@@ -229,7 +229,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
 
       const obs = await dal.salvaOsservazioneScouting({
         id,
-        company_id: aziendaAttivaId,
+        company_id: activeCompanyId,
         lat: pendingPoint.lat,
         lng: pendingPoint.lng,
         accuracy_m: pendingPoint.accuracy ?? null,

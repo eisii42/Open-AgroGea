@@ -4,41 +4,41 @@ import type { MemberRole } from "../types";
 import { assertWritable } from "./helpers";
 import type { DomainSlice, StoreGet, StoreSet } from "./state";
 
-/** Slice dominio: anagrafiche, Quaderno, raccolte, meteo e campagne. */
+/** Slice dominio: anagrafiche, Quaderno, harvests, meteo e campagne. */
 export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
   return {
-    aziende: [],
-    aziendaAttivaId: null,
-    appezzamenti: [],
+    companies: [],
+    activeCompanyId: null,
+    plots: [],
     crops: [],
-    trattamenti: [],
+    treatments: [],
     assets: [],
-    campionamenti: [],
-    raccolte: [],
-    configMeteo: null,
+    soilSamples: [],
+    harvests: [],
+    weatherConfig: null,
     dataTransferLogs: [],
-    campagnaAttiva: new Date().getFullYear(),
-    campiCampagna: [],
+    activeCampaign: new Date().getFullYear(),
+    campaignFields: [],
     memberships: [],
-    prodotti: [],
-    lotti: [],
+    products: [],
+    lots: [],
 
-    setAziendaAttiva: async (aziendaId) => {
+    setActiveCompany: async (companyId) => {
       set({
-        aziendaAttivaId: aziendaId,
-        appezzamentoSelezionatoId: null,
-        appezzamenti: [],
+        activeCompanyId: companyId,
+        selectedPlotId: null,
+        plots: [],
         crops: [],
-        trattamenti: [],
+        treatments: [],
         assets: [],
-        campionamenti: [],
-        raccolte: [],
-        configMeteo: null,
+        soilSamples: [],
+        harvests: [],
+        weatherConfig: null,
         dataTransferLogs: [],
-        campiCampagna: [],
+        campaignFields: [],
         memberships: [],
-        prodotti: [],
-        lotti: [],
+        products: [],
+        lots: [],
         activeView: "map",
         selectedFeature: null,
         geomEdit: null,
@@ -47,22 +47,22 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         geometryRedo: [],
         pendingGeometry: null,
         drawIntent: null,
-        quadernoApriAppezzamentoId: null,
-        colturaApriAppezzamentoId: null,
-        operazioniMappaIds: null,
+        logbookOpenPlotId: null,
+        cropOpenPlotId: null,
+        mapOperationIds: null,
       });
-      if (aziendaId) await get().refreshDomainData();
+      if (companyId) await get().refreshDomainData();
     },
 
-    switchTenant: async (aziendaId) => {
-      // `setAziendaAttiva` azzera già lo stato derivato e ricarica dal PGlite il
+    switchTenant: async (companyId) => {
+      // `setActiveCompany` azzera già lo stato derivato e ricarica dal PGlite il
       // sottoinsieme di dati filtrato per la nuova azienda; il remount della
       // dashboard (key in App) ricostruisce mappa e sorgenti, ripulendo la cache
       // dei vettori sulla WebView.
-      await get().setAziendaAttiva(aziendaId);
+      await get().setActiveCompany(companyId);
     },
 
-    creaAzienda: async (input) => {
+    createCompany: async (input) => {
       const { dal, claims, offlineUnlocked } = get();
       if (!dal || !claims) {
         throw new Error("Sessione non valida: impossibile creare l'azienda.");
@@ -129,14 +129,14 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         contact_role: null,
       });
       set((s) => ({
-        aziende: [...s.aziende.filter((a) => a.id !== record.id), record],
+        companies: [...s.companies.filter((a) => a.id !== record.id), record],
       }));
       get().syncRouter?.notifyLocalWrite();
 
       // Multiutente: registra il posto OWNER dell'abbonato principale per la nuova
       // azienda (via DAL → outbox). switchTenant → refreshDomainData lo idrata.
       const principalEmail =
-        get().session?.user?.email ?? get().profilo?.email ?? null;
+        get().session?.user?.email ?? get().profile?.email ?? null;
       if (principalEmail) {
         await dal.upsertMembership({
           company_id: record.id,
@@ -153,7 +153,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       return record;
     },
 
-    salvaMembership: async (input) => {
+    saveMembership: async (input) => {
       const { dal, syncRouter } = get();
       if (!dal) return null;
       const record = await dal.upsertMembership(input);
@@ -167,7 +167,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       return record;
     },
 
-    eliminaMembership: async (id) => {
+    deleteMembership: async (id) => {
       const { dal, syncRouter } = get();
       if (!dal) return;
       await dal.deleteMembership(id);
@@ -205,175 +205,175 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
     },
 
     refreshDomainData: async () => {
-      const { dal, aziendaAttivaId } = get();
+      const { dal, activeCompanyId } = get();
       if (!dal) return;
-      const aziende = await dal.listAziende();
-      if (!aziendaAttivaId) {
-        set({ aziende });
+      const companies = await dal.listAziende();
+      if (!activeCompanyId) {
+        set({ companies });
         return;
       }
       const [
-        appezzamenti,
+        plots,
         crops,
-        trattamenti,
+        treatments,
         assets,
-        campionamenti,
-        raccolte,
-        configMeteo,
+        soilSamples,
+        harvests,
+        weatherConfig,
         dataTransferLogs,
-        campiCampagna,
+        campaignFields,
         memberships,
-        prodotti,
-        lotti,
+        products,
+        lots,
       ] = await Promise.all([
-        dal.listAppezzamenti(aziendaAttivaId),
+        dal.listAppezzamenti(activeCompanyId),
         dal.listCrops(),
-        dal.listTrattamenti(aziendaAttivaId),
-        dal.listAssets(aziendaAttivaId),
-        dal.listCampionamenti(aziendaAttivaId),
-        dal.listRaccolte(aziendaAttivaId),
-        dal.getConfigMeteo(aziendaAttivaId),
+        dal.listTrattamenti(activeCompanyId),
+        dal.listAssets(activeCompanyId),
+        dal.listCampionamenti(activeCompanyId),
+        dal.listRaccolte(activeCompanyId),
+        dal.getConfigMeteo(activeCompanyId),
         dal.listDataTransferLogs(),
-        dal.listCampiCampagna({ anno: get().campagnaAttiva }),
+        dal.listCampiCampagna({ anno: get().activeCampaign }),
         dal.listMemberships(),
-        dal.listProdotti(aziendaAttivaId),
-        dal.listLotti(aziendaAttivaId),
+        dal.listProdotti(activeCompanyId),
+        dal.listLotti(activeCompanyId),
       ]);
       set({
-        aziende,
-        appezzamenti,
+        companies,
+        plots,
         crops,
-        trattamenti,
+        treatments,
         assets,
-        campionamenti,
-        raccolte,
-        configMeteo,
+        soilSamples,
+        harvests,
+        weatherConfig,
         dataTransferLogs,
-        campiCampagna,
+        campaignFields,
         memberships,
-        prodotti,
-        lotti,
+        products,
+        lots,
       });
     },
 
-    aggiornaAzienda: async (patch) => {
+    updateCompany: async (patch) => {
       assertWritable(get);
-      const { dal, aziendaAttivaId, syncRouter } = get();
-      if (!dal || !aziendaAttivaId) {
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) {
         throw new Error("Nessuna azienda attiva: impossibile salvare l'anagrafica.");
       }
-      const existing = get().aziende.find((a) => a.id === aziendaAttivaId);
+      const existing = get().companies.find((a) => a.id === activeCompanyId);
       if (!existing) return;
       // Si riscrive la riga intera (esistente + patch): l'area di sync è LWW su
       // updated_at, quindi un upsert completo è il percorso canonico.
       const record = await dal.upsertAzienda({ ...existing, ...patch });
       set((s) => ({
-        aziende: s.aziende.map((a) => (a.id === record.id ? record : a)),
+        companies: s.companies.map((a) => (a.id === record.id ? record : a)),
       }));
       syncRouter?.notifyLocalWrite();
     },
 
-    salvaConfigMeteo: async (patch) => {
+    saveWeatherConfig: async (patch) => {
       assertWritable(get);
-      const { dal, aziendaAttivaId } = get();
-      if (!dal || !aziendaAttivaId) {
+      const { dal, activeCompanyId } = get();
+      if (!dal || !activeCompanyId) {
         throw new Error("Nessuna azienda attiva: impossibile salvare la configurazione meteo.");
       }
       const config = await dal.upsertConfigMeteo({
-        company_id: aziendaAttivaId,
+        company_id: activeCompanyId,
         ...patch,
       });
-      set({ configMeteo: config });
+      set({ weatherConfig: config });
     },
 
-    registraTrattamento: async (input, scarichi) => {
+    recordTreatment: async (input, scarichi) => {
       assertWritable(get);
-      const { dal, aziendaAttivaId, syncRouter } = get();
-      if (!dal || !aziendaAttivaId) {
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) {
         throw new Error("Nessuna azienda attiva: impossibile registrare.");
       }
-      // Con scarichi: attività + scarico lotti + costo CUMP in un'unica
+      // Con scarichi: attività + scarico lots + costo CUMP in un'unica
       // transazione (l'eccezione WarehouseError risale al form senza scritture
       // parziali). Senza scarichi: percorso classico (fallback testo libero).
       const { trattamento: record } = await dal.insertTrattamentoConScarichi(
-        { ...input, company_id: aziendaAttivaId },
+        { ...input, company_id: activeCompanyId },
         scarichi ?? [],
       );
-      set((s) => ({ trattamenti: [record, ...s.trattamenti] }));
+      set((s) => ({ treatments: [record, ...s.treatments] }));
       if (scarichi && scarichi.length > 0) {
-        set({ lotti: await dal.listLotti(aziendaAttivaId) });
+        set({ lots: await dal.listLotti(activeCompanyId) });
       }
       syncRouter?.notifyLocalWrite();
       return record;
     },
 
-    eliminaTrattamento: async (id) => {
+    deleteTreatment: async (id) => {
       assertWritable(get);
-      const { dal, aziendaAttivaId, syncRouter } = get();
+      const { dal, activeCompanyId, syncRouter } = get();
       if (!dal) return;
       await dal.deleteTrattamento(id);
-      set((s) => ({ trattamenti: s.trattamenti.filter((t) => t.id !== id) }));
+      set((s) => ({ treatments: s.treatments.filter((t) => t.id !== id) }));
       // Lo storno magazzino del DAL può aver reintegrato giacenze: si riidratano.
-      if (aziendaAttivaId) {
-        set({ lotti: await dal.listLotti(aziendaAttivaId) });
+      if (activeCompanyId) {
+        set({ lots: await dal.listLotti(activeCompanyId) });
       }
       syncRouter?.notifyLocalWrite();
       // L'ultima operazione mostrata nella scheda dettaglio può essere quella
       // appena eliminata: la si ricalcola per l'appezzamento selezionato.
-      const apzId = get().appezzamentoSelezionatoId;
+      const apzId = get().selectedPlotId;
       if (apzId) {
-        const ultima = await dal.ultimaOperazione(apzId);
-        if (get().appezzamentoSelezionatoId === apzId) {
-          set({ ultimaOperazione: ultima });
+        const ultima = await dal.lastOperation(apzId);
+        if (get().selectedPlotId === apzId) {
+          set({ lastOperation: ultima });
         }
       }
     },
 
-    aggiornaTrattamento: async (id, patch) => {
+    updateTreatment: async (id, patch) => {
       assertWritable(get);
       const { dal, syncRouter } = get();
       if (!dal) return null;
-      const existing = get().trattamenti.find((t) => t.id === id);
+      const existing = get().treatments.find((t) => t.id === id);
       if (!existing) return null;
       // insertTrattamento esegue INSERT ... ON CONFLICT (id) DO UPDATE: passando
       // l'id esistente la riga viene aggiornata (created_at è preservato dal DAL).
       const record = await dal.insertTrattamento({ ...existing, ...patch, id });
       set((s) => ({
-        trattamenti: s.trattamenti.map((t) => (t.id === record.id ? record : t)),
+        treatments: s.treatments.map((t) => (t.id === record.id ? record : t)),
       }));
       syncRouter?.notifyLocalWrite();
       // L'ultima operazione mostrata nella scheda dettaglio può essere quella
       // appena modificata: la si ricalcola per l'appezzamento selezionato.
-      const apzId = get().appezzamentoSelezionatoId;
+      const apzId = get().selectedPlotId;
       if (apzId && (record.plot_id === apzId || existing.plot_id === apzId)) {
-        const ultima = await dal.ultimaOperazione(apzId);
-        if (get().appezzamentoSelezionatoId === apzId) {
-          set({ ultimaOperazione: ultima });
+        const ultima = await dal.lastOperation(apzId);
+        if (get().selectedPlotId === apzId) {
+          set({ lastOperation: ultima });
         }
       }
       return record;
     },
 
-    salvaNdviMedio: async (appezzamentoId, ndviMedio) => {
+    saveMeanNdvi: async (plotId, meanNdvi) => {
       assertWritable(get);
       const { dal, syncRouter } = get();
       if (!dal) return;
-      await dal.aggiornaNdviMedio(appezzamentoId, ndviMedio);
+      await dal.aggiornaNdviMedio(plotId, meanNdvi);
       set((s) => ({
-        appezzamenti: s.appezzamenti.map((a) =>
-          a.id === appezzamentoId ? { ...a, last_ndvi_mean: ndviMedio } : a,
+        plots: s.plots.map((a) =>
+          a.id === plotId ? { ...a, last_ndvi_mean: meanNdvi } : a,
         ),
       }));
       syncRouter?.notifyLocalWrite();
     },
 
-    salvaRaccolta: async (input) => {
+    saveHarvest: async (input) => {
       assertWritable(get);
-      const { dal, aziendaAttivaId, syncRouter } = get();
-      if (!dal || !aziendaAttivaId) return null;
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return null;
       const record = await dal.upsertRaccolta({
         id: input.id ?? uuidv4(),
-        company_id: aziendaAttivaId,
+        company_id: activeCompanyId,
         plot_id: input.plot_id ?? null,
         plot_campaign_id: input.plot_campaign_id ?? null,
         cultivar: input.cultivar ?? null,
@@ -385,22 +385,22 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         metadata: input.metadata ?? {},
       });
       set((s) => ({
-        raccolte: [record, ...s.raccolte.filter((r) => r.id !== record.id)],
+        harvests: [record, ...s.harvests.filter((r) => r.id !== record.id)],
       }));
       syncRouter?.notifyLocalWrite();
       return record;
     },
 
-    eliminaRaccolta: async (id) => {
+    deleteHarvest: async (id) => {
       assertWritable(get);
       const { dal, syncRouter } = get();
       if (!dal) return;
       await dal.deleteRaccolta(id);
-      set((s) => ({ raccolte: s.raccolte.filter((r) => r.id !== id) }));
+      set((s) => ({ harvests: s.harvests.filter((r) => r.id !== id) }));
       syncRouter?.notifyLocalWrite();
     },
 
-    registraTrasferimento: async (input) => {
+    recordTransfer: async (input) => {
       const { dal } = get();
       if (!dal) return null;
       const record = await dal.logDataTransfer(input);
@@ -410,24 +410,24 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       return record;
     },
 
-    setCampagnaAttiva: async (anno) => {
-      set({ campagnaAttiva: anno });
+    setActiveCampaign: async (anno) => {
+      set({ activeCampaign: anno });
       const dal = get().dal;
-      if (!dal || !get().aziendaAttivaId) return;
-      set({ campiCampagna: await dal.listCampiCampagna({ anno }) });
+      if (!dal || !get().activeCompanyId) return;
+      set({ campaignFields: await dal.listCampiCampagna({ anno }) });
     },
 
-    salvaCampoCampagna: async (input) => {
+    savePlotCampaign: async (input) => {
       assertWritable(get);
       const { dal, syncRouter } = get();
-      if (!dal || !get().aziendaAttivaId) return null;
+      if (!dal || !get().activeCompanyId) return null;
       const record = await dal.upsertCampoCampagna(input);
       // Idrata solo se appartiene alla campagna attiva (evita righe fuori anno).
-      if (record.campaign_year === get().campagnaAttiva) {
+      if (record.campaign_year === get().activeCampaign) {
         set((s) => ({
-          campiCampagna: [
+          campaignFields: [
             record,
-            ...s.campiCampagna.filter((c) => c.id !== record.id),
+            ...s.campaignFields.filter((c) => c.id !== record.id),
           ],
         }));
       }
@@ -435,23 +435,23 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       return record;
     },
 
-    chiudiCampagna: async (id) => {
+    closeCampaign: async (id) => {
       assertWritable(get);
       const { dal, syncRouter } = get();
       if (!dal) return;
-      const record = await dal.chiudiCampagna(id);
+      const record = await dal.closeCampaign(id);
       if (!record) return;
       // La riga resta nello store (i registri storici la referenziano) ma con
       // closed_at valorizzato: mappa e DSS la ignorano da subito.
       set((s) => ({
-        campiCampagna: s.campiCampagna.map((c) =>
+        campaignFields: s.campaignFields.map((c) =>
           c.id === record.id ? record : c,
         ),
       }));
       syncRouter?.notifyLocalWrite();
     },
 
-    salvaCrop: async (input) => {
+    saveCrop: async (input) => {
       assertWritable(get);
       const { dal, syncRouter } = get();
       if (!dal) return null;
@@ -463,13 +463,13 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       return record;
     },
 
-    salvaCampionamento: async (input) => {
+    saveSoilSample: async (input) => {
       assertWritable(get);
-      const { dal, aziendaAttivaId, syncRouter } = get();
-      if (!dal || !aziendaAttivaId) return null;
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return null;
       const record = await dal.upsertCampionamento({
         id: input.id ?? uuidv4(),
-        company_id: aziendaAttivaId,
+        company_id: activeCompanyId,
         plot_id: input.plot_id ?? null,
         sampled_at: input.sampled_at,
         sampling_position: input.sampling_position,
@@ -483,8 +483,8 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         metadata: input.metadata ?? {},
       });
       set((s) => ({
-        campionamenti: [
-          ...s.campionamenti.filter((c) => c.id !== record.id),
+        soilSamples: [
+          ...s.soilSamples.filter((c) => c.id !== record.id),
           record,
         ],
       }));
@@ -492,17 +492,17 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       return record;
     },
 
-    salvaProdotto: async (input) => {
+    saveProduct: async (input) => {
       assertWritable(get);
-      const { dal, aziendaAttivaId, syncRouter } = get();
-      if (!dal || !aziendaAttivaId) return null;
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return null;
       const record = await dal.upsertProdotto({
         ...input,
-        company_id: aziendaAttivaId,
+        company_id: activeCompanyId,
       });
       set((s) => ({
-        prodotti: [
-          ...s.prodotti.filter((p) => p.id !== record.id),
+        products: [
+          ...s.products.filter((p) => p.id !== record.id),
           record,
         ].sort((a, b) =>
           a.category === b.category
@@ -514,36 +514,36 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       return record;
     },
 
-    eliminaProdotto: async (id) => {
+    deleteProduct: async (id) => {
       assertWritable(get);
       const { dal, syncRouter } = get();
       if (!dal) return;
       await dal.deleteProdotto(id);
-      set((s) => ({ prodotti: s.prodotti.filter((p) => p.id !== id) }));
+      set((s) => ({ products: s.products.filter((p) => p.id !== id) }));
       syncRouter?.notifyLocalWrite();
     },
 
-    caricaLotto: async (input) => {
+    receiveLot: async (input) => {
       assertWritable(get);
-      const { dal, aziendaAttivaId, syncRouter } = get();
-      if (!dal || !aziendaAttivaId) return null;
-      const record = await dal.caricaLotto(input);
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return null;
+      const record = await dal.receiveLot(input);
       // Il carico aggiorna anche il CUMP del prodotto: si riidratano entrambi.
-      const [prodotti, lotti] = await Promise.all([
-        dal.listProdotti(aziendaAttivaId),
-        dal.listLotti(aziendaAttivaId),
+      const [products, lots] = await Promise.all([
+        dal.listProdotti(activeCompanyId),
+        dal.listLotti(activeCompanyId),
       ]);
-      set({ prodotti, lotti });
+      set({ products, lots });
       syncRouter?.notifyLocalWrite();
       return record;
     },
 
-    eliminaLotto: async (id) => {
+    deleteLot: async (id) => {
       assertWritable(get);
       const { dal, syncRouter } = get();
       if (!dal) return;
       await dal.deleteLotto(id);
-      set((s) => ({ lotti: s.lotti.filter((l) => l.id !== id) }));
+      set((s) => ({ lots: s.lots.filter((l) => l.id !== id) }));
       syncRouter?.notifyLocalWrite();
     },
   };

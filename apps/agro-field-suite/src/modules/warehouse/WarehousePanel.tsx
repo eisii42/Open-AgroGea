@@ -14,10 +14,10 @@ import { type FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 /**
- * Modulo Magazzino (0.2.0): anagrafica prodotti a categorie RIGIDE (la
- * categoria determina i campi obbligatori), carico lotti con scadenza e costo
+ * Modulo Magazzino (0.2.0): anagrafica products a categorie RIGIDE (la
+ * categoria determina i campi obbligatori), carico lots con scadenza e costo
  * (aggiornamento CUMP in transazione nel DAL) e alert di scadenza con soglia
- * configurabile. I lotti scaduti sono evidenziati e il loro uso nelle attività
+ * configurabile. I lots scaduti sono evidenziati e il loro uso nelle attività
  * è BLOCCATO (vedi OperationForm); la nota in testa al pannello lo esplicita.
  */
 
@@ -79,43 +79,43 @@ function ExpiryBadge({
 
 export function WarehousePanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
-  const prodotti = useAgroStore((s) => s.prodotti);
-  const lotti = useAgroStore((s) => s.lotti);
-  const salvaProdotto = useAgroStore((s) => s.salvaProdotto);
-  const eliminaProdotto = useAgroStore((s) => s.eliminaProdotto);
-  const caricaLotto = useAgroStore((s) => s.caricaLotto);
-  const eliminaLotto = useAgroStore((s) => s.eliminaLotto);
+  const products = useAgroStore((s) => s.products);
+  const lots = useAgroStore((s) => s.lots);
+  const saveProduct = useAgroStore((s) => s.saveProduct);
+  const deleteProduct = useAgroStore((s) => s.deleteProduct);
+  const receiveLot = useAgroStore((s) => s.receiveLot);
+  const deleteLot = useAgroStore((s) => s.deleteLot);
 
-  // Vista: elenco | form nuovo prodotto | dettaglio prodotto (lotti + carico).
+  // Vista: elenco | form nuovo prodotto | dettaglio prodotto (lots + carico).
   const [nuovo, setNuovo] = useState(false);
   const [prodottoApertoId, setProdottoApertoId] = useState<string | null>(null);
   const [warningDays, setWarningDays] = useState(loadExpiryDays);
   const [errore, setErrore] = useState<string | null>(null);
 
   const prodottoAperto = useMemo(
-    () => prodotti.find((p) => p.id === prodottoApertoId) ?? null,
-    [prodotti, prodottoApertoId],
+    () => products.find((p) => p.id === prodottoApertoId) ?? null,
+    [products, prodottoApertoId],
   );
 
   const lottiPerProdotto = useMemo(() => {
     const map = new Map<string, ProductLot[]>();
-    for (const lotto of lotti) {
+    for (const lotto of lots) {
       const list = map.get(lotto.product_id) ?? [];
       list.push(lotto);
       map.set(lotto.product_id, list);
     }
     return map;
-  }, [lotti]);
+  }, [lots]);
 
-  // Alert §5.1: lotti con giacenza scaduti o in scadenza entro la soglia.
+  // Alert §5.1: lots con giacenza scaduti o in scadenza entro la soglia.
   const lottiCritici = useMemo(
     () =>
-      lotti.filter(
+      lots.filter(
         (l) =>
           l.quantity_on_hand > 0 &&
           expiryStatus(l.expires_at, new Date(), warningDays) !== "valid",
       ),
-    [lotti, warningDays],
+    [lots, warningDays],
   );
 
   function aggiornaSoglia(value: string) {
@@ -167,9 +167,9 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
             // Product + carico del lotto iniziale (giacenza di partenza): il
             // carico aggiorna anche il CUMP dal costo unitario indicato.
             await conErrore(async () => {
-              const record = await salvaProdotto(input);
+              const record = await saveProduct(input);
               if (record) {
-                await caricaLotto({
+                await receiveLot({
                   product_id: record.id,
                   lot_number: lottoIniziale.lot_number,
                   expires_at: lottoIniziale.expires_at,
@@ -185,14 +185,14 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
       ) : prodottoAperto ? (
         <ProdottoDettaglio
           prodotto={prodottoAperto}
-          lotti={lottiPerProdotto.get(prodottoAperto.id) ?? []}
+          lots={lottiPerProdotto.get(prodottoAperto.id) ?? []}
           warningDays={warningDays}
           onBack={() => setProdottoApertoId(null)}
-          onCarica={(input) => conErrore(() => caricaLotto(input))}
-          onDeleteLotto={(id) => conErrore(() => eliminaLotto(id))}
+          onCarica={(input) => conErrore(() => receiveLot(input))}
+          onDeleteLotto={(id) => conErrore(() => deleteLot(id))}
           onDeleteProdotto={async () => {
             await conErrore(async () => {
-              await eliminaProdotto(prodottoAperto.id);
+              await deleteProduct(prodottoAperto.id);
               setProdottoApertoId(null);
             });
           }}
@@ -228,13 +228,13 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
             </p>
           </div>
 
-          {prodotti.length === 0 ? (
+          {products.length === 0 ? (
             <p className="py-8 text-center text-sm text-[var(--ink-3)]">
               {t("warehouse.noProducts")}
             </p>
           ) : (
             <ul className="flex flex-col gap-2">
-              {prodotti.map((prodotto) => {
+              {products.map((prodotto) => {
                 const suoi = lottiPerProdotto.get(prodotto.id) ?? [];
                 const giacenza = suoi.reduce(
                   (sum, l) => sum + Number(l.quantity_on_hand),
@@ -747,12 +747,12 @@ function ProdottoForm({
 }
 
 // ---------------------------------------------------------------------------
-// Dettaglio prodotto: lotti + carico nuovo lotto
+// Dettaglio prodotto: lots + carico nuovo lotto
 // ---------------------------------------------------------------------------
 
 function ProdottoDettaglio({
   prodotto,
-  lotti,
+  lots,
   warningDays,
   onBack,
   onCarica,
@@ -760,7 +760,7 @@ function ProdottoDettaglio({
   onDeleteProdotto,
 }: {
   prodotto: Product;
-  lotti: ProductLot[];
+  lots: ProductLot[];
   warningDays: number;
   onBack: () => void;
   onCarica: (input: {
@@ -781,7 +781,7 @@ function ProdottoDettaglio({
   const [costo, setCosto] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const giacenza = lotti.reduce((s, l) => s + Number(l.quantity_on_hand), 0);
+  const giacenza = lots.reduce((s, l) => s + Number(l.quantity_on_hand), 0);
   const qtaNum = Number.parseFloat(quantita);
   const costoNum = Number.parseFloat(costo);
   const caricoValido =
@@ -921,13 +921,13 @@ function ProdottoDettaglio({
         </form>
       )}
 
-      {lotti.length === 0 ? (
+      {lots.length === 0 ? (
         <p className="py-4 text-center text-sm text-[var(--ink-3)]">
           {t("warehouse.noLots")}
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {lotti.map((lotto) => (
+          {lots.map((lotto) => (
             <li
               key={lotto.id}
               className="flex items-center gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2"

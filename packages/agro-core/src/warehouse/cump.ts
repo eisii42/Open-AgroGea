@@ -2,8 +2,8 @@ import type { ProductCategory, ProductLot, Product } from "../types";
 
 /**
  * Motore PURO del Magazzino (0.2.0): CUMP (Costo Unitario Medio Ponderato,
- * media ponderata mobile), stato di scadenza dei lotti e validazione per
- * categoria dell'anagrafica prodotti. Nessun accesso al DB: le funzioni sono
+ * media ponderata mobile), stato di scadenza dei lots e validazione per
+ * categoria dell'anagrafica products. Nessun accesso al DB: le funzioni sono
  * usate dal DAL (`dal-warehouse.ts`) dentro le transazioni e dalla UI per la
  * validazione dei form (stesso pattern di `pan-validation.ts`).
  */

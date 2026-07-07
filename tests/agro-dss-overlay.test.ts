@@ -121,13 +121,13 @@ function apz(id: string): Plot {
 }
 
 describe("costruisciOverlayDss", () => {
-  it("colora gli appezzamenti con sintesi e omette gli altri", () => {
-    const appezzamenti = [apz("a"), apz("b"), apz("c")];
+  it("colora gli plots con sintesi e omette gli altri", () => {
+    const plots = [apz("a"), apz("b"), apz("c")];
     const sintesi = new Map<string, FieldSummary>([
       ["a", { rischio01: 0.05 }],
       ["c", { rischio01: 0.9 }],
     ]);
-    const fc = costruisciOverlayDss(appezzamenti, sintesi, rampaRischioDss("vite"));
+    const fc = costruisciOverlayDss(plots, sintesi, rampaRischioDss("vite"));
     assert.equal(fc.features.length, 2); // b è omesso (niente sintesi)
     const a = fc.features.find((f) => f.properties?.id === "a");
     const c = fc.features.find((f) => f.properties?.id === "c");

@@ -21,18 +21,18 @@ import { infoMeteoCodice } from "../../lib/weather-codes";
 
 /** Coordinate [lon, lat] dell'azienda attiva, o null se non localizzabile. */
 function useCoordinateAzienda(): [number, number] | null {
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
-  const aziende = useAgroStore((s) => s.aziende);
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
+  const companies = useAgroStore((s) => s.companies);
+  const plots = useAgroStore((s) => s.plots);
 
   return useMemo(() => {
-    const azienda = aziende.find((a) => a.id === aziendaAttivaId);
+    const azienda = companies.find((a) => a.id === activeCompanyId);
     const sede = azienda?.centroid?.coordinates;
     if (sede && sede.length >= 2) return [sede[0], sede[1]];
-    const conGeometria = appezzamenti.find((a) => a.geometry);
+    const conGeometria = plots.find((a) => a.geometry);
     if (conGeometria) return centroid(conGeometria.geometry);
     return null;
-  }, [aziendaAttivaId, aziende, appezzamenti]);
+  }, [activeCompanyId, companies, plots]);
 }
 
 function gradi(v: number | null | undefined): string {
@@ -54,7 +54,7 @@ function etichettaGiorno(
 
 export function WeatherCard() {
   const { t, i18n } = useTranslation();
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const coordinate = useCoordinateAzienda();
 
   const [previsione, setPrevisione] = useState<PrevisioneDashboard | null>(null);
@@ -64,11 +64,11 @@ export function WeatherCard() {
 
   const carica = useCallback(
     async (force: boolean) => {
-      if (!aziendaAttivaId || !coordinate) return;
+      if (!activeCompanyId || !coordinate) return;
       setStato("loading");
       try {
         const data = await WeatherSyncService.previsioneDashboard({
-          aziendaId: aziendaAttivaId,
+          companyId: activeCompanyId,
           lon: coordinate[0],
           lat: coordinate[1],
           force,
@@ -80,13 +80,13 @@ export function WeatherCard() {
         setStato("errore");
       }
     },
-    [aziendaAttivaId, coordinate],
+    [activeCompanyId, coordinate],
   );
 
   // Cambio azienda → si azzera la scheda (i dati appartengono a un'altra sede).
   useEffect(() => {
     setPrevisione(null);
-  }, [aziendaAttivaId]);
+  }, [activeCompanyId]);
 
   // Avvio app / coordinate disponibili → caricamento (cache oraria a valle).
   useEffect(() => {
@@ -117,7 +117,7 @@ export function WeatherCard() {
   }, [aperto]);
 
   // Senza coordinate non c'è nulla da localizzare: scheda nascosta.
-  if (!aziendaAttivaId || !coordinate) return null;
+  if (!activeCompanyId || !coordinate) return null;
 
   const corrente = previsione?.corrente;
   const infoCorrente = infoMeteoCodice(corrente?.weatherCode);

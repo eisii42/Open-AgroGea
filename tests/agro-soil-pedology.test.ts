@@ -18,7 +18,7 @@ import {
 
 /**
  * Validazione dell'engine pedotransfer (Saxton-Rawls) e dei mapper puri del
- * SoilDataResolver: tessitura → frazioni → θFC/θPWP, aggregazione campionamenti,
+ * SoilDataResolver: tessitura → frazioni → θFC/θPWP, aggregazione soilSamples,
  * fallback da metadata. La parte spaziale (DuckDB) è IO e non è coperta qui.
  */
 
@@ -112,7 +112,7 @@ describe("saxtonRawlsSoilParameters — composizione SoilParameters", () => {
   });
 });
 
-describe("frazioniDaProprieta — feature custom e campionamenti", () => {
+describe("frazioniDaProprieta — feature custom e soilSamples", () => {
   it("preferisce le percentuali esplicite (multi spelling)", () => {
     const fr = frazioniDaProprieta({ sand: 60, silt: 30, clay: 10 });
     assert.ok(fr);

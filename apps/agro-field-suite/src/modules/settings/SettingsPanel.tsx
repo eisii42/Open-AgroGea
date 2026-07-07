@@ -38,20 +38,20 @@ function getVariabili(
 
 export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
-  const configMeteo = useAgroStore((s) => s.configMeteo);
-  const salvaConfigMeteo = useAgroStore((s) => s.salvaConfigMeteo);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
+  const weatherConfig = useAgroStore((s) => s.weatherConfig);
+  const saveWeatherConfig = useAgroStore((s) => s.saveWeatherConfig);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
 
   const [fonte, setFonte] = useState<WeatherDataSource>(
-    configMeteo?.data_source ?? "public_api",
+    weatherConfig?.data_source ?? "public_api",
   );
-  const [modello, setModello] = useState(configMeteo?.station_model ?? "");
-  const [apiKey, setApiKey] = useState(configMeteo?.station_api_key ?? "");
+  const [modello, setModello] = useState(weatherConfig?.station_model ?? "");
+  const [apiKey, setApiKey] = useState(weatherConfig?.station_api_key ?? "");
   const [deviceId, setDeviceId] = useState(
-    configMeteo?.station_device_id ?? "",
+    weatherConfig?.station_device_id ?? "",
   );
   const [variabili, setVariabili] = useState<Set<WeatherVariable>>(
-    new Set(configMeteo?.visible_variables ?? ["temperature", "humidity", "rain"]),
+    new Set(weatherConfig?.visible_variables ?? ["temperature", "humidity", "rain"]),
   );
   const [salvataggio, setSalvataggio] = useState<"idle" | "salvo" | "fatto" | "errore">(
     "idle",
@@ -70,7 +70,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
     setSalvataggio("salvo");
     setErroreMsg(undefined);
     try {
-      await salvaConfigMeteo({
+      await saveWeatherConfig({
         data_source: fonte,
         api_provider: fonte === "public_api" ? "open-meteo" : null,
         station_model: fonte === "private_station" ? modello || null : null,
@@ -95,7 +95,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
       footer={
         <Button
           className="min-h-[var(--touch-min)] w-full"
-          disabled={!aziendaAttivaId || salvataggio === "salvo"}
+          disabled={!activeCompanyId || salvataggio === "salvo"}
           onClick={() => void salva()}
         >
           {salvataggio === "salvo"
@@ -107,7 +107,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
       }
     >
       <div className="flex flex-col gap-5">
-        {!aziendaAttivaId && (
+        {!activeCompanyId && (
           <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] p-2 text-sm text-[var(--ink-3)]">
             {t("impostazioniPanel.selectCompany")}
           </p>

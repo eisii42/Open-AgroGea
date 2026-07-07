@@ -3,7 +3,7 @@
  *
  * Mappa RIGIDA dei vincoli di abbonamento AgroGea. Modulo PURO: nessuna
  * dipendenza da React/DB/store. È la fonte di verità dei limiti per piano,
- * consumata sia dal Company Creation Guard (creazione aziende) sia dal Seat
+ * consumata sia dal Company Creation Guard (creazione companies) sia dal Seat
  * Enforcement Engine ({@link ../team/MembershipGuard}).
  *
  * Nota di terminologia: nello schema AgroGea la "singola azienda" è una riga di
@@ -19,12 +19,12 @@ export type TeamRole = "OWNER" | "MANAGER" | "VIEWER";
 export const TEAM_ROLES: readonly TeamRole[] = ["OWNER", "MANAGER", "VIEWER"];
 
 /**
- * Piano di abbonamento che governa quote di aziende e posti (seat). Lineup
+ * Piano di abbonamento che governa quote di companies e posti (seat). Lineup
  * unico a 3 livelli — il multiutente è integrato qui dentro:
  *
  *   - `base`     — single user, 1 azienda.
- *   - `standard` — 5 aziende, piccolo team.
- *   - `plus`     — aziende illimitate, team ampio.
+ *   - `standard` — 5 companies, piccolo team.
+ *   - `plus`     — companies illimitate, team ampio.
  *
  * Il tipo accetta anche stringhe arbitrarie (i valori legacy `free`/`flat_3`/
  * `professional`/`enterprise` vengono ricondotti dai {@link normalizePlan});
@@ -36,9 +36,9 @@ export type SubscriptionPlan =
   | "plus"
   | (string & {});
 
-/** Vincoli numerici di un piano (aziende + posti per ruolo, per singola azienda). */
+/** Vincoli numerici di un piano (companies + posti per ruolo, per singola azienda). */
 export interface PlanLimits {
-  /** Numero massimo di aziende (workspace) creabili dall'abbonato. */
+  /** Numero massimo di companies (workspace) creabili dall'abbonato. */
   max_companies: number;
   /** Posti OWNER per singola azienda (incluso l'abbonato principale). */
   max_owners_per_company: number;
@@ -49,7 +49,7 @@ export interface PlanLimits {
 }
 
 /**
- * Sentinella di "illimitato": le aziende del piano enterprise sono di fatto
+ * Sentinella di "illimitato": le companies del piano enterprise sono di fatto
  * senza limite. Trattata come soglia ({@link isUnlimited}) per evitare badge
  * "x/9999" e per non bloccare mai la creazione.
  */
@@ -59,8 +59,8 @@ export const UNLIMITED = 9999;
  * Tabella RIGIDA dei vincoli per piano (lineup unico a 3 livelli).
  *
  * - `base`:     1 azienda; single user (owner 1, manager 0, viewer 0).
- * - `standard`: 5 aziende; per azienda owner 1, manager 1, viewer 2.
- * - `plus`:     aziende illimitate; per azienda owner 10, manager 2, viewer 3.
+ * - `standard`: 5 companies; per azienda owner 1, manager 1, viewer 2.
+ * - `plus`:     companies illimitate; per azienda owner 10, manager 2, viewer 3.
  */
 export const PLAN_LIMITS: Record<string, PlanLimits> = {
   base: {
@@ -143,7 +143,7 @@ export function seatLimitForRole(
   }
 }
 
-/** Numero massimo di aziende creabili dall'abbonato nel piano. */
+/** Numero massimo di companies creabili dall'abbonato nel piano. */
 export function companyLimit(plan: string | null | undefined): number {
   return getPlanLimits(plan).max_companies;
 }
@@ -207,7 +207,7 @@ export function isQuotaError(e: unknown): e is QuotaExceededError {
 }
 
 /**
- * Verifica la quota aziende e SOLLEVA {@link QuotaExceededError} se saturata.
+ * Verifica la quota companies e SOLLEVA {@link QuotaExceededError} se saturata.
  * Backstop client-side del trigger DB `check_tenant_limit`: blocca la mutazione
  * (e il disegno) prima ancora dell'INSERT, attivando il modal di upgrade.
  */
@@ -218,8 +218,8 @@ export function assertCanCreateCompany(
   if (canCreateCompany(plan, currentActiveCompanies)) return;
   const max = companyLimit(plan);
   throw new QuotaExceededError(
-    `Limite aziende raggiunto per il piano ${planLabel(plan)} (Massimo ${max} ${
-      max === 1 ? "azienda" : "aziende"
+    `Limite companies raggiunto per il piano ${planLabel(plan)} (Massimo ${max} ${
+      max === 1 ? "azienda" : "companies"
     }). Effettua l'upgrade della licenza.`,
     { kind: "company", plan },
   );
