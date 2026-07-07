@@ -21,7 +21,7 @@ export interface GeoLocationState {
  * sia nel browser standard (PWA mode).
  *
  * `requestPosition()` è un'acquisizione one-shot ad alta precisione; la
- * promessa risolve con la posizione o rifiuta con il messaggio di errore.
+ * promessa risolve con la posizione o rifiuta con il message di errore.
  */
 export function useGeoLocation() {
   const [state, setState] = useState<GeoLocationState>({

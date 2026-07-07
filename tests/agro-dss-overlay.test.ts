@@ -12,7 +12,7 @@ import {
 } from "../apps/agro-field-suite/src/modules/dss/dss-overlay";
 
 /**
- * Sintesi spaziale del rischio DSS (Modulo 3): punteggio bilanciato per coltura,
+ * Sintesi spaziale del risk DSS (Modulo 3): punteggio bilanciato per coltura,
  * rampa cromatica e costruzione dell'overlay coropletico.
  */
 
@@ -29,10 +29,10 @@ describe("summarizeFieldRisk", () => {
       CAL,
     );
     assert.ok(basso >= 0 && basso <= 1);
-    assert.ok(alto > basso, "più stress ⇒ più rischio");
+    assert.ok(alto > basso, "più stress ⇒ più risk");
   });
 
-  it("NDVI alto (vigore pieno) abbassa il rischio rispetto a NDVI basso", () => {
+  it("NDVI alto (vigore pieno) abbassa il risk rispetto a NDVI basso", () => {
     const vigoroso = summarizeFieldRisk(
       { stressIdrico01: 0.3, rischioPatologico01: 0.3, ndvi: 0.85 },
       CAL,
@@ -54,7 +54,7 @@ describe("summarizeFieldRisk", () => {
     assert.ok(Math.abs(v - 0.5) < 1e-9);
   });
 
-  it("il deficit di azoto alza il rischio", () => {
+  it("il deficit di azoto alza il risk", () => {
     const senza = summarizeFieldRisk(
       { stressIdrico01: 0.2, rischioPatologico01: 0.2, ndvi: 0.7 },
       CAL,
@@ -68,7 +68,7 @@ describe("summarizeFieldRisk", () => {
 });
 
 describe("calibrazione per coltura", () => {
-  it("usa la banda NDVI della fase e cambia i pesi tra colture", () => {
+  it("usa la banda NDVI della phase e cambia i pesi tra colture", () => {
     const vite = summaryCalibration("vite", "piena");
     const mais = summaryCalibration("mais", "piena");
     assert.deepEqual(vite.ndviAtteso, [0.6, 0.85]);

@@ -8,8 +8,8 @@ export { dssFrutta } from "./dss";
 export const fruitModule: CropModule = {
   id: "frutta",
   label: "Frutta",
-  categorie: ["frutticoltura"],
-  speciePrincipale: "melo",
+  categories: ["frutticoltura"],
+  mainSpecies: "melo",
   dss: dssFrutta,
-  accumuloStagionale: true,
+  seasonalAccumulation: true,
 };

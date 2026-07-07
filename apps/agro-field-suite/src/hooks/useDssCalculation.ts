@@ -5,7 +5,7 @@ import {
   useAgroStore,
 } from "@agrogea/core";
 import type { AgroDal, CompanyWeatherConfig, Crop } from "@agrogea/core";
-import type { FaseFenologica } from "@agrogea/tools";
+import type { PhenologicalPhase } from "@agrogea/tools";
 import type { FeatureCollection } from "geojson";
 import { useCallback, useState } from "react";
 import { type ParametriSuoloRisolti, SoilDataResolver } from "../modules/soil";
@@ -34,7 +34,7 @@ import i18n from "../i18n";
  * MULTI-APPEZZAMENTO (come la pipeline indici del modulo Suolo):
  *
  *   per ogni appezzamento target →
- *   Fetch meteo (lucchetto orario, azienda) → serie da PGlite → run DSS locale →
+ *   Fetch meteo (lucchetto orario, azienda) → series da PGlite → run DSS locale →
  *   (opz.) bilancio idrico FAO 56/66 → scrittura `dss_results`/`soil_water_indices`.
  *
  * Tutto imperativo via `getState()`: il ciclo NON sottoscrive lo store globale,
@@ -56,25 +56,25 @@ export interface InfoMeteoDss {
 /** Sintesi del bilancio idrico per la UI (dettaglio in `soil_water_indices`). */
 export interface BilancioSintesi {
   /** Giorni di autonomia prima del primo stress nella finestra. */
-  giorniAutonomia: number;
-  /** Deplezione radicale dell'ultimo giorno (mm). */
-  deplezione: number;
+  autonomyDays: number;
+  /** Deplezione radicale dell'ultimo day (mm). */
+  depletion: number;
   raw: number;
   awc: number;
   inStress: boolean;
   /** Numero di giorni calcolati. */
   giorni: number;
-  /** true se la serie è stata persistita in `soil_water_indices`. */
+  /** true se la series è stata persistita in `soil_water_indices`. */
   persistito: boolean;
 }
 
 /** Esito del calcolo per UN appezzamento. */
 export interface DssPlotResult {
   appezzamentoId: string;
-  nome: string;
+  name: string;
   modulo: CropModule;
   esiti: DssOutcome[];
-  /** Vettori di rischio normalizzati 0..1 (patologici + idrico se calcolato). */
+  /** Vettori di risk normalizzati 0..1 (patologici + idrico se calcolato). */
   vettori: VettoreRischioDss[];
   /** Sintesi del bilancio idrico (null se non calcolato/calcolabile). */
   bilancio: BilancioSintesi | null;
@@ -82,9 +82,9 @@ export interface DssPlotResult {
   suolo: ParametriSuoloRisolti | null;
   /** Serie giornaliera del bilancio idrico (vuota se non calcolata). */
   bilancioSerie: IndiceIdricoGiorno[];
-  serie: DssWeatherDay[];
+  series: DssWeatherDay[];
   meteo: InfoMeteoDss | null;
-  messaggio?: string;
+  message?: string;
 }
 
 /** Plot + modulo coltura da calcolare. */
@@ -104,22 +104,22 @@ export interface OpzioniCalcoloDss {
 }
 
 export interface StatoDssCalcolo {
-  fase: FaseDss;
+  phase: FaseDss;
   /** Esiti per appezzamento, nell'ordine dei target. */
   risultati: DssPlotResult[];
   /** ISO del momento del calcolo (per la timeline). */
   calcolatoIl: string | null;
-  messaggio?: string;
+  message?: string;
 }
 
 const STATO_INIZIALE: StatoDssCalcolo = {
-  fase: "idle",
+  phase: "idle",
   risultati: [],
   calcolatoIl: null,
 };
 
 /** Fasi fenologiche ammesse (per validare l'override da metadata). */
-const FASI_VALIDE: readonly FaseFenologica[] = [
+const FASI_VALIDE: readonly PhenologicalPhase[] = [
   "iniziale",
   "sviluppo",
   "piena",
@@ -127,11 +127,11 @@ const FASI_VALIDE: readonly FaseFenologica[] = [
 ];
 
 /** Fase fenologica dal metadata (override), default "piena" (piena stagione). */
-function faseFenologica(appezzamento: Plot): FaseFenologica {
+function faseFenologica(appezzamento: Plot): PhenologicalPhase {
   const meta = (appezzamento.metadata ?? {}) as Record<string, unknown>;
-  const fase = meta.fase;
-  return typeof fase === "string" && FASI_VALIDE.includes(fase as FaseFenologica)
-    ? (fase as FaseFenologica)
+  const phase = meta.phase;
+  return typeof phase === "string" && FASI_VALIDE.includes(phase as PhenologicalPhase)
+    ? (phase as PhenologicalPhase)
     : "piena";
 }
 
@@ -153,7 +153,7 @@ function numeroMeta(value: unknown): number | undefined {
  * SEMINA/TRAPIANTO è il Quaderno di Campagna: si usa la data dell'ultimo evento
  * `sowing` registrato. In ordine: ultima semina/trapianto del quaderno → override
  * esplicito nei metadata (`data_inizio_gdd`/`data_semina`) → 1° gennaio dell'anno
- * corrente (convenzione per i gradi-giorno stagionali).
+ * corrente (convenzione per i gradi-day stagionali).
  */
 function biofixGdd(
   appezzamento: Plot,
@@ -194,14 +194,14 @@ async function calcolaPlot(
   const { appezzamento, modulo } = target;
   const base: DssPlotResult = {
     appezzamentoId: appezzamento.id,
-    nome: appezzamento.user_plot_name,
+    name: appezzamento.user_plot_name,
     modulo,
     esiti: [],
     vettori: [],
     bilancio: null,
     suolo: null,
     bilancioSerie: [],
-    serie: [],
+    series: [],
     meteo: null,
   };
 
@@ -223,7 +223,7 @@ async function calcolaPlot(
   const biofix = biofixGdd(appezzamento, trattamenti);
 
   // 0) Storico stagionale (colture ad accumulo): backfill gated via Archive API.
-  if (modulo.accumuloStagionale) {
+  if (modulo.seasonalAccumulation) {
     try {
       await WeatherSyncService.assicuraStoricoGdd({
         dal,
@@ -238,7 +238,7 @@ async function calcolaPlot(
 
   // 1) Meteo: lucchetto orario (azienda) → fetch solo se stantio. Offline →
   //    fallback sulle letture già in PGlite.
-  let serie: DssWeatherDay[];
+  let series: DssWeatherDay[];
   let meteo: InfoMeteoDss;
   let lettureRaw: WeatherReading[] = [];
   try {
@@ -249,7 +249,7 @@ async function calcolaPlot(
       config: configMeteo,
     });
     lettureRaw = res.letture;
-    serie = buildDssSeries(res.letture);
+    series = buildDssSeries(res.letture);
     meteo = {
       fetched: res.fetched,
       inserite: res.inserite,
@@ -265,7 +265,7 @@ async function calcolaPlot(
       limit: 30_000,
     });
     lettureRaw = letture;
-    serie = buildDssSeries(letture);
+    series = buildDssSeries(letture);
     meteo = {
       fetched: false,
       inserite: 0,
@@ -291,51 +291,51 @@ async function calcolaPlot(
     const out = calcolaBilancioIdrico({
       letture: lettureRaw,
       irrigazioni: apportiIrriguiDaTrattamenti(trattamenti, appezzamento.area_ha),
-      coltura: modulo.speciePrincipale,
-      fase: faseFenologica(appezzamento),
+      coltura: modulo.mainSpecies,
+      phase: faseFenologica(appezzamento),
       suolo: suolo.parametri,
-      altitudine: 0,
+      altitude: 0,
     });
-    bilancioSerie = out.serie;
-    // Stato idrico CORRENTE = ultimo giorno osservato (≤ oggi). La serie include
+    bilancioSerie = out.series;
+    // Stato idrico CORRENTE = ultimo day osservato (≤ oggi). La series include
     // ~16 giorni di PREVISIONE in coda: usarne l'ultimo (futuro) "laverebbe via"
-    // l'irrigazione di oggi sotto giorni di ETc successivi. Così invece l'apporto
+    // l'irrigation di oggi sotto giorni di ETc successivi. Così invece l'apporto
     // irriguo appena registrato si riflette subito su Dr corrente e autonomia.
     const oggiISO = new Date().toISOString().slice(0, 10);
     let idxOggi = -1;
-    for (let i = 0; i < out.serie.length; i++) {
-      if (out.serie[i].data <= oggiISO) idxOggi = i;
+    for (let i = 0; i < out.series.length; i++) {
+      if (out.series[i].data <= oggiISO) idxOggi = i;
       else break;
     }
     const ultimo =
-      idxOggi >= 0 ? out.serie[idxOggi] : out.serie[out.serie.length - 1];
+      idxOggi >= 0 ? out.series[idxOggi] : out.series[out.series.length - 1];
     // Giorni di autonomia = giorni consecutivi senza stress dopo oggi (previsione).
-    let giorniAutonomia = 0;
+    let autonomyDays = 0;
     if (ultimo && !ultimo.inStress) {
-      for (let i = idxOggi + 1; i < out.serie.length; i++) {
-        if (out.serie[i].inStress) break;
-        giorniAutonomia++;
+      for (let i = idxOggi + 1; i < out.series.length; i++) {
+        if (out.series[i].inStress) break;
+        autonomyDays++;
       }
     }
     if (ultimo) {
       statoIdrico = {
-        deplezione: ultimo.deplezione,
+        depletion: ultimo.depletion,
         raw: ultimo.raw,
         awc: ultimo.awc,
       };
     }
     let persistito = false;
-    if (campagna && out.serie.length > 0) {
+    if (campagna && out.series.length > 0) {
       await dal.salvaIndiciIdrici(
         campagna.id,
-        out.serie.map((g) => ({
+        out.series.map((g) => ({
           date: g.data,
           et0: g.et0,
           etc: g.etc,
-          rain_mm: g.pioggia,
-          irrigation_mm: g.irrigazione,
-          deep_percolation_mm: g.percolazione,
-          depletion_mm: g.deplezione,
+          rain_mm: g.rain,
+          irrigation_mm: g.irrigation,
+          deep_percolation_mm: g.percolation,
+          depletion_mm: g.depletion,
           raw_mm: g.raw,
           awc_mm: g.awc,
           water_stress: g.inStress,
@@ -345,12 +345,12 @@ async function calcolaPlot(
     }
     bilancio = ultimo
       ? {
-          giorniAutonomia,
-          deplezione: ultimo.deplezione,
+          autonomyDays,
+          depletion: ultimo.depletion,
           raw: ultimo.raw,
           awc: ultimo.awc,
           inStress: ultimo.inStress,
-          giorni: out.serie.length,
+          giorni: out.series.length,
           persistito,
         }
       : null;
@@ -360,14 +360,14 @@ async function calcolaPlot(
   //    di stress idrico). Il biofix ancora l'accumulo GDD.
   const germogli = ((appezzamento.metadata ?? {}) as Record<string, unknown>)
     .lunghezza_germogli_cm;
-  const contesto = {
-    dataInizioAccumuloGdd: biofix,
-    ...(typeof germogli === "number" ? { lunghezzaGermogliCm: germogli } : {}),
+  const context = {
+    gddStartDate: biofix,
+    ...(typeof germogli === "number" ? { shootLengthCm: germogli } : {}),
   };
-  const { esiti, vettori } = eseguiDssEngine(modulo, serie, contesto, statoIdrico);
+  const { esiti, vettori } = eseguiDssEngine(modulo, series, context, statoIdrico);
 
-  // 4) Persistenza cache dei modelli patologici (ultimo valore per modello).
-  if (serie.length > 0) {
+  // 4) Persistenza cache dei modelli patologici (ultimo valore per model).
+  if (series.length > 0) {
     await dal.salvaDssRisultati(appezzamento.id, outcomesToDssResults(esiti));
   }
 
@@ -378,10 +378,10 @@ async function calcolaPlot(
     bilancio,
     suolo,
     bilancioSerie,
-    serie,
+    series,
     meteo,
-    messaggio:
-      serie.length === 0
+    message:
+      series.length === 0
         ? i18n.t("useDssCalcolo.noWeatherData")
         : undefined,
   };
@@ -395,7 +395,7 @@ export function useDssCalcolo() {
   const calcola = useCallback(
     async (targets: DssTarget[], opzioni: OpzioniCalcoloDss = {}) => {
       if (targets.length === 0) return;
-      setStato((s) => ({ ...s, fase: "calcolo", messaggio: undefined }));
+      setStato((s) => ({ ...s, phase: "calcolo", message: undefined }));
       try {
         const { dal, aziendaAttivaId, configMeteo, crops } =
           useAgroStore.getState();
@@ -415,19 +415,19 @@ export function useDssCalcolo() {
             risultati.push(await calcolaPlot(ctx, target, opzioni));
           } catch (errPlot) {
             // Un errore su un campo non blocca gli altri: si registra come esito
-            // vuoto con messaggio dedicato.
+            // vuoto con message dedicato.
             risultati.push({
               appezzamentoId: target.appezzamento.id,
-              nome: target.appezzamento.user_plot_name,
+              name: target.appezzamento.user_plot_name,
               modulo: target.modulo,
               esiti: [],
               vettori: [],
               bilancio: null,
               suolo: null,
               bilancioSerie: [],
-              serie: [],
+              series: [],
               meteo: null,
-              messaggio:
+              message:
                 errPlot instanceof Error
                   ? errPlot.message
                   : i18n.t("useDssCalcolo.plotCalculationError"),
@@ -436,15 +436,15 @@ export function useDssCalcolo() {
         }
 
         setStato({
-          fase: "completato",
+          phase: "completato",
           risultati,
           calcolatoIl: new Date().toISOString(),
         });
       } catch (err) {
         setStato({
           ...STATO_INIZIALE,
-          fase: "errore",
-          messaggio:
+          phase: "errore",
+          message:
             err instanceof Error ? err.message : i18n.t("useDssCalcolo.dssCalculationError"),
         });
       }

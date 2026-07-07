@@ -7,9 +7,9 @@ import {
 } from "../../services/gis/geo-export";
 
 /**
- * Export dello STORICO UMIDITÀ (Modulo Suolo §3): proietta la serie giornaliera
+ * Export dello STORICO UMIDITÀ (Modulo Suolo §3): proietta la series giornaliera
  * del bilancio idrico (`soil_water_indices`) in formati GIS della filiera —
- * GeoJSON, Shapefile (.zip) e CSV localizzato (`;` + BOM UTF-8). Ogni giorno
+ * GeoJSON, Shapefile (.zip) e CSV localizzato (`;` + BOM UTF-8). Ogni day
  * diventa un punto al baricentro dell'appezzamento con gli indici idrici come
  * attributi. Compone i serializzatori puri di `geo-export` (priorità peso bundle).
  */
@@ -48,15 +48,15 @@ function baricentro(geometry: Plot["geometry"]): Position {
 }
 
 /**
- * Costruisce la FeatureCollection dello storico: un punto per giorno al
+ * Costruisce la FeatureCollection dello storico: un punto per day al
  * baricentro dell'appezzamento, con gli indici idrici come attributi numerici.
  */
 export function buildMoistureHistoryFc(
   appezzamento: Plot,
-  serie: MoistureHistoryRow[],
+  series: MoistureHistoryRow[],
 ): FeatureCollection {
   const centro = baricentro(appezzamento.geometry);
-  const features: Feature<Point>[] = serie.map((r) => ({
+  const features: Feature<Point>[] = series.map((r) => ({
     type: "Feature",
     geometry: { type: "Point", coordinates: centro },
     properties: {

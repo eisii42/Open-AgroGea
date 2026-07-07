@@ -1,7 +1,7 @@
 import {
   type CropType,
-  rampaPerIndice,
-  type IndiceVegetazionale,
+  rampForIndex,
+  type VegetationIndex,
 } from "@agrogea/tools";
 import { useAppStore } from "@geolibre/core";
 import { useMemo } from "react";
@@ -21,14 +21,14 @@ export function Colorbar() {
   // stesso indice attivi (es. NDVI su più appezzamenti/date): la rampa è
   // identica, quindi le voci duplicate vengono collassate.
   const indici = useMemo(() => {
-    const set = new Set<IndiceVegetazionale>();
+    const set = new Set<VegetationIndex>();
     for (const l of layers) {
       if (
         l.visible &&
         l.metadata?.overlay === true &&
         typeof l.metadata?.indice === "string"
       ) {
-        set.add(l.metadata.indice as IndiceVegetazionale);
+        set.add(l.metadata.indice as VegetationIndex);
       }
     }
     return [...set];
@@ -60,7 +60,7 @@ export function Colorbar() {
         <ColorbarCard
           key={indice}
           titolo={indice.toUpperCase()}
-          model={buildColorbar(rampaPerIndice(indice))}
+          model={buildColorbar(rampForIndex(indice))}
         />
       ))}
     </div>

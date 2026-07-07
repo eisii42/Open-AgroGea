@@ -1,47 +1,47 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  accumuloGradiGiorno,
-  applicaSoilMask,
-  bandeRichiestePerIndici,
+  degreeDayAccumulation,
+  applySoilMask,
+  requiredBandsForIndices,
   buildStacSearchBody,
-  calcolaIndice,
-  calcolaMsavi2,
-  calcolaSavi,
-  cercaSerieScene,
-  cercaUltimaScenaNdvi,
-  clipRasterAlPoligono,
-  coloreDaRampa,
-  applicaTokenSas,
-  estraiSerieScene,
-  filtraFinestraDaUltima,
-  finestraToCoordinates,
-  firmaHrefPlanetaryComputer,
-  tokenPlanetaryComputer,
-  indiceToRgba,
-  rampaPerIndice,
+  computeIndex,
+  computeMsavi2,
+  computeSavi,
+  searchSceneSeries,
+  searchLatestNdviScene,
+  clipRasterToPolygon,
+  colorFromRamp,
+  applySasToken,
+  extractSceneSeries,
+  filterWindowFromLatest,
+  windowToCoordinates,
+  signPlanetaryComputerHref,
+  planetaryComputerToken,
+  indexToRgba,
+  rampForIndex,
   utmToLonLat,
-  differenzaNormalizzata,
-  dosiPerClasse,
+  normalizedDifference,
+  dosesPerClass,
   et0PenmanMonteith,
-  etColturale,
-  frazioneCopertura,
-  getCalibrazioneFase,
-  gradiGiornoMediaSoglia,
-  gradiGiornoSingleSine,
+  cropEt,
+  coverFraction,
+  getPhaseCalibration,
+  degreeDaysMeanThreshold,
+  degreeDaysSingleSine,
   lonLatToUtm,
-  MATRICI_COLTURA,
-  pianoIrriguo,
-  regolaTreDieci,
-  rischioOidio,
-  selezionaMigliorItem,
-  sogliaSoilMask,
-  statisticheIndice,
-  statoIdricoSuolo,
+  CROP_MATRICES,
+  irrigationPlan,
+  threeTenRule,
+  powderyMildewRisk,
+  selectBestItem,
+  soilMaskThreshold,
+  indexStatistics,
+  soilWaterStatus,
   utmEpsg,
   utmZoneFromLon,
-  zonazioneKMeans,
-  type DatiMeteoGiorno,
+  kmeansZoning,
+  type WeatherDataDay,
   type RasterWindow,
   type StacItemCollection,
 } from "@agrogea/tools";
@@ -53,12 +53,12 @@ const f32 = (xs: number[]) => Float32Array.from(xs);
 describe("indici spettrali", () => {
   it("NDVI è la differenza normalizzata NIR/Red", () => {
     // NIR=0.5, Red=0.1 → (0.5-0.1)/(0.6) = 0.6667
-    const out = calcolaIndice("ndvi", { B08: f32([0.5]), B04: f32([0.1]) });
+    const out = computeIndex("ndvi", { B08: f32([0.5]), B04: f32([0.1]) });
     assert.ok(Math.abs(out[0] - 0.4 / 0.6) < 1e-6);
   });
 
   it("marca NaN i pixel con somma nulla", () => {
-    const out = differenzaNormalizzata(f32([0, 0.2]), f32([0, 0.1]));
+    const out = normalizedDifference(f32([0, 0.2]), f32([0, 0.1]));
     assert.ok(Number.isNaN(out[0]));
     assert.ok(!Number.isNaN(out[1]));
   });
@@ -66,8 +66,8 @@ describe("indici spettrali", () => {
   it("SAVI con L=0 coincide con NDVI", () => {
     const nir = f32([0.5, 0.4]);
     const red = f32([0.1, 0.2]);
-    const savi0 = calcolaSavi(nir, red, 0);
-    const ndvi = differenzaNormalizzata(nir, red);
+    const savi0 = computeSavi(nir, red, 0);
+    const ndvi = normalizedDifference(nir, red);
     for (let i = 0; i < nir.length; i++) {
       assert.ok(Math.abs(savi0[i] - ndvi[i]) < 1e-6);
     }
@@ -75,22 +75,22 @@ describe("indici spettrali", () => {
 
   it("MSAVI2 resta nel range atteso e degenera correttamente", () => {
     // NIR=Red → MSAVI2 = (2n+1 - sqrt((2n+1)^2)) / 2 = 0
-    const out = calcolaMsavi2(f32([0.3]), f32([0.3]));
+    const out = computeMsavi2(f32([0.3]), f32([0.3]));
     assert.ok(Math.abs(out[0]) < 1e-6);
-    const veg = calcolaMsavi2(f32([0.6]), f32([0.1]));
+    const veg = computeMsavi2(f32([0.6]), f32([0.1]));
     assert.ok(veg[0] > 0 && veg[0] <= 1);
   });
 
   it("soil-mask azzera i pixel sotto soglia e calcola la copertura", () => {
     const idx = f32([0.1, 0.5, 0.2, 0.8]);
-    const masked = applicaSoilMask(idx, 0.3);
+    const masked = applySoilMask(idx, 0.3);
     assert.ok(Number.isNaN(masked[0]) && Number.isNaN(masked[2]));
     assert.equal(masked[1], 0.5);
-    assert.equal(frazioneCopertura(masked), 0.5);
+    assert.equal(coverFraction(masked), 0.5);
   });
 
   it("statistiche escludono i NaN", () => {
-    const stats = statisticheIndice(f32([0.4, Number.NaN, 0.6]));
+    const stats = indexStatistics(f32([0.4, Number.NaN, 0.6]));
     assert.equal(stats.pixelValidi, 2);
     assert.ok(Math.abs(stats.media - 0.5) < 1e-6);
   });
@@ -98,20 +98,20 @@ describe("indici spettrali", () => {
 
 describe("fenologia", () => {
   it("ogni coltura ha 4 fasi con Kc positivo", () => {
-    for (const matrice of Object.values(MATRICI_COLTURA)) {
+    for (const matrice of Object.values(CROP_MATRICES)) {
       assert.equal(matrice.fasi.length, 4);
-      for (const fase of matrice.fasi) assert.ok(fase.kc > 0);
+      for (const phase of matrice.fasi) assert.ok(phase.kc > 0);
     }
   });
 
   it("il soil-mask è attivo solo per le arboree", () => {
-    assert.ok(sogliaSoilMask("vite", "piena") !== null); // arborea
-    assert.equal(sogliaSoilMask("frumento", "piena"), null); // seminativo
+    assert.ok(soilMaskThreshold("vite", "piena") !== null); // arborea
+    assert.equal(soilMaskThreshold("frumento", "piena"), null); // seminativo
   });
 
-  it("getCalibrazioneFase restituisce la fase richiesta", () => {
-    const cal = getCalibrazioneFase("melo", "piena");
-    assert.equal(cal.fase, "piena");
+  it("getPhaseCalibration restituisce la phase richiesta", () => {
+    const cal = getPhaseCalibration("melo", "piena");
+    assert.equal(cal.phase, "piena");
     assert.ok(cal.ndviAtteso[0] < cal.ndviAtteso[1]);
   });
 });
@@ -119,7 +119,7 @@ describe("fenologia", () => {
 describe("zonazione VRA", () => {
   it("separa due cluster ben distinti", () => {
     const valori = f32([0.2, 0.21, 0.22, 0.8, 0.81, 0.82]);
-    const res = zonazioneKMeans(valori, 2);
+    const res = kmeansZoning(valori, 2);
     assert.equal(res.classi.length, 2);
     // I primi 3 e gli ultimi 3 in classi diverse.
     assert.equal(res.assegnazioni[0], res.assegnazioni[2]);
@@ -129,127 +129,127 @@ describe("zonazione VRA", () => {
 
   it("è deterministico (stesso input → stesso output)", () => {
     const valori = f32([0.1, 0.3, 0.5, 0.55, 0.9, 0.2, 0.7]);
-    const a = zonazioneKMeans(valori, 3);
-    const b = zonazioneKMeans(valori, 3);
+    const a = kmeansZoning(valori, 3);
+    const b = kmeansZoning(valori, 3);
     assert.deepEqual(Array.from(a.assegnazioni), Array.from(b.assegnazioni));
     assert.deepEqual(a.soglie, b.soglie);
   });
 
   it("scarta i NaN del soil-masking", () => {
-    const res = zonazioneKMeans(f32([0.2, Number.NaN, 0.8, 0.81]), 2);
+    const res = kmeansZoning(f32([0.2, Number.NaN, 0.8, 0.81]), 2);
     const totale = res.classi.reduce((s, c) => s + c.pixel, 0);
     assert.equal(totale, 3); // il NaN non conta
   });
 
   it("dose conservativa: più dose dove il vigore è basso", () => {
-    const res = zonazioneKMeans(f32([0.2, 0.21, 0.8, 0.81]), 2);
-    const dosi = dosiPerClasse(res.classi, 100, "conservativa", 0.3);
+    const res = kmeansZoning(f32([0.2, 0.21, 0.8, 0.81]), 2);
+    const dosi = dosesPerClass(res.classi, 100, "conservativa", 0.3);
     // ordinate per centroid crescente: la prima (vigore basso) ha dose maggiore
     assert.ok(dosi[0].dose > dosi[1].dose);
   });
 
   it("dose spinta: più dose dove il vigore è alto", () => {
-    const res = zonazioneKMeans(f32([0.2, 0.21, 0.8, 0.81]), 2);
-    const dosi = dosiPerClasse(res.classi, 100, "spinta", 0.3);
+    const res = kmeansZoning(f32([0.2, 0.21, 0.8, 0.81]), 2);
+    const dosi = dosesPerClass(res.classi, 100, "spinta", 0.3);
     assert.ok(dosi[1].dose > dosi[0].dose);
   });
 });
 
 describe("agrometeo", () => {
-  // Caso noto FAO-56 (Example 18, Bruxelles): ET0 ≈ 3.9 mm/giorno.
-  const giorno: DatiMeteoGiorno = {
+  // Caso noto FAO-56 (Example 18, Bruxelles): ET0 ≈ 3.9 mm/day.
+  const day: WeatherDataDay = {
     tMin: 12.3,
     tMax: 21.5,
     rhMin: 63,
     rhMax: 84,
-    vento2m: 2.078,
-    radiazione: 22.07,
-    altitudine: 100,
+    windSpeed2m: 2.078,
+    radiation: 22.07,
+    altitude: 100,
   };
 
   it("ET0 Penman-Monteith nel range plausibile FAO-56", () => {
-    const et0 = et0PenmanMonteith(giorno);
+    const et0 = et0PenmanMonteith(day);
     assert.ok(et0 > 2.5 && et0 < 5.5, `ET0 fuori range: ${et0}`);
   });
 
   it("ETc scala con Kc", () => {
-    assert.equal(etColturale(4, 1.15), 4 * 1.15);
+    assert.equal(cropEt(4, 1.15), 4 * 1.15);
   });
 
   it("stato idrico: AWC, RAW e soglia di stress", () => {
     const suolo = {
-      capacitaCampo: 0.3,
-      puntoAppassimento: 0.12,
-      profonditaRadici: 1,
-      frazioneDeplezione: 0.5,
+      fieldCapacity: 0.3,
+      wiltingPoint: 0.12,
+      rootDepth: 1,
+      depletionFraction: 0.5,
     };
-    const stato = statoIdricoSuolo(suolo, 0);
+    const stato = soilWaterStatus(suolo, 0);
     // AWC = (0.30-0.12)*1*1000 = 180 mm; RAW = 90 mm
     assert.ok(Math.abs(stato.awc - 180) < 1e-6);
     assert.ok(Math.abs(stato.raw - 90) < 1e-6);
     assert.equal(stato.inStress, false);
   });
 
-  it("piano irriguo: prescrive irrigazione raggiunta la deplezione critica", () => {
+  it("piano irriguo: prescrive irrigation raggiunta la depletion critica", () => {
     const suolo = {
-      capacitaCampo: 0.3,
-      puntoAppassimento: 0.12,
-      profonditaRadici: 1,
-      frazioneDeplezione: 0.5,
+      fieldCapacity: 0.3,
+      wiltingPoint: 0.12,
+      rootDepth: 1,
+      depletionFraction: 0.5,
     };
-    // 5 mm/giorno di ETc, nessuna pioggia: RAW=90mm → autonomia ~18 giorni
+    // 5 mm/day di ETc, nessuna rain: RAW=90mm → autonomia ~18 giorni
     const etc = new Array(40).fill(5);
-    const pioggia = new Array(40).fill(0);
-    const { serie, giorniAutonomia } = pianoIrriguo(suolo, etc, pioggia, 0);
-    assert.ok(giorniAutonomia >= 17 && giorniAutonomia <= 19, `autonomia ${giorniAutonomia}`);
-    assert.ok(serie.some((g) => g.irrigazione > 0));
+    const rain = new Array(40).fill(0);
+    const { series, autonomyDays } = irrigationPlan(suolo, etc, rain, 0);
+    assert.ok(autonomyDays >= 17 && autonomyDays <= 19, `autonomia ${autonomyDays}`);
+    assert.ok(series.some((g) => g.irrigation > 0));
   });
 });
 
 describe("DSS fitopatologico", () => {
-  it("gradi-giorno media-soglia rispetta base e cutoff", () => {
-    assert.equal(gradiGiornoMediaSoglia(8, 12, 10), 0); // media 10 = base → 0
-    assert.equal(gradiGiornoMediaSoglia(10, 20, 10), 5); // media 15 − 10
-    assert.equal(gradiGiornoMediaSoglia(30, 40, 10, 30), 20); // cutoff a 30
+  it("gradi-day media-soglia rispetta base e cutoff", () => {
+    assert.equal(degreeDaysMeanThreshold(8, 12, 10), 0); // media 10 = base → 0
+    assert.equal(degreeDaysMeanThreshold(10, 20, 10), 5); // media 15 − 10
+    assert.equal(degreeDaysMeanThreshold(30, 40, 10, 30), 20); // cutoff a 30
   });
 
   it("single-sine ≥ 0 e degenera con tMin ≥ base", () => {
-    assert.equal(gradiGiornoSingleSine(12, 20, 10), 16 - 10);
-    assert.equal(gradiGiornoSingleSine(5, 8, 10), 0); // tMax < base
+    assert.equal(degreeDaysSingleSine(12, 20, 10), 16 - 10);
+    assert.equal(degreeDaysSingleSine(5, 8, 10), 0); // tMax < base
   });
 
-  it("accumulo segnala il giorno di superamento soglia", () => {
-    const serie = Array.from({ length: 10 }, () => ({ tMin: 10, tMax: 20 })); // 5 GDD/g
-    const { cumulato, giornoSoglia } = accumuloGradiGiorno(serie, 10, {
-      sogliaObiettivo: 22,
+  it("accumulo segnala il day di superamento soglia", () => {
+    const series = Array.from({ length: 10 }, () => ({ tMin: 10, tMax: 20 })); // 5 GDD/g
+    const { cumulative, thresholdDay } = degreeDayAccumulation(series, 10, {
+      targetThreshold: 22,
     });
-    assert.ok(Math.abs(cumulato[9] - 50) < 1e-6);
-    assert.equal(giornoSoglia, 4); // 5*5 = 25 ≥ 22 al giorno indice 4
+    assert.ok(Math.abs(cumulative[9] - 50) < 1e-6);
+    assert.equal(thresholdDay, 4); // 5*5 = 25 ≥ 22 al day index 4
   });
 
   it("regola tre-dieci scatta solo con tutte le condizioni", () => {
-    const senza = regolaTreDieci([
-      { tMedia: 12, pioggia: 5, lunghezzaGermogli: 15 }, // pioggia < 10
+    const senza = threeTenRule([
+      { tMean: 12, rain: 5, shootLength: 15 }, // rain < 10
     ]);
     assert.equal(senza, null);
-    const con = regolaTreDieci([
-      { tMedia: 8, pioggia: 12, lunghezzaGermogli: 12 }, // T < 10
-      { tMedia: 14, pioggia: 18, lunghezzaGermogli: 14 }, // tutte ok
+    const con = threeTenRule([
+      { tMean: 8, rain: 12, shootLength: 12 }, // T < 10
+      { tMean: 14, rain: 18, shootLength: 14 }, // tutte ok
     ]);
     assert.ok(con);
-    assert.equal(con?.giorno, 1);
-    assert.equal(con?.rischio, "alto");
+    assert.equal(con?.day, 1);
+    assert.equal(con?.risk, "alto");
   });
 
-  it("rischio oidio cresce con i giorni favorevoli consecutivi", () => {
-    const serie = Array.from({ length: 4 }, () => ({
+  it("risk oidio cresce con i giorni favorevoli consecutivi", () => {
+    const series = Array.from({ length: 4 }, () => ({
       tMin: 20,
       tMax: 26,
-      rhMedia: 60,
+      rhMean: 60,
     }));
-    const alert = rischioOidio(serie);
+    const alert = powderyMildewRisk(series);
     assert.ok(alert);
-    assert.equal(alert?.rischio, "alto"); // 4 consecutivi ≥ 3
+    assert.equal(alert?.risk, "alto"); // 4 consecutivi ≥ 3
   });
 });
 
@@ -316,14 +316,14 @@ describe("pipeline STAC NDVI", () => {
         },
       ],
     };
-    const scena = selezionaMigliorItem(collection);
+    const scena = selectBestItem(collection);
     assert.equal(scena?.itemId, "recente-completa");
     assert.equal(scena?.cloudCover, 8);
   });
 
   it("ritorna null se nessun item ha le bande NDVI", () => {
     assert.equal(
-      selezionaMigliorItem({
+      selectBestItem({
         features: [
           {
             id: "x",
@@ -336,7 +336,7 @@ describe("pipeline STAC NDVI", () => {
     );
   });
 
-  it("cercaUltimaScenaNdvi usa il fetch iniettato e propaga l'errore HTTP", async () => {
+  it("searchLatestNdviScene usa il fetch iniettato e propaga l'errore HTTP", async () => {
     const okFetch = (async () =>
       new Response(
         JSON.stringify({
@@ -350,18 +350,18 @@ describe("pipeline STAC NDVI", () => {
         }),
         { status: 200 },
       )) as unknown as typeof fetch;
-    const scena = await cercaUltimaScenaNdvi([0, 0, 1, 1], { fetchImpl: okFetch });
+    const scena = await searchLatestNdviScene([0, 0, 1, 1], { fetchImpl: okFetch });
     assert.equal(scena?.itemId, "ok");
 
     const badFetch = (async () =>
       new Response("boom", { status: 503 })) as unknown as typeof fetch;
     await assert.rejects(
-      cercaUltimaScenaNdvi([0, 0, 1, 1], { fetchImpl: badFetch, attesaBaseMs: 0 }),
+      searchLatestNdviScene([0, 0, 1, 1], { fetchImpl: badFetch, attesaBaseMs: 0 }),
       /HTTP 503/,
     );
   });
 
-  it("cercaUltimaScenaNdvi riprova sui 429 conservando la POST (backoff)", async () => {
+  it("searchLatestNdviScene riprova sui 429 conservando la POST (backoff)", async () => {
     let chiamate = 0;
     const flakyFetch = (async (_url: string, init?: RequestInit) => {
       chiamate++;
@@ -383,7 +383,7 @@ describe("pipeline STAC NDVI", () => {
         { status: 200 },
       );
     }) as unknown as typeof fetch;
-    const scena = await cercaUltimaScenaNdvi([0, 0, 1, 1], {
+    const scena = await searchLatestNdviScene([0, 0, 1, 1], {
       fetchImpl: flakyFetch,
       attesaBaseMs: 0,
     });
@@ -392,18 +392,18 @@ describe("pipeline STAC NDVI", () => {
   });
 });
 
-describe("pipeline STAC multi-indice e serie temporale", () => {
-  it("bandeRichiestePerIndici unisce e deduplica le bande", () => {
+describe("pipeline STAC multi-index e series temporale", () => {
+  it("requiredBandsForIndices unisce e deduplica le bande", () => {
     // ndvi: B08/B04, ndre: B08/B05, ndwi: B03/B08, savi: B08/B04, msavi2: B08/B04
-    const bande = bandeRichiestePerIndici(["ndvi", "ndre", "ndwi", "savi", "msavi2"]);
+    const bande = requiredBandsForIndices(["ndvi", "ndre", "ndwi", "savi", "msavi2"]);
     assert.deepEqual([...bande].sort(), ["B03", "B04", "B05", "B08"]);
   });
 
-  it("bandeRichiestePerIndici per il solo NDVI chiede B08 e B04", () => {
-    assert.deepEqual([...bandeRichiestePerIndici(["ndvi"])].sort(), ["B04", "B08"]);
+  it("requiredBandsForIndices per il solo NDVI chiede B08 e B04", () => {
+    assert.deepEqual([...requiredBandsForIndices(["ndvi"])].sort(), ["B04", "B08"]);
   });
 
-  it("estraiSerieScene tiene solo le scene complete, ordinate per data desc", () => {
+  it("extractSceneSeries tiene solo le scene complete, ordinate per data desc", () => {
     const collection: StacItemCollection = {
       features: [
         {
@@ -424,16 +424,16 @@ describe("pipeline STAC multi-indice e serie temporale", () => {
       ],
     };
     // NDRE richiede anche B05: la scena "b" va scartata.
-    const serie = estraiSerieScene(collection, bandeRichiestePerIndici(["ndre"]));
+    const series = extractSceneSeries(collection, requiredBandsForIndices(["ndre"]));
     assert.deepEqual(
-      serie.map((s) => s.itemId),
+      series.map((s) => s.itemId),
       ["c-recente", "a-vecchia"],
     );
-    assert.equal(serie[0].bandHrefs.B05, "re3");
-    assert.equal(serie[0].cloudCover, 7);
+    assert.equal(series[0].bandHrefs.B05, "re3");
+    assert.equal(series[0].cloudCover, 7);
   });
 
-  it("cercaSerieScene usa il fetch iniettato e propaga l'errore HTTP", async () => {
+  it("searchSceneSeries usa il fetch iniettato e propaga l'errore HTTP", async () => {
     const okFetch = (async () =>
       new Response(
         JSON.stringify({
@@ -447,17 +447,17 @@ describe("pipeline STAC multi-indice e serie temporale", () => {
         }),
         { status: 200 },
       )) as unknown as typeof fetch;
-    const serie = await cercaSerieScene([0, 0, 1, 1], {
+    const series = await searchSceneSeries([0, 0, 1, 1], {
       indici: ["ndvi"],
       fetchImpl: okFetch,
     });
-    assert.equal(serie.length, 1);
-    assert.equal(serie[0].itemId, "s1");
+    assert.equal(series.length, 1);
+    assert.equal(series[0].itemId, "s1");
 
     const badFetch = (async () =>
       new Response("boom", { status: 500 })) as unknown as typeof fetch;
     await assert.rejects(
-      cercaSerieScene([0, 0, 1, 1], {
+      searchSceneSeries([0, 0, 1, 1], {
         indici: ["ndvi"],
         fetchImpl: badFetch,
         attesaBaseMs: 0,
@@ -466,7 +466,7 @@ describe("pipeline STAC multi-indice e serie temporale", () => {
     );
   });
 
-  it("cercaSerieScene riprova su 429/5xx e poi riesce (backoff)", async () => {
+  it("searchSceneSeries riprova su 429/5xx e poi riesce (backoff)", async () => {
     let chiamate = 0;
     const flakyFetch = (async (_url: string, init?: RequestInit) => {
       chiamate++;
@@ -488,13 +488,13 @@ describe("pipeline STAC multi-indice e serie temporale", () => {
         { status: 200 },
       );
     }) as unknown as typeof fetch;
-    const serie = await cercaSerieScene([0, 0, 1, 1], {
+    const series = await searchSceneSeries([0, 0, 1, 1], {
       indici: ["ndvi"],
       fetchImpl: flakyFetch,
       attesaBaseMs: 0,
     });
-    assert.equal(serie.length, 1);
-    assert.equal(serie[0].itemId, "s-retry");
+    assert.equal(series.length, 1);
+    assert.equal(series[0].itemId, "s-retry");
     assert.equal(chiamate, 3);
   });
 
@@ -507,7 +507,7 @@ describe("pipeline STAC multi-indice e serie temporale", () => {
     assert.equal(body.datetime, `${inizio.toISOString()}/${fine.toISOString()}`);
   });
 
-  it("filtraFinestraDaUltima ancora la finestra all'ultima scena, non a oggi", () => {
+  it("filterWindowFromLatest ancora la finestra all'ultima scena, non a oggi", () => {
     // Scene ordinate desc; l'ultima utile è 40 gg fa (passaggi recenti nuvolosi).
     const mk = (giorniFa: number) => ({
       itemId: `s${giorniFa}`,
@@ -518,24 +518,24 @@ describe("pipeline STAC multi-indice e serie temporale", () => {
     const scene = [mk(40), mk(46), mk(58), mk(120)];
     // Finestra 15 gg da oggi sarebbe vuota; ancorata all'ultima (40 gg fa) tiene
     // le scene entro 15 gg da essa: 40 e 46 (58 a 18 gg e 120 escluse).
-    const out = filtraFinestraDaUltima(scene, 15);
+    const out = filterWindowFromLatest(scene, 15);
     assert.deepEqual(
       out.map((s) => s.itemId),
       ["s40", "s46"],
     );
     // Serie con 0/1 elementi: invariata.
-    assert.equal(filtraFinestraDaUltima([], 15).length, 0);
-    assert.equal(filtraFinestraDaUltima([mk(40)], 15).length, 1);
+    assert.equal(filterWindowFromLatest([], 15).length, 0);
+    assert.equal(filterWindowFromLatest([mk(40)], 15).length, 1);
   });
 
-  it("firmaHrefPlanetaryComputer aggiunge il SAS token e propaga gli errori", async () => {
+  it("signPlanetaryComputerHref aggiunge il SAS token e propaga gli errori", async () => {
     const okFetch = (async (url: string) => {
       assert.match(url, /\/sign\?href=/);
       return new Response(JSON.stringify({ href: "https://blob/cog.tif?sas=token" }), {
         status: 200,
       });
     }) as unknown as typeof fetch;
-    const signed = await firmaHrefPlanetaryComputer("https://blob/cog.tif", {
+    const signed = await signPlanetaryComputerHref("https://blob/cog.tif", {
       fetchImpl: okFetch,
     });
     assert.equal(signed, "https://blob/cog.tif?sas=token");
@@ -543,23 +543,23 @@ describe("pipeline STAC multi-indice e serie temporale", () => {
     const badFetch = (async () =>
       new Response("nope", { status: 404 })) as unknown as typeof fetch;
     await assert.rejects(
-      firmaHrefPlanetaryComputer("https://blob/cog.tif", { fetchImpl: badFetch }),
+      signPlanetaryComputerHref("https://blob/cog.tif", { fetchImpl: badFetch }),
       /HTTP 404/,
     );
   });
 
-  it("applicaTokenSas appende il token gestendo query preesistenti", () => {
+  it("applySasToken appende il token gestendo query preesistenti", () => {
     assert.equal(
-      applicaTokenSas("https://blob/cog.tif", "se=X&sig=Y"),
+      applySasToken("https://blob/cog.tif", "se=X&sig=Y"),
       "https://blob/cog.tif?se=X&sig=Y",
     );
     assert.equal(
-      applicaTokenSas("https://blob/cog.tif?a=1", "se=X"),
+      applySasToken("https://blob/cog.tif?a=1", "se=X"),
       "https://blob/cog.tif?a=1&se=X",
     );
   });
 
-  it("tokenPlanetaryComputer estrae token e scadenza", async () => {
+  it("planetaryComputerToken estrae token e scadenza", async () => {
     const okFetch = (async (url: string) => {
       assert.match(url, /\/token\/sentinel-2-l2a$/);
       return new Response(
@@ -567,14 +567,14 @@ describe("pipeline STAC multi-indice e serie temporale", () => {
         { status: 200 },
       );
     }) as unknown as typeof fetch;
-    const { token, scadenzaMs } = await tokenPlanetaryComputer("sentinel-2-l2a", {
+    const { token, scadenzaMs } = await planetaryComputerToken("sentinel-2-l2a", {
       fetchImpl: okFetch,
     });
     assert.equal(token, "se=Z&sig=W");
     assert.equal(scadenzaMs, Date.parse("2026-06-13T12:00:00Z"));
   });
 
-  it("tokenPlanetaryComputer riprova sui 429 e poi riesce (backoff)", async () => {
+  it("planetaryComputerToken riprova sui 429 e poi riesce (backoff)", async () => {
     let chiamate = 0;
     const flakyFetch = (async () => {
       chiamate++;
@@ -586,7 +586,7 @@ describe("pipeline STAC multi-indice e serie temporale", () => {
       }
       return new Response(JSON.stringify({ token: "se=ok" }), { status: 200 });
     }) as unknown as typeof fetch;
-    const { token } = await tokenPlanetaryComputer("sentinel-2-l2a", {
+    const { token } = await planetaryComputerToken("sentinel-2-l2a", {
       fetchImpl: flakyFetch,
       attesaBaseMs: 0,
     });
@@ -640,8 +640,8 @@ describe("proiezione UTM", () => {
   });
 });
 
-describe("overlay raster d'indice", () => {
-  it("finestraToCoordinates dà 4 angoli [lng,lat] coerenti col bbox della finestra", () => {
+describe("overlay raster d'index", () => {
+  it("windowToCoordinates dà 4 angoli [lng,lat] coerenti col bbox della finestra", () => {
     const centro = lonLatToUtm(11.25, 43.77, 32632);
     const win: RasterWindow = {
       epsg: 32632,
@@ -652,7 +652,7 @@ describe("overlay raster d'indice", () => {
       width: 20,
       height: 20,
     };
-    const [tl, tr, br, bl] = finestraToCoordinates(win);
+    const [tl, tr, br, bl] = windowToCoordinates(win);
     // Alto-sx più a ovest e più a nord; basso-dx più a est e più a sud.
     assert.ok(tl[0] < tr[0], "alto-sx più a ovest di alto-dx");
     assert.ok(tl[1] > bl[1], "alto-sx più a nord di basso-sx");
@@ -662,17 +662,17 @@ describe("overlay raster d'indice", () => {
     assert.ok(Math.abs(tl[0] - 11.25) < 0.01 && Math.abs(tl[1] - 43.77) < 0.01);
   });
 
-  it("coloreDaRampa: NaN trasparente, soglie applicate in ordine", () => {
-    const rampa = rampaPerIndice("ndvi");
-    assert.equal(coloreDaRampa(Number.NaN, rampa), null);
+  it("colorFromRamp: NaN trasparente, soglie applicate in ordine", () => {
+    const rampa = rampForIndex("ndvi");
+    assert.equal(colorFromRamp(Number.NaN, rampa), null);
     // Valore alto → colore dell'ultima soglia raggiunta (verde scuro).
-    const alto = coloreDaRampa(0.95, rampa);
+    const alto = colorFromRamp(0.95, rampa);
     assert.ok(alto && alto.g > alto.r, "vigore alto = verde");
   });
 
-  it("indiceToRgba: i pixel NaN restano trasparenti, i validi opachi", () => {
+  it("indexToRgba: i pixel NaN restano trasparenti, i validi opachi", () => {
     const values = Float32Array.from([0.8, Number.NaN, 0.2, 0.6]);
-    const rgba = indiceToRgba(values, rampaPerIndice("ndvi"), 200);
+    const rgba = indexToRgba(values, rampForIndex("ndvi"), 200);
     assert.equal(rgba.length, 16);
     assert.equal(rgba[3], 200); // pixel 0 valido
     assert.equal(rgba[7], 0); // pixel 1 NaN → trasparente
@@ -710,7 +710,7 @@ describe("clip raster sul poligono", () => {
       ],
     };
     const valori = Float32Array.from({ length: 16 }, () => 0.5);
-    const { masked, pixelInterni } = clipRasterAlPoligono(valori, win, lontano);
+    const { masked, pixelInterni } = clipRasterToPolygon(valori, win, lontano);
     assert.equal(pixelInterni, 0);
     assert.ok(masked.every((v) => Number.isNaN(v)));
   });
@@ -731,7 +731,7 @@ describe("clip raster sul poligono", () => {
       ],
     };
     const valori = Float32Array.from({ length: 16 }, () => 0.5);
-    const { masked, pixelInterni } = clipRasterAlPoligono(valori, win, attorno);
+    const { masked, pixelInterni } = clipRasterToPolygon(valori, win, attorno);
     assert.equal(pixelInterni, 16);
     assert.ok(masked.every((v) => v === 0.5));
   });
@@ -750,7 +750,7 @@ describe("clip raster sul poligono", () => {
       ],
     };
     assert.throws(() =>
-      clipRasterAlPoligono(new Float32Array(9), win, qualsiasi),
+      clipRasterToPolygon(new Float32Array(9), win, qualsiasi),
     );
   });
 });

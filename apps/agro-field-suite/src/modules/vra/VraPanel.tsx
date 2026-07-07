@@ -1,5 +1,5 @@
 import { useAgroStore } from "@agrogea/core";
-import type { IndiceVegetazionale } from "@agrogea/tools";
+import type { VegetationIndex } from "@agrogea/tools";
 import { FieldSheet } from "@agrogea/ui";
 import { Button, cn } from "@geolibre/ui";
 import { useEffect, useState } from "react";
@@ -18,7 +18,7 @@ import {
  * esportabile per i terminali dei trattori (ISO-XML / GeoJSON).
  */
 
-const INDICI: { id: IndiceVegetazionale; label: string }[] = [
+const INDICI: { id: VegetationIndex; label: string }[] = [
   { id: "ndvi", label: "NDVI" },
   { id: "ndre", label: "NDRE" },
   { id: "msavi2", label: "MSAVI2" },
@@ -44,7 +44,7 @@ const LAVORAZIONE_I18N_KEY: Record<TipoLavorazione, string> = {
   fertilizzazione: "vraPanel.tillage.fertilizzazione",
   trattamento: "vraPanel.tillage.trattamento",
   semina: "vraPanel.tillage.semina",
-  irrigazione: "vraPanel.tillage.irrigazione",
+  irrigation: "vraPanel.tillage.irrigation",
 };
 
 export function VraPanel({ onClose }: { onClose: () => void }) {
@@ -54,7 +54,7 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
   const { stato, genera, esporta, reset } = useVraGenerator();
 
   const [apzId, setApzId] = useState(selezionatoId ?? "");
-  const [indice, setIndice] = useState<IndiceVegetazionale>("ndvi");
+  const [indice, setIndice] = useState<VegetationIndex>("ndvi");
   const [lavorazione, setLavorazione] = useState<TipoLavorazione>("concimazione");
   const [step, setStep] = useState(4);
   const [zone, setZone] = useState(3);
@@ -128,7 +128,7 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
             </p>
             <select
               value={indice}
-              onChange={(e) => setIndice(e.target.value as IndiceVegetazionale)}
+              onChange={(e) => setIndice(e.target.value as VegetationIndex)}
               className="w-full rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-2 text-sm"
             >
               {INDICI.map((i) => (
@@ -235,7 +235,7 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
         )}
         {stato.fase === "errore" && (
           <div className="rounded-[var(--r-2)] bg-[var(--danger-l)] p-2 text-sm text-[var(--danger)]">
-            {stato.messaggio}
+            {stato.message}
           </div>
         )}
 

@@ -4,7 +4,7 @@ import type { DssPlotResult } from "../../../hooks/useDssCalculation";
 
 /**
  * Scheda DSS per appezzamento. Sostituisce il vecchio grafico a barre con una
- * SEMPLICE CARD che cambia colore in base al rischio complessivo (il livello
+ * SEMPLICE CARD che cambia colore in base al risk complessivo (il livello
  * peggiore tra i modelli). Sotto, l'elenco dei modelli con il rispettivo livello
  * e gli alert testuali. Nessun bilancio idrico qui: vive nel pannello «Acqua».
  */
@@ -33,7 +33,7 @@ function shortDate(iso: string): string {
 }
 
 export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
-  const { nome, modulo, esiti, serie, meteo, messaggio } = risultato;
+  const { name, modulo, esiti, series, meteo, message } = risultato;
 
   // Livello complessivo = il peggiore tra i modelli patologici.
   const peggiore = esiti.reduce<DssRiskLevel | null>((acc, e) => {
@@ -41,14 +41,14 @@ export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
     return rank(e.livello) > rank(acc) ? e.livello : acc;
   }, null);
 
-  const noData = serie.length === 0 || esiti.length === 0;
+  const noData = series.length === 0 || esiti.length === 0;
   const colore = peggiore ? COLORE_RISCHIO[peggiore] : "var(--ink-4)";
   const alerts = esiti.filter((e) => e.alert);
 
   return (
     <section className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-3">
       <div className="mb-2 flex items-baseline justify-between gap-2">
-        <p className="text-sm font-semibold">{nome}</p>
+        <p className="text-sm font-semibold">{name}</p>
         <p className="text-[11px] text-[var(--ink-4)]">{modulo.label}</p>
       </div>
 
@@ -62,11 +62,11 @@ export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
 
       {noData ? (
         <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] p-2 text-xs text-[var(--ink-3)]">
-          {messaggio ?? "Nessun modello disponibile per questo appezzamento."}
+          {message ?? "Nessun model disponibile per questo appezzamento."}
         </p>
       ) : (
         <>
-          {/* Card di rischio complessivo: colore di sfondo dal livello peggiore. */}
+          {/* Card di risk complessivo: colore di sfondo dal livello peggiore. */}
           <div
             className="flex items-center justify-between rounded-[var(--r-2)] px-3 py-2.5"
             style={{ background: `${colore}1a`, border: `1px solid ${colore}55` }}
@@ -82,7 +82,7 @@ export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
             </span>
           </div>
 
-          {/* Modelli: livello per ciascuno (chip colorato + indice). */}
+          {/* Modelli: livello per ciascuno (chip colorato + index). */}
           <div className="mt-2 flex flex-col gap-1.5">
             {esiti.map((e) => (
               <div
@@ -93,7 +93,7 @@ export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
                   style={{ background: COLORE_RISCHIO[e.livello] }}
                 />
-                <span className="flex-1 text-sm font-medium">{e.dss.nome}</span>
+                <span className="flex-1 text-sm font-medium">{e.dss.name}</span>
                 <span
                   className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
                   style={{
@@ -114,7 +114,7 @@ export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
           {alerts.length > 0 && (
             <div className="mt-2 flex flex-col gap-1.5">
               {alerts.map((e) => {
-                const giorno = serie[e.alert?.giorno ?? -1];
+                const day = series[e.alert?.day ?? -1];
                 return (
                   <div
                     key={e.modelloNome}
@@ -131,14 +131,14 @@ export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
                     />
                     <div>
                       <p className="font-medium">
-                        {e.dss.nome}
-                        {giorno && (
+                        {e.dss.name}
+                        {day && (
                           <span className="ml-1 font-normal text-[var(--ink-4)]">
-                            · {shortDate(giorno.data)}
+                            · {shortDate(day.data)}
                           </span>
                         )}
                       </p>
-                      <p className="text-[var(--ink-3)]">{e.alert?.messaggio}</p>
+                      <p className="text-[var(--ink-3)]">{e.alert?.message}</p>
                     </div>
                   </div>
                 );

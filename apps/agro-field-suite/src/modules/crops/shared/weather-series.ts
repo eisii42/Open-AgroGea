@@ -2,16 +2,16 @@ import type { WeatherReading } from "@agrogea/core";
 import type { DssWeatherDay } from "../types";
 
 /**
- * Costruzione della serie meteo GIORNALIERA per i DSS, a partire dalle letture
+ * Costruzione della series meteo GIORNALIERA per i DSS, a partire dalle letture
  * orarie/locali di PGlite (`letture_meteo`, il "meteo_osservazioni" della
  * specifica). È il ponte del refactor §3: i motori puri di `@agrogea/tools`
  * restano invariati e tutto ciò che li alimenta proviene ESCLUSIVAMENTE dal DB
  * locale.
  *
- * Prevenzione crash (sensore offline / buchi nella serie): la serie viene resa
- * continua giorno per giorno e i buchi sono colmati con fallback — temperatura
- * per interpolazione lineare, umidità/pioggia per media dei giorni adiacenti —
- * così nessun DSS riceve mai `NaN` o una serie discontinua.
+ * Prevenzione crash (sensore offline / buchi nella series): la series viene resa
+ * continua day per day e i buchi sono colmati con fallback — temperatura
+ * per interpolazione lineare, umidità/rain per media dei giorni adiacenti —
+ * così nessun DSS riceve mai `NaN` o una series discontinua.
  */
 
 const MS_GIORNO = 24 * 3600 * 1000;
@@ -20,10 +20,10 @@ interface GiornoAgg {
   data: string;
   tMin: number | null;
   tMax: number | null;
-  rhMedia: number | null;
-  pioggia: number | null;
-  bagnaturaOre: number;
-  /** Numero di letture orarie confluite nel giorno (0 = giorno mancante). */
+  rhMean: number | null;
+  rain: number | null;
+  leafWetnessHours: number;
+  /** Numero di letture orarie confluite nel day (0 = day mancante). */
   campioni: number;
 }
 
@@ -50,9 +50,9 @@ function aggregaPerGiorno(letture: WeatherReading[]): Map<string, GiornoAgg> {
         data,
         tMin: null,
         tMax: null,
-        rhMedia: null,
-        pioggia: null,
-        bagnaturaOre: 0,
+        rhMean: null,
+        rain: null,
+        leafWetnessHours: 0,
         campioni: 0,
       };
       perGiorno.set(data, agg);
@@ -64,24 +64,24 @@ function aggregaPerGiorno(letture: WeatherReading[]): Map<string, GiornoAgg> {
     }
     const rh = l.relative_humidity;
     if (rh != null && Number.isFinite(rh)) {
-      // Media incrementale su rhMedia con conteggio campioni separato sarebbe
+      // Media incrementale su rhMean con conteggio campioni separato sarebbe
       // più preciso; qui basta accumulare e mediare a valle (vedi sotto).
-      agg.rhMedia = (agg.rhMedia ?? 0) + rh;
+      agg.rhMean = (agg.rhMean ?? 0) + rh;
     }
     const p = l.rain_mm;
     if (p != null && Number.isFinite(p)) {
-      agg.pioggia = (agg.pioggia ?? 0) + p;
+      agg.rain = (agg.rain ?? 0) + p;
     }
     const bag = l.leaf_wetness;
     if (bag != null && Number.isFinite(bag)) {
-      agg.bagnaturaOre += bag; // ogni lettura oraria contribuisce 0..1 ore
+      agg.leafWetnessHours += bag; // ogni lettura oraria contribuisce 0..1 ore
     }
     agg.campioni += 1;
   }
-  // rhMedia accumulata → media reale per il numero di letture del giorno.
+  // rhMean accumulata → media reale per il numero di letture del day.
   for (const agg of perGiorno.values()) {
-    if (agg.rhMedia != null && agg.campioni > 0) {
-      agg.rhMedia = agg.rhMedia / agg.campioni;
+    if (agg.rhMean != null && agg.campioni > 0) {
+      agg.rhMean = agg.rhMean / agg.campioni;
     }
   }
   return perGiorno;
@@ -135,7 +135,7 @@ function interpolaLineare(valori: (number | null)[]): number[] {
 
 /**
  * Riempie i `null` con la media dei giorni adiacenti noti (fino a `raggio`
- * giorni per lato). Fallback per umidità e pioggia, dove l'interpolazione
+ * giorni per lato). Fallback per umidità e rain, dove l'interpolazione
  * lineare avrebbe meno senso fisico della media locale.
  */
 function riempiMediaAdiacenti(
@@ -159,7 +159,7 @@ function riempiMediaAdiacenti(
 
 /**
  * Serie giornaliera continua e priva di NaN per i DSS. Ritorna `[]` solo se non
- * c'è alcuna lettura: i moduli interpretano la serie vuota come "dati meteo
+ * c'è alcuna lettura: i moduli interpretano la series vuota come "dati meteo
  * assenti" senza crashare.
  */
 export function buildDssSeries(letture: WeatherReading[]): DssWeatherDay[] {
@@ -171,18 +171,18 @@ export function buildDssSeries(letture: WeatherReading[]): DssWeatherDay[] {
   const giorni = enumeraGiorni(date[0], date[date.length - 1]);
   const tMinRaw = giorni.map((d) => perGiorno.get(d)?.tMin ?? null);
   const tMaxRaw = giorni.map((d) => perGiorno.get(d)?.tMax ?? null);
-  const rhRaw = giorni.map((d) => perGiorno.get(d)?.rhMedia ?? null);
-  const pioggiaRaw = giorni.map((d) => perGiorno.get(d)?.pioggia ?? null);
-  const bagnaturaRaw = giorni.map((d) => perGiorno.get(d)?.bagnaturaOre ?? null);
+  const rhRaw = giorni.map((d) => perGiorno.get(d)?.rhMean ?? null);
+  const pioggiaRaw = giorni.map((d) => perGiorno.get(d)?.rain ?? null);
+  const bagnaturaRaw = giorni.map((d) => perGiorno.get(d)?.leafWetnessHours ?? null);
 
   const tMin = interpolaLineare(tMinRaw);
   const tMax = interpolaLineare(tMaxRaw);
   const rh = riempiMediaAdiacenti(rhRaw);
-  const pioggia = riempiMediaAdiacenti(pioggiaRaw);
+  const rain = riempiMediaAdiacenti(pioggiaRaw);
   const bagnatura = riempiMediaAdiacenti(bagnaturaRaw);
 
   return giorni.map((data, i) => {
-    // Guardia finale anti-NaN: una serie tutta-vuota su un canale ricade su 0;
+    // Guardia finale anti-NaN: una series tutta-vuota su un canale ricade su 0;
     // tMin/tMax incoerenti vengono riordinati.
     const lo = Number.isFinite(tMin[i]) ? tMin[i] : 0;
     const hi = Number.isFinite(tMax[i]) ? tMax[i] : lo;
@@ -190,9 +190,9 @@ export function buildDssSeries(letture: WeatherReading[]): DssWeatherDay[] {
       data,
       tMin: Math.min(lo, hi),
       tMax: Math.max(lo, hi),
-      rhMedia: Number.isFinite(rh[i]) ? rh[i] : 0,
-      pioggia: Number.isFinite(pioggia[i]) ? pioggia[i] : 0,
-      bagnaturaOre: Number.isFinite(bagnatura[i]) ? bagnatura[i] : 0,
+      rhMean: Number.isFinite(rh[i]) ? rh[i] : 0,
+      rain: Number.isFinite(rain[i]) ? rain[i] : 0,
+      leafWetnessHours: Number.isFinite(bagnatura[i]) ? bagnatura[i] : 0,
     };
   });
 }

@@ -18,7 +18,7 @@ import { DssRiskCard } from "./shared/DssRiskCard";
  *   * {@link ColturaDatiPanel} — form smart per inserire la coltura (singolo
  *     appezzamento) su `crops` + `plots_campaign`;
  *   * {@link ColturaDssPanel} — modelli previsionali (DSS) su UNO O PIÙ
- *     appezzamenti (come la pipeline indici), con scheda di rischio colorata.
+ *     appezzamenti (come la pipeline indici), con scheda di risk colorata.
  * La coltura del DSS è risolta dalla Campagna Agraria attiva (→ crops).
  */
 
@@ -153,7 +153,7 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
   const senzaModulo = [...sel].filter(
     (id) => !targets.some((t) => t.appezzamento.id === id),
   );
-  const inCorso = stato.fase === "calcolo";
+  const inCorso = stato.phase === "calcolo";
 
   return (
     <FieldSheet
@@ -218,14 +218,14 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
               </p>
             )}
 
-            {stato.fase === "errore" && (
+            {stato.phase === "errore" && (
               <div className="rounded-[var(--r-2)] bg-[var(--danger-l)] p-2 text-xs text-[var(--danger)]">
-                {stato.messaggio}
+                {stato.message}
               </div>
             )}
 
-            {/* Risultati per appezzamento: scheda di rischio colorata. */}
-            {stato.fase === "completato" && (
+            {/* Risultati per appezzamento: scheda di risk colorata. */}
+            {stato.phase === "completato" && (
               <div className="flex flex-col gap-3">
                 {stato.risultati.map((r) => (
                   <DssRiskCard key={r.appezzamentoId} risultato={r} />

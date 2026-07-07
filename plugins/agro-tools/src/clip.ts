@@ -9,7 +9,7 @@ import { lonLatToUtm } from "./utm";
  * scena; il poligono è in WGS84. Per tenere solo i pixel *dentro* il perimetro
  * (e non l'intero bbox) si proietta il poligono nello stesso UTM e si testa il
  * centro di ogni pixel con point-in-polygon. I pixel fuori diventano NaN, così
- * `statisticheIndice` li ignora.
+ * `indexStatistics` li ignora.
  *
  * Tutto è geometrico e puro: nessun accesso alla rete o al DOM, quindi gira
  * identico nel Web Worker.
@@ -53,7 +53,7 @@ function polygonToUtm(
  * il raster row-major della finestra (length = width·height). Ritorna lo stesso
  * array per comodità, con il numero di pixel interni mantenuti.
  */
-export function clipRasterAlPoligono(
+export function clipRasterToPolygon(
   values: Float32Array,
   win: RasterWindow,
   geometria: Polygon | MultiPolygon,

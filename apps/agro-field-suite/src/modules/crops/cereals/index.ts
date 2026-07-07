@@ -8,8 +8,8 @@ export { dssCereali } from "./dss";
 export const cerealsModule: CropModule = {
   id: "cereali",
   label: "Seminativo",
-  categorie: ["seminativo"],
-  speciePrincipale: "frumento",
+  categories: ["seminativo"],
+  mainSpecies: "frumento",
   dss: dssCereali,
-  accumuloStagionale: true,
+  seasonalAccumulation: true,
 };

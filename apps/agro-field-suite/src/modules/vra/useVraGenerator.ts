@@ -1,6 +1,6 @@
 import { boundingBox, useAgroStore } from "@agrogea/core";
 import type { Plot } from "@agrogea/core";
-import { cercaSerieScene, type IndiceVegetazionale } from "@agrogea/tools";
+import { searchSceneSeries, type VegetationIndex } from "@agrogea/tools";
 import {
   DEFAULT_LAYER_STYLE,
   type GeoLibreLayer,
@@ -26,7 +26,7 @@ import { stopsVra } from "./vra-palette";
 
 export interface OpzioniGeneraVra {
   /** Indice di base su cui zonare (default NDVI). */
-  indice: IndiceVegetazionale;
+  indice: VegetationIndex;
   /** Lato della cella in pixel (sottocampionamento del raster). */
   step: number;
   /** Numero di zone gestionali (cluster). */
@@ -41,7 +41,7 @@ export type VraStato =
   | { fase: "idle" }
   | { fase: "lavorazione"; etichetta: string }
   | { fase: "completato"; risultato: RisultatoZoneVra }
-  | { fase: "errore"; messaggio: string };
+  | { fase: "errore"; message: string };
 
 const VRA_LAYER_PREFIX = "agrogea-vra-";
 
@@ -118,7 +118,7 @@ export function useVraGenerator() {
           const msg = e.data;
           if (msg.tipo === "progress") return;
           worker.removeEventListener("message", onMessage);
-          if (msg.tipo === "error") reject(new Error(msg.messaggio));
+          if (msg.tipo === "error") reject(new Error(msg.message));
           else resolve(msg.vraCells);
         };
         worker.addEventListener("message", onMessage);
@@ -132,7 +132,7 @@ export function useVraGenerator() {
       try {
         setStato({ fase: "lavorazione", etichetta: "Ricerca scena satellitare…" });
         const bbox = boundingBox(appezzamento.geometry);
-        const scene = await cercaSerieScene(bbox, {
+        const scene = await searchSceneSeries(bbox, {
           indici: [opzioni.indice],
           cloudCoverMax: opzioni.cloudCoverMax ?? 20,
           giorniIndietro: 120,
@@ -140,7 +140,7 @@ export function useVraGenerator() {
         if (scene.length === 0) {
           setStato({
             fase: "errore",
-            messaggio: "Nessuna scena utile per i filtri scelti.",
+            message: "Nessuna scena utile per i filtri scelti.",
           });
           return;
         }
@@ -158,7 +158,7 @@ export function useVraGenerator() {
         if (!cells || cells.features.length === 0) {
           setStato({
             fase: "errore",
-            messaggio: "Nessuna cella valida nell'appezzamento.",
+            message: "Nessuna cella valida nell'appezzamento.",
           });
           return;
         }
@@ -173,7 +173,7 @@ export function useVraGenerator() {
       } catch (error) {
         setStato({
           fase: "errore",
-          messaggio: error instanceof Error ? error.message : String(error),
+          message: error instanceof Error ? error.message : String(error),
         });
       }
     },

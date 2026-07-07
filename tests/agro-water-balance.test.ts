@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { WeatherReading, TreatmentLog } from "@agrogea/core";
 import {
-  bilancioIdricoFao66,
-  coefficienteStressIdrico,
+  waterBalanceFao66,
+  waterStressCoefficient,
   et0PenmanMonteith,
-  type ParametriSuolo,
+  type SoilParameters,
 } from "@agrogea/tools";
 import {
   apportiIrriguiDaTrattamenti,
@@ -14,76 +14,76 @@ import {
 } from "../apps/agro-field-suite/src/modules/dss/water-balance";
 
 /**
- * Precisione dell'equazione di deplezione idrica (FAO 56/66) e degli
- * adattatori dell'orchestratore. Verifica la conservazione di massa giorno per
- * giorno, l'esplicitazione della percolazione profonda e l'attivazione dello
+ * Precisione dell'equazione di depletion idrica (FAO 56/66) e degli
+ * adattatori dell'orchestratore. Verifica la conservazione di massa day per
+ * day, l'esplicitazione della percolation profonda e l'attivazione dello
  * stress alla soglia RAW.
  */
 
 // Suolo di prova: AWC = (0.30 − 0.10)·1.0·1000 = 200 mm; RAW = 0.5·AWC = 100 mm.
-const SUOLO: ParametriSuolo = {
-  capacitaCampo: 0.3,
-  puntoAppassimento: 0.1,
-  profonditaRadici: 1.0,
-  frazioneDeplezione: 0.5,
+const SUOLO: SoilParameters = {
+  fieldCapacity: 0.3,
+  wiltingPoint: 0.1,
+  rootDepth: 1.0,
+  depletionFraction: 0.5,
 };
 const AWC = 200;
 const RAW = 100;
 
-describe("bilancioIdricoFao66 — equazione di deplezione", () => {
-  it("conserva la massa: Dr,t = Dr,t-1 − P − I + ETc + DP ad ogni giorno", () => {
+describe("waterBalanceFao66 — equazione di depletion", () => {
+  it("conserva la massa: Dr,t = Dr,t-1 − P − I + ETc + DP ad ogni day", () => {
     const etc = [10, 8, 12, 0, 6];
-    const pioggia = [0, 0, 0, 30, 0];
+    const rain = [0, 0, 0, 30, 0];
     const irrig = [0, 0, 5, 0, 0];
-    const { serie } = bilancioIdricoFao66(SUOLO, etc, pioggia, irrig, 0);
+    const { series } = waterBalanceFao66(SUOLO, etc, rain, irrig, 0);
 
     let drPrev = 0;
-    for (const g of serie) {
-      const atteso = drPrev - g.pioggia - g.irrigazione + g.etc + g.percolazione;
+    for (const g of series) {
+      const atteso = drPrev - g.rain - g.irrigation + g.etc + g.percolation;
       // Vale finché non si tocca il limite superiore AWC (qui mai).
       assert.ok(
-        Math.abs(g.deplezione - atteso) < 1e-9,
-        `giorno ${g.giorno}: Dr=${g.deplezione} ≠ ${atteso}`,
+        Math.abs(g.depletion - atteso) < 1e-9,
+        `day ${g.day}: Dr=${g.depletion} ≠ ${atteso}`,
       );
-      assert.ok(g.deplezione >= 0 && g.deplezione <= AWC, "Dr in [0, AWC]");
-      drPrev = g.deplezione;
+      assert.ok(g.depletion >= 0 && g.depletion <= AWC, "Dr in [0, AWC]");
+      drPrev = g.depletion;
     }
   });
 
-  it("la percolazione profonda è > 0 solo quando l'apporto satura il profilo", () => {
-    // Dr iniziale 5 mm, pioggia 30 mm, nessuna ETc: 25 mm percolano via.
-    const { serie } = bilancioIdricoFao66(SUOLO, [0], [30], [0], 5);
-    assert.equal(serie[0].percolazione, 25);
-    assert.equal(serie[0].deplezione, 0);
+  it("la percolation profonda è > 0 solo quando l'apporto satura il profilo", () => {
+    // Dr iniziale 5 mm, rain 30 mm, nessuna ETc: 25 mm percolano via.
+    const { series } = waterBalanceFao66(SUOLO, [0], [30], [0], 5);
+    assert.equal(series[0].percolation, 25);
+    assert.equal(series[0].depletion, 0);
 
-    // Giornata secca (solo ETc): nessuna percolazione.
-    const { serie: secca } = bilancioIdricoFao66(SUOLO, [10], [0], [0], 0);
-    assert.equal(secca[0].percolazione, 0);
+    // Giornata secca (solo ETc): nessuna percolation.
+    const { series: secca } = waterBalanceFao66(SUOLO, [10], [0], [0], 0);
+    assert.equal(secca[0].percolation, 0);
   });
 
   it("attiva inStress esattamente quando Dr ≥ RAW e riporta i giorni di autonomia", () => {
-    const etc = new Array(12).fill(10); // +10 mm/giorno → RAW(100) al giorno 9
-    const { serie, giorniAutonomia } = bilancioIdricoFao66(SUOLO, etc, [], [], 0);
-    assert.equal(serie[8].deplezione, 90);
-    assert.equal(serie[8].inStress, false);
-    assert.equal(serie[9].deplezione, 100);
-    assert.equal(serie[9].inStress, true);
-    assert.equal(giorniAutonomia, 9);
+    const etc = new Array(12).fill(10); // +10 mm/day → RAW(100) al day 9
+    const { series, autonomyDays } = waterBalanceFao66(SUOLO, etc, [], [], 0);
+    assert.equal(series[8].depletion, 90);
+    assert.equal(series[8].inStress, false);
+    assert.equal(series[9].depletion, 100);
+    assert.equal(series[9].inStress, true);
+    assert.equal(autonomyDays, 9);
   });
 
   it("non scende sotto 0 né supera AWC (clamp fisico)", () => {
-    const { serie } = bilancioIdricoFao66(SUOLO, [500], [0], [0], 0);
+    const { series } = waterBalanceFao66(SUOLO, [500], [0], [0], 0);
     // domanda non soddisfatta: Dr cappato ad AWC (≈200, modulo float).
-    assert.ok(Math.abs(serie[0].deplezione - AWC) < 1e-6);
+    assert.ok(Math.abs(series[0].depletion - AWC) < 1e-6);
   });
 });
 
-describe("coefficienteStressIdrico (Ks, FAO-56 eq.84)", () => {
+describe("waterStressCoefficient (Ks, FAO-56 eq.84)", () => {
   it("è 1 sopra RAW e decresce a 0 al punto di appassimento", () => {
-    assert.equal(coefficienteStressIdrico(50, RAW, AWC), 1); // Dr<RAW
-    assert.equal(coefficienteStressIdrico(RAW, RAW, AWC), 1); // Dr=RAW
-    assert.equal(coefficienteStressIdrico(150, RAW, AWC), 0.5); // a metà
-    assert.equal(coefficienteStressIdrico(AWC, RAW, AWC), 0); // Dr=AWC
+    assert.equal(waterStressCoefficient(50, RAW, AWC), 1); // Dr<RAW
+    assert.equal(waterStressCoefficient(RAW, RAW, AWC), 1); // Dr=RAW
+    assert.equal(waterStressCoefficient(150, RAW, AWC), 0.5); // a metà
+    assert.equal(waterStressCoefficient(AWC, RAW, AWC), 0); // Dr=AWC
   });
 });
 
@@ -94,9 +94,9 @@ describe("et0PenmanMonteith — sanità fisica", () => {
       tMax: 24,
       rhMin: 40,
       rhMax: 80,
-      vento2m: 2,
-      radiazione: 22,
-      altitudine: 100,
+      windSpeed2m: 2,
+      radiation: 22,
+      altitude: 100,
     };
     const et0 = et0PenmanMonteith(base);
     assert.ok(et0 > 0 && et0 < 15, `ET0 fuori range plausibile: ${et0}`);
@@ -165,7 +165,7 @@ describe("apportoIrriguoMm / apportiIrriguiDaTrattamenti", () => {
 });
 
 describe("calcolaBilancioIdrico — composizione end-to-end", () => {
-  it("produce una riga per giorno con ETc = ET0·Kc e bilancio coerente", () => {
+  it("produce una riga per day con ETc = ET0·Kc e bilancio coerente", () => {
     const letture = [
       lettura("2026-06-01", { rain_mm: 0 }),
       lettura("2026-06-02", { rain_mm: 5 }),
@@ -175,18 +175,18 @@ describe("calcolaBilancioIdrico — composizione end-to-end", () => {
       letture,
       irrigazioni: [{ data: "2026-06-03", mm: 4 }],
       coltura: "vite",
-      fase: "piena",
+      phase: "piena",
       suolo: SUOLO,
-      altitudine: 100,
+      altitude: 100,
     });
 
-    assert.equal(out.serie.length, 3);
-    assert.equal(out.kc, 0.85); // vite, fase piena
-    for (const g of out.serie) {
+    assert.equal(out.series.length, 3);
+    assert.equal(out.kc, 0.85); // vite, phase piena
+    for (const g of out.series) {
       assert.ok(g.et0 > 0, "ET0 positiva");
       assert.ok(Math.abs(g.etc - g.et0 * out.kc) < 1e-9, "ETc = ET0·Kc");
-      assert.ok(Number.isFinite(g.deplezione), "Dr finito");
+      assert.ok(Number.isFinite(g.depletion), "Dr finito");
     }
-    assert.equal(out.serie[2].irrigazione, 4);
+    assert.equal(out.series[2].irrigation, 4);
   });
 });

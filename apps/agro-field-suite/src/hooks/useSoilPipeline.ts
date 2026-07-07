@@ -1,9 +1,9 @@
 import { boundingBox, useAgroStore } from "@agrogea/core";
 import type { Plot } from "@agrogea/core";
 import {
-  cercaSerieScene,
-  filtraFinestraDaUltima,
-  type IndiceVegetazionale,
+  searchSceneSeries,
+  filterWindowFromLatest,
+  type VegetationIndex,
 } from "@agrogea/tools";
 import {
   DEFAULT_LAYER_STYLE,
@@ -20,12 +20,12 @@ import type {
 
 /**
  * Pipeline indici del modulo Suolo (refactor STAC). Orchestrazione main-thread
- * della ricerca STAC (multi-indice, multi-appezzamento, filtro cloud cover,
+ * della ricerca STAC (multi-index, multi-appezzamento, filtro cloud cover,
  * strategie temporali) e del worker di calcolo. Per ogni appezzamento:
  *
- *   1. bbox del poligono → `cercaSerieScene` (serie storica filtrata);
- *   2. worker `soil.worker` → medie per indice e per data + overlay RGBA
- *      dell'indice primario sulla scena più recente;
+ *   1. bbox del poligono → `searchSceneSeries` (series storica filtrata);
+ *   2. worker `soil.worker` → medie per index e per data + overlay RGBA
+ *      dell'index primario sulla scena più recente;
  *   3. l'overlay viene iniettato come layer `image` georeferenziato nello store
  *      GeoLibre (sopra la basemap, persistente al cambio basemap via syncLayers);
  *   4. la media NDVI più recente è salvata nella cache offline (DAL).
@@ -41,33 +41,33 @@ export type StrategiaTemporale =
 export const MAX_GIORNI_PERSONALIZZATO = 60;
 
 export interface OpzioniSuolo {
-  indici: IndiceVegetazionale[];
-  indicePrimario: IndiceVegetazionale;
+  indici: VegetationIndex[];
+  indicePrimario: VegetationIndex;
   cloudCoverMax: number;
   strategia: StrategiaTemporale;
 }
 
 export interface RisultatoAppezzamento {
   appezzamentoId: string;
-  nome: string;
-  serie: PuntoSerie[];
+  name: string;
+  series: PuntoSerie[];
 }
 
 export type SuoloStato =
-  | { fase: "idle" }
+  | { phase: "idle" }
   | {
-      fase: "lavorazione";
+      phase: "lavorazione";
       etichetta: string;
       appezzamentoCorrente: number;
       appezzamentiTotali: number;
     }
   | {
-      fase: "completato";
+      phase: "completato";
       risultati: RisultatoAppezzamento[];
-      indici: IndiceVegetazionale[];
-      indicePrimario: IndiceVegetazionale;
+      indici: VegetationIndex[];
+      indicePrimario: VegetationIndex;
     }
-  | { fase: "errore"; messaggio: string };
+  | { phase: "errore"; message: string };
 
 const OVERLAY_PREFIX = "agrogea-overlay-";
 
@@ -110,7 +110,7 @@ function rgbaToDataUrl(overlay: OverlayRaster): string {
   return canvas.toDataURL("image/png");
 }
 
-/** Rimuove tutti gli overlay d'indice dallo store (prima di un nuovo calcolo). */
+/** Rimuove tutti gli overlay d'index dallo store (prima di un nuovo calcolo). */
 function rimuoviOverlay(): void {
   const store = useAppStore.getState();
   for (const layer of store.layers) {
@@ -124,7 +124,7 @@ function iniettaOverlay(appezzamentoId: string, overlay: OverlayRaster): void {
   const id = `${OVERLAY_PREFIX}${appezzamentoId}`;
   const layer: GeoLibreLayer = {
     id,
-    name: `Indice ${overlay.indice.toUpperCase()}`,
+    name: `Indice ${overlay.index.toUpperCase()}`,
     type: "image",
     source: {
       type: "image",
@@ -134,7 +134,7 @@ function iniettaOverlay(appezzamentoId: string, overlay: OverlayRaster): void {
     visible: true,
     opacity: 0.85,
     style: { ...DEFAULT_LAYER_STYLE },
-    metadata: { agrogea: true, overlay: true, indice: overlay.indice },
+    metadata: { agrogea: true, overlay: true, index: overlay.index },
     sourcePath: `agrogea://overlay-${appezzamentoId}`,
   };
   if (store.layers.some((l) => l.id === id)) {
@@ -144,14 +144,14 @@ function iniettaOverlay(appezzamentoId: string, overlay: OverlayRaster): void {
       metadata: layer.metadata,
     });
   } else {
-    // Append (in cima): il raster dell'indice resta visibile sopra il poligono.
+    // Append (in cima): il raster dell'index resta visibile sopra il poligono.
     store.addLayer(layer);
   }
 }
 
 export function useSuoloPipeline() {
   const salvaNdviMedio = useAgroStore((s) => s.salvaNdviMedio);
-  const [stato, setStato] = useState<SuoloStato>({ fase: "idle" });
+  const [stato, setStato] = useState<SuoloStato>({ phase: "idle" });
   const workerRef = useRef<Worker | null>(null);
 
   useEffect(() => {
@@ -168,7 +168,7 @@ export function useSuoloPipeline() {
 
   const eseguiJob = useCallback(
     (job: SuoloJob, onProgress: (p: SuoloProgress) => void) =>
-      new Promise<{ serie: PuntoSerie[]; overlay: OverlayRaster | null }>(
+      new Promise<{ series: PuntoSerie[]; overlay: OverlayRaster | null }>(
         (resolve, reject) => {
           const worker = workerRef.current;
           if (!worker) {
@@ -182,8 +182,8 @@ export function useSuoloPipeline() {
               return;
             }
             worker.removeEventListener("message", onMessage);
-            if (msg.tipo === "error") reject(new Error(msg.messaggio));
-            else resolve({ serie: msg.serie, overlay: msg.overlay });
+            if (msg.tipo === "error") reject(new Error(msg.message));
+            else resolve({ series: msg.series, overlay: msg.overlay });
           };
           worker.addEventListener("message", onMessage);
           worker.postMessage(job);
@@ -211,21 +211,21 @@ export function useSuoloPipeline() {
         // Finestra di RICERCA STAC: sempre generosa, così si aggancia l'ultimo
         // passaggio utile anche se più vecchio del periodo richiesto (i passaggi
         // recenti possono essere tutti nuvolosi). Per le strategie a intervallo
-        // la serie viene poi ancorata agli ultimi N giorni dall'ultima scena.
+        // la series viene poi ancorata agli ultimi N giorni dall'ultima scena.
         const giorniRicerca =
           strategia.tipo === "intervallo" ? strategia.giorni + 90 : 120;
 
         for (let i = 0; i < appezzamenti.length; i++) {
           const apz = appezzamenti[i];
           setStato({
-            fase: "lavorazione",
+            phase: "lavorazione",
             etichetta: `Ricerca scene · ${apz.user_plot_name}`,
             appezzamentoCorrente: i + 1,
             appezzamentiTotali: appezzamenti.length,
           });
 
           const bbox = boundingBox(apz.geometry);
-          let serieScene = await cercaSerieScene(bbox, {
+          let serieScene = await searchSceneSeries(bbox, {
             indici: opzioni.indici,
             cloudCoverMax: opzioni.cloudCoverMax,
             ...(datetimeRange
@@ -234,19 +234,19 @@ export function useSuoloPipeline() {
           });
           // Intervallo "ultimi N gg": ancora la finestra all'ultima scena utile.
           if (strategia.tipo === "intervallo") {
-            serieScene = filtraFinestraDaUltima(serieScene, strategia.giorni);
+            serieScene = filterWindowFromLatest(serieScene, strategia.giorni);
           }
           if (serieScene.length === 0) {
             risultati.push({
               appezzamentoId: apz.id,
-              nome: apz.user_plot_name,
-              serie: [],
+              name: apz.user_plot_name,
+              series: [],
             });
             continue;
           }
 
           // "ultima": solo la scena più recente; intervallo/personalizzato:
-          // tutta la serie (per il grafico di trend).
+          // tutta la series (per il grafico di trend).
           const scene =
             strategia.tipo === "ultima" ? [serieScene[0]] : serieScene;
 
@@ -258,10 +258,10 @@ export function useSuoloPipeline() {
             geometria: apz.geometry,
             bbox,
           };
-          const { serie, overlay } = await eseguiJob(job, (p) => {
+          const { series, overlay } = await eseguiJob(job, (p) => {
             if (p.tipo !== "progress") return;
             setStato({
-              fase: "lavorazione",
+              phase: "lavorazione",
               etichetta: `Calcolo indici · ${apz.user_plot_name} (scena ${p.scenaCorrente}/${p.sceneTotali})`,
               appezzamentoCorrente: i + 1,
               appezzamentiTotali: appezzamenti.length,
@@ -270,30 +270,30 @@ export function useSuoloPipeline() {
 
           if (overlay) iniettaOverlay(apz.id, overlay);
 
-          // Cache offline della media NDVI più recente (serie crescente: ultimo
+          // Cache offline della media NDVI più recente (series crescente: ultimo
           // = più recente), così la scheda appezzamento la mostra offline.
-          const ndviRecente = serie.at(-1)?.medie.ndvi;
+          const ndviRecente = series.at(-1)?.medie.ndvi;
           if (ndviRecente != null && !Number.isNaN(ndviRecente)) {
             await salvaNdviMedio(apz.id, Math.round(ndviRecente * 1000) / 1000);
           }
 
           risultati.push({
             appezzamentoId: apz.id,
-            nome: apz.user_plot_name,
-            serie,
+            name: apz.user_plot_name,
+            series,
           });
         }
 
         setStato({
-          fase: "completato",
+          phase: "completato",
           risultati,
           indici: opzioni.indici,
           indicePrimario: opzioni.indicePrimario,
         });
       } catch (error) {
         setStato({
-          fase: "errore",
-          messaggio: error instanceof Error ? error.message : String(error),
+          phase: "errore",
+          message: error instanceof Error ? error.message : String(error),
         });
       }
     },
@@ -302,7 +302,7 @@ export function useSuoloPipeline() {
 
   const reset = useCallback(() => {
     rimuoviOverlay();
-    setStato({ fase: "idle" });
+    setStato({ phase: "idle" });
   }, []);
 
   return { stato, calcola, reset };

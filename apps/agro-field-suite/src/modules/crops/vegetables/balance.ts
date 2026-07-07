@@ -1,20 +1,20 @@
-import type { DatiMeteoGiorno, FaseFenologica, ParametriSuolo } from "@agrogea/tools";
+import type { WeatherDataDay, PhenologicalPhase, SoilParameters } from "@agrogea/tools";
 import {
   cropWaterBalance,
   type CropBalanceOutput,
 } from "../shared/balance";
 
-/** Bilancio idrico dell'orticoltura: Kc per fase della specie "pomodoro" (FAO-56). */
+/** Bilancio idrico dell'orticoltura: Kc per phase della specie "pomodoro" (FAO-56). */
 export function bilancioOrticoltura(
-  fase: FaseFenologica,
-  meteo: DatiMeteoGiorno[],
+  phase: PhenologicalPhase,
+  meteo: WeatherDataDay[],
   pioggiaSerie: number[],
-  suolo: ParametriSuolo,
+  suolo: SoilParameters,
   deplezioneIniziale = 0,
 ): CropBalanceOutput {
   return cropWaterBalance({
     specie: "pomodoro",
-    fase,
+    phase,
     meteo,
     pioggiaSerie,
     suolo,

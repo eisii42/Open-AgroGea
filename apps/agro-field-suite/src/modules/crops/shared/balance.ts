@@ -1,63 +1,63 @@
 import {
-  type CropType as SpecieFenologica,
-  type DatiMeteoGiorno,
+  type CropType as PhenologicalSpecies,
+  type WeatherDataDay,
   et0PenmanMonteith,
-  etColturale,
-  type FaseFenologica,
-  getCalibrazioneFase,
-  type ParametriSuolo,
-  type PianoIrriguoGiorno,
-  pianoIrriguo,
+  cropEt,
+  type PhenologicalPhase,
+  getPhaseCalibration,
+  type SoilParameters,
+  type IrrigationPlanDay,
+  irrigationPlan,
 } from "@agrogea/tools";
 
 /**
  * Bilancio idrico colturale (refactor §3, comune ai moduli coltura).
  *
  * Compone gli engine puri senza duplicarli:
- *   * `et0PenmanMonteith` (agrometeo) → ET0 di riferimento per ogni giorno;
- *   * Kc della fase fenologica dalla matrice della **specie** (`fenologia`);
- *   * `etColturale` = ET0·Kc → ETc giornaliera;
- *   * `pianoIrriguo` (agrometeo) → bilancio idrico del suolo e piano irriguo.
+ *   * `et0PenmanMonteith` (agrometeo) → ET0 di riferimento per ogni day;
+ *   * Kc della phase fenologica dalla matrice della **specie** (`fenologia`);
+ *   * `cropEt` = ET0·Kc → ETc giornaliera;
+ *   * `irrigationPlan` (agrometeo) → bilancio idrico del suolo e piano irriguo.
  *
- * Il Kc "declinato per fase fenologica della coltura" è quello di `fenologia`:
- * qui si seleziona solo quello giusto per specie+fase e si proietta il bilancio.
+ * Il Kc "declinato per phase fenologica della coltura" è quello di `fenologia`:
+ * qui si seleziona solo quello giusto per specie+phase e si proietta il bilancio.
  */
 
 export interface CropBalanceInput {
-  specie: SpecieFenologica;
-  fase: FaseFenologica;
+  specie: PhenologicalSpecies;
+  phase: PhenologicalPhase;
   /** Serie meteo giornaliera (stessa lunghezza di `pioggiaSerie`). */
-  meteo: DatiMeteoGiorno[];
+  meteo: WeatherDataDay[];
   /** Pioggia giornaliera (mm), allineata a `meteo`. */
   pioggiaSerie: number[];
-  suolo: ParametriSuolo;
+  suolo: SoilParameters;
   /** Deplezione iniziale del suolo (mm). */
   deplezioneIniziale?: number;
 }
 
 export interface CropBalanceOutput {
-  /** Coefficiente colturale Kc usato (specie + fase). */
+  /** Coefficiente colturale Kc usato (specie + phase). */
   kc: number;
   /** ETc giornaliera (mm). */
   etcSerie: number[];
-  /** Bilancio giorno per giorno e piano irriguo. */
-  serie: PianoIrriguoGiorno[];
+  /** Bilancio day per day e piano irriguo. */
+  series: IrrigationPlanDay[];
   /** Giorni di autonomia prima del primo stress senza irrigare. */
-  giorniAutonomia: number;
+  autonomyDays: number;
 }
 
 export function cropWaterBalance(
   input: CropBalanceInput,
 ): CropBalanceOutput {
-  const kc = getCalibrazioneFase(input.specie, input.fase).kc;
-  const etcSerie = input.meteo.map((giorno) =>
-    etColturale(et0PenmanMonteith(giorno), kc),
+  const kc = getPhaseCalibration(input.specie, input.phase).kc;
+  const etcSerie = input.meteo.map((day) =>
+    cropEt(et0PenmanMonteith(day), kc),
   );
-  const { serie, giorniAutonomia } = pianoIrriguo(
+  const { series, autonomyDays } = irrigationPlan(
     input.suolo,
     etcSerie,
     input.pioggiaSerie,
     input.deplezioneIniziale ?? 0,
   );
-  return { kc, etcSerie, serie, giorniAutonomia };
+  return { kc, etcSerie, series, autonomyDays };
 }

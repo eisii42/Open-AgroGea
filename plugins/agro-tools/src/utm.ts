@@ -7,7 +7,7 @@
  * stesso CRS della scena. Evitiamo proj4 (dipendenza pesante): per UTM la
  * proiezione trasversa di Mercatore ha una formula analitica diretta.
  *
- * Riferimento: serie di Karney/Snyder per la proiezione trasversa di Mercatore
+ * Riferimento: series di Karney/Snyder per la proiezione trasversa di Mercatore
  * sull'ellissoide WGS84. Accuratezza sub-metrica entro la zona, ampiamente
  * sufficiente al campionamento NDVI a 10 m/pixel.
  */

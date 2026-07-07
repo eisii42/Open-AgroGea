@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Plot, SoilSample } from "@agrogea/core";
 import {
-  frazioniDaTessitura,
-  normalizzaFrazioni,
-  parametriSuoloSaxtonRawls,
+  fractionsFromTexture,
+  normalizeFractions,
+  saxtonRawlsSoilParameters,
   saxtonRawls,
 } from "@agrogea/tools";
 import {
@@ -22,11 +22,11 @@ import {
  * fallback da metadata. La parte spaziale (DuckDB) è IO e non è coperta qui.
  */
 
-describe("frazioniDaTessitura — classi multilingue e fallback", () => {
+describe("fractionsFromTexture — classi multilingue e fallback", () => {
   it("riconosce le classi USDA in IT/EN/ES", () => {
-    const argilloso = frazioniDaTessitura("argilloso");
-    const clay = frazioniDaTessitura("clay");
-    const arcilloso = frazioniDaTessitura("arcilloso");
+    const argilloso = fractionsFromTexture("argilloso");
+    const clay = fractionsFromTexture("clay");
+    const arcilloso = fractionsFromTexture("arcilloso");
     assert.ok(argilloso && clay && arcilloso);
     assert.equal(argilloso!.argilla, clay!.argilla);
     assert.equal(argilloso!.argilla, arcilloso!.argilla);
@@ -35,14 +35,14 @@ describe("frazioniDaTessitura — classi multilingue e fallback", () => {
   });
 
   it("normalizza separatori e accenti (franco-sabbioso)", () => {
-    const a = frazioniDaTessitura("Franco-Sabbioso");
-    const b = frazioniDaTessitura("franco sabbioso");
+    const a = fractionsFromTexture("Franco-Sabbioso");
+    const b = fractionsFromTexture("franco sabbioso");
     assert.deepEqual(a, b);
     assert.ok(a && a.sabbia > a.argilla);
   });
 
   it("ricade sull'euristica a keyword per etichette composte", () => {
-    const fr = frazioniDaTessitura("terreno prevalentemente argilloso e limoso");
+    const fr = fractionsFromTexture("terreno prevalentemente argilloso e limoso");
     assert.ok(fr);
     const somma = fr!.sabbia + fr!.limo + fr!.argilla;
     assert.ok(Math.abs(somma - 1) < 1e-9);
@@ -50,65 +50,65 @@ describe("frazioniDaTessitura — classi multilingue e fallback", () => {
   });
 
   it("restituisce null per stringhe non pedologiche o vuote", () => {
-    assert.equal(frazioniDaTessitura(""), null);
-    assert.equal(frazioniDaTessitura("xyz123"), null);
-    assert.equal(frazioniDaTessitura(null), null);
+    assert.equal(fractionsFromTexture(""), null);
+    assert.equal(fractionsFromTexture("xyz123"), null);
+    assert.equal(fractionsFromTexture(null), null);
   });
 });
 
-describe("normalizzaFrazioni — percentuali a frazioni", () => {
+describe("normalizeFractions — percentuali a frazioni", () => {
   it("normalizza percentuali a somma 1", () => {
-    const fr = normalizzaFrazioni(50, 30, 20);
+    const fr = normalizeFractions(50, 30, 20);
     assert.ok(fr);
     assert.ok(Math.abs(fr!.sabbia - 0.5) < 1e-9);
     assert.ok(Math.abs(fr!.sabbia + fr!.limo + fr!.argilla - 1) < 1e-9);
   });
 
   it("restituisce null se tutte nulle", () => {
-    assert.equal(normalizzaFrazioni(0, 0, 0), null);
+    assert.equal(normalizeFractions(0, 0, 0), null);
   });
 });
 
 describe("saxtonRawls — sanità fisica θFC/θPWP", () => {
   it("FC > PWP e dentro i limiti fisici, per ogni tessitura", () => {
     for (const classe of ["sabbioso", "franco", "argilloso"]) {
-      const fr = frazioniDaTessitura(classe)!;
-      const { capacitaCampo, puntoAppassimento } = saxtonRawls(fr);
-      assert.ok(capacitaCampo > puntoAppassimento, `${classe}: FC>PWP`);
-      assert.ok(puntoAppassimento > 0 && capacitaCampo < 0.6, `${classe}: bounds`);
+      const fr = fractionsFromTexture(classe)!;
+      const { fieldCapacity, wiltingPoint } = saxtonRawls(fr);
+      assert.ok(fieldCapacity > wiltingPoint, `${classe}: FC>PWP`);
+      assert.ok(wiltingPoint > 0 && fieldCapacity < 0.6, `${classe}: bounds`);
     }
   });
 
   it("l'argilla trattiene più acqua disponibile/residua della sabbia", () => {
-    const sabbia = saxtonRawls(frazioniDaTessitura("sabbioso")!);
-    const argilla = saxtonRawls(frazioniDaTessitura("argilloso")!);
+    const sabbia = saxtonRawls(fractionsFromTexture("sabbioso")!);
+    const argilla = saxtonRawls(fractionsFromTexture("argilloso")!);
     // l'argilla ha PWP nettamente più alto della sabbia (acqua più legata)
-    assert.ok(argilla.puntoAppassimento > sabbia.puntoAppassimento);
-    assert.ok(argilla.capacitaCampo > sabbia.capacitaCampo);
+    assert.ok(argilla.wiltingPoint > sabbia.wiltingPoint);
+    assert.ok(argilla.fieldCapacity > sabbia.fieldCapacity);
   });
 
   it("più sostanza organica aumenta la ritenzione", () => {
-    const fr = frazioniDaTessitura("franco")!;
+    const fr = fractionsFromTexture("franco")!;
     const povero = saxtonRawls(fr, 0.5);
     const ricco = saxtonRawls(fr, 5);
-    assert.ok(ricco.capacitaCampo >= povero.capacitaCampo);
+    assert.ok(ricco.fieldCapacity >= povero.fieldCapacity);
   });
 });
 
-describe("parametriSuoloSaxtonRawls — composizione ParametriSuolo", () => {
-  it("applica i default e gli override di profondità/deplezione", () => {
-    const fr = frazioniDaTessitura("franco")!;
-    const base = parametriSuoloSaxtonRawls(fr);
-    assert.equal(base.profonditaRadici, 0.8);
-    assert.equal(base.frazioneDeplezione, 0.5);
+describe("saxtonRawlsSoilParameters — composizione SoilParameters", () => {
+  it("applica i default e gli override di profondità/depletion", () => {
+    const fr = fractionsFromTexture("franco")!;
+    const base = saxtonRawlsSoilParameters(fr);
+    assert.equal(base.rootDepth, 0.8);
+    assert.equal(base.depletionFraction, 0.5);
 
-    const custom = parametriSuoloSaxtonRawls(fr, {
+    const custom = saxtonRawlsSoilParameters(fr, {
       profonditaRadiciM: 1.2,
-      frazioneDeplezione: 0.4,
+      depletionFraction: 0.4,
     });
-    assert.equal(custom.profonditaRadici, 1.2);
-    assert.equal(custom.frazioneDeplezione, 0.4);
-    assert.ok(custom.capacitaCampo > custom.puntoAppassimento);
+    assert.equal(custom.rootDepth, 1.2);
+    assert.equal(custom.depletionFraction, 0.4);
+    assert.ok(custom.fieldCapacity > custom.wiltingPoint);
   });
 });
 
@@ -203,17 +203,17 @@ describe("parametriDaMetadata — fallback Tier 3", () => {
 
   it("estrae i parametri completi dal metadata", () => {
     const p = parametriDaMetadata(
-      plot({ parametri_suolo: { capacitaCampo: 0.33, puntoAppassimento: 0.15 } }),
+      plot({ parametri_suolo: { fieldCapacity: 0.33, wiltingPoint: 0.15 } }),
     );
     assert.ok(p);
-    assert.equal(p!.capacitaCampo, 0.33);
-    assert.equal(p!.profonditaRadici, SUOLO_FRANCO_DEFAULT.profonditaRadici);
+    assert.equal(p!.fieldCapacity, 0.33);
+    assert.equal(p!.rootDepth, SUOLO_FRANCO_DEFAULT.rootDepth);
   });
 
   it("null se il metadata non ha parametri suolo completi", () => {
     assert.equal(parametriDaMetadata(plot({})), null);
     assert.equal(
-      parametriDaMetadata(plot({ parametri_suolo: { capacitaCampo: 0.3 } })),
+      parametriDaMetadata(plot({ parametri_suolo: { fieldCapacity: 0.3 } })),
       null,
     );
   });
@@ -245,11 +245,11 @@ describe("parametriDaSuoloManuale — Tier 3 inserimento manuale", () => {
       plotMeta({ suolo: { tessitura: "argilloso", sostanza_organica: 2 } }),
     );
     assert.ok(p);
-    assert.ok(p!.capacitaCampo > p!.puntoAppassimento);
-    assert.equal(p!.profonditaRadici, SUOLO_FRANCO_DEFAULT.profonditaRadici);
+    assert.ok(p!.fieldCapacity > p!.wiltingPoint);
+    assert.equal(p!.rootDepth, SUOLO_FRANCO_DEFAULT.rootDepth);
   });
 
-  it("usa le percentuali manuali e gli override profondità/deplezione", () => {
+  it("usa le percentuali manuali e gli override profondità/depletion", () => {
     const p = parametriDaSuoloManuale(
       plotMeta({
         suolo: {
@@ -262,8 +262,8 @@ describe("parametriDaSuoloManuale — Tier 3 inserimento manuale", () => {
       }),
     );
     assert.ok(p);
-    assert.equal(p!.profonditaRadici, 1.1);
-    assert.equal(p!.frazioneDeplezione, 0.45);
+    assert.equal(p!.rootDepth, 1.1);
+    assert.equal(p!.depletionFraction, 0.45);
   });
 
   it("rispetta le costanti idrauliche dirette (utente esperto)", () => {
@@ -271,8 +271,8 @@ describe("parametriDaSuoloManuale — Tier 3 inserimento manuale", () => {
       plotMeta({ suolo: { capacita_campo: 0.34, punto_appassimento: 0.16 } }),
     );
     assert.ok(p);
-    assert.equal(p!.capacitaCampo, 0.34);
-    assert.equal(p!.puntoAppassimento, 0.16);
+    assert.equal(p!.fieldCapacity, 0.34);
+    assert.equal(p!.wiltingPoint, 0.16);
   });
 
   it("null se non c'è composizione manuale utile", () => {

@@ -29,7 +29,7 @@ export const ETICHETTE_VARIABILE: Record<VariabileSuolo, string> = {
 /** Un punto dello scatter: chimica del suolo (X) vs ultimo NDVI medio (Y). */
 export interface PuntoScatterSuolo {
   appezzamentoId: string;
-  nome: string;
+  name: string;
   /** Media della variabile chimica sui campionamenti dell'appezzamento. */
   x: number;
   /** Ultimo NDVI medio dell'appezzamento (cache STAC). */
@@ -83,7 +83,7 @@ export function buildNdviScatter(
     if (ndvi == null || Number.isNaN(ndvi) || !chim) continue;
     punti.push({
       appezzamentoId: apz.id,
-      nome: apz.user_plot_name,
+      name: apz.user_plot_name,
       x: Math.round(chim.media * 1000) / 1000,
       y: Math.round(ndvi * 1000) / 1000,
       n: chim.n,

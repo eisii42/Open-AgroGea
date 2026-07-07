@@ -3,14 +3,14 @@ import type { TFunction } from "i18next";
 /**
  * Schemi dichiarativi del form "Dati coltura" (una scheda per tipo di coltura).
  *
- * Ogni categoria (allineata a `CropModule.categorie` → `cropForPlot`)
+ * Ogni categoria (allineata a `CropModule.categories` → `cropForPlot`)
  * definisce i campi di filiera SPECIFICI che finiscono in `crops.crop_metadata`
- * (JSONB dinamico), oltre ai campi comuni (nome comune/scientifico/varietà) e ai
+ * (JSONB dinamico), oltre ai campi comuni (name comune/scientifico/varietà) e ai
  * campi annuali di `plots_campaign`. La `category` salvata in `crop_metadata`
  * è ciò che il DSS legge per risolvere il modulo verticale dell'appezzamento.
  *
  * Le etichette sono chiavi i18n risolte a runtime da `cropFormSchema()`/
- * `allCropFormSchemas()`: il nome scientifico (binomio latino) resta invariato
+ * `allCropFormSchemas()`: il name scientifico (binomio latino) resta invariato
  * in tutte le lingue, il resto (etichette, placeholder, opzioni select) è
  * tradotto tramite il catalogo `cropFormSchema.*` in `locales/<lang>.json`.
  */

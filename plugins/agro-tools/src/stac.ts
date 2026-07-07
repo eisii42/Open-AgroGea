@@ -12,14 +12,14 @@
  * Qui vivono le sole parti pure e testabili: costruzione della query STAC e
  * selezione dell'item migliore. Il fetch dei COG (geotiff.js HTTP-Range) e il
  * clip sul poligono restano nel chiamante (Web Worker dell'app), che usa
- * `calcolaIndice("ndvi", …)` di `indici.ts` per la matematica.
+ * `computeIndex("ndvi", …)` di `indici.ts` per la matematica.
  */
 
 import {
-  BANDE_RICHIESTE,
-  BANDE_SUOLO,
-  isIndiceSuolo,
-  type IndiceVegetazionale,
+  REQUIRED_BANDS,
+  SOIL_BANDS,
+  isSoilIndex,
+  type VegetationIndex,
 } from "./indices";
 
 /** Endpoint STAC di GeoLibre: Microsoft Planetary Computer. */
@@ -75,9 +75,9 @@ async function fetchConBackoff(
  * Firma un href di asset del Planetary Computer (aggiunge il SAS token). Se la
  * firma fallisce propaga l'errore: senza firma il COG non è leggibile. Il
  * `fetchImpl` è iniettabile per i test. Per molte firme preferire
- * {@link tokenPlanetaryComputer} (una richiesta sola, evita i 429).
+ * {@link planetaryComputerToken} (una richiesta sola, evita i 429).
  */
-export async function firmaHrefPlanetaryComputer(
+export async function signPlanetaryComputerHref(
   href: string,
   options: {
     fetchImpl?: typeof fetch;
@@ -99,7 +99,7 @@ export async function firmaHrefPlanetaryComputer(
   return data.href ?? href;
 }
 
-export interface TokenSas {
+export interface SasToken {
   /** Query string del SAS (es. "st=…&se=…&sig=…"), da appendere agli href. */
   token: string;
   /** Scadenza del token in ms epoch. */
@@ -111,14 +111,14 @@ export interface TokenSas {
  * sola chiamata copre tutti gli asset della collezione → niente burst di firme
  * (e niente 429). Con retry/backoff sui 429. `fetchImpl` iniettabile per i test.
  */
-export async function tokenPlanetaryComputer(
+export async function planetaryComputerToken(
   collection: string,
   options: {
     fetchImpl?: typeof fetch;
     tokenUrl?: string;
     attesaBaseMs?: number;
   } = {},
-): Promise<TokenSas> {
+): Promise<SasToken> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const tokenUrl = options.tokenUrl ?? STAC_TOKEN_URL;
   const res = await fetchConBackoff(fetchImpl, `${tokenUrl}/${collection}`, {
@@ -142,7 +142,7 @@ export async function tokenPlanetaryComputer(
 }
 
 /** Appende un token SAS a un href di asset (gestendo query già presenti). */
-export function applicaTokenSas(href: string, token: string): string {
+export function applySasToken(href: string, token: string): string {
   const separatore = href.includes("?") ? "&" : "?";
   return `${href}${separatore}${token}`;
 }
@@ -159,7 +159,7 @@ export interface StacSearchParams {
 
 /**
  * Parametri della POST /search per l'ultimo Sentinel-2 sul bbox. Ordina per
- * data decrescente lato client (vedi `selezionaMigliorItem`); il filtro CQL2
+ * data decrescente lato client (vedi `selectBestItem`); il filtro CQL2
  * limita la copertura nuvolosa già sul server.
  */
 export function buildStacSearchBody(
@@ -211,7 +211,7 @@ export interface StacItemCollection {
 /** Asset Sentinel-2 L2A delle bande necessarie all'NDVI. */
 export const BAND_ASSET_KEYS = { red: "B04", nir: "B08" } as const;
 
-export interface ScenaNdvi {
+export interface NdviScene {
   itemId: string;
   datetime: string;
   cloudCover: number | null;
@@ -224,9 +224,9 @@ export interface ScenaNdvi {
  * B04/B08. La risposta è già ordinata per data desc, ma non ci fidiamo
  * dell'ordine del server e riordiniamo. Ritorna null se nessun item è idoneo.
  */
-export function selezionaMigliorItem(
+export function selectBestItem(
   collection: StacItemCollection,
-): ScenaNdvi | null {
+): NdviScene | null {
   const features = collection.features ?? [];
   const ordinati = [...features].sort(
     (a, b) =>
@@ -251,7 +251,7 @@ export function selezionaMigliorItem(
 }
 
 // ---------------------------------------------------------------------------
-// Pipeline multi-indice e multi-temporale (refactor modulo Suolo)
+// Pipeline multi-index e multi-temporale (refactor modulo Suolo)
 // ---------------------------------------------------------------------------
 
 /**
@@ -259,17 +259,17 @@ export function selezionaMigliorItem(
  * indici. Unione delle bande richieste dai singoli indici, deduplicata: il
  * worker scarica solo questi asset per ogni scena.
  */
-export function bandeRichiestePerIndici(
-  indici: IndiceVegetazionale[],
+export function requiredBandsForIndices(
+  indici: VegetationIndex[],
 ): string[] {
   const bande = new Set<string>();
-  for (const indice of indici) {
-    if (isIndiceSuolo(indice)) {
-      const { nir, red } = BANDE_SUOLO[indice];
+  for (const index of indici) {
+    if (isSoilIndex(index)) {
+      const { nir, red } = SOIL_BANDS[index];
       bande.add(nir);
       bande.add(red);
     } else {
-      const { a, b } = BANDE_RICHIESTE[indice];
+      const { a, b } = REQUIRED_BANDS[index];
       bande.add(a);
       bande.add(b);
     }
@@ -278,30 +278,30 @@ export function bandeRichiestePerIndici(
 }
 
 /** Una scena STAC con gli href delle bande necessarie agli indici scelti. */
-export interface ScenaIndici {
+export interface IndicesScene {
   itemId: string;
   datetime: string;
   cloudCover: number | null;
-  /** Href COG per ciascuna banda richiesta (chiave = nome banda, es. "B04"). */
+  /** Href COG per ciascuna banda richiesta (chiave = name banda, es. "B04"). */
   bandHrefs: Record<string, string>;
 }
 
 /**
- * Estrae dalla collection la serie di scene che espongono TUTTE le bande
+ * Estrae dalla collection la series di scene che espongono TUTTE le bande
  * richieste, ordinata per data decrescente (la più recente per prima). Le scene
  * prive anche di una sola banda necessaria sono scartate.
  */
-export function estraiSerieScene(
+export function extractSceneSeries(
   collection: StacItemCollection,
   bandeNecessarie: string[],
-): ScenaIndici[] {
+): IndicesScene[] {
   const features = collection.features ?? [];
   const ordinati = [...features].sort(
     (a, b) =>
       new Date(b.properties.datetime).getTime() -
       new Date(a.properties.datetime).getTime(),
   );
-  const scene: ScenaIndici[] = [];
+  const scene: IndicesScene[] = [];
   for (const item of ordinati) {
     const bandHrefs: Record<string, string> = {};
     let completa = true;
@@ -326,17 +326,17 @@ export function estraiSerieScene(
 }
 
 /**
- * Restringe una serie di scene (ordinata per data desc) agli ultimi `giorni`
+ * Restringe una series di scene (ordinata per data desc) agli ultimi `giorni`
  * **a partire dalla scena più recente disponibile**, non da oggi. I passaggi
  * Sentinel-2 recenti possono essere tutti scartati (nuvole) o il catalogo può
- * essere in ritardo: ancorare la finestra all'ultima scena utile evita serie
+ * essere in ritardo: ancorare la finestra all'ultima scena utile evita series
  * vuote quando l'ultimo passaggio buono è più vecchio del periodo richiesto.
- * Restituisce la serie invariata se ha 0/1 elementi.
+ * Restituisce la series invariata se ha 0/1 elementi.
  */
-export function filtraFinestraDaUltima(
-  scene: ScenaIndici[],
+export function filterWindowFromLatest(
+  scene: IndicesScene[],
   giorni: number,
-): ScenaIndici[] {
+): IndicesScene[] {
   if (scene.length <= 1) return scene;
   const ancora = new Date(scene[0].datetime).getTime();
   const minimo = ancora - giorni * 24 * 3600 * 1000;
@@ -344,16 +344,16 @@ export function filtraFinestraDaUltima(
 }
 
 /**
- * Cerca la serie storica di scene Sentinel-2 sul bbox per gli indici scelti,
+ * Cerca la series storica di scene Sentinel-2 sul bbox per gli indici scelti,
  * filtrata per copertura nuvolosa e finestra temporale (giorni indietro da
  * `ora`). Restituisce tutte le scene idonee, dalla più recente alla più vecchia
- * — la UI usa l'ultima per il raster e l'intera serie per il grafico di trend.
+ * — la UI usa l'ultima per il raster e l'intera series per il grafico di trend.
  * Con retry/backoff sui 429 e 5xx. Il `fetchImpl` è iniettabile per i test.
  */
-export async function cercaSerieScene(
+export async function searchSceneSeries(
   bbox: [number, number, number, number],
   options: {
-    indici: IndiceVegetazionale[];
+    indici: VegetationIndex[];
     cloudCoverMax?: number;
     giorniIndietro?: number;
     /** Intervallo esplicito inizio/fine (analisi personalizzata). */
@@ -364,10 +364,10 @@ export async function cercaSerieScene(
     apiUrl?: string;
     attesaBaseMs?: number;
   },
-): Promise<ScenaIndici[]> {
+): Promise<IndicesScene[]> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const apiUrl = options.apiUrl ?? STAC_API_URL;
-  const bandeNecessarie = bandeRichiestePerIndici(options.indici);
+  const bandeNecessarie = requiredBandsForIndices(options.indici);
   const body = buildStacSearchBody(bbox, {
     cloudCoverMax: options.cloudCoverMax,
     giorniIndietro: options.giorniIndietro,
@@ -390,7 +390,7 @@ export async function cercaSerieScene(
     throw new Error(`STAC search fallita: HTTP ${res.status}`);
   }
   const collection = (await res.json()) as StacItemCollection;
-  return estraiSerieScene(collection, bandeNecessarie);
+  return extractSceneSeries(collection, bandeNecessarie);
 }
 
 /**
@@ -398,7 +398,7 @@ export async function cercaSerieScene(
  * sui 429 e 5xx. Il `fetchImpl` è iniettabile per i test; di default usa la
  * `fetch` globale.
  */
-export async function cercaUltimaScenaNdvi(
+export async function searchLatestNdviScene(
   bbox: [number, number, number, number],
   options: {
     cloudCoverMax?: number;
@@ -407,7 +407,7 @@ export async function cercaUltimaScenaNdvi(
     apiUrl?: string;
     attesaBaseMs?: number;
   } = {},
-): Promise<ScenaNdvi | null> {
+): Promise<NdviScene | null> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const apiUrl = options.apiUrl ?? STAC_API_URL;
   const body = buildStacSearchBody(bbox, {
@@ -428,5 +428,5 @@ export async function cercaUltimaScenaNdvi(
     throw new Error(`STAC search fallita: HTTP ${res.status}`);
   }
   const collection = (await res.json()) as StacItemCollection;
-  return selezionaMigliorItem(collection);
+  return selectBestItem(collection);
 }

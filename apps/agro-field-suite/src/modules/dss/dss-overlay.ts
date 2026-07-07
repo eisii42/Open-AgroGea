@@ -1,19 +1,19 @@
 import type { Plot } from "@agrogea/core";
 import {
   type CropType,
-  type FaseFenologica,
-  getCalibrazioneFase,
+  type PhenologicalPhase,
+  getPhaseCalibration,
   hexToRgb,
-  type RampaColore,
+  type ColorRamp,
 } from "@agrogea/tools";
 import type { Feature, FeatureCollection } from "geojson";
 
 /**
- * Sintesi spaziale del rischio DSS (Modulo 3): combina la fase IDROLOGICA
+ * Sintesi spaziale del risk DSS (Modulo 3): combina la phase IDROLOGICA
  * (stress idrico dal bilancio FAO 66), il dato SPETTRALE (`last_ndvi_mean`) e i
  * CAMPIONAMENTI fisici del suolo in un unico punteggio 0..1 per appezzamento,
  * **bilanciato per coltura** (pesi e banda NDVI attesa dipendono da coltura e
- * fase). Da qui l'overlay coropletico verde→giallo→rosso e la legenda colorbar.
+ * phase). Da qui l'overlay coropletico verde→giallo→rosso e la legenda colorbar.
  *
  * Tutto puro: niente React/MapLibre. Il rendering del layer e la legenda vivono
  * in `useDssOverlayLayer` / `Colorbar`.
@@ -37,7 +37,7 @@ export interface CalibrazioneSintesi {
   pesoPatologico: number;
   pesoVigore: number;
   pesoSuolo: number;
-  /** Banda NDVI attesa per la fase (da `fenologia`): scala di vigore relativa. */
+  /** Banda NDVI attesa per la phase (da `fenologia`): scala di vigore relativa. */
   ndviAtteso: [number, number];
   /** Azoto target (mg/kg) per la coltura: sotto = deficit nutrizionale. */
   azotoTarget: number;
@@ -72,14 +72,14 @@ const AZOTO_TARGET: Record<CropType, number> = {
   pomodoro: 30,
 };
 
-/** Calibrazione della sintesi per coltura e fase (banda NDVI dalla fenologia). */
+/** Calibrazione della sintesi per coltura e phase (banda NDVI dalla fenologia). */
 export function summaryCalibration(
   coltura: CropType,
-  fase: FaseFenologica,
+  phase: PhenologicalPhase,
 ): CalibrazioneSintesi {
   return {
     ...PESI_COLTURA[coltura],
-    ndviAtteso: getCalibrazioneFase(coltura, fase).ndviAtteso,
+    ndviAtteso: getPhaseCalibration(coltura, phase).ndviAtteso,
     azotoTarget: AZOTO_TARGET[coltura] ?? 25,
     sostanzaOrganicaTarget: 2,
   };
@@ -112,7 +112,7 @@ function deficitSuolo(
 }
 
 /**
- * Punteggio di rischio sintetico 0..1 (0 ottimale, 1 critico), bilanciato per
+ * Punteggio di risk sintetico 0..1 (0 ottimale, 1 critico), bilanciato per
  * coltura. I fattori non disponibili (NDVI o suolo assenti) vengono esclusi e i
  * pesi rinormalizzati sui fattori presenti, così il punteggio resta in [0,1].
  */
@@ -149,12 +149,12 @@ const GIALLO = "#fee08b";
 const ROSSO = "#d73027";
 
 /**
- * Rampa del rischio DSS verde→giallo→rosso sul dominio 0..1, calibrata per
+ * Rampa del risk DSS verde→giallo→rosso sul dominio 0..1, calibrata per
  * coltura: la posizione del giallo (ingresso in allerta) si sposta in base alla
  * sensibilità della coltura — le più sensibili allertano prima. Il rosso marca
  * lo stato critico (≥ soglia rossa).
  */
-export function rampaRischioDss(coltura: CropType): RampaColore {
+export function rampaRischioDss(coltura: CropType): ColorRamp {
   // Sensibilità ≈ peso combinato di stress+patologie: più alta ⇒ allerta prima.
   const pesi = PESI_COLTURA[coltura];
   const sensibilita = pesi.pesoStress + pesi.pesoPatologico; // ~0.5..0.6
@@ -173,7 +173,7 @@ function due(n: number): string {
 }
 
 /** Colore esadecimale del punteggio secondo la rampa (step: ultima soglia vince). */
-export function coloreRischioDss(score: number, rampa: RampaColore): string {
+export function coloreRischioDss(score: number, rampa: ColorRamp): string {
   let hex = rampa[0]?.[1] ?? VERDE;
   for (const [soglia, colore] of rampa) {
     if (score >= soglia) hex = colore;
@@ -191,7 +191,7 @@ export function livelloRischioDss(score: number): "ottimale" | "allerta" | "crit
 }
 
 export interface FieldSummary {
-  /** Punteggio di rischio 0..1 dell'appezzamento. */
+  /** Punteggio di risk 0..1 dell'appezzamento. */
   rischio01: number;
 }
 
@@ -203,7 +203,7 @@ export interface FieldSummary {
 export function costruisciOverlayDss(
   appezzamenti: Plot[],
   sintesiPerCampo: Map<string, FieldSummary>,
-  rampa: RampaColore,
+  rampa: ColorRamp,
 ): FeatureCollection {
   const features: Feature[] = [];
   for (const a of appezzamenti) {

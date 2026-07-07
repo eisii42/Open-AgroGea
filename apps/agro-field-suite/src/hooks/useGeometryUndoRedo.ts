@@ -5,7 +5,7 @@ import { useCallback, useEffect } from "react";
  * Undo/Redo delle modifiche geometriche, DAL-aware.
  *
  * GeoLibre core ha un undo/redo nativo (zundo `useAppStore.temporal`), ma traccia
- * i LAYER: nel modello agro la verità è in PGlite (i layer sono solo proiezione),
+ * i LAYER: nel model agro la verità è in PGlite (i layer sono solo proiezione),
  * quindi annullarlo a livello layer desincronizzerebbe layer↔DB. Qui l'undo/redo
  * opera sullo store agronomico: riapplica al DAL la geometria PRIMA/DOPO ogni
  * salvataggio (vedi `undoGeometria`/`redoGeometria` + le pile in `@agrogea/core`),

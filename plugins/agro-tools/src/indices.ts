@@ -5,14 +5,14 @@
  */
 
 /** Indici a differenza normalizzata (a − b)/(a + b). */
-export type IndiceNormalizzato = "ndvi" | "ndre" | "ndwi";
+export type NormalizedIndex = "ndvi" | "ndre" | "ndwi";
 /** Indici corretti per il suolo (NIR/Red + fattore L). */
-export type IndiceSuolo = "savi" | "msavi2";
-export type IndiceVegetazionale = IndiceNormalizzato | IndiceSuolo;
+export type SoilIndex = "savi" | "msavi2";
+export type VegetationIndex = NormalizedIndex | SoilIndex;
 
 /** Bande Sentinel-2 richieste dagli indici normalizzati (riflettanze, stessa griglia). */
-export const BANDE_RICHIESTE: Record<
-  IndiceNormalizzato,
+export const REQUIRED_BANDS: Record<
+  NormalizedIndex,
   { a: string; b: string }
 > = {
   // (NIR − Red) / (NIR + Red)
@@ -24,21 +24,21 @@ export const BANDE_RICHIESTE: Record<
 };
 
 /** Bande NIR/Red usate dagli indici corretti per il suolo. */
-export const BANDE_SUOLO: Record<IndiceSuolo, { nir: string; red: string }> = {
+export const SOIL_BANDS: Record<SoilIndex, { nir: string; red: string }> = {
   savi: { nir: "B08", red: "B04" },
   msavi2: { nir: "B08", red: "B04" },
 };
 
-const INDICI_SUOLO: ReadonlySet<string> = new Set<IndiceSuolo>([
+const INDICI_SUOLO: ReadonlySet<string> = new Set<SoilIndex>([
   "savi",
   "msavi2",
 ]);
 
-export function isIndiceSuolo(indice: string): indice is IndiceSuolo {
-  return INDICI_SUOLO.has(indice);
+export function isSoilIndex(index: string): index is SoilIndex {
+  return INDICI_SUOLO.has(index);
 }
 
-export interface IndiceStats {
+export interface IndexStats {
   media: number;
   min: number;
   max: number;
@@ -51,7 +51,7 @@ export interface IndiceStats {
  * I pixel senza dato (NaN, o somma nulla) producono NaN, così la
  * simbologia e le statistiche zonali possono escluderli.
  */
-export function differenzaNormalizzata(
+export function normalizedDifference(
   a: Float32Array,
   b: Float32Array,
 ): Float32Array {
@@ -75,7 +75,7 @@ export function differenzaNormalizzata(
  * alto per copertura rada (arboree giovani, fasi iniziali), basso a piena
  * copertura. A L=0 degenera in NDVI.
  */
-export function calcolaSavi(
+export function computeSavi(
   nir: Float32Array,
   red: Float32Array,
   L = 0.5,
@@ -101,7 +101,7 @@ export function calcolaSavi(
  * pixel, eliminando la scelta manuale. Robusto su suolo nudo / bassa copertura.
  *   (2·NIR + 1 − √((2·NIR + 1)² − 8·(NIR − Red))) / 2
  */
-export function calcolaMsavi2(
+export function computeMsavi2(
   nir: Float32Array,
   red: Float32Array,
 ): Float32Array {
@@ -124,39 +124,39 @@ export function calcolaMsavi2(
   return out;
 }
 
-export function calcolaIndice(
-  indice: IndiceVegetazionale,
+export function computeIndex(
+  index: VegetationIndex,
   bande: Partial<Record<string, Float32Array>>,
   options: { L?: number } = {},
 ): Float32Array {
-  if (isIndiceSuolo(indice)) {
-    const { nir, red } = BANDE_SUOLO[indice];
+  if (isSoilIndex(index)) {
+    const { nir, red } = SOIL_BANDS[index];
     const bandNir = bande[nir];
     const bandRed = bande[red];
     if (!bandNir || !bandRed) {
-      throw new Error(`Indice ${indice}: servono le bande ${nir} e ${red}.`);
+      throw new Error(`Indice ${index}: servono le bande ${nir} e ${red}.`);
     }
-    return indice === "savi"
-      ? calcolaSavi(bandNir, bandRed, options.L)
-      : calcolaMsavi2(bandNir, bandRed);
+    return index === "savi"
+      ? computeSavi(bandNir, bandRed, options.L)
+      : computeMsavi2(bandNir, bandRed);
   }
-  const { a, b } = BANDE_RICHIESTE[indice];
+  const { a, b } = REQUIRED_BANDS[index];
   const bandA = bande[a];
   const bandB = bande[b];
   if (!bandA || !bandB) {
-    throw new Error(`Indice ${indice}: servono le bande ${a} e ${b}.`);
+    throw new Error(`Indice ${index}: servono le bande ${a} e ${b}.`);
   }
-  return differenzaNormalizzata(bandA, bandB);
+  return normalizedDifference(bandA, bandB);
 }
 
 /**
- * Soil-masking: azzera (→ NaN) i pixel sotto la soglia di indice, isolando la
+ * Soil-masking: azzera (→ NaN) i pixel sotto la soglia di index, isolando la
  * vegetazione dall'interfila/suolo nudo prima delle statistiche zonali. Per
  * vigneti e frutteti la soglia arriva dalla matrice fenologica della coltura
  * (vedi `fenologia.ts`): NDVI tipico del suolo nudo ~0.2, della chioma ben più
  * alto. Restituisce un nuovo array; l'originale non è toccato.
  */
-export function applicaSoilMask(
+export function applySoilMask(
   values: Float32Array,
   sogliaMin: number,
 ): Float32Array {
@@ -169,7 +169,7 @@ export function applicaSoilMask(
 }
 
 /** Frazione di pixel validi (copertura vegetale stimata) dopo il masking. */
-export function frazioneCopertura(masked: Float32Array): number {
+export function coverFraction(masked: Float32Array): number {
   if (masked.length === 0) return 0;
   let validi = 0;
   for (const v of masked) if (!Number.isNaN(v)) validi++;
@@ -177,7 +177,7 @@ export function frazioneCopertura(masked: Float32Array): number {
 }
 
 /** Statistiche per le schede NDVI (media/min/max/dev.std sui pixel validi). */
-export function statisticheIndice(values: Float32Array): IndiceStats {
+export function indexStatistics(values: Float32Array): IndexStats {
   let n = 0;
   let sum = 0;
   let sumSq = 0;
@@ -237,11 +237,11 @@ export const NDWI_RAMP: [number, string][] = [
 ];
 
 /**
- * Rampa colore consigliata per ciascun indice, base dell'overlay raster sulla
+ * Rampa colore consigliata per ciascun index, base dell'overlay raster sulla
  * mappa. NDVI/SAVI/MSAVI2/NDRE condividono la rampa di vigore vegetale; NDWI usa
  * la rampa idrica. Editabile come gli altri default agronomici.
  */
-export const RAMPA_INDICE: Record<IndiceVegetazionale, [number, string][]> = {
+export const INDEX_RAMP: Record<VegetationIndex, [number, string][]> = {
   ndvi: NDVI_RAMP,
   ndre: NDVI_RAMP,
   savi: NDVI_RAMP,
@@ -249,6 +249,6 @@ export const RAMPA_INDICE: Record<IndiceVegetazionale, [number, string][]> = {
   ndwi: NDWI_RAMP,
 };
 
-export function rampaPerIndice(indice: IndiceVegetazionale): [number, string][] {
-  return RAMPA_INDICE[indice] ?? NDVI_RAMP;
+export function rampForIndex(index: VegetationIndex): [number, string][] {
+  return INDEX_RAMP[index] ?? NDVI_RAMP;
 }

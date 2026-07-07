@@ -20,7 +20,7 @@ export const CROP_MODULES: CropModule[] = [
 
 const PER_CATEGORIA = new Map<string, CropModule>(
   CROP_MODULES.flatMap((modulo) =>
-    modulo.categorie.map((categoria) => [categoria, modulo] as const),
+    modulo.categories.map((categoria) => [categoria, modulo] as const),
   ),
 );
 

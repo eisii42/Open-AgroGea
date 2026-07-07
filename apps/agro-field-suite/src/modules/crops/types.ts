@@ -1,7 +1,7 @@
 import type {
-  AlertFitopatologico,
-  CropType as SpecieFenologica,
-  FaseFenologica,
+  PhytopathologyAlert,
+  CropType as PhenologicalSpecies,
+  PhenologicalPhase,
 } from "@agrogea/tools";
 
 /**
@@ -12,7 +12,7 @@ import type {
  * agrometeo) — la logica di calcolo NON viene duplicata né spostata: i pacchetti
  * restano isolati e testati. Il modulo dichiara solo cosa è specifico della
  * coltura: i suoi DSS patologici, la specie fenologica di riferimento (da cui
- * derivano Kc per fase, soglie GDD e soil-mask) e i widget UI di dettaglio.
+ * derivano Kc per phase, soglie GDD e soil-mask) e i widget UI di dettaglio.
  */
 
 /** Categoria coltura a livello di appezzamento (campo `coltura` del dominio). */
@@ -25,54 +25,54 @@ export type CropCategory =
 
 /**
  * Record meteo giornaliero unificato per i DSS (superset dei campi richiesti
- * dai singoli motori di `fitopatologia`). Ogni modulo adatta questa serie alla
+ * dai singoli motori di `fitopatologia`). Ogni modulo adatta questa series alla
  * forma attesa dall'engine che compone.
  */
 export interface DssWeatherDay {
-  /** ISO date del giorno. */
+  /** ISO date del day. */
   data: string;
   tMin: number;
   tMax: number;
   /** Umidità relativa media (%). */
-  rhMedia: number;
-  /** Pioggia del giorno (mm). */
-  pioggia: number;
+  rhMean: number;
+  /** Pioggia del day (mm). */
+  rain: number;
   /**
-   * Ore di bagnatura fogliare del giorno (0..24), per i modelli di infezione
+   * Ore di bagnatura fogliare del day (0..24), per i modelli di infezione
    * fungina che correlano bagnatura e temperatura. Opzionale: presente solo se
    * la fonte meteo la misura o la stima.
    */
-  bagnaturaOre?: number;
+  leafWetnessHours?: number;
 }
 
 /** Contesto fenologico/colturale per i DSS che ne dipendono. */
 export interface DssContext {
-  fase?: FaseFenologica;
+  phase?: PhenologicalPhase;
   /** Lunghezza germogli (cm), usata dalla regola tre-dieci della vite. */
-  lunghezzaGermogliCm?: number;
+  shootLengthCm?: number;
   /**
-   * Biofix dell'accumulo termico (ISO date): i gradi-giorno si sommano SOLO dai
+   * Biofix dell'accumulo termico (ISO date): i gradi-day si sommano SOLO dai
    * giorni ≥ questa data, non dall'inizio della finestra meteo disponibile.
    * Ancora l'accumulo a un riferimento agronomico (1° gennaio, semina, ripresa
    * vegetativa) e lo rende indipendente da quanta storia è stata scaricata.
    */
-  dataInizioAccumuloGdd?: string;
+  gddStartDate?: string;
 }
 
 /**
- * Descrittore di un DSS patologico/fenologico della coltura. `valuta` compone un
- * motore puro di `fitopatologia` su una serie meteo e ritorna l'alert (o null).
+ * Descrittore di un DSS patologico/fenologico della coltura. `evaluate` compone un
+ * motore puro di `fitopatologia` su una series meteo e ritorna l'alert (o null).
  */
 export interface DssModel {
   id: string;
-  nome: string;
+  name: string;
   /** Bersaglio: patogeno, insetto o evento fenologico. */
-  bersaglio: string;
-  descrizione: string;
-  valuta: (
-    serie: DssWeatherDay[],
-    contesto?: DssContext,
-  ) => AlertFitopatologico | null;
+  target: string;
+  description: string;
+  evaluate: (
+    series: DssWeatherDay[],
+    context?: DssContext,
+  ) => PhytopathologyAlert | null;
 }
 
 /** Modulo verticale di una coltura. */
@@ -82,20 +82,20 @@ export interface CropModule {
   /** Etichetta UI (es. "Vite"). */
   label: string;
   /** Categorie di appezzamento gestite da questo modulo. */
-  categorie: CropCategory[];
+  categories: CropCategory[];
   /**
    * Specie fenologica di riferimento per Kc/soil-mask/GDD (chiave delle matrici
    * di `fenologia`). Es. la viticoltura usa la specie "vite".
    */
-  speciePrincipale: SpecieFenologica;
+  mainSpecies: PhenologicalSpecies;
   /** DSS patologici/fenologici disponibili per la coltura. */
   dss: DssModel[];
   /**
-   * true se la coltura ha modelli ad accumulo termico STAGIONALE (gradi-giorno
+   * true se la coltura ha modelli ad accumulo termico STAGIONALE (gradi-day
    * che maturano su mesi: spigatura cereali, generazioni d'insetto…). Abilita il
    * backfill dello storico meteo via Archive API, così l'accumulo parte dal
    * biofix e non dai pochi giorni di previsione. Le colture con soli modelli
    * giornalieri (es. vite: peronospora/oidio) la lasciano falsa.
    */
-  accumuloStagionale?: boolean;
+  seasonalAccumulation?: boolean;
 }

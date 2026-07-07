@@ -167,8 +167,8 @@ export function CropDataForm({
     return linked.length > 0 ? linked : varietyCatalog;
   }, [varietyCatalog, cropCode]);
 
-  // Quick-pick specie dal catalogo: auto-compila tipo (se mappato), nome comune,
-  // nome scientifico e codice ministeriale.
+  // Quick-pick specie dal catalogo: auto-compila tipo (se mappato), name comune,
+  // name scientifico e codice ministeriale.
   function selezionaSpecieCatalogo(code: string) {
     const voce = cropCatalog.find((v) => v.code === code);
     if (!voce) {
@@ -183,7 +183,7 @@ export function CropDataForm({
     setCropCode(voce.code);
   }
 
-  // Quick-pick varietà dal catalogo: auto-compila nome varietà, codice e clone.
+  // Quick-pick varietà dal catalogo: auto-compila name varietà, codice e clone.
   function selezionaVarietaCatalogo(code: string) {
     setVarietyCode(code);
     const voce = varietyOptions.find((v) => v.code === code);

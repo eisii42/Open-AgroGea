@@ -15,14 +15,14 @@ export type TipoLavorazione =
   | "fertilizzazione"
   | "trattamento"
   | "semina"
-  | "irrigazione";
+  | "irrigation";
 
 export const ETICHETTE_LAVORAZIONE: Record<TipoLavorazione, string> = {
   concimazione: "Concimazione",
   fertilizzazione: "Fertilizzazione",
   trattamento: "Trattamento",
   semina: "Semina",
-  irrigazione: "Irrigazione",
+  irrigation: "Irrigazione",
 };
 
 /** Unità di misura di default del rateo per ciascuna lavorazione. */
@@ -31,7 +31,7 @@ export const UNITA_LAVORAZIONE: Record<TipoLavorazione, string> = {
   fertilizzazione: "kg/ha",
   trattamento: "L/ha",
   semina: "semi/ha",
-  irrigazione: "mm",
+  irrigation: "mm",
 };
 
 export interface ZonaVra {

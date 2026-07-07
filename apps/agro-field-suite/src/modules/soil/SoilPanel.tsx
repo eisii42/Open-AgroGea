@@ -1,6 +1,6 @@
 import { cropForPlot, useAgroStore } from "@agrogea/core";
 import {
-  type IndiceVegetazionale,
+  type VegetationIndex,
   ndviColor,
 } from "@agrogea/tools";
 import { FieldSheet } from "@agrogea/ui";
@@ -42,13 +42,13 @@ import {
  *   * multi-selezione degli appezzamenti su cui calcolare;
  *   * filtro cloud cover (slider %);
  *   * strategia temporale: ultima immagine, ultimi 15/30 gg o intervallo
- *     personalizzato (con grafico di trend dell'indice nel tempo).
- * L'overlay raster dell'indice primario è renderizzato sulla mappa dal hook.
+ *     personalizzato (con grafico di trend dell'index nel tempo).
+ * L'overlay raster dell'index primario è renderizzato sulla mappa dal hook.
  */
 
 function getIndici(
   t: TFunction,
-): { id: IndiceVegetazionale; label: string; descr: string }[] {
+): { id: VegetationIndex; label: string; descr: string }[] {
   return [
     { id: "ndvi", label: "NDVI", descr: t("suoloPanel.indices.ndvi.descr") },
     { id: "ndre", label: "NDRE", descr: t("suoloPanel.indices.ndre.descr") },
@@ -117,17 +117,17 @@ function isoDate(offsetGiorni = 0): string {
 }
 
 /**
- * Dati per il line chart. Con un solo appezzamento: una linea per indice. Con
- * più appezzamenti: una linea per appezzamento sull'indice primario.
+ * Dati per il line chart. Con un solo appezzamento: una linea per index. Con
+ * più appezzamenti: una linea per appezzamento sull'index primario.
  */
 function buildChartData(
   risultati: RisultatoAppezzamento[],
-  indici: IndiceVegetazionale[],
-  indicePrimario: IndiceVegetazionale,
-): { rows: Record<string, number | string>[]; serie: string[] } {
+  indici: VegetationIndex[],
+  indicePrimario: VegetationIndex,
+): { rows: Record<string, number | string>[]; series: string[] } {
   if (risultati.length === 1) {
     const r = risultati[0];
-    const rows = r.serie.map((p) => {
+    const rows = r.series.map((p) => {
       const row: Record<string, number | string> = { data: shortDate(p.datetime) };
       for (const ind of indici) {
         const v = p.medie[ind];
@@ -135,21 +135,21 @@ function buildChartData(
       }
       return row;
     });
-    return { rows, serie: indici };
+    return { rows, series: indici };
   }
 
-  // Multi-appezzamento: unione delle date, indice primario per ciascuno.
+  // Multi-appezzamento: unione delle date, index primario per ciascuno.
   const byDate = new Map<string, Record<string, number | string>>();
   for (const r of risultati) {
-    for (const p of r.serie) {
+    for (const p of r.series) {
       const key = shortDate(p.datetime);
       const row = byDate.get(key) ?? { data: key };
       const v = p.medie[indicePrimario];
-      if (v != null && !Number.isNaN(v)) row[r.nome] = Math.round(v * 1000) / 1000;
+      if (v != null && !Number.isNaN(v)) row[r.name] = Math.round(v * 1000) / 1000;
       byDate.set(key, row);
     }
   }
-  return { rows: [...byDate.values()], serie: risultati.map((r) => r.nome) };
+  return { rows: [...byDate.values()], series: risultati.map((r) => r.name) };
 }
 
 export function SoilPanel({ onClose }: { onClose: () => void }) {
@@ -171,11 +171,11 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
   );
   const correlazione = useMemo(() => correlazionePearson(scatter), [scatter]);
 
-  const [indiciSel, setIndiciSel] = useState<Set<IndiceVegetazionale>>(
+  const [indiciSel, setIndiciSel] = useState<Set<VegetationIndex>>(
     new Set(["ndvi"]),
   );
   const [indicePrimario, setIndicePrimario] =
-    useState<IndiceVegetazionale>("ndvi");
+    useState<VegetationIndex>("ndvi");
   const [apzSel, setApzSel] = useState<Set<string>>(
     new Set(selezionatoId ? [selezionatoId] : []),
   );
@@ -184,7 +184,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
   const [inizioCustom, setInizioCustom] = useState(() => isoDate(30));
   const [fineCustom, setFineCustom] = useState(() => isoDate(0));
 
-  const inCorso = stato.fase === "lavorazione";
+  const inCorso = stato.phase === "lavorazione";
 
   // Durata dell'intervallo personalizzato (giorni); usata per il vincolo 60 gg.
   const giorniRange = useMemo(() => {
@@ -196,12 +196,12 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
     strategiaId === "custom" &&
     (giorniRange < 0 || giorniRange > MAX_GIORNI_PERSONALIZZATO);
 
-  const toggleIndice = (id: IndiceVegetazionale) => {
+  const toggleIndice = (id: VegetationIndex) => {
     setIndiciSel((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
-      // Garantisce un indice primario sempre fra quelli selezionati.
+      // Garantisce un index primario sempre fra quelli selezionati.
       if (!next.has(indicePrimario) && next.size > 0) {
         setIndicePrimario([...next][0]);
       }
@@ -245,7 +245,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
   };
 
   const chart =
-    stato.fase === "completato"
+    stato.phase === "completato"
       ? buildChartData(stato.risultati, stato.indici, stato.indicePrimario)
       : null;
   const mostraGrafico = chart != null && chart.rows.length > 1;
@@ -451,26 +451,26 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
             })}
           </p>
         )}
-        {stato.fase === "errore" && (
+        {stato.phase === "errore" && (
           <div className="rounded-[var(--r-2)] bg-[var(--danger-l)] p-2 text-sm text-[var(--danger)]">
-            {stato.messaggio}
+            {stato.message}
           </div>
         )}
 
-        {/* Risultati: medie più recenti per appezzamento + indice */}
-        {stato.fase === "completato" && (
+        {/* Risultati: medie più recenti per appezzamento + index */}
+        {stato.phase === "completato" && (
           <section className="flex flex-col gap-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
               {t("suoloPanel.results.title")}
             </p>
             {stato.risultati.map((r) => {
-              const ultimo = r.serie.at(-1);
+              const ultimo = r.series.at(-1);
               return (
                 <div
                   key={r.appezzamentoId}
                   className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2"
                 >
-                  <p className="text-sm font-semibold">{r.nome}</p>
+                  <p className="text-sm font-semibold">{r.name}</p>
                   {!ultimo ? (
                     <p className="text-xs text-[var(--ink-3)]">
                       {t("suoloPanel.results.noScene")}
@@ -514,7 +514,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
               );
             })}
 
-            {/* Grafico di trend (solo se c'è una serie con più date) */}
+            {/* Grafico di trend (solo se c'è una series con più date) */}
             {mostraGrafico && chart && (
               <div className="mt-1">
                 <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
@@ -544,7 +544,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
                         }}
                       />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      {chart.serie.map((key, i) => (
+                      {chart.series.map((key, i) => (
                         <Line
                           key={key}
                           type="monotone"

@@ -8,8 +8,8 @@ export { dssOrticoltura } from "./dss";
 export const vegetablesModule: CropModule = {
   id: "orticoltura",
   label: "Orticoltura",
-  categorie: ["orticoltura"],
-  speciePrincipale: "pomodoro",
+  categories: ["orticoltura"],
+  mainSpecies: "pomodoro",
   dss: dssOrticoltura,
-  accumuloStagionale: true,
+  seasonalAccumulation: true,
 };

@@ -8,8 +8,8 @@ export { dssOlivo } from "./dss";
 export const oliveModule: CropModule = {
   id: "olivo",
   label: "Olivo",
-  categorie: ["olivicoltura"],
-  speciePrincipale: "olivo",
+  categories: ["olivicoltura"],
+  mainSpecies: "olivo",
   dss: dssOlivo,
-  accumuloStagionale: true,
+  seasonalAccumulation: true,
 };

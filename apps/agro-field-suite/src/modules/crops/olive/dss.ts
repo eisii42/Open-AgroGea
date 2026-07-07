@@ -1,6 +1,6 @@
 import {
-  type AlertFitopatologico,
-  rischioOcchioPavone,
+  type PhytopathologyAlert,
+  peacockEyeRisk,
 } from "@agrogea/tools";
 import type { DssModel } from "../types";
 import { creaDssAccumuloTermico } from "../shared/dss-common";
@@ -13,31 +13,31 @@ import { creaDssAccumuloTermico } from "../shared/dss-common";
  */
 const moscaOlearia: DssModel = creaDssAccumuloTermico("olivo", {
   id: "mosca-olearia",
-  nome: "Mosca olearia (accumulo termico)",
-  bersaglio: "Bactrocera oleae",
-  descrizione:
-    "Gradi-giorno sopra la soglia di sviluppo: al completamento della generazione, intensificare il monitoraggio trappole.",
-  sogliaObiettivo: 390,
+  name: "Mosca olearia (accumulo termico)",
+  target: "Bactrocera oleae",
+  description:
+    "Gradi-day sopra la soglia di sviluppo: al completamento della generazione, intensificare il monitoraggio trappole.",
+  targetThreshold: 390,
   rischioAlRaggiungimento: "medio",
 });
 
 /**
- * Occhio di pavone (Spilocaea oleagina): modello puro a bagnatura+temperatura di
- * `fitopatologia`. Qui si adatta solo la serie meteo unificata (ore di bagnatura
+ * Occhio di pavone (Spilocaea oleagina): model puro a bagnatura+temperatura di
+ * `fitopatologia`. Qui si adatta solo la series meteo unificata (ore di bagnatura
  * da `leaf_wetness`) alla forma attesa dall'engine.
  */
 const occhioPavone: DssModel = {
   id: "occhio-pavone",
-  nome: "Occhio di pavone",
-  bersaglio: "Spilocaea oleagina",
-  descrizione:
+  name: "Occhio di pavone",
+  target: "Spilocaea oleagina",
+  description:
     "Bagnatura fogliare prolungata (≥10 h) con temperatura mite (~8-26 °C): condizioni d'infezione primaverili/autunnali.",
-  valuta: (serie): AlertFitopatologico | null =>
-    rischioOcchioPavone(
-      serie.map((g) => ({
+  evaluate: (series): PhytopathologyAlert | null =>
+    peacockEyeRisk(
+      series.map((g) => ({
         tMin: g.tMin,
         tMax: g.tMax,
-        bagnaturaOre: g.bagnaturaOre ?? 0,
+        leafWetnessHours: g.leafWetnessHours ?? 0,
       })),
     ),
 };

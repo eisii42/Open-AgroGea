@@ -14,7 +14,7 @@ import {
 } from "../modules/dss/dss-overlay";
 
 /**
- * Proietta l'overlay coropletico del rischio DSS nel Layer Store NATIVO di
+ * Proietta l'overlay coropletico del risk DSS nel Layer Store NATIVO di
  * GeoLibre (Modulo 3). Riusa il meccanismo data-driven già provato dalla VRA
  * (`vectorStyleMode: "categorized"`): gli appezzamenti si colorano verde/giallo/
  * rosso in base alla proprietà `livello` sintetizzata. Flusso unidirezionale,
@@ -25,7 +25,7 @@ import {
 
 export const DSS_OVERLAY_LAYER_ID = "agrogea-dss-overlay";
 
-/** Stop categorizzati verde/giallo/rosso sui tre livelli di rischio DSS. */
+/** Stop categorizzati verde/giallo/rosso sui tre livelli di risk DSS. */
 const STOPS_DSS: VectorStyleStop[] = [
   { value: "ottimale", color: "#1a9850", label: "Ottimale" },
   { value: "allerta", color: "#fee08b", label: "Allerta" },

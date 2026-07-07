@@ -1,20 +1,20 @@
 /// <reference lib="webworker" />
 import {
-  applicaTokenSas,
-  calcolaIndice,
-  clipRasterAlPoligono,
-  finestraToCoordinates,
-  indiceToRgba,
-  type IndiceVegetazionale,
+  applySasToken,
+  computeIndex,
+  clipRasterToPolygon,
+  windowToCoordinates,
+  indexToRgba,
+  type VegetationIndex,
   lonLatToUtm,
   type OverlayCoordinates,
   type RasterWindow,
-  rampaPerIndice,
-  type ScenaIndici,
+  rampForIndex,
+  type IndicesScene,
   SENTINEL2_COLLECTION,
-  statisticheIndice,
-  type TokenSas,
-  tokenPlanetaryComputer,
+  indexStatistics,
+  type SasToken,
+  planetaryComputerToken,
 } from "@agrogea/tools";
 import { fromUrl, type GeoTIFFImage } from "geotiff";
 import type { FeatureCollection, MultiPolygon, Polygon } from "geojson";
@@ -22,10 +22,10 @@ import { rasterToGridCells } from "../modules/vra/raster-cells";
 
 /**
  * Web Worker del modulo Suolo (refactor pipeline indici STAC). Fa il lavoro
- * pesante fuori dal main thread: per ogni scena della serie temporale scarica
+ * pesante fuori dal main thread: per ogni scena della series temporale scarica
  * SOLO le bande necessarie (finestra COG via HTTP-Range), le riallinea su una
  * griglia comune, calcola gli indici scelti, ritaglia sul poligono e ne fa la
- * media. Per la scena più recente produce anche il buffer RGBA dell'indice
+ * media. Per la scena più recente produce anche il buffer RGBA dell'index
  * primario (overlay raster sulla mappa) e i quattro angoli geografici.
  *
  * Le bande Sentinel-2 hanno risoluzioni diverse (B05 a 20 m, B03/B04/B08 a
@@ -36,36 +36,36 @@ import { rasterToGridCells } from "../modules/vra/raster-cells";
 
 export interface SuoloJob {
   tipo: "suolo";
-  /** Serie di scene, dalla più recente alla più vecchia (vedi cercaSerieScene). */
-  scene: ScenaIndici[];
-  indici: IndiceVegetazionale[];
+  /** Serie di scene, dalla più recente alla più vecchia (vedi searchSceneSeries). */
+  scene: IndicesScene[];
+  indici: VegetationIndex[];
   /** Indice da renderizzare come overlay raster (sulla scena più recente). */
-  indicePrimario: IndiceVegetazionale;
+  indicePrimario: VegetationIndex;
   geometria: Polygon | MultiPolygon;
   bbox: [number, number, number, number];
   /** Fattore L per SAVI (default lato libreria). */
   L?: number;
   /**
    * Quando presente, oltre all'overlay il worker vettorizza il raster
-   * dell'indice primario (scena più recente) in celle quadrate di `step` pixel,
+   * dell'index primario (scena più recente) in celle quadrate di `step` pixel,
    * input della zonazione VRA. Assente per la sola analisi indici.
    */
   vra?: { step: number };
 }
 
-/** Cella della griglia VRA: poligono con valore medio dell'indice primario. */
+/** Cella della griglia VRA: poligono con valore medio dell'index primario. */
 export type VraCells = FeatureCollection<Polygon, { valore: number }>;
 
 export interface PuntoSerie {
   datetime: string;
   cloudCover: number | null;
-  /** Media per indice (chiave = indice), NaN se nessun pixel valido. */
-  medie: Partial<Record<IndiceVegetazionale, number>>;
+  /** Media per index (chiave = index), NaN se nessun pixel valido. */
+  medie: Partial<Record<VegetationIndex, number>>;
   pixelValidi: number;
 }
 
 export interface OverlayRaster {
-  indice: IndiceVegetazionale;
+  index: VegetationIndex;
   datetime: string;
   /** RGBA row-major (width·height·4); i pixel fuori dal poligono sono trasparenti. */
   rgba: Uint8ClampedArray;
@@ -78,18 +78,18 @@ export interface OverlayRaster {
 export type SuoloProgress =
   | {
       tipo: "progress";
-      fase: "download" | "calcolo";
+      phase: "download" | "calcolo";
       scenaCorrente: number;
       sceneTotali: number;
     }
   | {
       tipo: "done";
-      serie: PuntoSerie[];
+      series: PuntoSerie[];
       overlay: OverlayRaster | null;
-      /** Celle VRA dell'indice primario, solo se `job.vra` è impostato. */
+      /** Celle VRA dell'index primario, solo se `job.vra` è impostato. */
       vraCells: VraCells | null;
     }
-  | { tipo: "error"; messaggio: string };
+  | { tipo: "error"; message: string };
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
 
@@ -99,14 +99,14 @@ const ctx = self as unknown as DedicatedWorkerGlobalScope;
  * firma (causa dei 429). `tokenInFlight` deduplica le richieste concorrenti
  * (le bande di una scena sono lette in parallelo).
  */
-let tokenCache: TokenSas | null = null;
+let tokenCache: SasToken | null = null;
 let tokenInFlight: Promise<string> | null = null;
 
 async function tokenSentinel(): Promise<string> {
   if (tokenCache && tokenCache.scadenzaMs > Date.now() + 60_000) {
     return tokenCache.token;
   }
-  tokenInFlight ??= tokenPlanetaryComputer(SENTINEL2_COLLECTION)
+  tokenInFlight ??= planetaryComputerToken(SENTINEL2_COLLECTION)
     .then((t) => {
       tokenCache = t;
       tokenInFlight = null;
@@ -150,7 +150,7 @@ async function leggiBanda(
   // Gli asset Planetary Computer vanno firmati (SAS token), altrimenti il blob
   // Azure risponde 409 PublicAccessNotPermitted. Si usa il token di collezione
   // cachato (una richiesta sola), evitando i 429 da firma per-href.
-  const signed = applicaTokenSas(href, await tokenSentinel());
+  const signed = applySasToken(href, await tokenSentinel());
   const tiff = await fromUrl(signed);
   const image = await tiff.getImage();
   const epsg = epsgFromImage(image);
@@ -246,7 +246,7 @@ function scegliRiferimento(bande: BandaLetta[]): RasterWindow {
 }
 
 async function elaboraScena(
-  scena: ScenaIndici,
+  scena: IndicesScene,
   job: SuoloJob,
   conOverlay: boolean,
 ): Promise<{
@@ -256,37 +256,37 @@ async function elaboraScena(
 }> {
   const nomiBande = Object.keys(scena.bandHrefs);
   const lette = await Promise.all(
-    nomiBande.map(async (nome) => ({
-      nome,
-      banda: await leggiBanda(scena.bandHrefs[nome], job.bbox),
+    nomiBande.map(async (name) => ({
+      name,
+      banda: await leggiBanda(scena.bandHrefs[name], job.bbox),
     })),
   );
   const ref = scegliRiferimento(lette.map((l) => l.banda));
   const bande: Record<string, Float32Array> = {};
-  for (const { nome, banda } of lette) {
-    bande[nome] = ricampionaSuRiferimento(banda, ref);
+  for (const { name, banda } of lette) {
+    bande[name] = ricampionaSuRiferimento(banda, ref);
   }
 
-  const medie: Partial<Record<IndiceVegetazionale, number>> = {};
+  const medie: Partial<Record<VegetationIndex, number>> = {};
   let pixelValidi = 0;
   let overlay: OverlayRaster | null = null;
   let vraCells: VraCells | null = null;
 
-  for (const indice of job.indici) {
-    const valori = calcolaIndice(indice, bande, { L: job.L });
-    const { masked } = clipRasterAlPoligono(valori, ref, job.geometria);
-    const stats = statisticheIndice(masked);
-    medie[indice] = stats.media;
+  for (const index of job.indici) {
+    const valori = computeIndex(index, bande, { L: job.L });
+    const { masked } = clipRasterToPolygon(valori, ref, job.geometria);
+    const stats = indexStatistics(masked);
+    medie[index] = stats.media;
     pixelValidi = Math.max(pixelValidi, stats.pixelValidi);
 
-    if (conOverlay && indice === job.indicePrimario) {
+    if (conOverlay && index === job.indicePrimario) {
       overlay = {
-        indice,
+        index,
         datetime: scena.datetime,
-        rgba: indiceToRgba(masked, rampaPerIndice(indice)),
+        rgba: indexToRgba(masked, rampForIndex(index)),
         width: ref.width,
         height: ref.height,
-        coordinates: finestraToCoordinates(ref),
+        coordinates: windowToCoordinates(ref),
       };
       // Vettorizzazione VRA solo se richiesta (modulo Mappe VRA, non analisi).
       if (job.vra) {
@@ -314,14 +314,14 @@ ctx.addEventListener("message", async (event: MessageEvent<SuoloJob>) => {
     if (job.scene.length === 0) {
       throw new Error("Nessuna scena disponibile per i filtri scelti.");
     }
-    const serie: PuntoSerie[] = [];
+    const series: PuntoSerie[] = [];
     let overlay: OverlayRaster | null = null;
     let vraCells: VraCells | null = null;
 
     for (let i = 0; i < job.scene.length; i++) {
       ctx.postMessage({
         tipo: "progress",
-        fase: "download",
+        phase: "download",
         scenaCorrente: i + 1,
         sceneTotali: job.scene.length,
       } satisfies SuoloProgress);
@@ -332,23 +332,23 @@ ctx.addEventListener("message", async (event: MessageEvent<SuoloJob>) => {
         job,
         i === 0,
       );
-      serie.push(punto);
+      series.push(punto);
       if (o) overlay = o;
       if (c) vraCells = c;
     }
 
     // Serie cronologica crescente per il grafico di trend.
-    serie.reverse();
+    series.reverse();
 
     const transfer = overlay ? [overlay.rgba.buffer] : [];
     ctx.postMessage(
-      { tipo: "done", serie, overlay, vraCells } satisfies SuoloProgress,
+      { tipo: "done", series, overlay, vraCells } satisfies SuoloProgress,
       transfer,
     );
   } catch (error) {
     ctx.postMessage({
       tipo: "error",
-      messaggio: error instanceof Error ? error.message : String(error),
+      message: error instanceof Error ? error.message : String(error),
     } satisfies SuoloProgress);
   }
 });

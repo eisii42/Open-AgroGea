@@ -1,7 +1,7 @@
 /**
  * Zonazione per mappe di prescrizione a rateo variabile (VRA).
  *
- * K-Means 1-D sui valori di un indice (es. NDVI storico medio) per raggruppare
+ * K-Means 1-D sui valori di un index (es. NDVI storico medio) per raggruppare
  * i pixel in classi di vigore omogenee. Implementazione deterministica:
  *   * inizializzazione dei centroidi per quantili (non casuale) → stesso input,
  *     stesso output, requisito per mappe riproducibili e auditabili;
@@ -9,15 +9,15 @@
  *
  * Output orientato all'uso agronomico: per ogni classe i confini, il centroid,
  * la numerosità e (opzionale) la dose prescritta. Le geometrie delle zone si
- * vettorializzano poi in DuckDB Spatial (fase B); qui si lavora sui soli valori.
+ * vettorializzano poi in DuckDB Spatial (phase B); qui si lavora sui soli valori.
  */
 
-export interface ClasseVigore {
+export interface VigorClass {
   /** Indice di classe, 0 = vigore minore. */
   classe: number;
-  /** Valore medio dell'indice nella classe (centroid). */
+  /** Valore medio dell'index nella classe (centroid). */
   centroid: number;
-  /** Estremi [min,max) dell'indice che ricadono nella classe. */
+  /** Estremi [min,max) dell'index che ricadono nella classe. */
   intervallo: [number, number];
   /** Numero di pixel assegnati. */
   pixel: number;
@@ -25,8 +25,8 @@ export interface ClasseVigore {
   frazione: number;
 }
 
-export interface RisultatoZonazione {
-  classi: ClasseVigore[];
+export interface ZoningResult {
+  classi: VigorClass[];
   /** Soglie che separano le classi (length = k − 1). */
   soglie: number[];
   /** Indice di classe per ogni pixel valido, allineato all'input filtrato. */
@@ -34,7 +34,7 @@ export interface RisultatoZonazione {
   iterazioni: number;
 }
 
-export type LogicaVRA = "conservativa" | "spinta";
+export type VraLogic = "conservativa" | "spinta";
 
 function quantile(sorted: number[], q: number): number {
   if (sorted.length === 0) return Number.NaN;
@@ -50,11 +50,11 @@ function quantile(sorted: number[], q: number): number {
  * scartati). `k` è il numero di classi (tipicamente 3/4/5). Lancia se i valori
  * finiti sono meno di `k`.
  */
-export function zonazioneKMeans(
+export function kmeansZoning(
   values: Float32Array | number[],
   k: number,
   options: { maxIter?: number; tolleranza?: number } = {},
-): RisultatoZonazione {
+): ZoningResult {
   if (k < 2) throw new Error("La zonazione richiede almeno 2 classi.");
   const maxIter = options.maxIter ?? 50;
   const tol = options.tolleranza ?? 1e-6;
@@ -116,7 +116,7 @@ export function zonazioneKMeans(
     if (finiti[p] > maxClasse[c]) maxClasse[c] = finiti[p];
   }
 
-  const classi: ClasseVigore[] = centroidi.map((centroid, i) => ({
+  const classi: VigorClass[] = centroidi.map((centroid, i) => ({
     classe: i,
     centroid,
     intervallo: [
@@ -145,10 +145,10 @@ export function zonazioneKMeans(
  * `intensita` (0..1) regola lo scostamento massimo dalla dose di riferimento.
  * Le classi sono ordinate per centroid crescente prima di mappare le dosi.
  */
-export function dosiPerClasse(
-  classi: ClasseVigore[],
+export function dosesPerClass(
+  classi: VigorClass[],
   doseRiferimento: number,
-  logica: LogicaVRA,
+  logica: VraLogic,
   intensita = 0.3,
 ): { classe: number; dose: number }[] {
   const ordinate = [...classi].sort((a, b) => a.centroid - b.centroid);

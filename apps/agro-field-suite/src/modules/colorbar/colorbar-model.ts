@@ -5,7 +5,7 @@
  * testabile sotto Node. Il rendering è in ./Colorbar, l'aggancio agli overlay
  * attivi nello store in FieldDashboard.
  */
-import type { RampaColore } from "@agrogea/tools";
+import type { ColorRamp } from "@agrogea/tools";
 
 export interface ColorbarTick {
   /** Posizione 0..1 lungo la barra (0 = base/min, 1 = cima/max). */
@@ -30,7 +30,7 @@ function arrotonda(value: number): number {
  * è [primo stop, ultimo stop]; il gradiente posiziona ogni colore in proporzione
  * al suo valore, e le tacche coincidono con gli stop della rampa.
  */
-export function buildColorbar(rampa: RampaColore): ColorbarModel {
+export function buildColorbar(rampa: ColorRamp): ColorbarModel {
   if (rampa.length === 0) {
     return { cssGradient: "transparent", ticks: [], min: 0, max: 0 };
   }

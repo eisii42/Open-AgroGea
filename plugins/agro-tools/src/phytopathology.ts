@@ -1,39 +1,39 @@
 /**
  * DSS fitopatologico (Modulo 3 — difesa integrata).
  *
- * Motori locali e puri su serie meteo (`letture_meteo`):
- *   * accumulo termico (gradi-giorno) per fenologia di colture e insetti;
+ * Motori locali e puri su series meteo (`letture_meteo`):
+ *   * accumulo termico (gradi-day) per fenologia di colture e insetti;
  *   * regola "tre-dieci" per l'infezione primaria di peronospora della vite;
- *   * rischio di oidio su finestre termiche.
+ *   * risk di oidio su finestre termiche.
  *
  * Output: alert tipizzati che la UI aggancia alla timeline dell'appezzamento.
  * I parametri (soglie termiche, target) sono default editabili, non costanti
  * regolatorie.
  */
 
-export type LivelloRischio = "nullo" | "basso" | "medio" | "alto";
+export type RiskLevel = "nullo" | "basso" | "medio" | "alto";
 
-export interface AlertFitopatologico {
-  modello: string;
-  rischio: LivelloRischio;
+export interface PhytopathologyAlert {
+  model: string;
+  risk: RiskLevel;
   /** Indice 1..5 per la gauge del DSS (Design.md §DSS). */
-  indice: number;
-  messaggio: string;
-  /** Giorno (indice nella serie) a cui si riferisce l'alert. */
-  giorno: number;
+  index: number;
+  message: string;
+  /** Giorno (index nella series) a cui si riferisce l'alert. */
+  day: number;
 }
 
 // ---------------------------------------------------------------------------
-// Gradi-giorno (Growing Degree Days)
+// Gradi-day (Growing Degree Days)
 // ---------------------------------------------------------------------------
 
 /**
- * Gradi-giorno di un giorno con il metodo media-soglia:
+ * Gradi-day di un day con il method media-soglia:
  *   GDD = clamp((Tmax+Tmin)/2, [tBase, tCutoff]) − tBase
  * Il cutoff superiore evita che temperature estreme gonfino l'accumulo (le
  * soglie tBase/tCutoff vengono dalla matrice della coltura/target).
  */
-export function gradiGiornoMediaSoglia(
+export function degreeDaysMeanThreshold(
   tMin: number,
   tMax: number,
   tBase: number,
@@ -45,11 +45,11 @@ export function gradiGiornoMediaSoglia(
 }
 
 /**
- * Gradi-giorno col metodo single-sine (Baskerville-Emin): integra la curva
- * termica sinusoidale del giorno, più accurato del media-soglia per gli
- * insetti vicino alla soglia base. Restituisce GDD del singolo giorno.
+ * Gradi-day col method single-sine (Baskerville-Emin): integra la curva
+ * termica sinusoidale del day, più accurato del media-soglia per gli
+ * insetti vicino alla soglia base. Restituisce GDD del singolo day.
  */
-export function gradiGiornoSingleSine(
+export function degreeDaysSingleSine(
   tMin: number,
   tMax: number,
   tBase: number,
@@ -66,81 +66,81 @@ export function gradiGiornoSingleSine(
   );
 }
 
-export interface PuntoTermico {
+export interface ThermalPoint {
   tMin: number;
   tMax: number;
 }
 
 /**
- * Accumulo cumulato di gradi-giorno su una serie; segnala il giorno in cui si
- * supera una soglia obiettivo (es. comparsa di un target). `metodo` sceglie la
+ * Accumulo cumulative di gradi-day su una series; segnala il day in cui si
+ * supera una soglia obiettivo (es. comparsa di un target). `method` sceglie la
  * formula giornaliera.
  */
-export function accumuloGradiGiorno(
-  serie: PuntoTermico[],
+export function degreeDayAccumulation(
+  series: ThermalPoint[],
   tBase: number,
   options: {
     tCutoff?: number;
-    sogliaObiettivo?: number;
-    metodo?: "media-soglia" | "single-sine";
+    targetThreshold?: number;
+    method?: "media-soglia" | "single-sine";
   } = {},
-): { cumulato: number[]; giornoSoglia: number | null } {
-  const metodo = options.metodo ?? "media-soglia";
-  const cumulato: number[] = [];
+): { cumulative: number[]; thresholdDay: number | null } {
+  const method = options.method ?? "media-soglia";
+  const cumulative: number[] = [];
   let acc = 0;
-  let giornoSoglia: number | null = null;
-  serie.forEach((p, i) => {
+  let thresholdDay: number | null = null;
+  series.forEach((p, i) => {
     const gdd =
-      metodo === "single-sine"
-        ? gradiGiornoSingleSine(p.tMin, p.tMax, tBase)
-        : gradiGiornoMediaSoglia(p.tMin, p.tMax, tBase, options.tCutoff);
+      method === "single-sine"
+        ? degreeDaysSingleSine(p.tMin, p.tMax, tBase)
+        : degreeDaysMeanThreshold(p.tMin, p.tMax, tBase, options.tCutoff);
     acc += gdd;
-    cumulato.push(acc);
+    cumulative.push(acc);
     if (
-      giornoSoglia === null &&
-      options.sogliaObiettivo !== undefined &&
-      acc >= options.sogliaObiettivo
+      thresholdDay === null &&
+      options.targetThreshold !== undefined &&
+      acc >= options.targetThreshold
     ) {
-      giornoSoglia = i;
+      thresholdDay = i;
     }
   });
-  return { cumulato, giornoSoglia };
+  return { cumulative, thresholdDay };
 }
 
 // ---------------------------------------------------------------------------
 // Peronospora della vite — regola "tre-dieci"
 // ---------------------------------------------------------------------------
 
-export interface GiornoPeronospora {
+export interface DownyMildewDay {
   /** Temperatura media giornaliera (°C). */
-  tMedia: number;
-  /** Pioggia del giorno (mm). */
-  pioggia: number;
+  tMean: number;
+  /** Pioggia del day (mm). */
+  rain: number;
   /** Lunghezza dei germogli (cm). */
-  lunghezzaGermogli: number;
+  shootLength: number;
 }
 
 /**
  * Regola "tre-dieci" (Baldacci/Goidanich) per l'infezione primaria di
- * Plasmopara viticola: rischio quando, in 24-48 h, si verificano insieme
+ * Plasmopara viticola: risk quando, in 24-48 h, si verificano insieme
  *   * germogli ≥ 10 cm,
  *   * temperatura media ≥ 10 °C,
- *   * pioggia ≥ 10 mm.
- * Ritorna l'alert nel primo giorno in cui le tre condizioni coesistono.
+ *   * rain ≥ 10 mm.
+ * Ritorna l'alert nel primo day in cui le tre condizioni coesistono.
  */
-export function regolaTreDieci(
-  serie: GiornoPeronospora[],
-): AlertFitopatologico | null {
-  for (let i = 0; i < serie.length; i++) {
-    const g = serie[i];
-    if (g.tMedia >= 10 && g.pioggia >= 10 && g.lunghezzaGermogli >= 10) {
+export function threeTenRule(
+  series: DownyMildewDay[],
+): PhytopathologyAlert | null {
+  for (let i = 0; i < series.length; i++) {
+    const g = series[i];
+    if (g.tMean >= 10 && g.rain >= 10 && g.shootLength >= 10) {
       return {
-        modello: "Peronospora (tre-dieci)",
-        rischio: "alto",
-        indice: 5,
-        messaggio:
-          "Condizioni per l'infezione primaria: germogli ≥10 cm, T media ≥10 °C, pioggia ≥10 mm. Valutare trattamento preventivo.",
-        giorno: i,
+        model: "Peronospora (tre-dieci)",
+        risk: "alto",
+        index: 5,
+        message:
+          "Condizioni per l'infezione primaria: germogli ≥10 cm, T media ≥10 °C, rain ≥10 mm. Valutare trattamento preventivo.",
+        day: i,
       };
     }
   }
@@ -151,29 +151,29 @@ export function regolaTreDieci(
 // Oidio — finestra termica favorevole
 // ---------------------------------------------------------------------------
 
-export interface GiornoOidio {
+export interface PowderyMildewDay {
   tMin: number;
   tMax: number;
   /** Umidità relativa media (%). */
-  rhMedia: number;
+  rhMean: number;
 }
 
 // ---------------------------------------------------------------------------
-// Normalizzazione del rischio (0.0 nullo → 1.0 critico)
+// Normalizzazione del risk (0.0 nullo → 1.0 critico)
 // ---------------------------------------------------------------------------
 
 /**
- * Porta l'indice 1..5 della gauge DSS sulla scala normalizzata richiesta dalla
+ * Porta l'index 1..5 della gauge DSS sulla scala normalizzata richiesta dalla
  * mappa colorata e dallo stato del modulo: 0.0 (nullo) → 1.0 (critico). Un
- * alert assente vale 0; l'indice 5 (es. infezione primaria conclamata) vale 1.
+ * alert assente vale 0; l'index 5 (es. infezione primaria conclamata) vale 1.
  */
-export function normalizzaIndiceRischio(indice: number): number {
-  return Math.max(0, Math.min(1, indice / 5));
+export function normalizeRiskIndex(index: number): number {
+  return Math.max(0, Math.min(1, index / 5));
 }
 
-/** Valore normalizzato 0..1 di un livello qualitativo (per le sintesi senza indice). */
-export function rischioLivelloA01(rischio: LivelloRischio): number {
-  switch (rischio) {
+/** Valore normalizzato 0..1 di un livello qualitativo (per le sintesi senza index). */
+export function riskLevelA01(risk: RiskLevel): number {
+  switch (risk) {
     case "alto":
       return 1;
     case "medio":
@@ -186,9 +186,9 @@ export function rischioLivelloA01(rischio: LivelloRischio): number {
 }
 
 /** Indice normalizzato 0..1 di un alert (0 se nullo/assente). */
-export function alertA01(alert: AlertFitopatologico | null): number {
+export function alertA01(alert: PhytopathologyAlert | null): number {
   if (!alert) return 0;
-  return normalizzaIndiceRischio(alert.indice);
+  return normalizeRiskIndex(alert.index);
 }
 
 /**
@@ -196,28 +196,28 @@ export function alertA01(alert: AlertFitopatologico | null): number {
  * umidità moderata, sfavorito da T>32 °C o piogge battenti. Modello a soglie
  * giornaliero, con escalation se i giorni favorevoli sono consecutivi.
  */
-export function rischioOidio(serie: GiornoOidio[]): AlertFitopatologico | null {
+export function powderyMildewRisk(series: PowderyMildewDay[]): PhytopathologyAlert | null {
   let consecutivi = 0;
-  let peggior: AlertFitopatologico | null = null;
-  for (let i = 0; i < serie.length; i++) {
-    const g = serie[i];
-    const tMedia = (g.tMin + g.tMax) / 2;
+  let peggior: PhytopathologyAlert | null = null;
+  for (let i = 0; i < series.length; i++) {
+    const g = series[i];
+    const tMean = (g.tMin + g.tMax) / 2;
     const favorevole =
-      tMedia >= 20 && tMedia <= 27 && g.tMax < 32 && g.rhMedia >= 40;
+      tMean >= 20 && tMean <= 27 && g.tMax < 32 && g.rhMean >= 40;
     consecutivi = favorevole ? consecutivi + 1 : 0;
 
     if (consecutivi >= 1) {
-      const rischio: LivelloRischio =
+      const risk: RiskLevel =
         consecutivi >= 3 ? "alto" : consecutivi >= 2 ? "medio" : "basso";
-      const indice = consecutivi >= 3 ? 4 : consecutivi >= 2 ? 3 : 2;
-      const alert: AlertFitopatologico = {
-        modello: "Oidio (finestra termica)",
-        rischio,
-        indice,
-        messaggio: `Condizioni favorevoli all'oidio da ${consecutivi} giorno/i (T media ${tMedia.toFixed(1)} °C). Monitorare e valutare difesa.`,
-        giorno: i,
+      const index = consecutivi >= 3 ? 4 : consecutivi >= 2 ? 3 : 2;
+      const alert: PhytopathologyAlert = {
+        model: "Oidio (finestra termica)",
+        risk,
+        index,
+        message: `Condizioni favorevoli all'oidio da ${consecutivi} day/i (T media ${tMean.toFixed(1)} °C). Monitorare e valutare difesa.`,
+        day: i,
       };
-      if (!peggior || alert.indice > peggior.indice) peggior = alert;
+      if (!peggior || alert.index > peggior.index) peggior = alert;
     }
   }
   return peggior;
@@ -227,11 +227,11 @@ export function rischioOidio(serie: GiornoOidio[]): AlertFitopatologico | null {
 // Occhio di pavone dell'olivo — Spilocaea oleagina (Fusicladium oleagineum)
 // ---------------------------------------------------------------------------
 
-export interface GiornoOcchioPavone {
+export interface PeacockEyeDay {
   tMin: number;
   tMax: number;
-  /** Ore di bagnatura fogliare del giorno (0..24). */
-  bagnaturaOre: number;
+  /** Ore di bagnatura fogliare del day (0..24). */
+  leafWetnessHours: number;
 }
 
 /** Ore di bagnatura minime per un evento d'infezione favorevole. */
@@ -247,36 +247,36 @@ const OCCHIO_T_MAX = 26;
  * temperatura mite (ottimo ~15-20 °C, tollerata ~8-26 °C); umidità alta e
  * temperature primaverili/autunnali sono il driver, non l'estate secca. Modello
  * a soglie giornaliero con escalation sui giorni d'infezione consecutivi
- * (pattern di {@link rischioOidio}). Ritorna l'alert peggiore della finestra.
+ * (pattern di {@link powderyMildewRisk}). Ritorna l'alert peggiore della finestra.
  */
-export function rischioOcchioPavone(
-  serie: GiornoOcchioPavone[],
-): AlertFitopatologico | null {
+export function peacockEyeRisk(
+  series: PeacockEyeDay[],
+): PhytopathologyAlert | null {
   let consecutivi = 0;
-  let peggior: AlertFitopatologico | null = null;
-  for (let i = 0; i < serie.length; i++) {
-    const g = serie[i];
-    const tMedia = (g.tMin + g.tMax) / 2;
-    const bagnaturaOk = g.bagnaturaOre >= BAGNATURA_SOGLIA_ORE;
-    const termicaOk = tMedia >= OCCHIO_T_MIN && tMedia <= OCCHIO_T_MAX;
+  let peggior: PhytopathologyAlert | null = null;
+  for (let i = 0; i < series.length; i++) {
+    const g = series[i];
+    const tMean = (g.tMin + g.tMax) / 2;
+    const bagnaturaOk = g.leafWetnessHours >= BAGNATURA_SOGLIA_ORE;
+    const termicaOk = tMean >= OCCHIO_T_MIN && tMean <= OCCHIO_T_MAX;
     const favorevole = bagnaturaOk && termicaOk;
     consecutivi = favorevole ? consecutivi + 1 : 0;
 
     if (favorevole) {
       // Bagnatura lunga in piena banda ottimale: evento severo anche singolo.
       const ottimale =
-        g.bagnaturaOre >= 18 && tMedia <= OCCHIO_T_OTTIMALE_MAX;
-      const indice = consecutivi >= 3 || ottimale ? 5 : consecutivi >= 2 ? 4 : 3;
-      const rischio: LivelloRischio =
-        indice >= 5 ? "alto" : indice >= 4 ? "medio" : "basso";
-      const alert: AlertFitopatologico = {
-        modello: "Occhio di pavone (bagnatura-temperatura)",
-        rischio,
-        indice,
-        messaggio: `Bagnatura fogliare ${g.bagnaturaOre.toFixed(0)} h con T media ${tMedia.toFixed(1)} °C${consecutivi > 1 ? ` da ${consecutivi} giorni` : ""}: condizioni d'infezione per Spilocaea oleagina. Valutare difesa rameica.`,
-        giorno: i,
+        g.leafWetnessHours >= 18 && tMean <= OCCHIO_T_OTTIMALE_MAX;
+      const index = consecutivi >= 3 || ottimale ? 5 : consecutivi >= 2 ? 4 : 3;
+      const risk: RiskLevel =
+        index >= 5 ? "alto" : index >= 4 ? "medio" : "basso";
+      const alert: PhytopathologyAlert = {
+        model: "Occhio di pavone (bagnatura-temperatura)",
+        risk,
+        index,
+        message: `Bagnatura fogliare ${g.leafWetnessHours.toFixed(0)} h con T media ${tMean.toFixed(1)} °C${consecutivi > 1 ? ` da ${consecutivi} giorni` : ""}: condizioni d'infezione per Spilocaea oleagina. Valutare difesa rameica.`,
+        day: i,
       };
-      if (!peggior || alert.indice > peggior.indice) peggior = alert;
+      if (!peggior || alert.index > peggior.index) peggior = alert;
     }
   }
   return peggior;

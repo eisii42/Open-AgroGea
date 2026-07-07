@@ -8,7 +8,7 @@ export { dssVite } from "./dss";
 export const grapevineModule: CropModule = {
   id: "vite",
   label: "Vite",
-  categorie: ["viticoltura"],
-  speciePrincipale: "vite",
+  categories: ["viticoltura"],
+  mainSpecies: "vite",
   dss: dssVite,
 };

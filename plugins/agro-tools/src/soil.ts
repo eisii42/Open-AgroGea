@@ -1,11 +1,11 @@
-import type { ParametriSuolo } from "./agrometeo";
+import type { SoilParameters } from "./agrometeo";
 
 /**
  * Pedotransfer del suolo — engine PURO (testabile sotto `node --test`).
  *
  * Traduce la TESSITURA (classi tessiturali o percentuali sabbia/limo/argilla) e
  * la sostanza organica nelle costanti idrauliche richieste dal bilancio idrico
- * FAO 56/66 ({@link ParametriSuolo}: capacità di campo θFC e punto di
+ * FAO 56/66 ({@link SoilParameters}: capacità di campo θFC e punto di
  * appassimento θPWP), tramite le equazioni di **Saxton & Rawls (2006)**.
  *
  * Nessuna dipendenza da DB/rete: la risoluzione spaziale (Tier 1 mappa custom,
@@ -14,7 +14,7 @@ import type { ParametriSuolo } from "./agrometeo";
  */
 
 /** Frazioni granulometriche del suolo (0..1, sommano a 1). */
-export interface FrazioniTessitura {
+export interface TextureFractions {
   /** Sabbia (sand). */
   sabbia: number;
   /** Limo (silt). */
@@ -43,7 +43,7 @@ function normalizza(text: string): string {
  * Centroidi USDA (sabbia/limo/argilla, frazioni 0..1) delle 12 classi
  * tessiturali. Valori di letteratura: punti medi del triangolo USDA.
  */
-const CENTROIDI: Record<string, FrazioniTessitura> = {
+const CENTROIDI: Record<string, TextureFractions> = {
   sand: { sabbia: 0.92, limo: 0.05, argilla: 0.03 },
   loamy_sand: { sabbia: 0.82, limo: 0.12, argilla: 0.06 },
   sandy_loam: { sabbia: 0.65, limo: 0.25, argilla: 0.1 },
@@ -121,7 +121,7 @@ const SINONIMI: Record<string, keyof typeof CENTROIDI> = {
  * granulometriche in base ai termini presenti (multilingue) e normalizza. Così
  * etichette composte o atipiche restituiscono comunque frazioni plausibili.
  */
-function frazioniDaKeyword(norm: string): FrazioniTessitura | null {
+function frazioniDaKeyword(norm: string): TextureFractions | null {
   const ha = (re: RegExp) => re.test(norm);
   const sabbia = ha(/sabb|sand|aren/) ? 1 : 0;
   const limo = ha(/limo|silt|limos/) ? 1 : 0;
@@ -142,11 +142,11 @@ function frazioniDaKeyword(norm: string): FrazioniTessitura | null {
 }
 
 /** Normalizza tre frazioni qualsiasi (anche in %) a somma 1, o null se nulle. */
-export function normalizzaFrazioni(
+export function normalizeFractions(
   sabbia: number,
   limo: number,
   argilla: number,
-): FrazioniTessitura | null {
+): TextureFractions | null {
   const s = Math.max(0, sabbia);
   const l = Math.max(0, limo);
   const a = Math.max(0, argilla);
@@ -160,9 +160,9 @@ export function normalizzaFrazioni(
  * (IT/EN/ES). Prova prima il match esatto sui sinonimi, poi l'euristica a
  * keyword. Restituisce null se la stringa non è riconducibile a una tessitura.
  */
-export function frazioniDaTessitura(
+export function fractionsFromTexture(
   texture: string | null | undefined,
-): FrazioniTessitura | null {
+): TextureFractions | null {
   if (!texture) return null;
   const norm = normalizza(texture);
   if (norm.length === 0) return null;
@@ -171,13 +171,13 @@ export function frazioniDaTessitura(
   return frazioniDaKeyword(norm);
 }
 
-export interface OpzioniSaxtonRawls {
+export interface SaxtonRawlsOptions {
   /** Sostanza organica (% in peso), default 2.5 (terreno agrario tipico). */
   sostanzaOrganicaPct?: number;
   /** Profondità della zona radicale (m), default 0.8. */
   profonditaRadiciM?: number;
-  /** Frazione di deplezione FAO p (0..1), default 0.5. */
-  frazioneDeplezione?: number;
+  /** Frazione di depletion FAO p (0..1), default 0.5. */
+  depletionFraction?: number;
 }
 
 const DEFAULT_OM = 2.5;
@@ -191,9 +191,9 @@ const DEFAULT_DEPLEZIONE = 0.5;
  * (Soil Sci. Soc. Am. J. 70:1569-1578).
  */
 export function saxtonRawls(
-  frazioni: FrazioniTessitura,
+  frazioni: TextureFractions,
   sostanzaOrganicaPct = DEFAULT_OM,
-): { capacitaCampo: number; puntoAppassimento: number } {
+): { fieldCapacity: number; wiltingPoint: number } {
   const S = clamp01(frazioni.sabbia);
   const C = clamp01(frazioni.argilla);
   const OM = Math.max(0, sostanzaOrganicaPct);
@@ -221,31 +221,31 @@ export function saxtonRawls(
   const fc = t33 + (1.283 * t33 * t33 - 0.374 * t33 - 0.015);
 
   // Vincoli fisici: 0 < PWP < FC < porosità (~0.55 max).
-  const puntoAppassimento = Math.max(0.01, Math.min(pwp, 0.4));
-  const capacitaCampo = Math.max(
-    puntoAppassimento + 0.02,
+  const wiltingPoint = Math.max(0.01, Math.min(pwp, 0.4));
+  const fieldCapacity = Math.max(
+    wiltingPoint + 0.02,
     Math.min(fc, 0.55),
   );
-  return { capacitaCampo, puntoAppassimento };
+  return { fieldCapacity, wiltingPoint };
 }
 
 /**
- * Compone {@link saxtonRawls} nei {@link ParametriSuolo} pronti per il bilancio
- * idrico FAO 66, applicando profondità radicale e frazione di deplezione (con i
+ * Compone {@link saxtonRawls} nei {@link SoilParameters} pronti per il bilancio
+ * idrico FAO 66, applicando profondità radicale e frazione di depletion (con i
  * default agronomici, sovrascrivibili).
  */
-export function parametriSuoloSaxtonRawls(
-  frazioni: FrazioniTessitura,
-  opzioni: OpzioniSaxtonRawls = {},
-): ParametriSuolo {
-  const { capacitaCampo, puntoAppassimento } = saxtonRawls(
+export function saxtonRawlsSoilParameters(
+  frazioni: TextureFractions,
+  opzioni: SaxtonRawlsOptions = {},
+): SoilParameters {
+  const { fieldCapacity, wiltingPoint } = saxtonRawls(
     frazioni,
     opzioni.sostanzaOrganicaPct ?? DEFAULT_OM,
   );
   return {
-    capacitaCampo,
-    puntoAppassimento,
-    profonditaRadici: opzioni.profonditaRadiciM ?? DEFAULT_PROFONDITA,
-    frazioneDeplezione: opzioni.frazioneDeplezione ?? DEFAULT_DEPLEZIONE,
+    fieldCapacity,
+    wiltingPoint,
+    rootDepth: opzioni.profonditaRadiciM ?? DEFAULT_PROFONDITA,
+    depletionFraction: opzioni.depletionFraction ?? DEFAULT_DEPLEZIONE,
   };
 }

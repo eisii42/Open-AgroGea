@@ -1,10 +1,10 @@
 /**
- * Costruzione dell'overlay raster d'indice da renderizzare sopra il poligono
+ * Costruzione dell'overlay raster d'index da renderizzare sopra il poligono
  * dell'appezzamento (refactor modulo Suolo).
  *
  * Parti pure e testabili: dalla finestra raster letta dal COG (in UTM) ai
  * quattro angoli geografici per la sorgente immagine MapLibre, e dalla matrice
- * di valori d'indice (NDVI/NDRE/…) al buffer RGBA colorato via rampa. La
+ * di valori d'index (NDVI/NDRE/…) al buffer RGBA colorato via rampa. La
  * codifica in PNG/data-URL resta al chiamante (main thread: usa un canvas), così
  * questo modulo gira identico in un Web Worker senza dipendere dal DOM.
  */
@@ -26,7 +26,7 @@ export type OverlayCoordinates = [
  * finestra è un rettangolo allineato agli assi in UTM; proiettandone i vertici
  * in WGS84 si ottiene un quadrilatero non rettangolare, che MapLibre gestisce.
  */
-export function finestraToCoordinates(win: RasterWindow): OverlayCoordinates {
+export function windowToCoordinates(win: RasterWindow): OverlayCoordinates {
   const east0 = win.originEasting;
   const east1 = win.originEasting + win.width * win.pixelWidth;
   const north0 = win.originNorthing; // bordo superiore (northing maggiore)
@@ -46,7 +46,7 @@ export function finestraToCoordinates(win: RasterWindow): OverlayCoordinates {
 }
 
 /** Una rampa colore: coppie [soglia, "#rrggbb"] in ordine crescente di soglia. */
-export type RampaColore = [number, string][];
+export type ColorRamp = [number, string][];
 
 interface Rgb {
   r: number;
@@ -68,11 +68,11 @@ export function hexToRgb(hex: string): Rgb {
 }
 
 /**
- * Colore di un valore d'indice secondo la rampa: l'ultima soglia raggiunta dal
+ * Colore di un valore d'index secondo la rampa: l'ultima soglia raggiunta dal
  * valore vince (sotto la prima soglia usa il primo colore). `NaN` → null
  * (pixel trasparente fuori dal poligono o nodata).
  */
-export function coloreDaRampa(value: number, rampa: RampaColore): Rgb | null {
+export function colorFromRamp(value: number, rampa: ColorRamp): Rgb | null {
   if (Number.isNaN(value)) return null;
   let hex = rampa[0]?.[1] ?? "#000000";
   for (const [soglia, colore] of rampa) {
@@ -82,19 +82,19 @@ export function coloreDaRampa(value: number, rampa: RampaColore): Rgb | null {
 }
 
 /**
- * Buffer RGBA (row-major, length = width·height·4) della matrice d'indice
+ * Buffer RGBA (row-major, length = width·height·4) della matrice d'index
  * colorata via rampa. I pixel `NaN` (fuori dal poligono / nodata) restano
  * completamente trasparenti, così l'overlay segue il perimetro dell'appezzamento.
  * `alpha` (0..255) regola l'opacità dei pixel validi.
  */
-export function indiceToRgba(
+export function indexToRgba(
   values: Float32Array,
-  rampa: RampaColore,
+  rampa: ColorRamp,
   alpha = 220,
 ): Uint8ClampedArray {
   const out = new Uint8ClampedArray(values.length * 4);
   for (let i = 0; i < values.length; i++) {
-    const rgb = coloreDaRampa(values[i], rampa);
+    const rgb = colorFromRamp(values[i], rampa);
     const o = i * 4;
     if (!rgb) {
       out[o + 3] = 0; // trasparente

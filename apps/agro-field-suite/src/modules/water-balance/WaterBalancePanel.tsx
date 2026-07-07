@@ -47,9 +47,9 @@ import { downloadArtifact } from "../../services/gis/geo-export";
 /**
  * Pannello "Acqua · Bilancio idrico" (Modulo 1, FAO 56/66), ora MULTI-APPEZZAMENTO
  * (come la pipeline indici). Esegue in locale il bilancio idrico sull'ultimo meteo
- * di PGlite per gli appezzamenti scelti e ne mostra, per ciascuno, la deplezione
- * radicale Dr giorno per giorno (con la soglia RAW), l'autonomia residua e lo
- * stato di stress. Compone gli engine puri via {@link useDssCalcolo}; la serie
+ * di PGlite per gli appezzamenti scelti e ne mostra, per ciascuno, la depletion
+ * radicale Dr day per day (con la soglia RAW), l'autonomia residua e lo
+ * stato di stress. Compone gli engine puri via {@link useDssCalcolo}; la series
  * giornaliera è persistita in `soil_water_indices` quando il campo ha una campagna
  * attiva.
  */
@@ -86,29 +86,29 @@ const ETICHETTA_FORMATO: Record<MoistureHistoryFormat, string> = {
   csv: "CSV",
 };
 
-/** Mappa la serie giornaliera del bilancio nello schema `soil_water_indices`. */
+/** Mappa la series giornaliera del bilancio nello schema `soil_water_indices`. */
 function serieAStoricoUmidita(
-  serie: {
+  series: {
     data: string;
     et0: number;
     etc: number;
-    pioggia: number;
-    irrigazione: number;
-    percolazione: number;
-    deplezione: number;
+    rain: number;
+    irrigation: number;
+    percolation: number;
+    depletion: number;
     raw: number;
     awc: number;
     inStress: boolean;
   }[],
 ): MoistureHistoryRow[] {
-  return serie.map((g) => ({
+  return series.map((g) => ({
     date: g.data,
     et0: g.et0,
     etc: g.etc,
-    rain_mm: g.pioggia,
-    irrigation_mm: g.irrigazione,
-    deep_percolation_mm: g.percolazione,
-    depletion_mm: g.deplezione,
+    rain_mm: g.rain,
+    irrigation_mm: g.irrigation,
+    deep_percolation_mm: g.percolation,
+    depletion_mm: g.depletion,
     raw_mm: g.raw,
     awc_mm: g.awc,
     water_stress: g.inStress,
@@ -173,8 +173,8 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
   const senzaModulo = [...sel].filter(
     (id) => !targets.some((t) => t.appezzamento.id === id),
   );
-  const inCorso = stato.fase === "calcolo";
-  const completato = stato.fase === "completato";
+  const inCorso = stato.phase === "calcolo";
+  const completato = stato.phase === "completato";
 
   const esporta = async (r: DssPlotResult, formato: MoistureHistoryFormat) => {
     const appezzamento = appezzamenti.find((a) => a.id === r.appezzamentoId);
@@ -200,7 +200,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
     }
   };
 
-  // Overlay coropletico del rischio sintetico (stress idrico + NDVI) per campo,
+  // Overlay coropletico del risk sintetico (stress idrico + NDVI) per campo,
   // aggregato su TUTTI gli appezzamenti calcolati.
   const overlayAppezzamenti = useMemo(
     () =>
@@ -228,7 +228,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
           rischioPatologico01: patologico,
           ndvi: appz?.last_ndvi_mean ?? null,
         },
-        summaryCalibration(r.modulo.speciePrincipale, "piena"),
+        summaryCalibration(r.modulo.mainSpecies, "piena"),
       );
       m.set(r.appezzamentoId, { rischio01: score });
     }
@@ -238,7 +238,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
   useDssOverlayLayer({
     appezzamenti: overlayAppezzamenti,
     sintesiPerCampo,
-    coltura: stato.risultati[0]?.modulo.speciePrincipale ?? "vite",
+    coltura: stato.risultati[0]?.modulo.mainSpecies ?? "vite",
     attivo: mostraOverlay && completato,
   });
 
@@ -331,9 +331,9 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
               </label>
             )}
 
-            {stato.fase === "errore" && (
+            {stato.phase === "errore" && (
               <div className="rounded-[var(--r-2)] bg-[var(--danger-l)] p-2 text-xs text-[var(--danger)]">
-                {stato.messaggio}
+                {stato.message}
               </div>
             )}
 
@@ -385,19 +385,19 @@ function WaterResultCard({
   onExport: (formato: MoistureHistoryFormat) => void;
 }) {
   const { t } = useTranslation();
-  const { nome, bilancio, suolo, bilancioSerie, messaggio } = risultato;
+  const { name, bilancio, suolo, bilancioSerie, message } = risultato;
   const etichetteSorgente = useMemo(() => getEtichetteSorgente(t), [t]);
 
-  // La serie copre ~430 giorni: su un grafico stretto un singolo giorno d'irrigazione
+  // La series copre ~430 giorni: su un grafico stretto un singolo day d'irrigation
   // diventa invisibile. Si mostra una FINESTRA RECENTE (ultimi ~75 giorni, inclusa
   // la previsione in coda) così gli apporti irrigui e l'andamento di Dr si leggono.
   const datiGrafico = useMemo(
     () =>
       bilancioSerie.slice(-75).map((g) => ({
         data: shortDate(g.data),
-        deplezione: Math.round(g.deplezione * 10) / 10,
-        irrigazione: Math.round(g.irrigazione * 10) / 10,
-        pioggia: Math.round(g.pioggia * 10) / 10,
+        depletion: Math.round(g.depletion * 10) / 10,
+        irrigation: Math.round(g.irrigation * 10) / 10,
+        rain: Math.round(g.rain * 10) / 10,
       })),
     [bilancioSerie],
   );
@@ -405,24 +405,24 @@ function WaterResultCard({
   // Totale irrigato nel periodo (mm): rende ESPLICITO che il bilancio conteggia
   // gli apporti irrigui, anche quando — a profilo umido — percolano senza ridurre Dr.
   const irrigazioneTotale = useMemo(
-    () => bilancioSerie.reduce((s, g) => s + (g.irrigazione ?? 0), 0),
+    () => bilancioSerie.reduce((s, g) => s + (g.irrigation ?? 0), 0),
     [bilancioSerie],
   );
 
   return (
     <section className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-3">
-      <p className="mb-2 text-sm font-semibold">{nome}</p>
+      <p className="mb-2 text-sm font-semibold">{name}</p>
 
       {!bilancio ? (
         <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] p-2 text-xs text-[var(--ink-3)]">
-          {messaggio ?? t("bilancioIdricoPanel.balanceNotComputable")}
+          {message ?? t("bilancioIdricoPanel.balanceNotComputable")}
         </p>
       ) : (
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
             <span className="text-[var(--ink-3)]">{t("bilancioIdricoPanel.depletionDr")}</span>
             <span className="agro-num text-right">
-              {bilancio.deplezione.toFixed(0)} / RAW {bilancio.raw.toFixed(0)} mm
+              {bilancio.depletion.toFixed(0)} / RAW {bilancio.raw.toFixed(0)} mm
             </span>
             <span className="text-[var(--ink-3)]">{t("bilancioIdricoPanel.availableWater")}</span>
             <span className="agro-num text-right">
@@ -434,7 +434,7 @@ function WaterResultCard({
             </span>
             <span className="text-[var(--ink-3)]">{t("bilancioIdricoPanel.autonomy")}</span>
             <span className="agro-num text-right">
-              {t("bilancioIdricoPanel.autonomyDays", { count: bilancio.giorniAutonomia })}
+              {t("bilancioIdricoPanel.autonomyDays", { count: bilancio.autonomyDays })}
             </span>
             <span className="text-[var(--ink-3)]">{t("bilancioIdricoPanel.waterStatus")}</span>
             <span
@@ -476,8 +476,8 @@ function WaterResultCard({
             </div>
           )}
 
-          {/* Deplezione Dr (area) + apporti irrigui e pioggia (barre): così il
-              grafico MOSTRA gli eventi d'irrigazione che alimentano il bilancio. */}
+          {/* Deplezione Dr (area) + apporti irrigui e rain (barre): così il
+              grafico MOSTRA gli eventi d'irrigation che alimentano il bilancio. */}
           {datiGrafico.length > 1 && (
             <div className="h-44 w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -513,14 +513,14 @@ function WaterResultCard({
                     }}
                   />
                   <Bar
-                    dataKey="pioggia"
+                    dataKey="rain"
                     name={t("bilancioIdricoPanel.chart.rain")}
                     fill="#93c5fd"
                     barSize={6}
                     isAnimationActive={false}
                   />
                   <Bar
-                    dataKey="irrigazione"
+                    dataKey="irrigation"
                     name={t("bilancioIdricoPanel.chart.irrigation")}
                     fill="#0ea5e9"
                     barSize={6}
@@ -528,7 +528,7 @@ function WaterResultCard({
                   />
                   <Area
                     type="monotone"
-                    dataKey="deplezione"
+                    dataKey="depletion"
                     name={t("bilancioIdricoPanel.chart.drShort")}
                     stroke="#1f6feb"
                     fill="#1f6feb"

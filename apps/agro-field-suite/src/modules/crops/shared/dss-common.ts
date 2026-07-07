@@ -1,10 +1,10 @@
 import {
-  accumuloGradiGiorno,
-  type AlertFitopatologico,
-  type CropType as SpecieFenologica,
-  getMatriceColtura,
-  type LivelloRischio,
-  type PuntoTermico,
+  degreeDayAccumulation,
+  type PhytopathologyAlert,
+  type CropType as PhenologicalSpecies,
+  getCropMatrix,
+  type RiskLevel,
+  type ThermalPoint,
 } from "@agrogea/tools";
 import type { DssModel, DssWeatherDay } from "../types";
 
@@ -13,89 +13,89 @@ import type { DssModel, DssWeatherDay } from "../types";
  * `DssModel` componendo i motori puri di `fitopatologia`, senza duplicarli.
  */
 
-/** Converte la serie DSS unificata nei punti termici attesi dall'accumulo GDD. */
-function puntiTermici(serie: DssWeatherDay[]): PuntoTermico[] {
-  return serie.map((g) => ({ tMin: g.tMin, tMax: g.tMax }));
+/** Converte la series DSS unificata nei punti termici attesi dall'accumulo GDD. */
+function puntiTermici(series: DssWeatherDay[]): ThermalPoint[] {
+  return series.map((g) => ({ tMin: g.tMin, tMax: g.tMax }));
 }
 
-/** Primo indice della serie con data ≥ biofix (0 se biofix assente/precedente). */
+/** Primo index della series con data ≥ biofix (0 se biofix assente/precedente). */
 function offsetBiofix(
-  serie: DssWeatherDay[],
+  series: DssWeatherDay[],
   dataInizio?: string,
 ): number {
   if (!dataInizio) return 0;
-  const giorno = dataInizio.slice(0, 10);
-  const i = serie.findIndex((g) => g.data.slice(0, 10) >= giorno);
-  return i < 0 ? serie.length : i;
+  const day = dataInizio.slice(0, 10);
+  const i = series.findIndex((g) => g.data.slice(0, 10) >= day);
+  return i < 0 ? series.length : i;
 }
 
 /**
- * DSS ad accumulo termico (gradi-giorno): usa le soglie termiche della specie
+ * DSS ad accumulo termico (gradi-day): usa le soglie termiche della specie
  * (`fenologia`) e traccia l'accumulo verso un obiettivo di GDD — comparsa di uno
  * stadio fenologico o di una generazione d'insetto. È la base condivisa dei
- * moduli senza un modello patologico dedicato; `sogliaObiettivo` e le soglie
+ * moduli senza un model patologico dedicato; `targetThreshold` e le soglie
  * sono default editabili, non costanti regolatorie.
  *
- * L'accumulo parte dal BIOFIX (`contesto.dataInizioAccumuloGdd`), non dal primo
- * giorno della finestra meteo: così il valore è agronomicamente ancorato (1°
+ * L'accumulo parte dal BIOFIX (`context.gddStartDate`), non dal primo
+ * day della finestra meteo: così il valore è agronomicamente ancorato (1°
  * gennaio, semina, ripresa vegetativa) e stabile rispetto a quanta storia è
  * stata scaricata. Ritorna SEMPRE un alert — quando sotto soglia, un alert di
  * "accumulo in corso" col progresso, così la UI mostra l'avanzamento e non solo
  * il momento del superamento.
  */
 export function creaDssAccumuloTermico(
-  specie: SpecieFenologica,
+  specie: PhenologicalSpecies,
   config: {
     id: string;
-    nome: string;
-    bersaglio: string;
-    descrizione: string;
-    sogliaObiettivo: number;
-    rischioAlRaggiungimento?: LivelloRischio;
+    name: string;
+    target: string;
+    description: string;
+    targetThreshold: number;
+    rischioAlRaggiungimento?: RiskLevel;
   },
 ): DssModel {
-  const { tBase, tCutoff } = getMatriceColtura(specie);
+  const { tBase, tCutoff } = getCropMatrix(specie);
   return {
     id: config.id,
-    nome: config.nome,
-    bersaglio: config.bersaglio,
-    descrizione: config.descrizione,
-    valuta: (serie, contesto): AlertFitopatologico | null => {
-      const offset = offsetBiofix(serie, contesto?.dataInizioAccumuloGdd);
-      const finestra = serie.slice(offset);
-      // Nessun giorno dopo il biofix: nulla da accumulare (es. biofix futuro).
+    name: config.name,
+    target: config.target,
+    description: config.description,
+    evaluate: (series, context): PhytopathologyAlert | null => {
+      const offset = offsetBiofix(series, context?.gddStartDate);
+      const finestra = series.slice(offset);
+      // Nessun day dopo il biofix: nulla da accumulare (es. biofix futuro).
       if (finestra.length === 0) return null;
 
-      const { cumulato, giornoSoglia } = accumuloGradiGiorno(
+      const { cumulative, thresholdDay } = degreeDayAccumulation(
         puntiTermici(finestra),
         tBase,
-        { tCutoff, sogliaObiettivo: config.sogliaObiettivo },
+        { tCutoff, targetThreshold: config.targetThreshold },
       );
-      const gddTotale = cumulato[cumulato.length - 1] ?? 0;
+      const gddTotale = cumulative[cumulative.length - 1] ?? 0;
 
-      if (giornoSoglia != null) {
-        // Soglia raggiunta: rischio configurato e giorno riportato all'indice
-        // assoluto della serie completa (per la timeline UI).
-        const rischio = config.rischioAlRaggiungimento ?? "medio";
-        const indice = rischio === "alto" ? 4 : rischio === "medio" ? 3 : 2;
-        const gdd = cumulato[giornoSoglia] ?? config.sogliaObiettivo;
+      if (thresholdDay != null) {
+        // Soglia raggiunta: risk configurato e day riportato all'index
+        // assoluto della series completa (per la timeline UI).
+        const risk = config.rischioAlRaggiungimento ?? "medio";
+        const index = risk === "alto" ? 4 : risk === "medio" ? 3 : 2;
+        const gdd = cumulative[thresholdDay] ?? config.targetThreshold;
         return {
-          modello: config.nome,
-          rischio,
-          indice,
-          messaggio: `Soglia di ${config.sogliaObiettivo} °Cd (base ${tBase} °C) raggiunta: ${gdd.toFixed(0)} °Cd accumulati. ${config.bersaglio}.`,
-          giorno: offset + giornoSoglia,
+          model: config.name,
+          risk,
+          index,
+          message: `Soglia di ${config.targetThreshold} °Cd (base ${tBase} °C) raggiunta: ${gdd.toFixed(0)} °Cd accumulati. ${config.target}.`,
+          day: offset + thresholdDay,
         };
       }
 
-      // Sotto soglia: alert informativo di avanzamento (rischio basso).
-      const progresso = Math.min(100, (gddTotale / config.sogliaObiettivo) * 100);
+      // Sotto soglia: alert informativo di avanzamento (risk basso).
+      const progresso = Math.min(100, (gddTotale / config.targetThreshold) * 100);
       return {
-        modello: config.nome,
-        rischio: "basso",
-        indice: 1,
-        messaggio: `Accumulo in corso: ${gddTotale.toFixed(0)}/${config.sogliaObiettivo} °Cd (base ${tBase} °C) — ${progresso.toFixed(0)}% verso «${config.bersaglio}».`,
-        giorno: offset + finestra.length - 1,
+        model: config.name,
+        risk: "basso",
+        index: 1,
+        message: `Accumulo in corso: ${gddTotale.toFixed(0)}/${config.targetThreshold} °Cd (base ${tBase} °C) — ${progresso.toFixed(0)}% verso «${config.target}».`,
+        day: offset + finestra.length - 1,
       };
     },
   };

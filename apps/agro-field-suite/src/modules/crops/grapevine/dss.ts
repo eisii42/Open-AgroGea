@@ -1,41 +1,41 @@
 import {
-  type AlertFitopatologico,
-  regolaTreDieci,
-  rischioOidio,
+  type PhytopathologyAlert,
+  threeTenRule,
+  powderyMildewRisk,
 } from "@agrogea/tools";
 import type { DssModel } from "../types";
 
 /**
  * DSS della vite: i due modelli patologici già implementati come motori puri in
  * `fitopatologia` (regola tre-dieci per la peronospora, finestra termica per
- * l'oidio). Qui si adatta solo la serie meteo unificata alla forma attesa.
+ * l'oidio). Qui si adatta solo la series meteo unificata alla forma attesa.
  */
 
 const peronospora: DssModel = {
   id: "peronospora",
-  nome: "Peronospora",
-  bersaglio: "Plasmopara viticola",
-  descrizione:
-    "Regola tre-dieci (Baldacci/Goidanich): germogli ≥10 cm, T media ≥10 °C, pioggia ≥10 mm.",
-  valuta: (serie, contesto): AlertFitopatologico | null =>
-    regolaTreDieci(
-      serie.map((g) => ({
-        tMedia: (g.tMin + g.tMax) / 2,
-        pioggia: g.pioggia,
-        lunghezzaGermogli: contesto?.lunghezzaGermogliCm ?? 0,
+  name: "Peronospora",
+  target: "Plasmopara viticola",
+  description:
+    "Regola tre-dieci (Baldacci/Goidanich): germogli ≥10 cm, T media ≥10 °C, rain ≥10 mm.",
+  evaluate: (series, context): PhytopathologyAlert | null =>
+    threeTenRule(
+      series.map((g) => ({
+        tMean: (g.tMin + g.tMax) / 2,
+        rain: g.rain,
+        shootLength: context?.shootLengthCm ?? 0,
       })),
     ),
 };
 
 const oidio: DssModel = {
   id: "oidio",
-  nome: "Oidio",
-  bersaglio: "Erysiphe necator",
-  descrizione:
+  name: "Oidio",
+  target: "Erysiphe necator",
+  description:
     "Finestra termica favorevole (20-27 °C, RH moderata) con escalation sui giorni consecutivi.",
-  valuta: (serie): AlertFitopatologico | null =>
-    rischioOidio(
-      serie.map((g) => ({ tMin: g.tMin, tMax: g.tMax, rhMedia: g.rhMedia })),
+  evaluate: (series): PhytopathologyAlert | null =>
+    powderyMildewRisk(
+      series.map((g) => ({ tMin: g.tMin, tMax: g.tMax, rhMean: g.rhMean })),
     ),
 };
 

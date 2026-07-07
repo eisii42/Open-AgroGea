@@ -1,21 +1,21 @@
 import type { DssRiskLevel } from "@agrogea/core";
-import type { AlertFitopatologico, LivelloRischio } from "@agrogea/tools";
+import type { PhytopathologyAlert, RiskLevel } from "@agrogea/tools";
 import type { DssContext, CropModule, DssModel, DssWeatherDay } from "../types";
 
 /**
  * Runner dei DSS di coltura (refactor §3): esegue in locale i modelli del
- * modulo su una serie meteo costruita da PGlite e ne ricava sia gli alert
+ * modulo su una series meteo costruita da PGlite e ne ricava sia gli alert
  * ricchi per la UI (timeline/messaggi) sia le righe sintetiche da persistere in
- * `dss_risultati`. Non duplica logica: ogni `dss.valuta` compone i motori puri
+ * `dss_risultati`. Non duplica logica: ogni `dss.evaluate` compone i motori puri
  * di `@agrogea/tools`.
  */
 
 /** Esito di un singolo DSS, pronto sia per la UI sia per la cache. */
 export interface DssOutcome {
   dss: DssModel;
-  /** Alert completo del motore (null = nessun rischio nella finestra). */
-  alert: AlertFitopatologico | null;
-  /** Nome stabile del modello in cache (es. "peronospora_vite"). */
+  /** Alert completo del motore (null = nessun risk nella finestra). */
+  alert: PhytopathologyAlert | null;
+  /** Nome stabile del model in cache (es. "peronospora_vite"). */
   modelloNome: string;
   livello: DssRiskLevel;
   /** Indice numerico salvato in `valore_output` (0 se nessun alert). */
@@ -23,8 +23,8 @@ export interface DssOutcome {
 }
 
 /** Riduce i 4 livelli del motore ai 3 della cache DSS ('nullo' → 'low'). */
-function normalizzaLivello(rischio: LivelloRischio): DssRiskLevel {
-  switch (rischio) {
+function normalizzaLivello(risk: RiskLevel): DssRiskLevel {
+  switch (risk) {
     case "alto":
       return "high";
     case "medio":
@@ -34,26 +34,26 @@ function normalizzaLivello(rischio: LivelloRischio): DssRiskLevel {
   }
 }
 
-/** Esegue tutti i DSS del modulo sulla serie, con guardia anti-crash per modello. */
+/** Esegue tutti i DSS del modulo sulla series, con guardia anti-crash per model. */
 export function runDssModule(
   modulo: CropModule,
-  serie: DssWeatherDay[],
-  contesto?: DssContext,
+  series: DssWeatherDay[],
+  context?: DssContext,
 ): DssOutcome[] {
   return modulo.dss.map((dss) => {
-    let alert: AlertFitopatologico | null = null;
+    let alert: PhytopathologyAlert | null = null;
     try {
-      alert = serie.length > 0 ? dss.valuta(serie, contesto) : null;
+      alert = series.length > 0 ? dss.evaluate(series, context) : null;
     } catch {
-      // Un modello che esplode non deve bloccare gli altri né la UI.
+      // Un model che esplode non deve bloccare gli altri né la UI.
       alert = null;
     }
     return {
       dss,
       alert,
       modelloNome: `${modulo.id}_${dss.id}`,
-      livello: alert ? normalizzaLivello(alert.rischio) : "low",
-      valore: alert?.indice ?? 0,
+      livello: alert ? normalizzaLivello(alert.risk) : "low",
+      valore: alert?.index ?? 0,
     };
   });
 }

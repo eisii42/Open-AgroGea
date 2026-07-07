@@ -8,11 +8,11 @@ import { creaDssAccumuloTermico } from "../shared/dss-common";
  */
 const sviluppo: DssModel = creaDssAccumuloTermico("melo", {
   id: "sviluppo-melo",
-  nome: "Sviluppo melo (accumulo termico)",
-  bersaglio: "Fenologia melo — finestra di difesa",
-  descrizione:
-    "Gradi-giorno base 7 °C dalla ripresa vegetativa: al raggiungimento della soglia, allineare il monitoraggio.",
-  sogliaObiettivo: 250,
+  name: "Sviluppo melo (accumulo termico)",
+  target: "Fenologia melo — finestra di difesa",
+  description:
+    "Gradi-day base 7 °C dalla ripresa vegetativa: al raggiungimento della soglia, allineare il monitoraggio.",
+  targetThreshold: 250,
   rischioAlRaggiungimento: "medio",
 });
 

@@ -40,7 +40,7 @@ const DDI_LAVORAZIONE: Record<
   concimazione: { ddi: "0006", scala: 10 },
   fertilizzazione: { ddi: "0006", scala: 10 },
   trattamento: { ddi: "0001", scala: 100 },
-  irrigazione: { ddi: "0001", scala: 100 },
+  irrigation: { ddi: "0001", scala: 100 },
   semina: { ddi: "0028", scala: 0.0001 },
 };
 

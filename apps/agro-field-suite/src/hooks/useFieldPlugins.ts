@@ -4,7 +4,7 @@ import {
   useAgroStore,
   useSettingsStore,
 } from "@agrogea/core";
-import { agroIndiciPlugin } from "@agrogea/tools";
+import { agroIndicesPlugin } from "@agrogea/tools";
 import { useAppStore } from "@geolibre/core";
 import type { MapController } from "@geolibre/map";
 import type { GeoLibreAppAPI, GeoLibrePlugin } from "@geolibre/plugins";
@@ -96,7 +96,7 @@ const BASE_PLUGINS: GeoLibrePlugin[] = [
   osmBasemapPlugin,
   maplibreLayerControlPlugin, // Layer Manager nativo (built-in "layer-control")
   maplibreComponentsPlugin, // host del Measure Control nativo
-  agroIndiciPlugin,
+  agroIndicesPlugin,
 ];
 
 function activateSafely(plugin: GeoLibrePlugin, app: GeoLibreAppAPI): boolean {
