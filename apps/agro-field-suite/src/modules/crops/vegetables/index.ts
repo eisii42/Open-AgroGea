@@ -5,7 +5,7 @@ export { bilancioOrticoltura } from "./balance";
 export { dssOrticoltura } from "./dss";
 
 /** Modulo coltura Orticoltura: tracker fenologico, specie di riferimento "pomodoro". */
-export const orticolturaModule: CropModule = {
+export const vegetablesModule: CropModule = {
   id: "orticoltura",
   label: "Orticoltura",
   categorie: ["orticoltura"],

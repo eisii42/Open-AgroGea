@@ -17,7 +17,7 @@ import type { TFunction } from "i18next";
 import agrogeaLogo from "../assets/agrogea-logo.png";
 import { AddDataControl } from "./AddDataControl";
 import { HelpMenu } from "./help/HelpMenu";
-import { MeteoCard } from "../modules/weather/WeatherCard";
+import { WeatherCard } from "../modules/weather/WeatherCard";
 
 /**
  * Header della suite (Modulo UI §6): logo, switcher azienda, LED di stato sync
@@ -123,7 +123,7 @@ export function AppHeader({
           Nascosta sotto sm per lo stesso motivo dell'Add Data. */}
       {flags.headerMeteoCard && (
         <div className="hidden shrink-0 sm:block">
-          <MeteoCard />
+          <WeatherCard />
         </div>
       )}
 

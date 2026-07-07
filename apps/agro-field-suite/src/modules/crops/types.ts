@@ -16,7 +16,7 @@ import type {
  */
 
 /** Categoria coltura a livello di appezzamento (campo `coltura` del dominio). */
-export type CategoriaColtura =
+export type CropCategory =
   | "viticoltura"
   | "seminativo"
   | "olivicoltura"
@@ -28,7 +28,7 @@ export type CategoriaColtura =
  * dai singoli motori di `fitopatologia`). Ogni modulo adatta questa serie alla
  * forma attesa dall'engine che compone.
  */
-export interface MeteoGiornoDss {
+export interface DssWeatherDay {
   /** ISO date del giorno. */
   data: string;
   tMin: number;
@@ -46,7 +46,7 @@ export interface MeteoGiornoDss {
 }
 
 /** Contesto fenologico/colturale per i DSS che ne dipendono. */
-export interface ContestoDss {
+export interface DssContext {
   fase?: FaseFenologica;
   /** Lunghezza germogli (cm), usata dalla regola tre-dieci della vite. */
   lunghezzaGermogliCm?: number;
@@ -70,8 +70,8 @@ export interface DssModel {
   bersaglio: string;
   descrizione: string;
   valuta: (
-    serie: MeteoGiornoDss[],
-    contesto?: ContestoDss,
+    serie: DssWeatherDay[],
+    contesto?: DssContext,
   ) => AlertFitopatologico | null;
 }
 
@@ -82,7 +82,7 @@ export interface CropModule {
   /** Etichetta UI (es. "Vite"). */
   label: string;
   /** Categorie di appezzamento gestite da questo modulo. */
-  categorie: CategoriaColtura[];
+  categorie: CropCategory[];
   /**
    * Specie fenologica di riferimento per Kc/soil-mask/GDD (chiave delle matrici
    * di `fenologia`). Es. la viticoltura usa la specie "vite".

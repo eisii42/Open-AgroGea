@@ -106,7 +106,7 @@ export interface TrattamentoFormProps {
   prodottiCatalogo?: CatalogEntry[];
 }
 
-export function TrattamentoForm({
+export function TreatmentForm({
   appezzamenti,
   onSubmit,
   onCancel,

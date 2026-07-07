@@ -5,15 +5,15 @@ import {
 } from "@agrogea/tools";
 import {
   type CropModule,
-  type EsitoDss,
-  eseguiDssModulo,
-  type MeteoGiornoDss,
+  type DssOutcome,
+  runDssModule,
+  type DssWeatherDay,
 } from "../crops";
-import type { ContestoDss } from "../crops";
+import type { DssContext } from "../crops";
 
 /**
  * Motore DSS unificato (Modulo 2 — espansione): compone gli esiti
- * fitopatologici esistenti (`eseguiDssModulo`, che a sua volta compone i motori
+ * fitopatologici esistenti (`runDssModule`, che a sua volta compone i motori
  * puri di `@agrogea/tools`) con il VETTORE DI STRESS IDRICO derivato dal
  * bilancio idrico (Modulo 1), e normalizza ogni rischio sulla scala richiesta
  * 0.0 (nullo) → 1.0 (critico). Non duplica logica: aggrega e normalizza.
@@ -104,7 +104,7 @@ export function vettoreStressIdrico(
 }
 
 /** Proietta gli esiti patologici nei vettori di rischio normalizzati. */
-export function vettoriPatologici(esiti: EsitoDss[]): VettoreRischioDss[] {
+export function vettoriPatologici(esiti: DssOutcome[]): VettoreRischioDss[] {
   return esiti.map((e) => ({
     id: e.dss.id,
     categoria: "fitopatologico" as const,
@@ -117,7 +117,7 @@ export function vettoriPatologici(esiti: EsitoDss[]): VettoreRischioDss[] {
 
 export interface EsitoDssEngine {
   /** Esiti patologici grezzi (per la timeline/messaggi esistenti). */
-  esiti: EsitoDss[];
+  esiti: DssOutcome[];
   /** Vettori normalizzati 0..1: patologici + idrico (se disponibile). */
   vettori: VettoreRischioDss[];
   /** Rischio complessivo del campo = massimo dei vettori (0..1). */
@@ -131,11 +131,11 @@ export interface EsitoDssEngine {
  */
 export function eseguiDssEngine(
   modulo: CropModule,
-  serie: MeteoGiornoDss[],
-  contesto?: ContestoDss,
+  serie: DssWeatherDay[],
+  contesto?: DssContext,
   statoIdrico?: StatoIdricoCampo,
 ): EsitoDssEngine {
-  const esiti = eseguiDssModulo(modulo, serie, contesto);
+  const esiti = runDssModule(modulo, serie, contesto);
   const vettori = vettoriPatologici(esiti);
   if (statoIdrico) {
     vettori.push(vettoreStressIdrico(statoIdrico, modulo.speciePrincipale));

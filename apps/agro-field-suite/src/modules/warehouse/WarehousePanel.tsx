@@ -18,7 +18,7 @@ import { useTranslation } from "react-i18next";
  * categoria determina i campi obbligatori), carico lotti con scadenza e costo
  * (aggiornamento CUMP in transazione nel DAL) e alert di scadenza con soglia
  * configurabile. I lotti scaduti sono evidenziati e il loro uso nelle attività
- * è BLOCCATO (vedi OperazioneForm); la nota in testa al pannello lo esplicita.
+ * è BLOCCATO (vedi OperationForm); la nota in testa al pannello lo esplicita.
  */
 
 const CATEGORIE: ProductCategory[] = [
@@ -77,7 +77,7 @@ function ExpiryBadge({
   );
 }
 
-export function MagazzinoPanel({ onClose }: { onClose: () => void }) {
+export function WarehousePanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const prodotti = useAgroStore((s) => s.prodotti);
   const lotti = useAgroStore((s) => s.lotti);

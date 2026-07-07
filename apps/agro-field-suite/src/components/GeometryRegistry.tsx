@@ -112,7 +112,7 @@ const KIND_ICON = {
   poi: MapPin,
 } as const;
 
-export function RegistroGeometrie({
+export function GeometryRegistry({
   onClose,
   mapControllerRef,
 }: {

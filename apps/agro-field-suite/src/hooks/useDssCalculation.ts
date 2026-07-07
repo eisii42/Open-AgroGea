@@ -10,11 +10,11 @@ import type { FeatureCollection } from "geojson";
 import { useCallback, useState } from "react";
 import { type ParametriSuoloRisolti, SoilDataResolver } from "../modules/soil";
 import {
-  costruisciSerieDss,
+  buildDssSeries,
   type CropModule,
-  type EsitoDss,
-  esitiToRisultatiDss,
-  type MeteoGiornoDss,
+  type DssOutcome,
+  outcomesToDssResults,
+  type DssWeatherDay,
 } from "../modules/crops";
 import {
   eseguiDssEngine,
@@ -69,11 +69,11 @@ export interface BilancioSintesi {
 }
 
 /** Esito del calcolo per UN appezzamento. */
-export interface RisultatoDssPlot {
+export interface DssPlotResult {
   appezzamentoId: string;
   nome: string;
   modulo: CropModule;
-  esiti: EsitoDss[];
+  esiti: DssOutcome[];
   /** Vettori di rischio normalizzati 0..1 (patologici + idrico se calcolato). */
   vettori: VettoreRischioDss[];
   /** Sintesi del bilancio idrico (null se non calcolato/calcolabile). */
@@ -82,13 +82,13 @@ export interface RisultatoDssPlot {
   suolo: ParametriSuoloRisolti | null;
   /** Serie giornaliera del bilancio idrico (vuota se non calcolata). */
   bilancioSerie: IndiceIdricoGiorno[];
-  serie: MeteoGiornoDss[];
+  serie: DssWeatherDay[];
   meteo: InfoMeteoDss | null;
   messaggio?: string;
 }
 
 /** Plot + modulo coltura da calcolare. */
-export interface TargetDss {
+export interface DssTarget {
   appezzamento: Plot;
   modulo: CropModule;
 }
@@ -106,7 +106,7 @@ export interface OpzioniCalcoloDss {
 export interface StatoDssCalcolo {
   fase: FaseDss;
   /** Esiti per appezzamento, nell'ordine dei target. */
-  risultati: RisultatoDssPlot[];
+  risultati: DssPlotResult[];
   /** ISO del momento del calcolo (per la timeline). */
   calcolatoIl: string | null;
   messaggio?: string;
@@ -187,12 +187,12 @@ interface ContestoCalcolo {
  */
 async function calcolaPlot(
   ctx: ContestoCalcolo,
-  target: TargetDss,
+  target: DssTarget,
   opzioni: OpzioniCalcoloDss,
-): Promise<RisultatoDssPlot> {
+): Promise<DssPlotResult> {
   const { dal, aziendaAttivaId, configMeteo, crops } = ctx;
   const { appezzamento, modulo } = target;
-  const base: RisultatoDssPlot = {
+  const base: DssPlotResult = {
     appezzamentoId: appezzamento.id,
     nome: appezzamento.user_plot_name,
     modulo,
@@ -238,7 +238,7 @@ async function calcolaPlot(
 
   // 1) Meteo: lucchetto orario (azienda) → fetch solo se stantio. Offline →
   //    fallback sulle letture già in PGlite.
-  let serie: MeteoGiornoDss[];
+  let serie: DssWeatherDay[];
   let meteo: InfoMeteoDss;
   let lettureRaw: WeatherReading[] = [];
   try {
@@ -249,7 +249,7 @@ async function calcolaPlot(
       config: configMeteo,
     });
     lettureRaw = res.letture;
-    serie = costruisciSerieDss(res.letture);
+    serie = buildDssSeries(res.letture);
     meteo = {
       fetched: res.fetched,
       inserite: res.inserite,
@@ -265,7 +265,7 @@ async function calcolaPlot(
       limit: 30_000,
     });
     lettureRaw = letture;
-    serie = costruisciSerieDss(letture);
+    serie = buildDssSeries(letture);
     meteo = {
       fetched: false,
       inserite: 0,
@@ -368,7 +368,7 @@ async function calcolaPlot(
 
   // 4) Persistenza cache dei modelli patologici (ultimo valore per modello).
   if (serie.length > 0) {
-    await dal.salvaDssRisultati(appezzamento.id, esitiToRisultatiDss(esiti));
+    await dal.salvaDssRisultati(appezzamento.id, outcomesToDssResults(esiti));
   }
 
   return {
@@ -393,7 +393,7 @@ export function useDssCalcolo() {
   const reset = useCallback(() => setStato(STATO_INIZIALE), []);
 
   const calcola = useCallback(
-    async (targets: TargetDss[], opzioni: OpzioniCalcoloDss = {}) => {
+    async (targets: DssTarget[], opzioni: OpzioniCalcoloDss = {}) => {
       if (targets.length === 0) return;
       setStato((s) => ({ ...s, fase: "calcolo", messaggio: undefined }));
       try {
@@ -409,7 +409,7 @@ export function useDssCalcolo() {
           crops,
         };
 
-        const risultati: RisultatoDssPlot[] = [];
+        const risultati: DssPlotResult[] = [];
         for (const target of targets) {
           try {
             risultati.push(await calcolaPlot(ctx, target, opzioni));

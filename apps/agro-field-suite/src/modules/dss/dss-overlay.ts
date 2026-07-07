@@ -73,7 +73,7 @@ const AZOTO_TARGET: Record<CropType, number> = {
 };
 
 /** Calibrazione della sintesi per coltura e fase (banda NDVI dalla fenologia). */
-export function calibrazioneSintesi(
+export function summaryCalibration(
   coltura: CropType,
   fase: FaseFenologica,
 ): CalibrazioneSintesi {
@@ -116,7 +116,7 @@ function deficitSuolo(
  * coltura. I fattori non disponibili (NDVI o suolo assenti) vengono esclusi e i
  * pesi rinormalizzati sui fattori presenti, così il punteggio resta in [0,1].
  */
-export function sintetizzaRischioCampo(
+export function summarizeFieldRisk(
   ingressi: IngressiSintesiCampo,
   cal: CalibrazioneSintesi,
 ): number {
@@ -190,7 +190,7 @@ export function livelloRischioDss(score: number): "ottimale" | "allerta" | "crit
   return "ottimale";
 }
 
-export interface SintesiCampo {
+export interface FieldSummary {
   /** Punteggio di rischio 0..1 dell'appezzamento. */
   rischio01: number;
 }
@@ -202,7 +202,7 @@ export interface SintesiCampo {
  */
 export function costruisciOverlayDss(
   appezzamenti: Plot[],
-  sintesiPerCampo: Map<string, SintesiCampo>,
+  sintesiPerCampo: Map<string, FieldSummary>,
   rampa: RampaColore,
 ): FeatureCollection {
   const features: Feature[] = [];

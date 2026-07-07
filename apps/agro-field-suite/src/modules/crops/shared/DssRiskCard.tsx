@@ -1,6 +1,6 @@
 import type { DssRiskLevel } from "@agrogea/core";
 import { AlertTriangle } from "lucide-react";
-import type { RisultatoDssPlot } from "../../../hooks/useDssCalculation";
+import type { DssPlotResult } from "../../../hooks/useDssCalculation";
 
 /**
  * Scheda DSS per appezzamento. Sostituisce il vecchio grafico a barre con una
@@ -32,7 +32,7 @@ function shortDate(iso: string): string {
   });
 }
 
-export function DssRiskCard({ risultato }: { risultato: RisultatoDssPlot }) {
+export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
   const { nome, modulo, esiti, serie, meteo, messaggio } = risultato;
 
   // Livello complessivo = il peggiore tra i modelli patologici.

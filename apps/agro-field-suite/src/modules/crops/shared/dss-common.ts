@@ -6,7 +6,7 @@ import {
   type LivelloRischio,
   type PuntoTermico,
 } from "@agrogea/tools";
-import type { DssModel, MeteoGiornoDss } from "../types";
+import type { DssModel, DssWeatherDay } from "../types";
 
 /**
  * DSS comuni ai moduli coltura (refactor §3): factory che costruiscono un
@@ -14,13 +14,13 @@ import type { DssModel, MeteoGiornoDss } from "../types";
  */
 
 /** Converte la serie DSS unificata nei punti termici attesi dall'accumulo GDD. */
-function puntiTermici(serie: MeteoGiornoDss[]): PuntoTermico[] {
+function puntiTermici(serie: DssWeatherDay[]): PuntoTermico[] {
   return serie.map((g) => ({ tMin: g.tMin, tMax: g.tMax }));
 }
 
 /** Primo indice della serie con data ≥ biofix (0 se biofix assente/precedente). */
 function offsetBiofix(
-  serie: MeteoGiornoDss[],
+  serie: DssWeatherDay[],
   dataInizio?: string,
 ): number {
   if (!dataInizio) return 0;

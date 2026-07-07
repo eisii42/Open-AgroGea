@@ -170,5 +170,5 @@ export function useFieldLayers(
   // NB: le operazioni del Quaderno (trattamenti) NON sono più proiettate qui
   // come layer fisso. Sono mostrate on-demand come simboli (icone per tipo,
   // disposti intorno al centroid) tramite il toggle "Mostra sulla mappa" del
-  // QuadernoPanel → vedi OperationMarkers.tsx (marker rimossi allo spegnimento).
+  // LogbookPanel → vedi OperationMarkers.tsx (marker rimossi allo spegnimento).
 }

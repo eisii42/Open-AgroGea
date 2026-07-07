@@ -85,7 +85,7 @@ export interface OperazioneSpec {
  * `descr` sono getter che risolvono la traduzione al momento della lettura
  * (tramite l'istanza `i18n` condivisa, non un hook React): così i consumer
  * esterni che leggono `OPERAZIONI` come semplice array di dati (es.
- * `QuadernoPanel`) vedono comunque il testo nella lingua attiva a ogni
+ * `LogbookPanel`) vedono comunque il testo nella lingua attiva a ogni
  * render, senza dover convertire l'array in una funzione.
  */
 export const OPERAZIONI: OperazioneSpec[] = [
@@ -195,7 +195,7 @@ interface ScaricoRow {
 
 /**
  * Proposta di assegnazione coltura al campo generata da una SEMINA con scarico
- * di una semente (automazione v17): il chiamante (QuadernoPanel) crea
+ * di una semente (automazione v17): il chiamante (LogbookPanel) crea
  * `crops` + `plots_campaign` dopo la registrazione dell'operazione.
  */
 export interface AssegnazioneColtura {
@@ -277,7 +277,7 @@ export interface OperazioneFormProps {
   defaults?: Partial<TrattamentoFormValues>;
 }
 
-export function OperazioneForm({
+export function OperationForm({
   operationType,
   appezzamenti,
   campiCampagna,

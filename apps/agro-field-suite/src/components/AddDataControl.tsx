@@ -22,7 +22,7 @@ import { importaFascicoloSian } from "../modules/sian/import-dossier";
 import {
   combinaLayer,
   type ExportFormat,
-  scaricaArtifact,
+  downloadArtifact,
   serializzaVettoriale,
 } from "../services/gis/geo-export";
 import { TransferTagsFeed } from "./TransferTagsFeed";
@@ -183,7 +183,7 @@ export function AddDataControl() {
     setBusy(true);
     try {
       const artifact = serializzaVettoriale(fc, format, "agrogea_configurazione");
-      scaricaArtifact(artifact);
+      downloadArtifact(artifact);
       await registraTrasferimento({
         operation_type: "export",
         file_format: format as FileFormat,

@@ -1,7 +1,7 @@
 import type { DatiMeteoGiorno, FaseFenologica, ParametriSuolo } from "@agrogea/tools";
 import {
-  bilancioIdricoColtura,
-  type BilancioColturaOutput,
+  cropWaterBalance,
+  type CropBalanceOutput,
 } from "../shared/balance";
 
 /** Bilancio idrico della vite: Kc per fase della specie "vite" (FAO-56). */
@@ -11,8 +11,8 @@ export function bilancioVite(
   pioggiaSerie: number[],
   suolo: ParametriSuolo,
   deplezioneIniziale = 0,
-): BilancioColturaOutput {
-  return bilancioIdricoColtura({
+): CropBalanceOutput {
+  return cropWaterBalance({
     specie: "vite",
     fase,
     meteo,

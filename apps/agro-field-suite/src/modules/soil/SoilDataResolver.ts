@@ -30,7 +30,7 @@ import type { Feature, FeatureCollection } from "geojson";
  */
 
 /** Sorgente effettiva dei parametri risolti (per diagnostica/UI). */
-export type SorgenteSuolo =
+export type SoilSource =
   | "custom-map"
   | "soil-samples"
   | "manual"
@@ -72,7 +72,7 @@ export interface SuoloManuale {
 
 export interface ParametriSuoloRisolti {
   parametri: ParametriSuolo;
-  sorgente: SorgenteSuolo;
+  sorgente: SoilSource;
   /** Numero di campioni/feature che hanno concorso al calcolo. */
   campioniUsati: number;
   /** Tessitura aggregata usata da Saxton-Rawls (null se da metadata/default). */

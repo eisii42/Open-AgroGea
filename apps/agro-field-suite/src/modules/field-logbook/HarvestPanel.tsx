@@ -11,8 +11,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { useTenantCountry } from "../../hooks/useTenantCountry";
-import { ConfirmDeleteOperazione } from "./ConfirmDeleteOperation";
-import { RaccoltaDettaglioCard } from "./HarvestDetailCard";
+import { ConfirmDeleteOperation } from "./ConfirmDeleteOperation";
+import { HarvestDetailCard } from "./HarvestDetailCard";
 
 /**
  * Modulo Harvest: lista degli eventi di raccolta + form di registrazione. Ogni
@@ -42,7 +42,7 @@ function oggiInputDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function RaccoltaPanel({ onClose }: { onClose: () => void }) {
+export function HarvestPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const raccolte = useAgroStore((s) => s.raccolte);
   const appezzamenti = useAgroStore((s) => s.appezzamenti);
@@ -475,7 +475,7 @@ export function RaccoltaPanel({ onClose }: { onClose: () => void }) {
         </ul>
       )}
 
-      <ConfirmDeleteOperazione
+      <ConfirmDeleteOperation
         open={daEliminare != null}
         etichetta={daEliminare ? etichettaRaccolta(daEliminare) : ""}
         titolo={t("raccoltaPanel.deleteHarvest")}
@@ -486,7 +486,7 @@ export function RaccoltaPanel({ onClose }: { onClose: () => void }) {
       />
 
       {dettaglio && (
-        <RaccoltaDettaglioCard
+        <HarvestDetailCard
           raccolta={dettaglio}
           appezzamentoNome={
             appezzamenti.find((a) => a.id === dettaglio.plot_id)?.user_plot_name ??

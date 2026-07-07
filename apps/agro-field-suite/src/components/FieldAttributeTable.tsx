@@ -10,7 +10,7 @@ import { type RefObject, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import {
-  scaricaArtifact,
+  downloadArtifact,
   serializzaVettoriale,
 } from "../services/gis/geo-export";
 import { DetachedWindow } from "./DetachedWindow";
@@ -113,7 +113,7 @@ export function FieldAttributeTable({
         // Shapefile (.zip): writer puro condiviso col modulo VRA.
         if (format === "shapefile") {
           const artifact = serializzaVettoriale(geojson, "shapefile", baseName);
-          scaricaArtifact(artifact);
+          downloadArtifact(artifact);
           return Promise.resolve(artifact.filename);
         }
         return Promise.resolve(null);

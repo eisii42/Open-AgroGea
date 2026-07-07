@@ -7,7 +7,7 @@ import {
   rischioLivelloA01,
   rischioOcchioPavone,
 } from "@agrogea/tools";
-import { cropModuleById, type MeteoGiornoDss } from "../apps/agro-field-suite/src/modules/crops";
+import { cropModuleById, type DssWeatherDay } from "../apps/agro-field-suite/src/modules/crops";
 import {
   eseguiDssEngine,
   inStressIdrico,
@@ -115,7 +115,7 @@ describe("eseguiDssEngine — composizione unificata", () => {
     const olivo = cropModuleById("olivo");
     assert.ok(olivo, "modulo olivo presente");
     // Serie che innesca l'occhio di pavone (bagnatura+temp mite) su più giorni.
-    const serie: MeteoGiornoDss[] = Array.from({ length: 4 }, (_, i) => ({
+    const serie: DssWeatherDay[] = Array.from({ length: 4 }, (_, i) => ({
       data: `2026-04-0${i + 1}`,
       tMin: 12,
       tMax: 20,

@@ -36,7 +36,7 @@ function getVariabili(
   }));
 }
 
-export function ImpostazioniPanel({ onClose }: { onClose: () => void }) {
+export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const configMeteo = useAgroStore((s) => s.configMeteo);
   const salvaConfigMeteo = useAgroStore((s) => s.salvaConfigMeteo);

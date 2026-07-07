@@ -32,19 +32,19 @@ import { useMapStyleEpoch } from "../hooks/useMapStyleEpoch";
  * Suolo, moduli coltura, export quaderno). Lazy → fuori dal chunk iniziale,
  * caricati solo all'apertura del relativo strumento.
  */
-const QuadernoPanel = lazy(() =>
-  import("../modules/field-logbook/LogbookPanel").then((m) => ({ default: m.QuadernoPanel })),
+const LogbookPanel = lazy(() =>
+  import("../modules/field-logbook/LogbookPanel").then((m) => ({ default: m.LogbookPanel })),
 );
-const RaccoltaPanel = lazy(() =>
-  import("../modules/field-logbook/HarvestPanel").then((m) => ({ default: m.RaccoltaPanel })),
+const HarvestPanel = lazy(() =>
+  import("../modules/field-logbook/HarvestPanel").then((m) => ({ default: m.HarvestPanel })),
 );
-const MagazzinoPanel = lazy(() =>
+const WarehousePanel = lazy(() =>
   import("../modules/warehouse/WarehousePanel").then((m) => ({
-    default: m.MagazzinoPanel,
+    default: m.WarehousePanel,
   })),
 );
-const SuoloPanel = lazy(() =>
-  import("../modules/soil/SoilPanel").then((m) => ({ default: m.SuoloPanel })),
+const SoilPanel = lazy(() =>
+  import("../modules/soil/SoilPanel").then((m) => ({ default: m.SoilPanel })),
 );
 const ColturaDatiPanel = lazy(() =>
   import("../modules/crops/CropPanel").then((m) => ({
@@ -79,22 +79,22 @@ const DetailEditSheet = lazy(() =>
     default: m.DetailEditSheet,
   })),
 );
-const RegistroGeometrie = lazy(() =>
+const GeometryRegistry = lazy(() =>
   import("../components/GeometryRegistry").then((m) => ({
-    default: m.RegistroGeometrie,
+    default: m.GeometryRegistry,
   })),
 );
 const SyncPanel = lazy(() =>
   import("../components/SyncPanel").then((m) => ({ default: m.SyncPanel })),
 );
-const ImpostazioniPanel = lazy(() =>
+const SettingsPanel = lazy(() =>
   import("../modules/settings/SettingsPanel").then((m) => ({
-    default: m.ImpostazioniPanel,
+    default: m.SettingsPanel,
   })),
 );
-const AnagraficaPanel = lazy(() =>
+const RegistryPanel = lazy(() =>
   import("../modules/registry/RegistryPanel").then((m) => ({
-    default: m.AnagraficaPanel,
+    default: m.RegistryPanel,
   })),
 );
 const GeoCompliancePanel = lazy(() =>
@@ -294,16 +294,16 @@ export function FieldDashboard() {
             il fallback è nullo perché sono overlay e il caricamento è breve. */}
         <Suspense fallback={null}>
           {openPanels.includes("quaderno") && (
-            <QuadernoPanel onClose={() => togglePanel("quaderno")} />
+            <LogbookPanel onClose={() => togglePanel("quaderno")} />
           )}
           {openPanels.includes("raccolta") && (
-            <RaccoltaPanel onClose={() => togglePanel("raccolta")} />
+            <HarvestPanel onClose={() => togglePanel("raccolta")} />
           )}
           {openPanels.includes("magazzino") && (
-            <MagazzinoPanel onClose={() => togglePanel("magazzino")} />
+            <WarehousePanel onClose={() => togglePanel("magazzino")} />
           )}
           {openPanels.includes("ndvi") && (
-            <SuoloPanel onClose={() => togglePanel("ndvi")} />
+            <SoilPanel onClose={() => togglePanel("ndvi")} />
           )}
           {openPanels.includes("vra") && (
             <VraPanel onClose={() => togglePanel("vra")} />
@@ -327,10 +327,10 @@ export function FieldDashboard() {
             <SyncPanel onClose={() => togglePanel("sync")} />
           )}
           {openPanels.includes("anagrafica") && (
-            <AnagraficaPanel onClose={() => togglePanel("anagrafica")} />
+            <RegistryPanel onClose={() => togglePanel("anagrafica")} />
           )}
           {openPanels.includes("impostazioni") && (
-            <ImpostazioniPanel onClose={() => togglePanel("impostazioni")} />
+            <SettingsPanel onClose={() => togglePanel("impostazioni")} />
           )}
           {openPanels.includes("geocompliance") && (
             <GeoCompliancePanel onClose={() => togglePanel("geocompliance")} />
@@ -346,7 +346,7 @@ export function FieldDashboard() {
           {openPanels.includes("registro") &&
             !selectedFeature &&
             !pendingGeometry && (
-              <RegistroGeometrie
+              <GeometryRegistry
                 onClose={() => togglePanel("registro")}
                 mapControllerRef={mapControllerRef}
               />

@@ -22,13 +22,13 @@ export {
   SUOLO_FRANCO_DEFAULT,
   type OpzioniRisoluzione,
   type ParametriSuoloRisolti,
-  type SorgenteSuolo,
+  type SoilSource,
   type SuoloManuale,
 } from "./SoilDataResolver";
 
 export {
-  costruisciStoricoUmiditaFc,
-  serializzaStoricoUmidita,
-  type FormatoStoricoUmidita,
-  type RigaStoricoUmidita,
+  buildMoistureHistoryFc,
+  serializeMoistureHistory,
+  type MoistureHistoryFormat,
+  type MoistureHistoryRow,
 } from "./soil-export";

@@ -23,26 +23,26 @@ import {
   YAxis,
 } from "recharts";
 import {
-  type RisultatoDssPlot,
-  type TargetDss,
+  type DssPlotResult,
+  type DssTarget,
   useDssCalcolo,
 } from "../../hooks/useDssCalculation";
 import { useDssOverlayLayer } from "../../hooks/useDssOverlayLayer";
-import { cropModulePerColtura } from "../crops";
+import { cropModuleForCrop } from "../crops";
 import {
-  calibrazioneSintesi,
-  type SintesiCampo,
-  sintetizzaRischioCampo,
+  summaryCalibration,
+  type FieldSummary,
+  summarizeFieldRisk,
 } from "../dss/dss-overlay";
 import { EXTERNAL_LAYER_FLAG } from "../add-data/add-data";
 import {
-  costruisciStoricoUmiditaFc,
-  type FormatoStoricoUmidita,
-  type RigaStoricoUmidita,
-  type SorgenteSuolo,
-  serializzaStoricoUmidita,
+  buildMoistureHistoryFc,
+  type MoistureHistoryFormat,
+  type MoistureHistoryRow,
+  type SoilSource,
+  serializeMoistureHistory,
 } from "../soil";
-import { scaricaArtifact } from "../../services/gis/geo-export";
+import { downloadArtifact } from "../../services/gis/geo-export";
 
 /**
  * Pannello "Acqua · Bilancio idrico" (Modulo 1, FAO 56/66), ora MULTI-APPEZZAMENTO
@@ -62,7 +62,7 @@ function shortDate(iso: string): string {
 }
 
 /** Etichetta leggibile della sorgente dei parametri idro-pedologici. */
-function getEtichetteSorgente(t: TFunction): Record<SorgenteSuolo, string> {
+function getEtichetteSorgente(t: TFunction): Record<SoilSource, string> {
   return {
     "custom-map": t("bilancioIdricoPanel.soilSource.customMap"),
     "soil-samples": t("bilancioIdricoPanel.soilSource.soilSamples"),
@@ -73,14 +73,14 @@ function getEtichetteSorgente(t: TFunction): Record<SorgenteSuolo, string> {
 }
 
 /** Formati di export dello storico umidità con etichetta. */
-const FORMATI_EXPORT: { id: FormatoStoricoUmidita }[] = [
+const FORMATI_EXPORT: { id: MoistureHistoryFormat }[] = [
   { id: "geojson" },
   { id: "shapefile" },
   { id: "csv" },
 ];
 
 /** Etichetta leggibile del formato di export (i formati sono nomi tecnici invariati). */
-const ETICHETTA_FORMATO: Record<FormatoStoricoUmidita, string> = {
+const ETICHETTA_FORMATO: Record<MoistureHistoryFormat, string> = {
   geojson: "GeoJSON",
   shapefile: "Shapefile",
   csv: "CSV",
@@ -100,7 +100,7 @@ function serieAStoricoUmidita(
     awc: number;
     inStress: boolean;
   }[],
-): RigaStoricoUmidita[] {
+): MoistureHistoryRow[] {
   return serie.map((g) => ({
     date: g.data,
     et0: g.et0,
@@ -158,11 +158,11 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
       | undefined) ?? null;
 
   // Target = appezzamenti selezionati con coltura/modulo (serve il Kc per l'ETc).
-  const targets = useMemo<TargetDss[]>(() => {
-    const out: TargetDss[] = [];
+  const targets = useMemo<DssTarget[]>(() => {
+    const out: DssTarget[] = [];
     for (const a of appezzamenti) {
       if (!sel.has(a.id)) continue;
-      const modulo = cropModulePerColtura(
+      const modulo = cropModuleForCrop(
         cropForPlot(a.id, campiCampagna, crops),
       );
       if (modulo) out.push({ appezzamento: a, modulo });
@@ -176,12 +176,12 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
   const inCorso = stato.fase === "calcolo";
   const completato = stato.fase === "completato";
 
-  const esporta = async (r: RisultatoDssPlot, formato: FormatoStoricoUmidita) => {
+  const esporta = async (r: DssPlotResult, formato: MoistureHistoryFormat) => {
     const appezzamento = appezzamenti.find((a) => a.id === r.appezzamentoId);
     if (!appezzamento || r.bilancioSerie.length === 0) return;
     setEsportando(true);
     try {
-      const fc = costruisciStoricoUmiditaFc(
+      const fc = buildMoistureHistoryFc(
         appezzamento,
         serieAStoricoUmidita(r.bilancioSerie),
       );
@@ -189,7 +189,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
         /[^\w.-]+/g,
         "_",
       );
-      scaricaArtifact(serializzaStoricoUmidita(fc, formato, base));
+      downloadArtifact(serializeMoistureHistory(fc, formato, base));
       await registraTrasferimento({
         operation_type: "export",
         file_format: formato,
@@ -213,7 +213,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
   );
 
   const sintesiPerCampo = useMemo(() => {
-    const m = new Map<string, SintesiCampo>();
+    const m = new Map<string, FieldSummary>();
     if (!completato) return m;
     for (const r of stato.risultati) {
       if (!r.bilancio) continue;
@@ -222,13 +222,13 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
       const patologico = r.vettori
         .filter((v) => v.categoria === "fitopatologico")
         .reduce((max, v) => Math.max(max, v.rischio01), 0);
-      const score = sintetizzaRischioCampo(
+      const score = summarizeFieldRisk(
         {
           stressIdrico01: idrico?.rischio01 ?? 0,
           rischioPatologico01: patologico,
           ndvi: appz?.last_ndvi_mean ?? null,
         },
-        calibrazioneSintesi(r.modulo.speciePrincipale, "piena"),
+        summaryCalibration(r.modulo.speciePrincipale, "piena"),
       );
       m.set(r.appezzamentoId, { rischio01: score });
     }
@@ -380,9 +380,9 @@ function WaterResultCard({
   esportando,
   onExport,
 }: {
-  risultato: RisultatoDssPlot;
+  risultato: DssPlotResult;
   esportando: boolean;
-  onExport: (formato: FormatoStoricoUmidita) => void;
+  onExport: (formato: MoistureHistoryFormat) => void;
 }) {
   const { t } = useTranslation();
   const { nome, bilancio, suolo, bilancioSerie, messaggio } = risultato;

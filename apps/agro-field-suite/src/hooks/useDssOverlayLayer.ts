@@ -10,7 +10,7 @@ import { useEffect } from "react";
 import {
   costruisciOverlayDss,
   rampaRischioDss,
-  type SintesiCampo,
+  type FieldSummary,
 } from "../modules/dss/dss-overlay";
 
 /**
@@ -35,7 +35,7 @@ const STOPS_DSS: VectorStyleStop[] = [
 export interface DssOverlayParams {
   appezzamenti: Plot[];
   /** Punteggio sintetico 0..1 per appezzamento (id → sintesi). */
-  sintesiPerCampo: Map<string, SintesiCampo>;
+  sintesiPerCampo: Map<string, FieldSummary>;
   /** CropType prevalente, per la calibrazione della rampa/legenda. */
   coltura: CropType;
   /** true per mostrare l'overlay; false lo rimuove dalla mappa. */

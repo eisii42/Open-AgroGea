@@ -4,7 +4,7 @@
  * toggle è attivo (`operazioniMappaIds !== null`) e li rimuove allo spegnimento.
  *
  * Renderizza unicamente le operazioni VISIBILI nel registro (gli ID arrivano già
- * filtrati dal QuadernoPanel). Più operazioni sullo stesso appezzamento NON si
+ * filtrati dal LogbookPanel). Più operazioni sullo stesso appezzamento NON si
  * sovrappongono: vengono disposte ad anello (offset in pixel, stabile a ogni
  * zoom) attorno al centroid dell'appezzamento.
  */

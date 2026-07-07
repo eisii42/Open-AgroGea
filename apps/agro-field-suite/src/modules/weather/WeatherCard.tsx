@@ -52,7 +52,7 @@ function etichettaGiorno(
   return d.toLocaleDateString(locale, { weekday: "short" });
 }
 
-export function MeteoCard() {
+export function WeatherCard() {
   const { t, i18n } = useTranslation();
   const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
   const coordinate = useCoordinateAzienda();

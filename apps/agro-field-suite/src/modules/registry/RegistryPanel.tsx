@@ -150,7 +150,7 @@ function statoIniziale(azienda: Company | undefined): FormState {
   return out;
 }
 
-export function AnagraficaPanel({ onClose }: { onClose: () => void }) {
+export function RegistryPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
   const readOnly = useReadOnly(aziendaAttivaId);

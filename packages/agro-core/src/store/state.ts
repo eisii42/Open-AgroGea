@@ -410,7 +410,7 @@ export interface UiSlice {
   /**
    * Plot per cui aprire il Quaderno filtrato sulle sue lavorazioni
    * (click sul campo in mappa). `null` = nessuna richiesta pendente. Il
-   * QuadernoPanel lo consuma all'apertura impostando il filtro.
+   * LogbookPanel lo consuma all'apertura impostando il filtro.
    */
   quadernoApriAppezzamentoId: string | null;
   /**
@@ -450,7 +450,7 @@ export interface UiSlice {
   selectAppezzamento: (id: string | null) => Promise<void>;
   /** Apre il Quaderno filtrato sulle lavorazioni dell'appezzamento (click sul campo). */
   apriQuadernoPerAppezzamento: (appezzamentoId: string | null) => void;
-  /** Consuma la richiesta di apertura Quaderno (chiamata dal QuadernoPanel). */
+  /** Consuma la richiesta di apertura Quaderno (chiamata dal LogbookPanel). */
   consumaQuadernoApri: () => void;
   /** Apre il pannello Scouting con la scheda della nota (click sul punto in mappa). */
   apriScoutingPerOsservazione: (osservazioneId: string | null) => void;

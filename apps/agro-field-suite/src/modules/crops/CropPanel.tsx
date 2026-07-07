@@ -8,9 +8,9 @@ import { Button, cn } from "@geolibre/ui";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { type TargetDss, useDssCalcolo } from "../../hooks/useDssCalculation";
+import { type DssTarget, useDssCalcolo } from "../../hooks/useDssCalculation";
 import { CropDataForm } from "./CropDataForm";
-import { cropModulePerColtura } from "./index";
+import { cropModuleForCrop } from "./index";
 import { DssRiskCard } from "./shared/DssRiskCard";
 
 /**
@@ -138,11 +138,11 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
     });
 
   // Target = appezzamenti selezionati con una coltura/modulo DSS risolvibile.
-  const targets = useMemo<TargetDss[]>(() => {
-    const out: TargetDss[] = [];
+  const targets = useMemo<DssTarget[]>(() => {
+    const out: DssTarget[] = [];
     for (const a of appezzamenti) {
       if (!sel.has(a.id)) continue;
-      const modulo = cropModulePerColtura(
+      const modulo = cropModuleForCrop(
         cropForPlot(a.id, campiCampagna, crops),
       );
       if (modulo) out.push({ appezzamento: a, modulo });

@@ -1,5 +1,5 @@
 import type { WeatherReading } from "@agrogea/core";
-import type { MeteoGiornoDss } from "../types";
+import type { DssWeatherDay } from "../types";
 
 /**
  * Costruzione della serie meteo GIORNALIERA per i DSS, a partire dalle letture
@@ -162,7 +162,7 @@ function riempiMediaAdiacenti(
  * c'è alcuna lettura: i moduli interpretano la serie vuota come "dati meteo
  * assenti" senza crashare.
  */
-export function costruisciSerieDss(letture: WeatherReading[]): MeteoGiornoDss[] {
+export function buildDssSeries(letture: WeatherReading[]): DssWeatherDay[] {
   if (letture.length === 0) return [];
   const perGiorno = aggregaPerGiorno(letture);
   const date = [...perGiorno.keys()].sort();

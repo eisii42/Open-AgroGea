@@ -5,7 +5,7 @@ import {
   type OpzioniSuolo,
   useSuoloPipeline,
 } from "../../hooks/useSoilPipeline";
-import { cropModulePerColtura } from "../crops";
+import { cropModuleForCrop } from "../crops";
 
 /**
  * Orchestratore "Calcola tutto" del Command Center: per OGNI appezzamento esegue
@@ -77,7 +77,7 @@ export function useFullRecalc(onDone?: () => void) {
       }
 
       // 2) DSS patologici + bilancio idrico (solo se la coltura ha un modulo).
-      const modulo = cropModulePerColtura(
+      const modulo = cropModuleForCrop(
         cropForPlot(plot.id, campiCampagna, crops),
       );
       if (modulo) {

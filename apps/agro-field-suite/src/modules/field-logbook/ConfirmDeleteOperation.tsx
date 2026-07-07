@@ -17,7 +17,7 @@ import { useTranslation } from "react-i18next";
  * il pulsante distruttivo. Espone il messaggio legale obbligatorio prima di
  * eseguire il DELETE su PGlite.
  */
-export function ConfirmDeleteOperazione({
+export function ConfirmDeleteOperation({
   open,
   /** Etichetta dell'operazione da eliminare, per ricordare cosa si cancella. */
   etichetta,

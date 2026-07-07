@@ -36,7 +36,7 @@ import {
   loadKpiParams,
   persistKpiParams,
 } from "../modules/analytics/kpi-config";
-import { scaricaArtifact } from "../services/gis/geo-export";
+import { downloadArtifact } from "../services/gis/geo-export";
 
 /** Pagine del Data Command Center (tab di primo livello sotto l'header). */
 type CommandCenterPage = "crops" | "company";
@@ -220,7 +220,7 @@ export function CommandCenter() {
       companyName,
     });
     const filename = executiveReportFilename(companyName, campaignYear);
-    scaricaArtifact({
+    downloadArtifact({
       filename,
       blobPart: csv,
       mime: "text/csv;charset=utf-8",

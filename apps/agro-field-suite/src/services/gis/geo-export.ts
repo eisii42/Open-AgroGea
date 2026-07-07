@@ -353,7 +353,7 @@ export function combinaLayer(
 }
 
 /** Scarica un artefatto via `<a download>` (funziona nella webview Tauri). */
-export function scaricaArtifact(artifact: ExportArtifact): void {
+export function downloadArtifact(artifact: ExportArtifact): void {
   const blob = new Blob([artifact.blobPart], { type: artifact.mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

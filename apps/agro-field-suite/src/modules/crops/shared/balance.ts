@@ -23,7 +23,7 @@ import {
  * qui si seleziona solo quello giusto per specie+fase e si proietta il bilancio.
  */
 
-export interface BilancioColturaInput {
+export interface CropBalanceInput {
   specie: SpecieFenologica;
   fase: FaseFenologica;
   /** Serie meteo giornaliera (stessa lunghezza di `pioggiaSerie`). */
@@ -35,7 +35,7 @@ export interface BilancioColturaInput {
   deplezioneIniziale?: number;
 }
 
-export interface BilancioColturaOutput {
+export interface CropBalanceOutput {
   /** Coefficiente colturale Kc usato (specie + fase). */
   kc: number;
   /** ETc giornaliera (mm). */
@@ -46,9 +46,9 @@ export interface BilancioColturaOutput {
   giorniAutonomia: number;
 }
 
-export function bilancioIdricoColtura(
-  input: BilancioColturaInput,
-): BilancioColturaOutput {
+export function cropWaterBalance(
+  input: CropBalanceInput,
+): CropBalanceOutput {
   const kc = getCalibrazioneFase(input.specie, input.fase).kc;
   const etcSerie = input.meteo.map((giorno) =>
     etColturale(et0PenmanMonteith(giorno), kc),

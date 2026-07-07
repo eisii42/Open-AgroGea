@@ -1,7 +1,7 @@
 /**
  * Scheda dettaglio di una raccolta: modale centrale in sola lettura con TUTTE le
  * informazioni registrate (cultivar, destinazione, quantità, lotto, note).
- * Speculare a {@link OperazioneDettaglioCard} del Quaderno; si apre al tap/click
+ * Speculare a {@link OperationDetailCard} del Quaderno; si apre al tap/click
  * su una voce della lista del registro raccolte.
  */
 import type { Harvest } from "@agrogea/core";
@@ -21,7 +21,7 @@ function dataEstesa(value: string | Date): string {
       });
 }
 
-export function RaccoltaDettaglioCard({
+export function HarvestDetailCard({
   raccolta,
   appezzamentoNome,
   onClose,

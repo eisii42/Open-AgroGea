@@ -5,7 +5,7 @@ export { bilancioVite } from "./balance";
 export { dssVite } from "./dss";
 
 /** Modulo coltura Vite: DSS peronospora/oidio, specie fenologica "vite". */
-export const viteModule: CropModule = {
+export const grapevineModule: CropModule = {
   id: "vite",
   label: "Vite",
   categorie: ["viticoltura"],

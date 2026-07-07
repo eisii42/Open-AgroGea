@@ -106,7 +106,7 @@ function prettyModelName(modelName: string): string {
 
 /**
  * Modulo coltura (id) di ciascuna categoria. I `dss_results.model_name` sono
- * scritti come `"<moduloId>_<dssId>"` (vedi `esitiToRisultatiDss`), quindi la
+ * scritti come `"<moduloId>_<dssId>"` (vedi `outcomesToDssResults`), quindi la
  * coerenza coltura↔modello (Modulo 1.2) si verifica sul PREFISSO del modulo —
  * robusto sia per i modelli patologici (es. `vite_peronospora`) sia per quelli
  * fenologici/accumulo (es. `cereali_spigatura`, `frutta_sviluppo-melo`), che il

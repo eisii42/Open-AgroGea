@@ -26,7 +26,7 @@ function dataEstesa(value: string): string {
       });
 }
 
-export function OperazioneDettaglioCard({
+export function OperationDetailCard({
   operazione,
   appezzamentoNome,
   onClose,

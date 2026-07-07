@@ -17,12 +17,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useGeoCompliance } from "../compliance/useGeoCompliance";
 import { useCountryCatalog } from "../../hooks/useTenantCountry";
-import { ConfirmDeleteOperazione } from "./ConfirmDeleteOperation";
-import { OperazioneDettaglioCard } from "./OperationDetailCard";
+import { ConfirmDeleteOperation } from "./ConfirmDeleteOperation";
+import { OperationDetailCard } from "./OperationDetailCard";
 import {
   type AssegnazioneColtura,
   OPERAZIONI,
-  OperazioneForm,
+  OperationForm,
   operazioneSpec,
 } from "./OperationForm";
 
@@ -42,7 +42,7 @@ const TIPO_COLOR: Record<string, string> = {
  * Il form può aprirsi pre-mirato a un appezzamento tramite la scorciatoia "QDC"
  * del popup del campo (store: quadernoNuovoAppezzamentoId).
  */
-export function QuadernoPanel({ onClose }: { onClose: () => void }) {
+export function LogbookPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const trattamenti = useAgroStore((s) => s.trattamenti);
   const appezzamenti = useAgroStore((s) => s.appezzamenti);
@@ -306,7 +306,7 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
       }
     >
       {formType ? (
-        <OperazioneForm
+        <OperationForm
           key={formNonce}
           operationType={formType}
           appezzamenti={appezzamenti}
@@ -515,7 +515,7 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
         </div>
       )}
 
-      <ConfirmDeleteOperazione
+      <ConfirmDeleteOperation
         open={daEliminare != null}
         etichetta={daEliminare ? etichettaOperazione(daEliminare) : ""}
         onConfirm={confermaEliminazione}
@@ -523,7 +523,7 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
       />
 
       {dettaglio && (
-        <OperazioneDettaglioCard
+        <OperationDetailCard
           operazione={dettaglio}
           appezzamentoNome={
             appezzamenti.find((a) => a.id === dettaglio.plot_id)?.user_plot_name ??

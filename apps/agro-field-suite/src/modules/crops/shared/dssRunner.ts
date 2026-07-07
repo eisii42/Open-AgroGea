@@ -1,6 +1,6 @@
 import type { DssRiskLevel } from "@agrogea/core";
 import type { AlertFitopatologico, LivelloRischio } from "@agrogea/tools";
-import type { ContestoDss, CropModule, DssModel, MeteoGiornoDss } from "../types";
+import type { DssContext, CropModule, DssModel, DssWeatherDay } from "../types";
 
 /**
  * Runner dei DSS di coltura (refactor §3): esegue in locale i modelli del
@@ -11,7 +11,7 @@ import type { ContestoDss, CropModule, DssModel, MeteoGiornoDss } from "../types
  */
 
 /** Esito di un singolo DSS, pronto sia per la UI sia per la cache. */
-export interface EsitoDss {
+export interface DssOutcome {
   dss: DssModel;
   /** Alert completo del motore (null = nessun rischio nella finestra). */
   alert: AlertFitopatologico | null;
@@ -35,11 +35,11 @@ function normalizzaLivello(rischio: LivelloRischio): DssRiskLevel {
 }
 
 /** Esegue tutti i DSS del modulo sulla serie, con guardia anti-crash per modello. */
-export function eseguiDssModulo(
+export function runDssModule(
   modulo: CropModule,
-  serie: MeteoGiornoDss[],
-  contesto?: ContestoDss,
-): EsitoDss[] {
+  serie: DssWeatherDay[],
+  contesto?: DssContext,
+): DssOutcome[] {
   return modulo.dss.map((dss) => {
     let alert: AlertFitopatologico | null = null;
     try {
@@ -59,8 +59,8 @@ export function eseguiDssModulo(
 }
 
 /** Proietta gli esiti nelle righe accettate da `AgroDal.salvaDssRisultati`. */
-export function esitiToRisultatiDss(
-  esiti: EsitoDss[],
+export function outcomesToDssResults(
+  esiti: DssOutcome[],
 ): Array<{
   model_name: string;
   risk_level: DssRiskLevel;

@@ -4,7 +4,7 @@ export {
   AVVERSITA_PAN,
   type CampoCampagnaOption,
   type ComplianceTrattamento,
-  TrattamentoForm,
+  TreatmentForm,
   type TrattamentoFormProps,
   type TrattamentoFormValues,
 } from "./components/TreatmentForm";

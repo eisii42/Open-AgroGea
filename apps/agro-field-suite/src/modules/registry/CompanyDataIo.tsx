@@ -21,7 +21,7 @@ import { STANDALONE } from "../../standalone";
  *     ripristino che sovrascrive lo stato corrente, previa conferma.
  *
  * Collocazione: Anagrafica/Impostazioni Company (cloud) e Data Command Center
- * (standalone) — vedi punti d'innesto in AnagraficaPanel / CommandCenter.
+ * (standalone) — vedi punti d'innesto in RegistryPanel / CommandCenter.
  */
 type Status =
   | { kind: "idle" }

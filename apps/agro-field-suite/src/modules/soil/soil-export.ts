@@ -15,7 +15,7 @@ import {
  */
 
 /** Riga giornaliera dello storico idrico (schema `soil_water_indices`). */
-export interface RigaStoricoUmidita {
+export interface MoistureHistoryRow {
   date: string;
   et0: number;
   etc: number;
@@ -29,7 +29,7 @@ export interface RigaStoricoUmidita {
 }
 
 /** Formati ammessi per l'export dello storico umidità. */
-export type FormatoStoricoUmidita = "geojson" | "shapefile" | "csv";
+export type MoistureHistoryFormat = "geojson" | "shapefile" | "csv";
 
 /** Baricentro grezzo (media dei vertici) del poligono, senza dipendenze pesanti. */
 function baricentro(geometry: Plot["geometry"]): Position {
@@ -51,9 +51,9 @@ function baricentro(geometry: Plot["geometry"]): Position {
  * Costruisce la FeatureCollection dello storico: un punto per giorno al
  * baricentro dell'appezzamento, con gli indici idrici come attributi numerici.
  */
-export function costruisciStoricoUmiditaFc(
+export function buildMoistureHistoryFc(
   appezzamento: Plot,
-  serie: RigaStoricoUmidita[],
+  serie: MoistureHistoryRow[],
 ): FeatureCollection {
   const centro = baricentro(appezzamento.geometry);
   const features: Feature<Point>[] = serie.map((r) => ({
@@ -82,9 +82,9 @@ export function costruisciStoricoUmiditaFc(
  * delegano a {@link serializzaVettoriale}; il CSV usa la variante localizzata
  * europea (`;` + BOM UTF-8) attesa da Excel IT/ES.
  */
-export function serializzaStoricoUmidita(
+export function serializeMoistureHistory(
   fc: FeatureCollection,
-  formato: FormatoStoricoUmidita,
+  formato: MoistureHistoryFormat,
   baseName: string,
 ): ExportArtifact {
   if (formato === "csv") {

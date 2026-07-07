@@ -152,7 +152,7 @@ function buildChartData(
   return { rows: [...byDate.values()], serie: risultati.map((r) => r.nome) };
 }
 
-export function SuoloPanel({ onClose }: { onClose: () => void }) {
+export function SoilPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const INDICI = useMemo(() => getIndici(t), [t]);
   const STRATEGIE = useMemo(() => getStrategie(t), [t]);
