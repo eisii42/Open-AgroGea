@@ -913,6 +913,8 @@
       "mezzo": "Maquinaria",
       "intervallo_rientro_h": "Reentrada (h)",
       "carenza_giorni": "Plazo de seguridad (días)",
+      "raccolta_kg": "Cantidad cosechada (kg)",
+      "destinazione": "Destino de la cosecha",
       "note": "Notas"
     },
     "crops": "Cultivos",

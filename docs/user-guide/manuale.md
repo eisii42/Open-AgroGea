@@ -280,6 +280,8 @@ Dal pulsante **Command Center** nell'header passi dalla mappa alla **dashboard**
 - **Spagna — SIEX/CUE:** *Cuaderno Digital* in JSON (FEGA).
 - **Altri Paesi UE / Francia:** CSV internazionale (separatore `,`, date ISO).
 
+L'export CSV copre l'**intero Quaderno di Campagna Agraria**: comprende sia i trattamenti sia le **raccolte** (riga «Raccolta» con quantità in kg e destinazione). Il tipo operazione è riportato **nella tua lingua**, non con codici interni. I **codici SIAN/SIEX** compaiono anche se compilati nella scheda coltura dopo aver registrato l'operazione: vengono risolti per appezzamento e annata, così basta completarli una volta in Dati coltura. Colonne, ordine, separatore e filtri (date, campi, colture, tipi) restano interamente configurabili.
+
 **Import del Fascicolo SIAN** — puoi importare il Fascicolo Aziendale: AgroGea crea gli appezzamenti mancanti dalle geometrie, normalizza le colture e popola la Campagna dell'annata, riconoscendo i campi già presenti senza duplicati.
 
 **Export delle geometrie** — appezzamenti e layer in **GeoJSON, KML, GPX, CSV, Shapefile**.

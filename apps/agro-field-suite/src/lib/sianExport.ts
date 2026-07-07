@@ -1,6 +1,7 @@
 import type {
   Appezzamento,
   CampoCampagna,
+  Raccolta,
   RegistroTrattamento,
   TipoOperazione,
 } from "@agrogea/core";
@@ -35,6 +36,16 @@ function csvCell(value: unknown, separatore: SeparatoreCsv): string {
  * {@link buildSianCsv}/{@link esportaSianCsv} così l'intestazione del CSV
  * segue la lingua attiva invece di restare fissa in italiano.
  */
+/**
+ * Contesto passato agli estrattori di colonna: risolutori dipendenti dalla UI
+ * (es. l'etichetta localizzata del tipo operazione) che il modulo puro non può
+ * conoscere. Opzionale: senza, gli estrattori usano i default italiani.
+ */
+export interface SianColumnContext {
+  /** Etichetta localizzata del tipo operazione (default: italiano). */
+  resolveOperationType?: (op: TipoOperazione) => string;
+}
+
 export interface SianColumn {
   id: string;
   label: string;
@@ -42,7 +53,30 @@ export interface SianColumn {
     t: RegistroTrattamento,
     app: Appezzamento | undefined,
     campo: CampoCampagna | undefined,
+    ctx?: SianColumnContext,
   ) => unknown;
+}
+
+/**
+ * Etichette italiane di default del tipo operazione: il CSV NON deve mai
+ * riportare il codice interno inglese (`phytosanitary`, `harvest`…). La UI
+ * sovrascrive con la lingua attiva via {@link SianColumnContext}.
+ */
+export const ETICHETTE_TIPO_IT: Record<string, string> = {
+  phytosanitary: "Trattamento fitosanitario",
+  fertilization: "Fertilizzazione",
+  irrigation: "Irrigazione",
+  tillage: "Lavorazione",
+  sowing: "Semina/Trapianto",
+  harvest: "Raccolta",
+  sampling: "Campionamento",
+};
+
+function etichettaTipoOperazione(
+  op: TipoOperazione,
+  ctx?: SianColumnContext,
+): string {
+  return ctx?.resolveOperationType?.(op) ?? ETICHETTE_TIPO_IT[op] ?? op;
 }
 
 /**
@@ -69,7 +103,9 @@ export const COLONNE_SIAN: SianColumn[] = [
   {
     id: "tipo_operazione",
     label: "Tipo operazione",
-    value: (t) => t.operation_type,
+    // Etichetta leggibile (mai il codice interno inglese): default italiano,
+    // sovrascrivibile con la lingua attiva dalla UI.
+    value: (t, _a, _c, ctx) => etichettaTipoOperazione(t.operation_type, ctx),
   },
   { id: "prodotto", label: "Prodotto", value: (t) => t.product_name ?? "" },
   {
@@ -149,6 +185,23 @@ export const COLONNE_SIAN: SianColumn[] = [
     label: "Carenza (gg)",
     value: (t) => t.safety_period_days ?? "",
   },
+  // -- colonne del Modulo Raccolta (righe con tipo_operazione = harvest) --
+  {
+    id: "raccolta_kg",
+    label: "Quantità raccolta (kg)",
+    value: (t) =>
+      t.operation_type === "harvest" ? t.total_quantity ?? "" : "",
+  },
+  {
+    id: "destinazione",
+    label: "Destinazione raccolta",
+    // La destinazione della raccolta è congelata in metadata.destinazione (vedi
+    // raccolteToOperazioni); vuota per le altre operazioni.
+    value: (t) =>
+      t.operation_type === "harvest"
+        ? (t.weather_conditions as { destinazione?: string } | null)?.destinazione ?? ""
+        : "",
+  },
   { id: "note", label: "Note", value: (t) => t.note ?? "" },
 ];
 
@@ -173,6 +226,9 @@ export const COLONNE_SIAN_DEFAULT: string[] = [
   "operatore_cf",
   "num_patentino",
   "carenza_giorni",
+  // Raccolta (QDCA): valorizzate solo sulle righe harvest, vuote altrove.
+  "raccolta_kg",
+  "destinazione",
 ];
 
 function isoData(iso: string): string {
@@ -262,9 +318,36 @@ export function risolviColonne(ids: string[]): SianColumn[] {
 }
 
 /**
- * Genera il testo CSV dal registro (già filtrato) secondo la config. Il join con
- * `campiCampagna` (per `plot_campaign_id`) alimenta le colonne dei riferimenti
- * ministeriali, congelati allo stato di campagna del momento dell'operazione.
+ * Risolve la campagna agraria di un'operazione per popolare i riferimenti
+ * ministeriali (codici SIAN/SIEX). Prima cerca l'aggancio diretto
+ * (`plot_campaign_id`); se manca — o punta a una riga non caricata — ricade sul
+ * match per appezzamento + anno dell'operazione. Così i codici compilati nella
+ * scheda coltura DOPO la registrazione (o su operazioni non agganciate, come la
+ * semina con auto-assegnazione) compaiono comunque nell'export.
+ */
+function risolviCampo(
+  t: RegistroTrattamento,
+  perCampoId: Map<string, CampoCampagna>,
+  perPlotAnno: Map<string, CampoCampagna[]>,
+): CampoCampagna | undefined {
+  if (t.plot_campaign_id) {
+    const diretto = perCampoId.get(t.plot_campaign_id);
+    if (diretto) return diretto;
+  }
+  if (!t.plot_id) return undefined;
+  const anno = new Date(t.executed_at).getUTCFullYear();
+  const candidati = perPlotAnno.get(`${t.plot_id}:${anno}`);
+  if (!candidati || candidati.length === 0) return undefined;
+  // Preferisce la campagna APERTA (una sola per plot+anno grazie all'indice
+  // parziale); se tutte chiuse (es. raccolto già registrato) prende l'ultima.
+  return candidati.find((c) => c.closed_at == null) ?? candidati[0];
+}
+
+/**
+ * Genera il testo CSV dal registro (già filtrato) secondo la config. La
+ * campagna agraria si risolve via `plot_campaign_id` con FALLBACK per
+ * appezzamento+anno (vedi {@link risolviCampo}): i codici ministeriali seguono
+ * lo stato di campagna corrente, non una fotografia al momento dell'operazione.
  */
 export function buildSianCsv(
   trattamenti: RegistroTrattamento[],
@@ -274,22 +357,78 @@ export function buildSianCsv(
   // Risolve l'etichetta di intestazione per colonna; default = etichetta IT
   // hardcoded (usata dai test e da chi consuma il modulo fuori dalla UI).
   resolveLabel: (col: SianColumn) => string = (col) => col.label,
+  ctx: SianColumnContext = {},
 ): string {
   const perId = new Map(appezzamenti.map((a) => [a.id, a]));
   const perCampo = new Map(campiCampagna.map((c) => [c.id, c]));
+  // Indice appezzamento+anno per il fallback di risoluzione campagna.
+  const perPlotAnno = new Map<string, CampoCampagna[]>();
+  for (const c of campiCampagna) {
+    if (c.deleted_at != null) continue;
+    const key = `${c.plot_id}:${c.campaign_year}`;
+    const list = perPlotAnno.get(key) ?? [];
+    list.push(c);
+    perPlotAnno.set(key, list);
+  }
   const cols = risolviColonne(config.colonne);
   const sep = config.separatore;
   const righe = trattamenti.map((t) => {
     const app = t.plot_id ? perId.get(t.plot_id) : undefined;
-    const campo = t.plot_campaign_id
-      ? perCampo.get(t.plot_campaign_id)
-      : undefined;
-    return cols.map((c) => csvCell(c.value(t, app, campo), sep)).join(sep);
+    const campo = risolviCampo(t, perCampo, perPlotAnno);
+    return cols.map((c) => csvCell(c.value(t, app, campo, ctx), sep)).join(sep);
   });
   const lines = config.includiIntestazioni
     ? [cols.map((c) => csvCell(resolveLabel(c), sep)).join(sep), ...righe]
     : righe;
   return lines.join("\n");
+}
+
+/**
+ * Mappa gli eventi di raccolta (`harvest_logs`) in operazioni sintetiche del
+ * Quaderno (`operation_type = "harvest"`), così confluiscono nello STESSO
+ * export del registro trattamenti (requisito QDCA: la raccolta è parte del
+ * Quaderno di Campagna). La cultivar diventa il "prodotto", i kg la quantità
+ * totale, la destinazione è congelata in `weather_conditions.destinazione` (bag
+ * di metadati in memoria, mai persistito). L'aggancio alla campagna (`plot_id`,
+ * `plot_campaign_id`) è preservato per la risoluzione dei codici SIAN.
+ */
+export function raccolteToOperazioni(
+  raccolte: Raccolta[],
+): RegistroTrattamento[] {
+  return raccolte
+    .filter((r) => r.deleted_at == null)
+    .map((r) => ({
+      id: r.id,
+      tenant_id: r.tenant_id,
+      company_id: r.company_id,
+      plot_id: r.plot_id,
+      plot_campaign_id: r.plot_campaign_id,
+      operation_type: "harvest",
+      product_name: r.cultivar,
+      registration_number: null,
+      dose_value: null,
+      dose_unit: null,
+      total_quantity: r.quantity_kg,
+      target_disease: null,
+      operator_name: null,
+      machinery_equipment: null,
+      active_substance: null,
+      water_volume_l: null,
+      operator_tax_code: null,
+      license_number: null,
+      fertilizer_type: null,
+      npk_ratio: null,
+      executed_at: r.harvested_at,
+      reentry_interval_h: null,
+      safety_period_days: null,
+      weather_conditions: r.destination_logistics
+        ? { destinazione: r.destination_logistics }
+        : null,
+      note: r.notes,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+      deleted_at: r.deleted_at,
+    }));
 }
 
 /** Nome file deterministico per l'export. */
@@ -330,6 +469,7 @@ export function esportaSianCsv(
   config: SianExportConfig = CONFIG_SIAN_DEFAULT,
   campiCampagna: CampoCampagna[] = [],
   resolveLabel?: (col: SianColumn) => string,
+  ctx: SianColumnContext = {},
 ): string {
   const csv = buildSianCsv(
     trattamenti,
@@ -337,6 +477,7 @@ export function esportaSianCsv(
     config,
     campiCampagna,
     resolveLabel,
+    ctx,
   );
   return scaricaSianCsv(csv, config, nomeAzienda);
 }

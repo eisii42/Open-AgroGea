@@ -280,6 +280,8 @@ From the **Command Center** button in the header you switch from the map to the 
 - **Spain — SIEX/CUE:** *Cuaderno Digital* in JSON (FEGA).
 - **Other EU countries / France:** international CSV (separator `,`, ISO dates).
 
+The CSV export covers the **whole Field Logbook (QDCA)**: it includes both treatments and **harvests** (a «Harvest» row with quantity in kg and destination). The operation type is written **in your language**, not as internal codes. The **SIAN/SIEX codes** appear even if filled in the crop sheet after recording the operation: they are resolved by parcel and season, so you only need to complete them once in Crop data. Columns, order, separator and filters (dates, fields, crops, types) remain fully configurable.
+
 **SIAN Dossier import** — you can import the Farm Dossier: AgroGea creates the missing parcels from the geometries, normalizes the crops and populates the season's Campaign, recognizing already-present fields without duplicates.
 
 **Geometry export** — parcels and layers in **GeoJSON, KML, GPX, CSV, Shapefile**.

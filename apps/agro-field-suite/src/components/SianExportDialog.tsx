@@ -1,4 +1,5 @@
 import {
+  type CampoCampagna,
   colturaPerAppezzamento,
   type TipoOperazione,
   useAgroStore,
@@ -15,15 +16,15 @@ import {
   Select,
 } from "@geolibre/ui";
 import { ArrowDown, ArrowUp, FileDown, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import {
   COLONNE_SIAN,
   COLONNE_SIAN_DEFAULT,
-  CONFIG_SIAN_DEFAULT,
   esportaSianCsv,
   filtraTrattamentiSian,
+  raccolteToOperazioni,
   type SeparatoreCsv,
   type SianColumn,
   type SianExportConfig,
@@ -82,14 +83,40 @@ export function SianExportDialog({
 }) {
   const { t } = useTranslation();
   const trattamenti = useAgroStore((s) => s.trattamenti);
+  const raccolte = useAgroStore((s) => s.raccolte);
   const appezzamenti = useAgroStore((s) => s.appezzamenti);
   const campiCampagna = useAgroStore((s) => s.campiCampagna);
   const crops = useAgroStore((s) => s.crops);
   const aziende = useAgroStore((s) => s.aziende);
   const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
+  const agroDal = useAgroStore((s) => s.dal);
   const registraTrasferimento = useAgroStore((s) => s.registraTrasferimento);
 
   const azienda = aziende.find((a) => a.id === aziendaAttivaId);
+
+  // Campagne di TUTTI gli anni (lo store ne tiene solo l'anno attivo): servono a
+  // risolvere i codici SIAN delle operazioni di annate diverse. Caricate
+  // all'apertura del dialog; fallback allo store finché non arrivano.
+  const [campiTutti, setCampiTutti] = useState<CampoCampagna[]>([]);
+  useEffect(() => {
+    if (!open || !agroDal) return;
+    let alive = true;
+    void agroDal.listCampiCampagna({}).then((rows) => {
+      if (alive) setCampiTutti(rows);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [open, agroDal]);
+  const campiExport = campiTutti.length > 0 ? campiTutti : campiCampagna;
+
+  // Sorgente unica del QDCA: registro trattamenti + raccolte mappate come
+  // operazioni sintetiche (operation_type = "harvest"), così l'export copre
+  // l'intero Quaderno di Campagna Agraria.
+  const operazioni = useMemo(
+    () => [...trattamenti, ...raccolteToOperazioni(raccolte)],
+    [trattamenti, raccolte],
+  );
 
   // -- filtri temporali --
   const [dal, setDal] = useState("");
@@ -128,8 +155,8 @@ export function SianExportDialog({
   );
 
   const righeFiltrate = useMemo(
-    () => filtraTrattamentiSian(trattamenti, appezzamenti, filtri),
-    [trattamenti, appezzamenti, filtri],
+    () => filtraTrattamentiSian(operazioni, appezzamenti, filtri),
+    [operazioni, appezzamenti, filtri],
   );
 
   const colonneNonSelezionate = COLONNE_SIAN.filter(
@@ -164,8 +191,10 @@ export function SianExportDialog({
       appezzamenti,
       azienda?.business_name,
       config,
-      campiCampagna,
+      campiExport,
       (col) => etichettaColonna(t, col),
+      // Etichetta del tipo operazione nella lingua attiva (mai il codice inglese).
+      { resolveOperationType: (op) => etichettaTipo(t, op) },
     );
     void registraTrasferimento({
       operation_type: "export",

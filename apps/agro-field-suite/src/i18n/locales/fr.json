@@ -913,6 +913,8 @@
       "mezzo": "Machine",
       "intervallo_rientro_h": "Délai de rentrée (h)",
       "carenza_giorni": "Délai avant récolte (j)",
+      "raccolta_kg": "Quantité récoltée (kg)",
+      "destinazione": "Destination de la récolte",
       "note": "Notes"
     },
     "crops": "Cultures",

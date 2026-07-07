@@ -8,6 +8,11 @@ Gli installer nativi di ogni versione rilasciata sono su [GitHub Releases](https
 
 ## [Non rilasciato]
 
+### Corretto — Export CSV del Quaderno di Campagna (QDCA)
+- **Tipo operazione localizzato**: il CSV riporta l'etichetta leggibile nella lingua attiva (es. «Raccolta», «Semina/Trapianto») invece del codice interno inglese (`harvest`, `sowing`); default italiano anche fuori dalla UI.
+- **Codici SIAN sempre riportati**: i riferimenti ministeriali (codice coltura, isola, appezzamento) si risolvono via `plot_campaign_id` con **fallback per appezzamento + anno**, così i codici compilati nella scheda coltura DOPO la registrazione — o su operazioni non agganciate (es. semina con auto-assegnazione) — compaiono comunque. Il dialog carica le campagne di **tutte le annate**, non solo quella attiva.
+- **Le raccolte rientrano nel QDCA**: gli eventi di raccolta (`harvest_logs`) confluiscono nell'export come operazioni `harvest` (cultivar, quantità raccolta in kg, destinazione), con i codici SIAN della campagna del campo; due nuove colonne dedicate «Quantità raccolta (kg)» e «Destinazione raccolta».
+
 ### Aggiunto — 0.2.0 «Magazzino»
 - **Magazzino con anagrafiche reali** (schema locale v16, migrazione additiva e non distruttiva): tabelle `products` (categorie rigide: agrofarmaci con n. registrazione PAN, concimi con titoli N-P-K, sementi, carburante con assegnazione UMA), `product_lots` (lotto, scadenza, giacenza, costo di carico) e `activity_products` (giunzione attività ↔ lotto con costo imputato). Le nuove entità sono sincronizzate via `sync_outbox` come le altre tabelle di dominio; il rollback logico è documentato in testa a `packages/agro-core/src/db/schema.ts`. I campi a testo libero di `treatment_logs` restano intatti come fallback.
 - **Nuovo pannello Magazzino** (sidebar → Magazzino): anagrafica prodotti con campi obbligatori per categoria, carico lotti con scadenza e costo, giacenze e **alert di scadenza** con soglia configurabile (default 30 giorni).

@@ -913,6 +913,8 @@
       "mezzo": "Mezzo / macchina",
       "intervallo_rientro_h": "Rientro (h)",
       "carenza_giorni": "Carenza (gg)",
+      "raccolta_kg": "Quantità raccolta (kg)",
+      "destinazione": "Destinazione raccolta",
       "note": "Note"
     },
     "crops": "Colture",

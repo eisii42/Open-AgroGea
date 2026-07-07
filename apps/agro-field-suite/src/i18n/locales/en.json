@@ -913,6 +913,8 @@
       "mezzo": "Machinery",
       "intervallo_rientro_h": "Re-entry (h)",
       "carenza_giorni": "Pre-harvest interval (days)",
+      "raccolta_kg": "Harvested quantity (kg)",
+      "destinazione": "Harvest destination",
       "note": "Notes"
     },
     "crops": "Crops",
