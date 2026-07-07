@@ -1,5 +1,8 @@
 import {
+  dichiarativiMancanti,
   type RegistroTrattamento,
+  type ScaricoRichiesta,
+  sistemaDichiarativo,
   type TipoOperazione,
   useAgroStore,
 } from "@agrogea/core";
@@ -9,14 +12,19 @@ import {
   type TrattamentoFormValues,
 } from "@agrogea/ui";
 import { Button, cn, Input, Label, Select } from "@geolibre/ui";
-import { MapPin, MapPinOff, Trash2 } from "lucide-react";
+import { Copy, MapPin, MapPinOff, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useGeoCompliance } from "../modules/compliance/useGeoCompliance";
 import { useCountryCatalog } from "../hooks/useTenantCountry";
 import { ConfirmDeleteOperazione } from "./ConfirmDeleteOperazione";
 import { OperazioneDettaglioCard } from "./OperazioneDettaglioCard";
-import { OPERAZIONI, OperazioneForm, operazioneSpec } from "./OperazioneForm";
+import {
+  type AssegnazioneColtura,
+  OPERAZIONI,
+  OperazioneForm,
+  operazioneSpec,
+} from "./OperazioneForm";
 
 const TIPO_COLOR: Record<string, string> = {
   phytosanitary: "var(--danger)",
@@ -42,12 +50,19 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
   const valutaCompliance = useGeoCompliance();
   // Cataloghi di stato filtrati per il country_code risolto del tenant (Modulo 3):
   // i dropdown Prodotto/Concime mostrano solo le voci del registro nazionale.
-  const { voci: fitosanitari } = useCountryCatalog("phytosanitary");
+  const { voci: fitosanitari, countryCode } = useCountryCatalog("phytosanitary");
   const { voci: concimi } = useCountryCatalog("fertilizer");
+  // Magazzino (0.2.0): anagrafica e lotti per la sezione di scarico del form.
+  const prodotti = useAgroStore((s) => s.prodotti);
+  const lotti = useAgroStore((s) => s.lotti);
   const sync = useAgroStore((s) => s.sync);
   const registraTrattamento = useAgroStore((s) => s.registraTrattamento);
   const salvaCampionamento = useAgroStore((s) => s.salvaCampionamento);
   const eliminaTrattamento = useAgroStore((s) => s.eliminaTrattamento);
+  // Automazione v17: semina con semente → scheda coltura + campagna agraria.
+  const salvaCrop = useAgroStore((s) => s.salvaCrop);
+  const salvaCampoCampagna = useAgroStore((s) => s.salvaCampoCampagna);
+  const campagnaAttiva = useAgroStore((s) => s.campagnaAttiva);
   const quadernoApriAppezzamentoId = useAgroStore(
     (s) => s.quadernoApriAppezzamentoId,
   );
@@ -60,26 +75,78 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
   const [formType, setFormType] = useState<TipoOperazione | null>(null);
   const [chooser, setChooser] = useState(false);
   const [formDefaultAppId, setFormDefaultAppId] = useState<string>("");
+  // Valori iniziali per "Ripeti operazione" (v17); null = form vuoto. Il nonce
+  // fa da key del form: rimonta il componente a ogni apertura, così gli
+  // initializer di stato rileggono i default.
+  const [formDefaults, setFormDefaults] =
+    useState<Partial<TrattamentoFormValues> | null>(null);
+  const [formNonce, setFormNonce] = useState(0);
 
-  // Opzioni di campo per la Campagna Agraria attiva (nome + codice coltura SIAN).
+  // Opzioni di campo per la Campagna Agraria attiva (nome + codice coltura
+  // SIAN). Solo campagne APERTE: quelle chiuse dal raccolto (v17) non sono più
+  // un target valido per nuove operazioni, e il campo risulta "senza coltura"
+  // (abilita l'auto-assegnazione alla semina).
   const campiCampagnaOptions = useMemo<CampoCampagnaOption[]>(
     () =>
-      campiCampagna.map((c) => ({
-        campoCampagnaId: c.id,
-        appezzamentoId: c.plot_id,
-        nome:
-          appezzamenti.find((a) => a.id === c.plot_id)?.user_plot_name ??
-          t("quadernoPanel.fieldFallbackName", { id: c.plot_id.slice(0, 6) }),
-        codiceColturaSian: c.crop_external_code,
-        superficieHa: c.declared_area_ha,
-      })),
-    [campiCampagna, appezzamenti],
+      campiCampagna
+        .filter((c) => c.closed_at == null && c.deleted_at == null)
+        .map((c) => {
+          const base =
+            appezzamenti.find((a) => a.id === c.plot_id)?.user_plot_name ??
+            t("quadernoPanel.fieldFallbackName", { id: c.plot_id.slice(0, 6) });
+          // Badge compliance: dichiarativi incompleti per il sistema del paese
+          // (IT → SIAN, ES → SIEX), visibile a ogni selezione del campo.
+          const sistema = sistemaDichiarativo(countryCode);
+          const dichiarativiKo =
+            sistema != null && dichiarativiMancanti(countryCode, c).length > 0;
+          return {
+            campoCampagnaId: c.id,
+            appezzamentoId: c.plot_id,
+            nome: dichiarativiKo ? `${base} · ${sistema} ✗` : base,
+            codiceColturaSian: c.crop_external_code,
+            superficieHa: c.declared_area_ha,
+          };
+        }),
+    [campiCampagna, appezzamenti, countryCode],
   );
 
   function apriForm(type: TipoOperazione) {
     setFormType(type);
     setFormDefaultAppId(filtroAppId);
+    setFormDefaults(null);
+    setFormNonce((n) => n + 1);
     setChooser(false);
+  }
+
+  // "Ripeti operazione" (v17): riapre il form del tipo giusto precompilato dal
+  // record esistente; la data resta oggi e gli scarichi si riscelgono sui
+  // lotti attuali del magazzino.
+  function ripetiOperazione(op: RegistroTrattamento) {
+    setFormDefaults({
+      plot_id: op.plot_id,
+      plot_campaign_id: op.plot_campaign_id,
+      product_name: op.product_name,
+      registration_number: op.registration_number,
+      active_substance: op.active_substance,
+      target_disease: op.target_disease,
+      dose_value: op.dose_value,
+      dose_unit: op.dose_unit,
+      water_volume_l: op.water_volume_l,
+      total_quantity: op.total_quantity,
+      fertilizer_type: op.fertilizer_type,
+      npk_ratio: op.npk_ratio,
+      operator_name: op.operator_name,
+      operator_tax_code: op.operator_tax_code,
+      license_number: op.license_number,
+      machinery_equipment: op.machinery_equipment,
+      reentry_interval_h: op.reentry_interval_h,
+      safety_period_days: op.safety_period_days,
+    });
+    setFormDefaultAppId(op.plot_id ?? "");
+    setFormType(op.operation_type);
+    setFormNonce((n) => n + 1);
+    setChooser(false);
+    setDettaglio(null);
   }
 
   // Cancellazione protetta: operazione in attesa di conferma + notifica esito.
@@ -107,10 +174,44 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
     }
   }, [quadernoApriAppezzamentoId, consumaQuadernoApri]);
 
-  async function handleSubmit(values: TrattamentoFormValues) {
-    await registraTrattamento(values);
+  // Con `scarichi` valorizzato l'attività scarica i lotti di magazzino nella
+  // stessa transazione: un errore (giacenza/lotto scaduto) risale al form, che
+  // resta aperto e mostra il messaggio. `assegnazione` (semina di una semente
+  // su campo libero, v17) crea scheda coltura + campagna agraria in automatico.
+  async function handleSubmit(
+    values: TrattamentoFormValues,
+    scarichi?: ScaricoRichiesta[],
+    assegnazione?: AssegnazioneColtura | null,
+  ) {
+    await registraTrattamento(values, scarichi);
+    if (assegnazione) {
+      const crop = await salvaCrop({
+        common_name: assegnazione.species,
+        scientific_name: assegnazione.scientificName,
+        variety_name: assegnazione.varietyName,
+        crop_metadata: {
+          category: assegnazione.cropCategory,
+          ...(assegnazione.densitaSemina != null
+            ? { densita_semina: assegnazione.densitaSemina }
+            : {}),
+        },
+      });
+      if (crop) {
+        await salvaCampoCampagna({
+          plot_id: assegnazione.plotId,
+          crop_id: crop.id,
+          campaign_year: campagnaAttiva,
+          declared_area_ha: assegnazione.declaredAreaHa,
+          reference_parcel_external_id: null,
+          agricultural_parcel_external_id: null,
+          crop_external_code: null,
+          variety_external_code: null,
+        });
+      }
+    }
     setFormType(null);
     setFormDefaultAppId("");
+    setFormDefaults(null);
   }
 
   // Campionamento di suolo: scrive sulla tabella dedicata `soil_samples`.
@@ -120,6 +221,7 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
     await salvaCampionamento(input);
     setFormType(null);
     setFormDefaultAppId("");
+    setFormDefaults(null);
   }
 
   // Notifica transitoria (auto-dismiss dopo l'avvenuta rimozione).
@@ -205,18 +307,23 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
     >
       {formType ? (
         <OperazioneForm
+          key={formNonce}
           operationType={formType}
           appezzamenti={appezzamenti}
           campiCampagna={campiCampagnaOptions}
           prodottiCatalogo={fitosanitari}
           concimiCatalogo={concimi}
+          prodottiMagazzino={prodotti}
+          lottiMagazzino={lotti}
           valutaCompliance={valutaCompliance}
           defaultAppezzamentoId={formDefaultAppId}
+          defaults={formDefaults ?? undefined}
           onSubmit={handleSubmit}
           onSubmitSoil={handleSubmitSoil}
           onCancel={() => {
             setFormType(null);
             setFormDefaultAppId("");
+            setFormDefaults(null);
           }}
         />
       ) : chooser ? (
@@ -378,6 +485,16 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
                         <span className="text-xs text-[var(--ok)]">✓</span>
                       )}
                     </div>
+                    {/* "Ripeti operazione": form precompilato con data = oggi. */}
+                    <button
+                      type="button"
+                      onClick={() => ripetiOperazione(trattamento)}
+                      title={t("quadernoPanel.list.repeatOperation")}
+                      aria-label={t("quadernoPanel.list.repeatOperation")}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-[var(--r-2)] text-[var(--accent)] hover:bg-[var(--accent-l)]"
+                    >
+                      <Copy size={15} />
+                    </button>
                     {/* Cancellazione protetta della singola operazione (FIX 1). */}
                     <button
                       type="button"

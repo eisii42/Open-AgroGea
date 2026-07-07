@@ -1,10 +1,16 @@
-import { type Raccolta, useAgroStore } from "@agrogea/core";
+import {
+  dichiarativiMancanti,
+  type Raccolta,
+  sistemaDichiarativo,
+  useAgroStore,
+} from "@agrogea/core";
 import { FieldSheet } from "@agrogea/ui";
 import { Button, Input, Label, Select } from "@geolibre/ui";
 import { Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
+import { useTenantCountry } from "../hooks/useTenantCountry";
 import { ConfirmDeleteOperazione } from "./ConfirmDeleteOperazione";
 import { RaccoltaDettaglioCard } from "./RaccoltaDettaglioCard";
 
@@ -41,9 +47,19 @@ export function RaccoltaPanel({ onClose }: { onClose: () => void }) {
   const raccolte = useAgroStore((s) => s.raccolte);
   const appezzamenti = useAgroStore((s) => s.appezzamenti);
   const campiCampagna = useAgroStore((s) => s.campiCampagna);
+  const crops = useAgroStore((s) => s.crops);
+  const campagnaAttiva = useAgroStore((s) => s.campagnaAttiva);
   const salvaRaccolta = useAgroStore((s) => s.salvaRaccolta);
   const eliminaRaccolta = useAgroStore((s) => s.eliminaRaccolta);
+  const chiudiCampagna = useAgroStore((s) => s.chiudiCampagna);
+  const apriColturaPerAppezzamento = useAgroStore(
+    (s) => s.apriColturaPerAppezzamento,
+  );
   const sync = useAgroStore((s) => s.sync);
+  // Compliance dichiarativa: il paese risolto sceglie il sistema (IT → SIAN,
+  // ES → SIEX/CUE); gli altri paesi non hanno gate.
+  const { countryCode } = useTenantCountry();
+  const sistema = sistemaDichiarativo(countryCode);
 
   const [daEliminare, setDaEliminare] = useState<Raccolta | null>(null);
   const [notifica, setNotifica] = useState<string | null>(null);
@@ -62,7 +78,83 @@ export function RaccoltaPanel({ onClose }: { onClose: () => void }) {
 
   const quintaliNum = quintali.trim() === "" ? null : Number(quintali);
   const quintaliValidi = quintaliNum == null || Number.isFinite(quintaliNum);
-  const canSubmit = data !== "" && quintaliValidi && !saving;
+
+  // -- ciclo colturale (v17): campagna APERTA del campo scelto ---------------
+  const campoAperto = useMemo(
+    () =>
+      appId
+        ? campiCampagna.find(
+            (c) =>
+              c.plot_id === appId &&
+              c.deleted_at == null &&
+              c.closed_at == null,
+          ) ?? null
+        : null,
+    [campiCampagna, appId],
+  );
+  const cropCampo = useMemo(
+    () =>
+      campoAperto
+        ? crops.find((c) => c.id === campoAperto.crop_id) ?? null
+        : null,
+    [crops, campoAperto],
+  );
+  // Solo le ANNUALI si chiudono col raccolto (le perenni restano in campo).
+  const categoriaCampo =
+    typeof cropCampo?.crop_metadata?.["category"] === "string"
+      ? (cropCampo.crop_metadata["category"] as string)
+      : null;
+  const isAnnuale =
+    categoriaCampo === "seminativo" || categoriaCampo === "orticoltura";
+  const [chiudi, setChiudi] = useState(false);
+
+  // Al cambio campo: proponi la chiusura per le annuali e precompila la
+  // cultivar dalla coltura di campagna (se il campo cultivar è ancora vuoto).
+  useEffect(() => {
+    setChiudi(isAnnuale);
+    if (cropCampo) {
+      const label = cropCampo.variety_name ?? cropCampo.common_name;
+      setCultivar((corrente) => corrente || label);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appId, isAnnuale, cropCampo?.id]);
+
+  // -- compliance dichiarativa (SIAN/SIEX): campi mancanti sulla campagna -----
+  // Gate consapevole, non blocco duro: senza dati dichiarativi il salvataggio
+  // richiede la spunta esplicita "Registra comunque" (o la compilazione via CTA).
+  const mancantiSian = useMemo(
+    () => (campoAperto ? dichiarativiMancanti(countryCode, campoAperto) : []),
+    [countryCode, campoAperto],
+  );
+  const [senzaSian, setSenzaSian] = useState(false);
+  useEffect(() => {
+    setSenzaSian(false); // ogni cambio campo richiede una nuova scelta esplicita
+  }, [appId]);
+  const sianOk = mancantiSian.length === 0 || senzaSian;
+
+  const canSubmit = data !== "" && quintaliValidi && sianOk && !saving;
+
+  /** Etichette leggibili dei campi mancanti, nella semantica del paese. */
+  const etichetteMancanti = mancantiSian
+    .map((campo) => t(`raccoltaPanel.declField.${countryCode}.${campo}` as never))
+    .join(", ");
+
+  // Badge "SIAN/SIEX ✗" nel selettore: campi con campagna aperta ma
+  // dichiarativi incompleti — visibili PRIMA di arrivare al salvataggio.
+  const plotsSianIncompleti = useMemo(() => {
+    const out = new Set<string>();
+    if (!sistema) return out;
+    for (const c of campiCampagna) {
+      if (
+        c.deleted_at == null &&
+        c.closed_at == null &&
+        dichiarativiMancanti(countryCode, c).length > 0
+      ) {
+        out.add(c.plot_id);
+      }
+    }
+    return out;
+  }, [sistema, countryCode, campiCampagna]);
 
   function resetForm() {
     setAppId("");
@@ -97,13 +189,10 @@ export function RaccoltaPanel({ onClose }: { onClose: () => void }) {
     if (!canSubmit) return;
     setSaving(true);
     try {
-      // Aggancio alla Campagna Agraria attiva tramite l'appezzamento scelto.
-      const campo = appId
-        ? campiCampagna.find((c) => c.plot_id === appId)
-        : undefined;
       await salvaRaccolta({
         plot_id: appId || null,
-        plot_campaign_id: campo?.id ?? null,
+        // Aggancio alla campagna APERTA del campo (le chiuse sono storia).
+        plot_campaign_id: campoAperto?.id ?? null,
         cultivar: cultivar.trim() || null,
         destination_logistics: destinazione.trim() || null,
         // Quintali → kg per la persistenza (la metrica aggregata resta in kg).
@@ -113,6 +202,11 @@ export function RaccoltaPanel({ onClose }: { onClose: () => void }) {
           ? { destinazione_lotto: destinazioneLotto.trim() }
           : {},
       });
+      // v17: il raccolto di un'annuale chiude il ciclo colturale — il campo
+      // torna libero (mappa neutra, DSS spento, nuova semina possibile).
+      if (chiudi && campoAperto) {
+        await chiudiCampagna(campoAperto.id);
+      }
       resetForm();
       setShowForm(false);
     } finally {
@@ -159,10 +253,44 @@ export function RaccoltaPanel({ onClose }: { onClose: () => void }) {
               {appezzamenti.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.user_plot_name}
+                  {plotsSianIncompleti.has(a.id) ? ` · ${sistema} ✗` : ""}
                 </option>
               ))}
             </Select>
           </div>
+
+          {/* Compliance dichiarativa (SIAN/SIEX): campi mancanti sulla campagna
+              del campo scelto. CTA per completare subito o override consapevole. */}
+          {mancantiSian.length > 0 && (
+            <div className="flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--warn)] bg-[var(--warn-l)] px-3 py-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--warn)]">
+                {t("raccoltaPanel.sianMissingTitle", { system: sistema })}
+              </p>
+              <p className="text-xs text-[var(--ink-2)]">
+                {t("raccoltaPanel.sianMissingHint", {
+                  fields: etichetteMancanti,
+                  system: sistema,
+                })}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-[36px] self-start px-2 text-xs"
+                onClick={() => apriColturaPerAppezzamento(appId)}
+              >
+                {t("raccoltaPanel.sianCompleteNow")}
+              </Button>
+              <label className="flex items-center gap-2 text-xs text-[var(--ink-2)]">
+                <input
+                  type="checkbox"
+                  checked={senzaSian}
+                  onChange={(e) => setSenzaSian(e.target.checked)}
+                  className="h-4 w-4 accent-[var(--warn)]"
+                />
+                {t("raccoltaPanel.sianOverride", { system: sistema })}
+              </label>
+            </div>
+          )}
           <div>
             <Label htmlFor="rac-cultivar">{t("raccoltaPanel.cultivar")}</Label>
             <Input
@@ -230,6 +358,35 @@ export function RaccoltaPanel({ onClose }: { onClose: () => void }) {
               {t("raccoltaPanel.quantityMustBeNumber")}
             </p>
           )}
+
+          {/* v17: chiusura del ciclo colturale al raccolto (solo campagne
+              aperte; proposta pre-attiva per le annuali). */}
+          {campoAperto && cropCampo && (
+            <label className="flex items-start gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2">
+              <input
+                type="checkbox"
+                checked={chiudi}
+                onChange={(e) => setChiudi(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium">
+                  {t("raccoltaPanel.closeCampaign", {
+                    crop: cropCampo.variety_name
+                      ? `${cropCampo.common_name} (${cropCampo.variety_name})`
+                      : cropCampo.common_name,
+                    year: campagnaAttiva,
+                  })}
+                </span>
+                <span className="block text-[11px] text-[var(--ink-3)]">
+                  {isAnnuale
+                    ? t("raccoltaPanel.closeCampaignHintAnnual")
+                    : t("raccoltaPanel.closeCampaignHintPerennial")}
+                </span>
+              </span>
+            </label>
+          )}
+
           <div className="flex gap-2">
             <Button
               variant="outline"

@@ -91,7 +91,7 @@ export const PULL_TABLES: { tabella: TabellaSync; columns: string }[] = [
     columns:
       "id,tenant_id,plot_id,crop_id,campaign_year,reference_parcel_external_id," +
       "agricultural_parcel_external_id,crop_external_code,variety_external_code," +
-      "declared_area_ha,created_at,updated_at,deleted_at",
+      "declared_area_ha,closed_at,created_at,updated_at,deleted_at",
   },
   {
     tabella: "treatment_logs",
@@ -135,6 +135,25 @@ export const PULL_TABLES: { tabella: TabellaSync; columns: string }[] = [
     columns:
       "id,tenant_id,company_id,email,role,status,invited_at,joined_at," +
       "created_at,updated_at,deleted_at",
+  },
+  {
+    tabella: "products",
+    columns:
+      "id,tenant_id,company_id,category,name,unit,registration_number," +
+      "active_substance,npk_n,npk_p,npk_k,uma_code,supplier,avg_unit_cost," +
+      "notes,metadata,created_at,updated_at,deleted_at",
+  },
+  {
+    tabella: "product_lots",
+    columns:
+      "id,tenant_id,product_id,lot_number,expires_at,initial_quantity," +
+      "quantity_on_hand,unit_cost,created_at,updated_at,deleted_at",
+  },
+  {
+    tabella: "activity_products",
+    columns:
+      "id,tenant_id,treatment_log_id,product_lot_id,quantity,unit_cost," +
+      "total_cost,created_at,updated_at,deleted_at",
   },
 ];
 

@@ -118,6 +118,8 @@
     "moduleWater": "Acqua",
     "moduleDraw": "Disegna elemento",
     "moduleLogbook": "Quaderno di Campagna",
+    "moduleWarehouse": "Magazzino",
+    "toolWarehouse": "Prodotti e lotti",
     "moduleSettings": "Impostazioni Azienda",
     "toolNdvi": "Analisi indici (NDVI, NDRE…)",
     "toolVra": "Mappe a rateo variabile (VRA)",
@@ -219,6 +221,7 @@
       "openDetail": "Apri scheda operazione",
       "queued": "coda",
       "deleteOperation": "Elimina operazione",
+      "repeatOperation": "Ripeti operazione (form precompilato, data di oggi)",
       "deleteAriaLabel": "Elimina {{label}}"
     }
   },
@@ -389,6 +392,25 @@
     "quantity": "Quantità (q)",
     "harvestDate": "Data raccolta",
     "quantityMustBeNumber": "La quantità deve essere un numero.",
+    "closeCampaign": "Chiudi la campagna {{year}} di {{crop}}: il campo torna libero",
+    "closeCampaignHintAnnual": "La coltura annuale termina col raccolto: mappa e DSS tornano neutri, una nuova semina può ripartire subito.",
+    "closeCampaignHintPerennial": "Coltura perenne: chiudi solo a fine ciclo (espianto). Di norma resta aperta.",
+    "sianMissingTitle": "Dati {{system}} incompleti per questo campo",
+    "sianMissingHint": "Mancano: {{fields}}. Senza questi dati l'export {{system}} della stagione sarà incompleto.",
+    "sianCompleteNow": "Completa ora (Dati coltura)",
+    "sianOverride": "Registra comunque senza dati {{system}}",
+    "declField": {
+      "IT": {
+        "crop_external_code": "codice coltura SIAN",
+        "reference_parcel_external_id": "isola (reference parcel)",
+        "agricultural_parcel_external_id": "appezzamento SIAN"
+      },
+      "ES": {
+        "crop_external_code": "codice coltura (catalogo MAPA)",
+        "reference_parcel_external_id": "parcela de referencia SIGPAC",
+        "agricultural_parcel_external_id": "recinto SIGPAC"
+      }
+    },
     "saveAction": "Salva",
     "emptyState": "Nessuna raccolta registrata per quest'azienda.",
     "openCard": "Apri scheda raccolta",
@@ -532,6 +554,7 @@
   "moduleSidebar": {
     "readOnly": "sola lettura",
     "readOnlyUnavailable": "Non disponibile in sola lettura (ruolo Viewer)",
+    "warehouseAlerts": "{{count}} lotti da controllare (scaduti o in scadenza)",
     "cropData": "Dati coltura",
     "dssModels": "DSS · modelli previsionali",
     "exportSian": "Esporta SIAN (CSV)…"
@@ -775,7 +798,87 @@
     "texturePlaceholder": "es. franco, argilloso, sabbioso",
     "tillageTypeLabel": "Tipo di lavorazione",
     "tillageTypePlaceholder": "es. aratura, erpicatura, fresatura, sarchiatura",
-    "totalQuantityKg": "Quantità totale (kg)"
+    "totalQuantityKg": "Quantità totale (kg)",
+    "warehouseSection": "Scarico da magazzino",
+    "warehouseProduct": "Prodotto (magazzino)",
+    "warehouseLot": "Lotto",
+    "warehouseQuantity": "Quantità da scaricare ({{unit}})",
+    "warehouseAvailable": "disp. {{qty}} {{unit}}",
+    "warehouseAddRow": "+ Aggiungi scarico",
+    "warehouseRemoveRow": "Rimuovi scarico",
+    "warehouseNoLots": "Nessun lotto disponibile per questo prodotto: caricane uno dal Magazzino.",
+    "warehouseFreeText": "Senza scarico la registrazione resta a testo libero (nessun movimento di giacenza).",
+    "warehouseExpiredOption": "SCADUTO · uso bloccato",
+    "warehouseExpiringOption": "in scadenza",
+    "warehouseSubmitError": "Registrazione annullata: {{message}}",
+    "warehouseIncompatibleUnit": "unità diversa dalla dose ({{unit}})",
+    "warehouseEffectiveDose": "Dose effettiva: {{dose}} {{unit}}",
+    "warehouseMismatch": "≠ totale calcolato ({{total}} {{unit}})",
+    "warehouseSplitFefo": "Dividi su più lotti (FEFO)",
+    "assignCropLabel": "Assegna {{crop}} a «{{plot}}» per la campagna {{year}}",
+    "assignCropHint": "Crea automaticamente scheda coltura e campagna agraria. I dati dichiarativi (codici SIAN, isola) restano da completare in Dati coltura."
+  },
+  "warehouse": {
+    "title": "Magazzino",
+    "newProduct": "Nuovo prodotto",
+    "productName": "Denominazione commerciale",
+    "category": "Categoria",
+    "categoryLabel": {
+      "phytosanitary": "Agrofarmaco",
+      "fertilizer": "Concime",
+      "seed": "Semente",
+      "fuel": "Carburante",
+      "other": "Altro / materiali"
+    },
+    "unit": "Unità di misura",
+    "registrationNumber": "N. registrazione PAN",
+    "activeSubstance": "Sostanza attiva",
+    "npkN": "Titolo N (%)",
+    "npkP": "Titolo P (%)",
+    "npkK": "Titolo K (%)",
+    "umaCode": "Assegnazione UMA",
+    "supplier": "Fornitore",
+    "supplierPlaceholder": "es. Consorzio Agrario",
+    "initialLoad": "Carico iniziale (primo lotto)",
+    "defaultSafetyDays": "Carenza default (gg)",
+    "defaultReentryH": "Rientro default (h)",
+    "seedSection": "Identità colturale del seme",
+    "seedSectionHint": "Con questi dati la semina dal Quaderno assegna automaticamente la coltura al campo (scheda coltura + campagna agraria).",
+    "species": "Specie (nome comune)",
+    "speciesPlaceholder": "es. Frumento tenero",
+    "variety": "Varietà",
+    "varietyPlaceholder": "es. Bologna",
+    "scientificName": "Nome scientifico",
+    "cropCategory": "Tipo coltura",
+    "cropCategorySeminativo": "Seminativo",
+    "cropCategoryOrticoltura": "Orticoltura",
+    "minStock": "Scorta minima ({{unit}})",
+    "belowMinStock": "Sotto scorta",
+    "notes": "Note",
+    "saveProduct": "Salva prodotto",
+    "deleteProduct": "Elimina prodotto",
+    "cump": "CUMP",
+    "stock": "Giacenza",
+    "lots": "Lotti",
+    "loadLot": "Carica lotto",
+    "lotNumber": "N. lotto",
+    "expiresAt": "Scadenza",
+    "quantity": "Quantità",
+    "unitCost": "Costo unitario di carico",
+    "lotExpired": "Scaduto",
+    "lotExpiring": "In scadenza",
+    "expiryThreshold": "Soglia alert scadenza (giorni)",
+    "expiryAlert": "{{count}} lotti scaduti o in scadenza entro {{days}} giorni.",
+    "expiredBlockedNotice": "I lotti scaduti restano visibili ma sono BLOCCATI: non possono essere scaricati nelle attività di campo.",
+    "noProducts": "Nessun prodotto in anagrafica. Crea il primo prodotto per caricare lotti e scaricare dalle attività.",
+    "noLots": "Nessun lotto caricato.",
+    "deleteLot": "Elimina lotto",
+    "backToList": "‹ Elenco prodotti",
+    "requiredByCategory": "Campi obbligatori mancanti per la categoria selezionata.",
+    "validation": {
+      "required": "campo obbligatorio",
+      "npkPercent": "titolo richiesto (0–100%)"
+    }
   },
   "sianExportDialog": {
     "chooseField": "— scegli un campo —",
@@ -810,6 +913,8 @@
       "mezzo": "Mezzo / macchina",
       "intervallo_rientro_h": "Rientro (h)",
       "carenza_giorni": "Carenza (gg)",
+      "raccolta_kg": "Quantità raccolta (kg)",
+      "destinazione": "Destinazione raccolta",
       "note": "Note"
     },
     "crops": "Colture",
@@ -912,6 +1017,35 @@
       "destination": "Destinazione"
     }
   },
+  "companyOverview": {
+    "generalTitle": "Andamento generale · {{year}}",
+    "warehouseTitle": "Magazzino",
+    "kpi": {
+      "totalArea": "Superficie totale",
+      "plots": "{{count}} appezzamenti",
+      "operationsYear": "Operazioni registrate",
+      "operationsSub": "Quaderno di Campagna, annata corrente",
+      "harvestYear": "Raccolto",
+      "harvestSub": "Somma dei conferimenti dell'annata",
+      "productCosts": "Costo prodotti",
+      "productCostsSub": "Scarichi di magazzino valorizzati a CUMP",
+      "products": "Prodotti in anagrafica",
+      "productsSub": "{{count}} lotti con giacenza",
+      "stockValue": "Valore giacenze",
+      "stockValueSub": "Valorizzazione al CUMP corrente",
+      "expiredLots": "Lotti scaduti",
+      "expiredLotsSub": "Con giacenza residua: uso bloccato",
+      "expiringLots": "In scadenza ({{days}} gg)",
+      "expiringLotsSub": "Da usare o smaltire con priorità",
+      "belowMinStock": "{{count}} sotto scorta"
+    },
+    "costsByField": "Costo prodotti per campo · {{year}}",
+    "noCosts": "Nessun costo prodotti registrato per l'annata: collega i lotti di magazzino alle attività del Quaderno.",
+    "field": "Campo",
+    "cost": "Costo",
+    "wholeFarm": "Intera azienda",
+    "sianAlert": "{{count}} campagne aperte senza dati {{system}} — clicca per completare i dichiarativi in Dati coltura"
+  },
   "commandCenter": {
     "allCrops": "Tutte le colture",
     "campaignYear": "Annata agraria",
@@ -919,6 +1053,8 @@
     "crop": "Coltura",
     "downloadReport": "Download Executive Report",
     "noPlotsInScope": "Nessun appezzamento nello scope.",
+    "pageCompany": "Azienda",
+    "pageCrops": "Colture e appezzamenti",
     "plots": "Appezzamenti",
     "plotsAreaSummary": "{{count}} appezzamenti · {{area}} ha",
     "readOnlyBanner": {
@@ -1253,6 +1389,10 @@
       "panelRaccolta": {
         "label": "Registro raccolta",
         "descr": "Conferimenti e rese"
+      },
+      "panelMagazzino": {
+        "label": "Magazzino",
+        "descr": "Prodotti, lotti e giacenze"
       },
       "panelRegistro": {
         "label": "Registro geometrie",

@@ -38,9 +38,44 @@
  * v15 — additiva: tabella `tenant_memberships` (multiutente: posti collaboratore
  * per azienda — owner/manager/viewer). Sincronizzata via outbox come le altre
  * tabelle di dominio; `tenant_memberships` aggiunta al CHECK di `sync_outbox`.
+ *
+ * v16 — additiva: Magazzino (0.2.0). Tre tabelle sincronizzate:
+ *   * `products` — anagrafica prodotti a categorie RIGIDE (agrofarmaci, concimi,
+ *     sementi, carburante) con i campi specifici di categoria e il CUMP corrente
+ *     (`avg_unit_cost`, media ponderata mobile aggiornata a ogni carico);
+ *   * `product_lots` — lotti con scadenza, giacenza corrente e costo di carico.
+ *     Il CHECK `quantity_on_hand >= 0` è la guardia ATOMICA dello scarico: uno
+ *     scarico che porterebbe la giacenza sotto zero fa fallire l'intera
+ *     transazione (nessuno scarico parziale);
+ *   * `activity_products` — giunzione attività (`treatment_logs`) ↔ lotto, con
+ *     quantità scaricata e costo imputato (CUMP congelato al momento dello
+ *     scarico): è la base del costo colturale per campo (0.4.0).
+ *   I campi testo libero di `treatment_logs` (`product_name`,
+ *   `machinery_equipment`, …) restano INTATTI come fallback per i record non
+ *   collegati a un lotto reale.
+ *   Rollback logico v16 (se serve annullare gli effetti): le tre tabelle sono
+ *   solo-additive e nessuna colonna esistente è cambiata; basta 1) `delete from
+ *   sync_outbox where table_name in ('products','product_lots',
+ *   'activity_products')`, 2) `drop table activity_products, product_lots,
+ *   products` (in quest'ordine per le FK). I dati pre-v16 non sono toccati.
+ *
+ * v17 — additiva: automazioni del ciclo colturale (semina → coltura → raccolto).
+ *   * `products.metadata` JSONB: proprietà estensibili per categoria (sementi:
+ *     identità colturale species/scientific_name/variety_name/crop_category;
+ *     agrofarmaci: carenza/rientro di default; comune: scorta minima);
+ *   * `plots_campaign.closed_at`: chiusura del ciclo colturale (il raccolto di
+ *     un'annuale termina la campagna e il campo torna libero);
+ *   * il vincolo `unique_plot_per_campaign` diventa un indice unico PARZIALE
+ *     sulle sole campagne APERTE (closed_at/deleted_at null): consente il
+ *     secondo raccolto nello stesso anno dopo la chiusura della prima campagna.
+ *   Rollback logico v17: `drop index if exists plots_campaign_open_unq` +
+ *   ripristino del vincolo pieno con `alter table plots_campaign add constraint
+ *   unique_plot_per_campaign unique (plot_id, campaign_year)` (possibile solo se
+ *   non esistono doppioni da secondo raccolto); le colonne additive possono
+ *   restare (ignorate dal codice pre-v17), nessun dato viene perso.
  */
 
-export const AGRO_LOCAL_SCHEMA_VERSION = 15;
+export const AGRO_LOCAL_SCHEMA_VERSION = 17;
 
 export const AGRO_LOCAL_SCHEMA_SQL = `
 create table if not exists agro_meta (
@@ -139,11 +174,22 @@ create table if not exists plots_campaign (
   crop_external_code              varchar(30),
   variety_external_code           varchar(30),
   declared_area_ha                numeric(10, 4) not null,
+  -- v17: chiusura del ciclo colturale (raccolto delle annuali). NULL = aperta.
+  closed_at                       timestamptz,
   created_at                      timestamptz not null default now(),
   updated_at                      timestamptz not null default now(),
-  deleted_at                      timestamptz,
-  constraint unique_plot_per_campaign unique (plot_id, campaign_year)
+  deleted_at                      timestamptz
 );
+
+-- v17: colonna additiva per le istanze pre-esistenti + sostituzione del vincolo
+-- pieno con l'unicità PARZIALE sulle campagne aperte (secondo raccolto possibile
+-- dopo la chiusura della prima campagna dello stesso anno).
+alter table plots_campaign add column if not exists closed_at timestamptz;
+alter table plots_campaign
+  drop constraint if exists unique_plot_per_campaign;
+create unique index if not exists plots_campaign_open_unq
+  on plots_campaign (plot_id, campaign_year)
+  where closed_at is null and deleted_at is null;
 
 create index if not exists plots_campaign_year_idx
   on plots_campaign (tenant_id, campaign_year);
@@ -464,4 +510,98 @@ create table if not exists product_catalogs (
 
 create index if not exists product_catalogs_country_idx
   on product_catalogs (country_code, type);
+
+-- v16 — Magazzino (0.2.0) ----------------------------------------------------
+
+-- products — anagrafica prodotti di magazzino a categorie RIGIDE. La categoria
+-- determina i campi obbligatori (enforced lato TS in validateProdotto, come
+-- la validazione PAN; qui le colonne restano nullable per non irrigidire le
+-- migrazioni): agrofarmaci → registration_number (registro PAN); concimi →
+-- titoli N-P-K; carburante → codice assegnazione UMA. avg_unit_cost è il
+-- CUMP corrente (Costo Unitario Medio Ponderato, media ponderata mobile),
+-- aggiornato in transazione a ogni carico lotto.
+create table if not exists products (
+  id                  uuid primary key,
+  tenant_id           uuid not null,
+  company_id          uuid not null references companies (id),
+  category            text not null check (
+    category in ('phytosanitary', 'fertilizer', 'seed', 'fuel', 'other')
+  ),
+  name                text not null,
+  unit                text not null default 'kg',
+  registration_number text,
+  active_substance    text,
+  npk_n               numeric(5, 2),
+  npk_p               numeric(5, 2),
+  npk_k               numeric(5, 2),
+  uma_code            text,
+  supplier            text,
+  avg_unit_cost       numeric(12, 4) not null default 0,
+  notes               text,
+  -- v17: proprietà estensibili per categoria (sementi: identità colturale;
+  -- agrofarmaci: carenza/rientro di default; comune: scorta minima).
+  metadata            jsonb not null default '{}',
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now(),
+  deleted_at          timestamptz
+);
+
+-- Allineamento additivo per le istanze v16 create prima dell'estensione
+-- dell'anagrafica (sostanza attiva per gli agrofarmaci, fornitore comune,
+-- categoria residuale 'other' per lubrificanti/materiali di consumo, metadata).
+alter table products add column if not exists active_substance text;
+alter table products add column if not exists supplier text;
+alter table products add column if not exists metadata jsonb not null default '{}';
+alter table products
+  drop constraint if exists products_category_check;
+alter table products
+  add constraint products_category_check
+  check (category in ('phytosanitary', 'fertilizer', 'seed', 'fuel', 'other'));
+
+create index if not exists products_company_idx
+  on products (company_id, category);
+
+-- product_lots — lotti di magazzino: numero lotto, scadenza, giacenza corrente
+-- e costo unitario di carico (input del CUMP). Il CHECK "quantity_on_hand >= 0"
+-- è la guardia ATOMICA dello scarico: la transazione che porterebbe la giacenza
+-- sotto zero fallisce per intero (nessuno stato parziale/inconsistente).
+create table if not exists product_lots (
+  id               uuid primary key,
+  tenant_id        uuid not null,
+  product_id       uuid not null references products (id),
+  lot_number       text,
+  expires_at       date,
+  initial_quantity numeric(12, 3) not null default 0,
+  quantity_on_hand numeric(12, 3) not null default 0
+    check (quantity_on_hand >= 0),
+  unit_cost        numeric(12, 4) not null default 0,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  deleted_at       timestamptz
+);
+
+create index if not exists product_lots_product_idx
+  on product_lots (product_id, expires_at);
+
+-- activity_products — giunzione attività ↔ lotto: quantità scaricata e costo
+-- imputato, con unit_cost = CUMP del prodotto CONGELATO al momento dello
+-- scarico (il CUMP successivo non riscrive la storia). Il costo confluisce sul
+-- campo trattato via treatment_logs.plot_id (bilancio di campo 0.4.0).
+create table if not exists activity_products (
+  id               uuid primary key,
+  tenant_id        uuid not null,
+  treatment_log_id uuid not null references treatment_logs (id),
+  product_lot_id   uuid not null references product_lots (id),
+  quantity         numeric(12, 3) not null check (quantity > 0),
+  unit_cost        numeric(12, 4) not null default 0,
+  total_cost       numeric(14, 4) not null default 0,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  deleted_at       timestamptz
+);
+
+create index if not exists activity_products_treatment_idx
+  on activity_products (treatment_log_id);
+create index if not exists activity_products_lot_idx
+  on activity_products (product_lot_id);
 `;

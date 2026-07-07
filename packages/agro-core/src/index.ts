@@ -27,6 +27,18 @@ export {
   tenantDataDir,
 } from "./db/tenant-db";
 export { AgroDal } from "./db/dal";
+export { WarehouseError } from "./db/dal-warehouse";
+export {
+  EXPIRY_WARNING_DAYS_DEFAULT,
+  categoriaPerOperazione,
+  cumpDopoCarico,
+  lottoScaduto,
+  statoScadenza,
+  validateProdotto,
+  type ProdottoDraft,
+  type ProdottoValidationError,
+  type StatoScadenzaLotto,
+} from "./warehouse/cump";
 export {
   OnPremiseSyncTarget,
   LocalOnlySyncTarget,
@@ -142,6 +154,15 @@ export {
   type TreatmentDraft,
   type ValidationError,
 } from "./field/pan-validation";
+export {
+  dichiarativiMancanti,
+  sianCompleta,
+  sianMancanti,
+  sistemaDichiarativo,
+  type CampoDichiarativoMancante,
+  type CampoSianMancante,
+  type SistemaDichiarativo,
+} from "./compliance/sian-campaign";
 export {
   DEFAULT_COUNTRY,
   SUPPORTED_COUNTRIES,

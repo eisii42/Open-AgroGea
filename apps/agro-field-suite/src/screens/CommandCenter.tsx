@@ -19,6 +19,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppHeader } from "../components/AppHeader";
 import { CompanyDataIo } from "../components/CompanyDataIo";
+import { CompanyOverview } from "../modules/analytics/CompanyOverview";
 import { CustomDashboard } from "../modules/analytics/CustomDashboard";
 import type { DashboardData } from "../modules/analytics/dashboard-datasets";
 import {
@@ -37,13 +38,20 @@ import {
 } from "../modules/analytics/kpi-config";
 import { scaricaArtifact } from "../services/gis/geo-export";
 
+/** Pagine del Data Command Center (tab di primo livello sotto l'header). */
+type CommandCenterPage = "crops" | "company";
+
 /**
  * Data Command Center (`/command-center`): centro nevralgico dell'analisi dati,
  * disaccoppiato dalla vista mappa (la mappa MapLibre è smontata dall'App quando
- * questa vista è attiva, liberando risorse hardware). Compone i 5 moduli:
- * filtri gerarchici (annata → coltura → appezzamenti), griglia KPI configurabile,
- * calendario operativo e Raw Data Inspector con cross-filtering ed export. Il
- * contesto aziendale vive nello store e sopravvive allo switch di vista.
+ * questa vista è attiva, liberando risorse hardware). Diviso in DUE pagine:
+ *   * «Colture e appezzamenti» — l'analisi agronomica: filtri gerarchici
+ *     (annata → coltura → appezzamenti), griglia KPI configurabile, dashboard
+ *     editabile, calendario operativo e Raw Data Inspector con cross-filtering;
+ *   * «Azienda» — l'andamento generale: superficie/operazioni/raccolto
+ *     dell'annata, stato del Magazzino (valore giacenze a CUMP, lotti scaduti e
+ *     in scadenza), costo prodotti imputato per campo e backup/ripristino.
+ * Il contesto aziendale vive nello store e sopravvive allo switch di vista.
  */
 export function CommandCenter() {
   const { t } = useTranslation();
@@ -60,6 +68,8 @@ export function CommandCenter() {
   // il database (DSS, indici, bilancio idrico). L'export resta consentito.
   const readOnly = useReadOnly(aziendaAttivaId);
 
+  // Pagina attiva: analisi colturale (default) o andamento generale azienda.
+  const [page, setPage] = useState<CommandCenterPage>("crops");
   const [campaignYear, setCampaignYear] = useState(campagnaAttiva);
   const [cropId, setCropId] = useState<string | null>(null);
   const [selectedPlotIds, setSelectedPlotIds] = useState<string[]>([]);
@@ -238,6 +248,30 @@ export function CommandCenter() {
     <div className="flex h-full flex-col">
       <AppHeader />
 
+      {/* Tab di pagina: analisi colturale vs andamento generale azienda. */}
+      <div className="flex items-end gap-1 border-b border-[var(--line)] bg-[var(--panel)] px-4">
+        {(
+          [
+            ["crops", t("commandCenter.pageCrops")],
+            ["company", t("commandCenter.pageCompany")],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setPage(id)}
+            className={cn(
+              "min-h-[40px] border-b-2 px-3 text-sm font-medium",
+              page === id
+                ? "border-[var(--accent)] text-[var(--accent)]"
+                : "border-transparent text-[var(--ink-3)] hover:text-[var(--ink)]",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--bg)] p-4">
         {/* Banner Sola Lettura (ruolo VIEWER): l'intera vista è in read-only. */}
         {readOnly && (
@@ -249,6 +283,22 @@ export function CommandCenter() {
           </div>
         )}
 
+        {page === "company" && (
+          <div className="flex flex-col gap-4">
+            <CompanyOverview campaignYear={campaignYear} />
+
+            {/* Gestione team dell'azienda (Modulo 4), role-gated. Modulo cloud:
+                assente nelle build standalone/OSS (singolo utente locale). */}
+            {!STANDALONE && <TeamPanel readOnly={readOnly} />}
+
+            {/* Edizione standalone/OSS: backup/ripristino dei dati locali in
+                GeoJSON (Disaster Recovery locale) — operazione di AZIENDA. */}
+            {STANDALONE && <CompanyDataIo />}
+          </div>
+        )}
+
+        {page === "crops" && (
+          <>
         {/* Barra filtri gerarchici + sintesi + export */}
         <div className="mb-4 flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1 text-[11px] text-[var(--ink-3)]">
@@ -390,15 +440,6 @@ export function CommandCenter() {
               />
             )}
 
-            {/* Gestione team dell'azienda: badge contatori posti + inviti
-                (Modulo 4), role-gated e inerte in sola lettura. Modulo cloud:
-                assente nelle build standalone/OSS (singolo utente locale). */}
-            {!STANDALONE && <TeamPanel readOnly={readOnly} />}
-
-            {/* Edizione standalone/OSS: backup/ripristino dei dati locali in
-                GeoJSON dal Data Command Center (Disaster Recovery locale). */}
-            {STANDALONE && <CompanyDataIo />}
-
             {/* Dashboard aziendale editabile: grafici riordinabili/eliminabili
                 e creabili da qualsiasi sorgente dati. */}
             {aziendaAttivaId && (
@@ -425,6 +466,8 @@ export function CommandCenter() {
               />
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
     </div>

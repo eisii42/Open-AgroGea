@@ -118,6 +118,8 @@
     "moduleWater": "Eau",
     "moduleDraw": "Dessiner un élément",
     "moduleLogbook": "Carnet de champ",
+    "moduleWarehouse": "Magasin",
+    "toolWarehouse": "Produits et lots",
     "moduleSettings": "Paramètres de l'exploitation",
     "toolNdvi": "Analyse d'indices (NDVI, NDRE…)",
     "toolVra": "Cartes à dose variable (VRA)",
@@ -219,6 +221,7 @@
       "openDetail": "Ouvrir la fiche de l'opération",
       "queued": "en attente",
       "deleteOperation": "Supprimer l'opération",
+      "repeatOperation": "Répéter l'opération (formulaire prérempli, date du jour)",
       "deleteAriaLabel": "Supprimer {{label}}"
     }
   },
@@ -389,6 +392,25 @@
     "quantity": "Quantité (quintaux)",
     "harvestDate": "Date de récolte",
     "quantityMustBeNumber": "La quantité doit être un nombre.",
+    "closeCampaign": "Clore la campagne {{year}} de {{crop}} : la parcelle redevient libre",
+    "closeCampaignHintAnnual": "La culture annuelle se termine à la récolte : carte et DSS redeviennent neutres, un nouveau semis peut repartir aussitôt.",
+    "closeCampaignHintPerennial": "Culture pérenne : à clore seulement en fin de cycle (arrachage). Elle reste normalement ouverte.",
+    "sianMissingTitle": "Données {{system}} incomplètes pour cette parcelle",
+    "sianMissingHint": "Manquent : {{fields}}. Sans ces données, l'export {{system}} de la campagne sera incomplet.",
+    "sianCompleteNow": "Compléter maintenant (Données culture)",
+    "sianOverride": "Enregistrer quand même sans données {{system}}",
+    "declField": {
+      "IT": {
+        "crop_external_code": "code culture SIAN",
+        "reference_parcel_external_id": "parcelle de référence (isola)",
+        "agricultural_parcel_external_id": "parcelle agricole SIAN"
+      },
+      "ES": {
+        "crop_external_code": "code culture (catalogue MAPA)",
+        "reference_parcel_external_id": "parcelle de référence SIGPAC",
+        "agricultural_parcel_external_id": "recinto SIGPAC"
+      }
+    },
     "saveAction": "Enregistrer",
     "emptyState": "Aucune récolte enregistrée pour cette entreprise.",
     "openCard": "Ouvrir la fiche de récolte",
@@ -532,6 +554,7 @@
   "moduleSidebar": {
     "readOnly": "lecture seule",
     "readOnlyUnavailable": "Non disponible en lecture seule (rôle Lecteur)",
+    "warehouseAlerts": "{{count}} lots à contrôler (périmés ou bientôt périmés)",
     "cropData": "Données de culture",
     "dssModels": "DSS · modèles prévisionnels",
     "exportSian": "Exporter SIAN (CSV)…"
@@ -775,7 +798,87 @@
     "texturePlaceholder": "ex. limoneux, argileux, sableux",
     "tillageTypeLabel": "Type de travail du sol",
     "tillageTypePlaceholder": "ex. labour, hersage, fraisage, binage",
-    "totalQuantityKg": "Quantité totale (kg)"
+    "totalQuantityKg": "Quantité totale (kg)",
+    "warehouseSection": "Sortie de magasin",
+    "warehouseProduct": "Produit (magasin)",
+    "warehouseLot": "Lot",
+    "warehouseQuantity": "Quantité à sortir ({{unit}})",
+    "warehouseAvailable": "disp. {{qty}} {{unit}}",
+    "warehouseAddRow": "+ Ajouter une sortie",
+    "warehouseRemoveRow": "Retirer la sortie",
+    "warehouseNoLots": "Aucun lot disponible pour ce produit : chargez-en un depuis le Magasin.",
+    "warehouseFreeText": "Sans sortie, l'enregistrement reste en texte libre (aucun mouvement de stock).",
+    "warehouseExpiredOption": "PÉRIMÉ · utilisation bloquée",
+    "warehouseExpiringOption": "bientôt périmé",
+    "warehouseSubmitError": "Enregistrement annulé : {{message}}",
+    "warehouseIncompatibleUnit": "unité différente de la dose ({{unit}})",
+    "warehouseEffectiveDose": "Dose effective : {{dose}} {{unit}}",
+    "warehouseMismatch": "≠ total calculé ({{total}} {{unit}})",
+    "warehouseSplitFefo": "Répartir sur plusieurs lots (FEFO)",
+    "assignCropLabel": "Assigner {{crop}} à « {{plot}} » pour la campagne {{year}}",
+    "assignCropHint": "Crée automatiquement la fiche culture et la campagne. Les données déclaratives (codes SIAN, parcelle de référence) restent à compléter dans Données culture."
+  },
+  "warehouse": {
+    "title": "Magasin",
+    "newProduct": "Nouveau produit",
+    "productName": "Nom commercial",
+    "category": "Catégorie",
+    "categoryLabel": {
+      "phytosanitary": "Produit phytosanitaire",
+      "fertilizer": "Engrais",
+      "seed": "Semence",
+      "fuel": "Carburant",
+      "other": "Autres / fournitures"
+    },
+    "unit": "Unité de mesure",
+    "registrationNumber": "N° d'homologation",
+    "activeSubstance": "Substance active",
+    "npkN": "Teneur N (%)",
+    "npkP": "Teneur P (%)",
+    "npkK": "Teneur K (%)",
+    "umaCode": "Attribution carburant agricole",
+    "supplier": "Fournisseur",
+    "supplierPlaceholder": "ex. coopérative agricole",
+    "initialLoad": "Chargement initial (premier lot)",
+    "defaultSafetyDays": "Délai avant récolte par défaut (j)",
+    "defaultReentryH": "Délai de rentrée par défaut (h)",
+    "seedSection": "Identité culturale de la semence",
+    "seedSectionHint": "Avec ces données, le semis depuis le carnet assigne automatiquement la culture à la parcelle (fiche culture + campagne).",
+    "species": "Espèce (nom commun)",
+    "speciesPlaceholder": "ex. blé tendre",
+    "variety": "Variété",
+    "varietyPlaceholder": "ex. Bologna",
+    "scientificName": "Nom scientifique",
+    "cropCategory": "Type de culture",
+    "cropCategorySeminativo": "Grande culture",
+    "cropCategoryOrticoltura": "Horticulture",
+    "minStock": "Stock minimal ({{unit}})",
+    "belowMinStock": "Sous le minimum",
+    "notes": "Notes",
+    "saveProduct": "Enregistrer le produit",
+    "deleteProduct": "Supprimer le produit",
+    "cump": "CUMP",
+    "stock": "Stock",
+    "lots": "Lots",
+    "loadLot": "Charger un lot",
+    "lotNumber": "N° de lot",
+    "expiresAt": "Péremption",
+    "quantity": "Quantité",
+    "unitCost": "Coût unitaire d'entrée",
+    "lotExpired": "Périmé",
+    "lotExpiring": "Bientôt périmé",
+    "expiryThreshold": "Seuil d'alerte de péremption (jours)",
+    "expiryAlert": "{{count}} lots périmés ou arrivant à péremption sous {{days}} jours.",
+    "expiredBlockedNotice": "Les lots périmés restent visibles mais sont BLOQUÉS : ils ne peuvent pas être sortis dans les activités de champ.",
+    "noProducts": "Aucun produit. Créez le premier produit pour charger des lots et sortir depuis les activités.",
+    "noLots": "Aucun lot chargé.",
+    "deleteLot": "Supprimer le lot",
+    "backToList": "‹ Liste des produits",
+    "requiredByCategory": "Champs obligatoires manquants pour la catégorie sélectionnée.",
+    "validation": {
+      "required": "champ obligatoire",
+      "npkPercent": "teneur requise (0–100 %)"
+    }
   },
   "sianExportDialog": {
     "chooseField": "— choisir un champ —",
@@ -810,6 +913,8 @@
       "mezzo": "Machine",
       "intervallo_rientro_h": "Délai de rentrée (h)",
       "carenza_giorni": "Délai avant récolte (j)",
+      "raccolta_kg": "Quantité récoltée (kg)",
+      "destinazione": "Destination de la récolte",
       "note": "Notes"
     },
     "crops": "Cultures",
@@ -912,6 +1017,35 @@
       "destination": "Destination"
     }
   },
+  "companyOverview": {
+    "generalTitle": "Vue générale · {{year}}",
+    "warehouseTitle": "Magasin",
+    "kpi": {
+      "totalArea": "Surface totale",
+      "plots": "{{count}} parcelles",
+      "operationsYear": "Opérations enregistrées",
+      "operationsSub": "Carnet de champ, campagne en cours",
+      "harvestYear": "Récolte",
+      "harvestSub": "Somme des livraisons de la campagne",
+      "productCosts": "Coût des produits",
+      "productCostsSub": "Sorties de magasin valorisées au CUMP",
+      "products": "Produits au registre",
+      "productsSub": "{{count}} lots en stock",
+      "stockValue": "Valeur du stock",
+      "stockValueSub": "Valorisation au CUMP actuel",
+      "expiredLots": "Lots périmés",
+      "expiredLotsSub": "Avec stock résiduel : utilisation bloquée",
+      "expiringLots": "Bientôt périmés ({{days}} jours)",
+      "expiringLotsSub": "À utiliser ou éliminer en priorité",
+      "belowMinStock": "{{count}} sous stock minimal"
+    },
+    "costsByField": "Coût des produits par parcelle · {{year}}",
+    "noCosts": "Aucun coût de produits enregistré pour la campagne : liez les lots de magasin aux activités du carnet.",
+    "field": "Parcelle",
+    "cost": "Coût",
+    "wholeFarm": "Toute l'exploitation",
+    "sianAlert": "{{count}} campagnes ouvertes sans données {{system}} — cliquez pour compléter les données déclaratives dans Données culture"
+  },
   "commandCenter": {
     "allCrops": "Toutes les cultures",
     "campaignYear": "Campagne agricole",
@@ -919,6 +1053,8 @@
     "crop": "Culture",
     "downloadReport": "Télécharger le rapport de synthèse",
     "noPlotsInScope": "Aucune parcelle dans le périmètre.",
+    "pageCompany": "Exploitation",
+    "pageCrops": "Cultures et parcelles",
     "plots": "Parcelles",
     "plotsAreaSummary": "{{count}} parcelles · {{area}} ha",
     "readOnlyBanner": {
@@ -1253,6 +1389,10 @@
       "panelRaccolta": {
         "label": "Registre de récolte",
         "descr": "Livraisons et rendements"
+      },
+      "panelMagazzino": {
+        "label": "Magasin",
+        "descr": "Produits, lots et stock"
       },
       "panelRegistro": {
         "label": "Registre des géométries",

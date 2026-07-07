@@ -3,12 +3,14 @@ import { describe, it } from "node:test";
 import type {
   Appezzamento,
   CampoCampagna,
+  Raccolta,
   RegistroTrattamento,
 } from "@agrogea/core";
 import {
   buildSianCsv,
   COLONNE_SIAN,
   filtraTrattamentiSian,
+  raccolteToOperazioni,
   risolviColonne,
 } from "../apps/agro-field-suite/src/lib/sianExport";
 
@@ -71,7 +73,11 @@ function tratt(
   };
 }
 
-function campo(plot_id: string, anno: number): CampoCampagna {
+function campo(
+  plot_id: string,
+  anno: number,
+  over: Partial<CampoCampagna> = {},
+): CampoCampagna {
   return {
     id: `cc-${plot_id}`,
     tenant_id: "t",
@@ -83,9 +89,37 @@ function campo(plot_id: string, anno: number): CampoCampagna {
     crop_external_code: "060",
     variety_external_code: "12",
     declared_area_ha: 2,
+    closed_at: null,
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
     deleted_at: null,
+    ...over,
+  };
+}
+
+function raccolta(
+  id: string,
+  plot_id: string | null,
+  harvested_at: string,
+  over: Partial<Raccolta> = {},
+): Raccolta {
+  return {
+    id,
+    tenant_id: "t",
+    company_id: "az",
+    plot_id,
+    plot_campaign_id: null,
+    cultivar: "Sangiovese",
+    destination_logistics: "Cantina Sociale",
+    quantity_kg: 3200,
+    harvested_at,
+    geometry: null,
+    notes: null,
+    metadata: {},
+    created_at: harvested_at,
+    updated_at: harvested_at,
+    deleted_at: null,
+    ...over,
   };
 }
 
@@ -201,7 +235,7 @@ describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
 
   it("lascia vuoti i riferimenti senza campagna agganciata", () => {
     const csv = buildSianCsv(
-      [TRATT[2]], // operazione intera azienda, plot_campaign_id null
+      [TRATT[2]], // operazione intera azienda, plot_campaign_id null e plot_id null
       APPS,
       {
         colonne: ["tipo_operazione", "crop_external_code"],
@@ -211,6 +245,114 @@ describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
       },
       [campo("a1", 2026)],
     );
-    assert.equal(csv, "tillage;");
+    // Tipo operazione in italiano (mai il codice interno "tillage"); ref vuoto.
+    assert.equal(csv, "Lavorazione;");
+  });
+
+  it("FALLBACK: risolve i codici per appezzamento+anno se plot_campaign_id è null", () => {
+    // Operazione su a1 senza aggancio diretto (es. semina auto-assegnata):
+    // i codici SIAN vengono comunque dalla campagna del plot per quell'anno.
+    const senzaAggancio = { ...tratt("t9", "a1", "2026-04-01T08:00:00.000Z"), plot_campaign_id: null };
+    const csv = buildSianCsv(
+      [senzaAggancio],
+      APPS,
+      {
+        colonne: ["crop_external_code", "reference_parcel_external_id"],
+        separatore: ";",
+        includiIntestazioni: false,
+        bom: false,
+      },
+      [campo("a1", 2026)],
+    );
+    assert.equal(csv, "060;IS-1");
+  });
+
+  it("il fallback preferisce la campagna APERTA su quella chiusa", () => {
+    const chiusa = campo("a1", 2026, {
+      id: "cc-old",
+      crop_external_code: "999",
+      closed_at: "2026-05-01T00:00:00.000Z",
+    });
+    const aperta = campo("a1", 2026, { id: "cc-new", crop_external_code: "060" });
+    const op = { ...tratt("t10", "a1", "2026-07-01T08:00:00.000Z"), plot_campaign_id: null };
+    const csv = buildSianCsv(
+      [op],
+      APPS,
+      {
+        colonne: ["crop_external_code"],
+        separatore: ";",
+        includiIntestazioni: false,
+        bom: false,
+      },
+      [chiusa, aperta],
+    );
+    assert.equal(csv, "060");
+  });
+});
+
+describe("buildSianCsv · tipo operazione localizzato", () => {
+  it("default italiano leggibile, mai il codice interno", () => {
+    const csv = buildSianCsv([TRATT[1]], APPS, {
+      colonne: ["tipo_operazione"],
+      separatore: ";",
+      includiIntestazioni: false,
+      bom: false,
+    });
+    assert.equal(csv, "Fertilizzazione");
+  });
+
+  it("la UI sovrascrive con la lingua attiva via contesto", () => {
+    const csv = buildSianCsv(
+      [TRATT[0]],
+      APPS,
+      { colonne: ["tipo_operazione"], separatore: ";", includiIntestazioni: false, bom: false },
+      [],
+      undefined,
+      { resolveOperationType: (op) => (op === "phytosanitary" ? "Treatment" : op) },
+    );
+    assert.equal(csv, "Treatment");
+  });
+});
+
+describe("raccolteToOperazioni · le raccolte rientrano nel QDCA", () => {
+  it("mappa cultivar→prodotto, kg→quantità, destinazione e tipo harvest", () => {
+    const ops = raccolteToOperazioni([
+      raccolta("r1", "a1", "2026-09-15T08:00:00.000Z", {
+        plot_campaign_id: "cc-a1",
+      }),
+    ]);
+    assert.equal(ops.length, 1);
+    const csv = buildSianCsv(
+      ops,
+      APPS,
+      {
+        colonne: ["tipo_operazione", "prodotto", "raccolta_kg", "destinazione", "crop_external_code"],
+        separatore: ";",
+        includiIntestazioni: false,
+        bom: false,
+      },
+      [campo("a1", 2026)],
+    );
+    // Tipo "Raccolta", cultivar, kg, destinazione e codice SIAN dalla campagna.
+    assert.equal(csv, "Raccolta;Sangiovese;3200;Cantina Sociale;060");
+  });
+
+  it("le colonne raccolta restano vuote sulle operazioni non-harvest", () => {
+    const csv = buildSianCsv([TRATT[0]], APPS, {
+      colonne: ["raccolta_kg", "destinazione"],
+      separatore: ";",
+      includiIntestazioni: false,
+      bom: false,
+    });
+    assert.equal(csv, ";");
+  });
+
+  it("esclude le raccolte cancellate (tombstone)", () => {
+    const ops = raccolteToOperazioni([
+      raccolta("r1", "a1", "2026-09-15T08:00:00.000Z", {
+        deleted_at: "2026-10-01T00:00:00.000Z",
+      }),
+    ]);
+    assert.equal(ops.length, 0);
   });
 });

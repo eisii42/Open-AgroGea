@@ -6,7 +6,7 @@ import {
 import { FieldSheet } from "@agrogea/ui";
 import { Button, cn } from "@geolibre/ui";
 import { RefreshCw } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type TargetDss, useDssCalcolo } from "../../hooks/useDssCalcolo";
 import { CropDataForm } from "./CropDataForm";
@@ -69,6 +69,20 @@ function useSelectedPlot(): {
   const [scelto, setScelto] = useState<string>(
     selezionatoId ?? appezzamenti[0]?.id ?? "",
   );
+
+  // CTA "Completa ora" della compliance SIAN (v17): la scheda si apre già
+  // puntata sull'appezzamento richiesto (pattern Quaderno/Scouting).
+  const colturaApriAppezzamentoId = useAgroStore(
+    (s) => s.colturaApriAppezzamentoId,
+  );
+  const consumaColturaApri = useAgroStore((s) => s.consumaColturaApri);
+  useEffect(() => {
+    if (colturaApriAppezzamentoId) {
+      setScelto(colturaApriAppezzamentoId);
+      consumaColturaApri();
+    }
+  }, [colturaApriAppezzamentoId, consumaColturaApri]);
+
   const appezzamento = appezzamenti.find((a) => a.id === scelto) ?? null;
   return { appezzamento, scelto, setScelto, vuoto: appezzamenti.length === 0 };
 }

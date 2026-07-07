@@ -38,6 +38,11 @@ const QuadernoPanel = lazy(() =>
 const RaccoltaPanel = lazy(() =>
   import("../components/RaccoltaPanel").then((m) => ({ default: m.RaccoltaPanel })),
 );
+const MagazzinoPanel = lazy(() =>
+  import("../components/MagazzinoPanel").then((m) => ({
+    default: m.MagazzinoPanel,
+  })),
+);
 const SuoloPanel = lazy(() =>
   import("../components/SuoloPanel").then((m) => ({ default: m.SuoloPanel })),
 );
@@ -293,6 +298,9 @@ export function FieldDashboard() {
           )}
           {openPanels.includes("raccolta") && (
             <RaccoltaPanel onClose={() => togglePanel("raccolta")} />
+          )}
+          {openPanels.includes("magazzino") && (
+            <MagazzinoPanel onClose={() => togglePanel("magazzino")} />
           )}
           {openPanels.includes("ndvi") && (
             <SuoloPanel onClose={() => togglePanel("ndvi")} />

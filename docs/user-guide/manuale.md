@@ -30,6 +30,7 @@
    - [4.10 Data Command Center — la dashboard analitica](#410-data-command-center--la-dashboard-analitica)
    - [4.11 Esportazioni ufficiali e backup](#411-esportazioni-ufficiali-e-backup)
    - [4.12 Impostazioni: meteo, tema, profilo](#412-impostazioni-meteo-tema-profilo)
+   - [4.13 Magazzino — prodotti, lotti e giacenze](#413-magazzino--prodotti-lotti-e-giacenze)
 5. [Scorciatoie e produttività](#5-scorciatoie-e-produttività)
 6. [Il flusso consigliato di una stagione](#6-il-flusso-consigliato-di-una-stagione)
 
@@ -161,7 +162,11 @@ Il Quaderno raccoglie la **tracciabilità** di tutto ciò che fai in campo, conf
    - **Campionamento suolo** — analisi (pH, sostanza organica, N-P-K) georiferita, salvata come punto sulla mappa.
 3. Seleziona l'**appezzamento**, compila i campi e **salva**. Con i fitosanitari e le fertilizzazioni AgroGea esegue la **validazione PAN**: segnala con chiarezza i campi obbligatori mancanti.
 
-**Consultare e filtrare:** la lista si filtra per **intervallo di date** e per **appezzamento**. Puoi anche attivare **Mostra sulla mappa** per proiettare le operazioni filtrate come simboli georiferiti. Clicca su una voce per vederne il dettaglio; il cestino la elimina (con conferma).
+**Scarico da magazzino (0.2.0):** per trattamenti, fertilizzazioni e semine la sezione dedicata scarica i lotti reali. La quantità **segue automaticamente** il totale calcolato dalla dose; se la modifichi a mano vedi la **dose effettiva** e l'eventuale scostamento. Il lotto è preselezionato in **FEFO** (scadenza più vicina), i lotti scaduti sono bloccati e, se un lotto non basta, un click **divide lo scarico su più lotti**. Selezionando il prodotto si precompilano registrazione, sostanza attiva e — se impostati in anagrafica — carenza e rientro di default.
+
+**Semina smart:** seminando una **semente di magazzino** su un campo senza coltura, l'operazione propone di **assegnare automaticamente la coltura al campo** (scheda coltura + campagna agraria, densità derivata dalla dose). I dati dichiarativi (codici SIAN) restano da completare in Dati coltura.
+
+**Consultare e filtrare:** la lista si filtra per **intervallo di date** e per **appezzamento**. Puoi anche attivare **Mostra sulla mappa** per proiettare le operazioni filtrate come simboli georiferiti. Clicca su una voce per vederne il dettaglio; il cestino la elimina (con conferma); l'icona **copia** la ripete con un form precompilato alla data di oggi (operatore e patentino sono ricordati tra un'operazione e l'altra).
 
 > **Scorciatoia dal campo:** clicca un appezzamento sulla mappa e apri il Quaderno **già filtrato** su quel campo — registrare una nuova operazione resta a un tap di distanza.
 
@@ -170,7 +175,11 @@ Il Quaderno raccoglie la **tracciabilità** di tutto ciò che fai in campo, conf
 Per registrare i conferimenti e alimentare le analisi di resa:
 
 1. Sidebar → **Quaderno (QDC)** → **Raccolta**.
-2. Per ogni raccolta indica **appezzamento, cultivar, quantità (kg), destinazione/logistica e data**. La raccolta è agganciata alla Campagna Agraria del campo.
+2. Per ogni raccolta indica **appezzamento, cultivar, quantità (kg), destinazione/logistica e data**. La cultivar si precompila dalla coltura di campagna del campo; la raccolta è agganciata alla Campagna Agraria **aperta**.
+
+**Chiusura del ciclo colturale:** per le colture **annuali** (seminativi/orticole) il raccolto propone — con spunta pre-attiva — di **chiudere la campagna**: il campo torna libero (mappa neutra, DSS spento) e una nuova semina può ripartire anche nello stesso anno (secondo raccolto). Le perenni restano aperte.
+
+**Compliance SIAN/SIEX:** se il campo ha una campagna con dati dichiarativi incompleti (codice coltura, isola/parcela SIGPAC, appezzamento/recinto), il form lo segnala con un banner e il badge «SIAN ✗» (o «SIEX ✗» in Spagna) nel selettore: puoi **completare subito** dai Dati coltura o registrare comunque con una spunta esplicita.
 
 Questi dati diventano i grafici di resa nel Command Center e nella tabella attributi (§4.9–4.10).
 
@@ -258,7 +267,10 @@ La **tabella attributi** integrata trasforma i tuoi dati in un foglio analizzabi
 
 ### 4.10 Data Command Center — la dashboard analitica
 
-Dal pulsante **Command Center** nell'header passi dalla mappa alla **dashboard**: KPI aziendali, calendario delle operazioni, dashboard personalizzabili e report direzionale. È la vista d'insieme di tutto ciò che hai registrato.
+Dal pulsante **Command Center** nell'header passi dalla mappa alla **dashboard**, divisa in **due pagine**:
+
+- **Colture e appezzamenti** — l'analisi agronomica: filtri annata → coltura → campi, KPI, calendario delle operazioni, dashboard personalizzabili e report direzionale.
+- **Azienda** — l'andamento generale: superficie/operazioni/raccolto dell'annata, **stato del Magazzino** (valore giacenze a CUMP, lotti scaduti/in scadenza, prodotti sotto scorta), **costo prodotti per campo** e backup/ripristino. Un alert cliccabile segnala le campagne con dati dichiarativi (SIAN/SIEX) incompleti.
 
 ### 4.11 Esportazioni ufficiali e backup
 
@@ -267,6 +279,8 @@ Dal pulsante **Command Center** nell'header passi dalla mappa alla **dashboard**
 - **Italia — SIAN/PAN:** da **Quaderno (QDC) → Export SIAN**. CSV ottimizzato per Excel italiano (separatore `;`, BOM UTF-8), con codici ministeriali Isola/Appezzamento.
 - **Spagna — SIEX/CUE:** *Cuaderno Digital* in JSON (FEGA).
 - **Altri Paesi UE / Francia:** CSV internazionale (separatore `,`, date ISO).
+
+L'export CSV copre l'**intero Quaderno di Campagna Agraria**: comprende sia i trattamenti sia le **raccolte** (riga «Raccolta» con quantità in kg e destinazione). Il tipo operazione è riportato **nella tua lingua**, non con codici interni. I **codici SIAN/SIEX** compaiono anche se compilati nella scheda coltura dopo aver registrato l'operazione: vengono risolti per appezzamento e annata, così basta completarli una volta in Dati coltura. Colonne, ordine, separatore e filtri (date, campi, colture, tipi) restano interamente configurabili.
 
 **Import del Fascicolo SIAN** — puoi importare il Fascicolo Aziendale: AgroGea crea gli appezzamenti mancanti dalle geometrie, normalizza le colture e popola la Campagna dell'annata, riconoscendo i campi già presenti senza duplicati.
 
@@ -281,6 +295,27 @@ Dal pulsante **Command Center** nell'header passi dalla mappa alla **dashboard**
 - **Meteo** (Impostazioni → Meteo) — configura la stazione/sorgente meteo che alimenta il bilancio idrico e il DSS.
 - **Tema** — Chiaro / Scuro / Verde, dal selettore nell'header.
 - **Profilo** — dal menu utente in alto a destra: preferenze e impostazioni dell'app.
+
+### 4.13 Magazzino — prodotti, lotti e giacenze
+
+Il Magazzino tiene l'**anagrafica dei prodotti** e i loro **lotti** con scadenza, giacenza e costo, e collega tutto alle attività del Quaderno.
+
+1. Sidebar → **Magazzino** → **Prodotti e lotti**.
+2. **＋ Nuovo prodotto** e scegli la **categoria** (rigida — determina i campi obbligatori):
+   - **Agrofarmaco** — richiede il **n. di registrazione PAN**; in più sostanza attiva e **carenza/rientro di default** (precompilati poi nel Quaderno);
+   - **Concime** — richiede i **titoli N-P-K** (percentuali);
+   - **Semente** — con l'**identità colturale** (specie, nome scientifico, varietà, tipo coltura): è ciò che abilita l'assegnazione automatica della coltura alla semina;
+   - **Carburante** — richiede il codice di **assegnazione UMA**;
+   - **Altro / materiali** — lubrificanti e consumabili, senza campi extra.
+
+   Il form include il **carico iniziale** (lotto di produzione, scadenza, **quantità obbligatoria** e costo): un prodotto nasce già con la sua giacenza. Facoltativi per tutte le categorie: fornitore e **scorta minima** (sotto soglia appare il badge di riordino).
+3. Dal dettaglio prodotto, **Carica lotto** aggiunge i carichi successivi. Ogni carico aggiorna il **CUMP** (Costo Unitario Medio Ponderato) del prodotto con la media ponderata sulle giacenze.
+
+**Scarico dalle attività:** nel form del Quaderno (trattamenti, fertilizzazioni, semine) compare la sezione **Scarico da magazzino**: scegli prodotto → lotto → quantità. Al salvataggio la giacenza si scarica **realmente**, in un'unica transazione con l'attività: se la quantità supera la disponibilità, **l'intera registrazione fallisce** (nessuno scarico parziale) con un messaggio chiaro. Il costo dei prodotti (quantità × CUMP al momento dello scarico) è **imputato al campo trattato** e sarà la base del bilancio di campo.
+
+**Scadenze:** i lotti **scaduti** sono evidenziati e il loro uso nelle attività è **bloccato** (non selezionabili); i lotti **in scadenza** entro la soglia configurabile (default 30 giorni) sono segnalati con un alert nel pannello.
+
+> **Compatibilità:** le registrazioni esistenti con prodotti/mezzi a testo libero restano valide; lo scarico da magazzino è facoltativo e si affianca al testo libero finché non colleghi un lotto reale. Eliminando un'operazione con scarichi, le giacenze vengono **reintegrate** automaticamente.
 
 ---
 

@@ -2,6 +2,7 @@ import {
   type DashboardModuleId,
   type FieldPanel,
   type GeometriaDisegnata,
+  statoScadenza,
   useAgroStore,
   useSettingsStore,
 } from "@agrogea/core";
@@ -27,6 +28,7 @@ import {
   Shapes,
   ShieldCheck,
   Sprout,
+  Warehouse,
   Wheat,
 } from "lucide-react";
 import { useState } from "react";
@@ -91,6 +93,15 @@ export function ModuleSidebar({
 
   // Dialog di configurazione dell'export SIAN (filtri + struttura CSV).
   const [sianOpen, setSianOpen] = useState(false);
+
+  // Badge alert Magazzino (v17): lotti con giacenza scaduti o in scadenza.
+  const lotti = useAgroStore((s) => s.lotti);
+  const magazzinoAlerts = lotti.filter(
+    (l) =>
+      l.deleted_at == null &&
+      Number(l.quantity_on_hand) > 0 &&
+      statoScadenza(l.expires_at) !== "valid",
+  ).length;
 
   const moduli: ModuleDef[] = [
     {
@@ -217,6 +228,20 @@ export function ModuleSidebar({
       ],
     },
     {
+      id: "magazzino",
+      labelKey: "nav.moduleWarehouse",
+      Icon: Warehouse,
+      tools: [
+        {
+          id: "magazzino",
+          labelKey: "nav.toolWarehouse",
+          Icon: Warehouse,
+          action: { kind: "panel", panel: "magazzino" },
+          flag: "panelMagazzino",
+        },
+      ],
+    },
+    {
       id: "impostazioni",
       labelKey: "nav.moduleSettings",
       Icon: Settings,
@@ -247,13 +272,9 @@ export function ModuleSidebar({
     },
   ];
 
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({
-    suolo: true,
-    coltura: true,
-    disegno: true,
-    qdc: true,
-    acqua: true,
-  });
+  // All'avvio TUTTI i moduli sono richiusi (solo l'elenco delle voci di primo
+  // livello): la sidebar si presenta compatta e l'utente espande ciò che serve.
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   return (
     <div
@@ -290,6 +311,16 @@ export function ModuleSidebar({
             >
               <mod.Icon size={16} className="text-[var(--accent)]" />
               <span className="flex-1">{t(mod.labelKey as never)}</span>
+              {mod.id === "magazzino" && magazzinoAlerts > 0 && (
+                <span
+                  title={t("moduleSidebar.warehouseAlerts", {
+                    count: magazzinoAlerts,
+                  })}
+                  className="rounded-full bg-[var(--warn-l)] px-1.5 text-[10px] font-semibold text-[var(--warn)]"
+                >
+                  {magazzinoAlerts} ⚠
+                </span>
+              )}
               <ChevronRight
                 size={15}
                 className={cn(

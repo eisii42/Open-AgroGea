@@ -118,6 +118,8 @@
     "moduleWater": "Water",
     "moduleDraw": "Draw element",
     "moduleLogbook": "Field logbook",
+    "moduleWarehouse": "Warehouse",
+    "toolWarehouse": "Products and lots",
     "moduleSettings": "Company settings",
     "toolNdvi": "Index analysis (NDVI, NDRE…)",
     "toolVra": "Variable-rate maps (VRA)",
@@ -219,6 +221,7 @@
       "openDetail": "Open operation details",
       "queued": "queued",
       "deleteOperation": "Delete operation",
+      "repeatOperation": "Repeat operation (prefilled form, today's date)",
       "deleteAriaLabel": "Delete {{label}}"
     }
   },
@@ -389,6 +392,25 @@
     "quantity": "Quantity (quintals)",
     "harvestDate": "Harvest date",
     "quantityMustBeNumber": "Quantity must be a number.",
+    "closeCampaign": "Close the {{year}} campaign of {{crop}}: the field becomes free",
+    "closeCampaignHintAnnual": "The annual crop ends with the harvest: map and DSS turn neutral, a new sowing can start right away.",
+    "closeCampaignHintPerennial": "Perennial crop: close only at end of cycle (grubbing-up). Normally it stays open.",
+    "sianMissingTitle": "Incomplete {{system}} data for this field",
+    "sianMissingHint": "Missing: {{fields}}. Without this data the season's {{system}} export will be incomplete.",
+    "sianCompleteNow": "Complete now (Crop data)",
+    "sianOverride": "Save anyway without {{system}} data",
+    "declField": {
+      "IT": {
+        "crop_external_code": "SIAN crop code",
+        "reference_parcel_external_id": "reference parcel (isola)",
+        "agricultural_parcel_external_id": "SIAN agricultural parcel"
+      },
+      "ES": {
+        "crop_external_code": "crop code (MAPA catalogue)",
+        "reference_parcel_external_id": "SIGPAC reference parcel",
+        "agricultural_parcel_external_id": "SIGPAC recinto"
+      }
+    },
     "saveAction": "Save",
     "emptyState": "No harvests recorded for this company.",
     "openCard": "Open harvest record",
@@ -532,6 +554,7 @@
   "moduleSidebar": {
     "readOnly": "read-only",
     "readOnlyUnavailable": "Not available in read-only mode (Viewer role)",
+    "warehouseAlerts": "{{count}} lots to check (expired or expiring)",
     "cropData": "Crop data",
     "dssModels": "DSS · forecast models",
     "exportSian": "Export SIAN (CSV)…"
@@ -775,7 +798,87 @@
     "texturePlaceholder": "e.g. loam, clay, sandy",
     "tillageTypeLabel": "Tillage type",
     "tillageTypePlaceholder": "e.g. ploughing, harrowing, rotary tilling, hoeing",
-    "totalQuantityKg": "Total quantity (kg)"
+    "totalQuantityKg": "Total quantity (kg)",
+    "warehouseSection": "Warehouse withdrawal",
+    "warehouseProduct": "Product (warehouse)",
+    "warehouseLot": "Lot",
+    "warehouseQuantity": "Quantity to withdraw ({{unit}})",
+    "warehouseAvailable": "avail. {{qty}} {{unit}}",
+    "warehouseAddRow": "+ Add withdrawal",
+    "warehouseRemoveRow": "Remove withdrawal",
+    "warehouseNoLots": "No lot available for this product: load one from the Warehouse.",
+    "warehouseFreeText": "Without a withdrawal the record stays free-text (no stock movement).",
+    "warehouseExpiredOption": "EXPIRED · use blocked",
+    "warehouseExpiringOption": "expiring",
+    "warehouseSubmitError": "Registration cancelled: {{message}}",
+    "warehouseIncompatibleUnit": "unit differs from the dose ({{unit}})",
+    "warehouseEffectiveDose": "Effective dose: {{dose}} {{unit}}",
+    "warehouseMismatch": "≠ computed total ({{total}} {{unit}})",
+    "warehouseSplitFefo": "Split across lots (FEFO)",
+    "assignCropLabel": "Assign {{crop}} to “{{plot}}” for the {{year}} campaign",
+    "assignCropHint": "Creates crop sheet and campaign automatically. Declaratory data (SIAN codes, reference parcel) still needs completing in Crop data."
+  },
+  "warehouse": {
+    "title": "Warehouse",
+    "newProduct": "New product",
+    "productName": "Commercial name",
+    "category": "Category",
+    "categoryLabel": {
+      "phytosanitary": "Plant protection product",
+      "fertilizer": "Fertilizer",
+      "seed": "Seed",
+      "fuel": "Fuel",
+      "other": "Other / supplies"
+    },
+    "unit": "Unit of measure",
+    "registrationNumber": "PAN registration no.",
+    "activeSubstance": "Active substance",
+    "npkN": "N content (%)",
+    "npkP": "P content (%)",
+    "npkK": "K content (%)",
+    "umaCode": "UMA allocation",
+    "supplier": "Supplier",
+    "supplierPlaceholder": "e.g. farm co-op",
+    "initialLoad": "Initial load (first lot)",
+    "defaultSafetyDays": "Default PHI (days)",
+    "defaultReentryH": "Default re-entry (h)",
+    "seedSection": "Seed crop identity",
+    "seedSectionHint": "With this data, sowing from the logbook automatically assigns the crop to the field (crop sheet + campaign).",
+    "species": "Species (common name)",
+    "speciesPlaceholder": "e.g. winter wheat",
+    "variety": "Variety",
+    "varietyPlaceholder": "e.g. Bologna",
+    "scientificName": "Scientific name",
+    "cropCategory": "Crop type",
+    "cropCategorySeminativo": "Arable crop",
+    "cropCategoryOrticoltura": "Horticulture",
+    "minStock": "Minimum stock ({{unit}})",
+    "belowMinStock": "Below min stock",
+    "notes": "Notes",
+    "saveProduct": "Save product",
+    "deleteProduct": "Delete product",
+    "cump": "WAC",
+    "stock": "Stock",
+    "lots": "Lots",
+    "loadLot": "Load lot",
+    "lotNumber": "Lot no.",
+    "expiresAt": "Expiry",
+    "quantity": "Quantity",
+    "unitCost": "Unit purchase cost",
+    "lotExpired": "Expired",
+    "lotExpiring": "Expiring",
+    "expiryThreshold": "Expiry alert threshold (days)",
+    "expiryAlert": "{{count}} lots expired or expiring within {{days}} days.",
+    "expiredBlockedNotice": "Expired lots remain visible but are BLOCKED: they cannot be withdrawn in field activities.",
+    "noProducts": "No products yet. Create the first product to load lots and withdraw from activities.",
+    "noLots": "No lots loaded.",
+    "deleteLot": "Delete lot",
+    "backToList": "‹ Product list",
+    "requiredByCategory": "Missing required fields for the selected category.",
+    "validation": {
+      "required": "required field",
+      "npkPercent": "content required (0–100%)"
+    }
   },
   "sianExportDialog": {
     "chooseField": "— choose a field —",
@@ -810,6 +913,8 @@
       "mezzo": "Machinery",
       "intervallo_rientro_h": "Re-entry (h)",
       "carenza_giorni": "Pre-harvest interval (days)",
+      "raccolta_kg": "Harvested quantity (kg)",
+      "destinazione": "Harvest destination",
       "note": "Notes"
     },
     "crops": "Crops",
@@ -912,6 +1017,35 @@
       "destination": "Destination"
     }
   },
+  "companyOverview": {
+    "generalTitle": "General overview · {{year}}",
+    "warehouseTitle": "Warehouse",
+    "kpi": {
+      "totalArea": "Total area",
+      "plots": "{{count}} plots",
+      "operationsYear": "Logged operations",
+      "operationsSub": "Field logbook, current season",
+      "harvestYear": "Harvest",
+      "harvestSub": "Sum of the season's deliveries",
+      "productCosts": "Product costs",
+      "productCostsSub": "Warehouse withdrawals valued at WAC",
+      "products": "Products in registry",
+      "productsSub": "{{count}} lots in stock",
+      "stockValue": "Stock value",
+      "stockValueSub": "Valued at current WAC",
+      "expiredLots": "Expired lots",
+      "expiredLotsSub": "With residual stock: use blocked",
+      "expiringLots": "Expiring ({{days}} days)",
+      "expiringLotsSub": "Use or dispose with priority",
+      "belowMinStock": "{{count}} below min stock"
+    },
+    "costsByField": "Product cost by field · {{year}}",
+    "noCosts": "No product costs recorded for the season: link warehouse lots to logbook activities.",
+    "field": "Field",
+    "cost": "Cost",
+    "wholeFarm": "Whole farm",
+    "sianAlert": "{{count}} open campaigns without {{system}} data — click to complete the declaratory data in Crop data"
+  },
   "commandCenter": {
     "allCrops": "All crops",
     "campaignYear": "Crop year",
@@ -919,6 +1053,8 @@
     "crop": "Crop",
     "downloadReport": "Download Executive Report",
     "noPlotsInScope": "No plots in scope.",
+    "pageCompany": "Company",
+    "pageCrops": "Crops and fields",
     "plots": "Plots",
     "plotsAreaSummary": "{{count}} plots · {{area}} ha",
     "readOnlyBanner": {
@@ -1253,6 +1389,10 @@
       "panelRaccolta": {
         "label": "Harvest register",
         "descr": "Deliveries and yields"
+      },
+      "panelMagazzino": {
+        "label": "Warehouse",
+        "descr": "Products, lots and stock"
       },
       "panelRegistro": {
         "label": "Geometry register",

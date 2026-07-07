@@ -30,6 +30,7 @@
    - [4.10 Data Command Center — the analytics dashboard](#410-data-command-center--the-analytics-dashboard)
    - [4.11 Official exports and backup](#411-official-exports-and-backup)
    - [4.12 Settings: weather, theme, profile](#412-settings-weather-theme-profile)
+   - [4.13 Warehouse — products, lots and stock](#413-warehouse--products-lots-and-stock)
 5. [Shortcuts and productivity](#5-shortcuts-and-productivity)
 6. [The recommended flow of a season](#6-the-recommended-flow-of-a-season)
 
@@ -161,7 +162,11 @@ The Logbook gathers the **traceability** of everything you do in the field, comp
    - **Soil sampling** — georeferenced analysis (pH, organic matter, N-P-K), saved as a point on the map.
 3. Select the **parcel**, fill the fields and **save**. With crop-protection and fertilizations AgroGea runs the **PAN validation**: it clearly flags missing mandatory fields.
 
-**Reviewing and filtering:** the list filters by **date range** and by **parcel**. You can also turn on **Show on map** to project the filtered operations as georeferenced symbols. Click an entry to see its detail; the trash bin deletes it (with confirmation).
+**Warehouse withdrawal (0.2.0):** for treatments, fertilizations and sowing, a dedicated section withdraws real lots. The quantity **automatically follows** the total computed from the dose; if you edit it manually you see the **effective dose** and any deviation. The lot is preselected in **FEFO** order (nearest expiry), expired lots are blocked and, if one lot is not enough, one click **splits the withdrawal across lots**. Picking the product prefills registration number, active substance and — if set in the registry — default PHI and re-entry.
+
+**Smart sowing:** sowing a **warehouse seed** on a field without a crop, the operation offers to **automatically assign the crop to the field** (crop sheet + campaign, density derived from the dose). Declaratory data (SIAN codes) still needs completing in Crop data.
+
+**Reviewing and filtering:** the list filters by **date range** and by **parcel**. You can also turn on **Show on map** to project the filtered operations as georeferenced symbols. Click an entry to see its detail; the trash bin deletes it (with confirmation); the **copy** icon repeats it with a prefilled form dated today (operator and license are remembered between operations).
 
 > **Shortcut from the field:** click a parcel on the map and open the Logbook **already filtered** on that field — recording a new operation stays one tap away.
 
@@ -170,7 +175,11 @@ The Logbook gathers the **traceability** of everything you do in the field, comp
 To record deliveries and feed the yield analyses:
 
 1. Sidebar → **Logbook (QDC)** → **Harvest**.
-2. For each harvest indicate **parcel, cultivar, quantity (kg), destination/logistics and date**. The harvest is tied to the field's Agrarian Campaign.
+2. For each harvest indicate **parcel, cultivar, quantity (kg), destination/logistics and date**. The cultivar prefills from the field's campaign crop; the harvest is tied to the **open** Agrarian Campaign.
+
+**Closing the crop cycle:** for **annual** crops (arable/horticulture) the harvest offers — pre-ticked — to **close the campaign**: the field becomes free again (neutral map, DSS off) and a new sowing can start even in the same year (second harvest). Perennials stay open.
+
+**SIAN/SIEX compliance:** if the field's campaign has incomplete declaratory data (crop code, reference parcel/SIGPAC, agricultural parcel/recinto), the form flags it with a banner and a "SIAN ✗" badge (or "SIEX ✗" in Spain) in the selector: you can **complete it right away** from Crop data or save anyway with an explicit tick.
 
 This data becomes the yield charts in the Command Center and in the attribute table (§4.9–4.10).
 
@@ -258,7 +267,10 @@ The built-in **attribute table** turns your data into an analyzable sheet. The a
 
 ### 4.10 Data Command Center — the analytics dashboard
 
-From the **Command Center** button in the header you switch from the map to the **dashboard**: farm KPIs, operations calendar, customizable dashboards and a management report. It is the overview of everything you have recorded.
+From the **Command Center** button in the header you switch from the map to the **dashboard**, split into **two pages**:
+
+- **Crops and fields** — the agronomic analysis: season → crop → field filters, KPIs, operations calendar, customizable dashboards and management report.
+- **Company** — the general overview: season area/operations/harvest, **Warehouse status** (stock value at WAC, expired/expiring lots, products below minimum stock), **product cost by field** and backup/restore. A clickable alert flags campaigns with incomplete declaratory (SIAN/SIEX) data.
 
 ### 4.11 Official exports and backup
 
@@ -267,6 +279,8 @@ From the **Command Center** button in the header you switch from the map to the 
 - **Italy — SIAN/PAN:** from **Logbook (QDC) → SIAN export**. CSV optimized for Italian Excel (separator `;`, UTF-8 BOM), with ministerial Island/Parcel codes.
 - **Spain — SIEX/CUE:** *Cuaderno Digital* in JSON (FEGA).
 - **Other EU countries / France:** international CSV (separator `,`, ISO dates).
+
+The CSV export covers the **whole Field Logbook (QDCA)**: it includes both treatments and **harvests** (a «Harvest» row with quantity in kg and destination). The operation type is written **in your language**, not as internal codes. The **SIAN/SIEX codes** appear even if filled in the crop sheet after recording the operation: they are resolved by parcel and season, so you only need to complete them once in Crop data. Columns, order, separator and filters (dates, fields, crops, types) remain fully configurable.
 
 **SIAN Dossier import** — you can import the Farm Dossier: AgroGea creates the missing parcels from the geometries, normalizes the crops and populates the season's Campaign, recognizing already-present fields without duplicates.
 
@@ -281,6 +295,27 @@ From the **Command Center** button in the header you switch from the map to the 
 - **Weather** (Settings → Weather) — configure the weather station/source that feeds the water balance and the DSS.
 - **Theme** — Light / Dark / Green, from the selector in the header.
 - **Profile** — from the user menu top-right: app preferences and settings.
+
+### 4.13 Warehouse — products, lots and stock
+
+The Warehouse keeps the **product registry** and their **lots** with expiry, stock and cost, and links everything to the logbook activities.
+
+1. Sidebar → **Warehouse** → **Products and lots**.
+2. **＋ New product** and pick the **category** (rigid — it determines the required fields):
+   - **Plant protection product** — requires the **PAN registration number**; plus active substance and **default PHI/re-entry** (prefilled later in the Logbook);
+   - **Fertilizer** — requires the **N-P-K contents** (percentages);
+   - **Seed** — with its **crop identity** (species, scientific name, variety, crop type): this is what enables the automatic crop assignment at sowing;
+   - **Fuel** — requires the agricultural fuel (**UMA**) allocation code;
+   - **Other / supplies** — lubricants and consumables, no extra fields.
+
+   The form includes the **initial load** (production lot, expiry, **mandatory quantity** and cost): a product is born with its stock. Optional for all categories: supplier and **minimum stock** (below the threshold a reorder badge appears).
+3. From the product detail, **Load lot** adds further loads. Every load updates the product's **weighted average cost (WAC/CUMP)** over the current stock.
+
+**Withdrawing from activities:** the logbook form (treatments, fertilizations, sowing) shows a **Warehouse withdrawal** section: pick product → lot → quantity. On save the stock is withdrawn **for real**, in a single transaction with the activity: if the quantity exceeds availability, **the whole registration fails** (no partial withdrawal) with a clear message. The product cost (quantity × WAC at withdrawal time) is **charged to the treated field** and will feed the field balance.
+
+**Expiry:** **expired** lots are highlighted and their use in activities is **blocked** (not selectable); lots **expiring** within the configurable threshold (default 30 days) raise an alert in the panel.
+
+> **Compatibility:** existing records with free-text products/machinery remain valid; the warehouse withdrawal is optional and coexists with free text until you link a real lot. Deleting an operation with withdrawals **restores** the stock automatically.
 
 ---
 
