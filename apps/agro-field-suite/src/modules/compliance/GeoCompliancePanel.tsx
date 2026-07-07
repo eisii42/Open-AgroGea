@@ -1,6 +1,6 @@
 import { FieldSheet } from "@agrogea/ui";
 import { useTranslation } from "react-i18next";
-import { ComplianceLayerSelector } from "../modules/compliance/ComplianceLayerSelector";
+import { ComplianceLayerSelector } from "./ComplianceLayerSelector";
 
 /**
  * Pannello "GeoCompliance" (scheda dedicata sotto Impostazioni Azienda).

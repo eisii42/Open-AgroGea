@@ -26,23 +26,23 @@ import {
   type RisultatoDssPlot,
   type TargetDss,
   useDssCalcolo,
-} from "../hooks/useDssCalcolo";
-import { useDssOverlayLayer } from "../hooks/useDssOverlayLayer";
-import { cropModulePerColtura } from "../modules/crops";
+} from "../../hooks/useDssCalcolo";
+import { useDssOverlayLayer } from "../../hooks/useDssOverlayLayer";
+import { cropModulePerColtura } from "../crops";
 import {
   calibrazioneSintesi,
   type SintesiCampo,
   sintetizzaRischioCampo,
-} from "../modules/dss/dss-overlay";
-import { EXTERNAL_LAYER_FLAG } from "../modules/add-data/add-data";
+} from "../dss/dss-overlay";
+import { EXTERNAL_LAYER_FLAG } from "../add-data/add-data";
 import {
   costruisciStoricoUmiditaFc,
   type FormatoStoricoUmidita,
   type RigaStoricoUmidita,
   type SorgenteSuolo,
   serializzaStoricoUmidita,
-} from "../modules/soil";
-import { scaricaArtifact } from "../services/gis/geo-export";
+} from "../soil";
+import { scaricaArtifact } from "../../services/gis/geo-export";
 
 /**
  * Pannello "Acqua · Bilancio idrico" (Modulo 1, FAO 56/66), ora MULTI-APPEZZAMENTO

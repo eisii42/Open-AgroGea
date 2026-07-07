@@ -8,7 +8,7 @@ import { BottomSheet } from "../components/BottomSheet";
 import { usePlatform } from "../hooks/usePlatform";
 import { AppHeader } from "../components/AppHeader";
 import { BasemapSwitcher } from "../components/BasemapSwitcher";
-import { CropLegend } from "../components/CropLegend";
+import { CropLegend } from "../modules/crops/CropLegend";
 import { GeometryEditToolbar } from "../components/GeometryEditToolbar";
 import { Colorbar } from "../modules/colorbar/Colorbar";
 import { CommandPalette } from "../modules/command-palette/CommandPalette";
@@ -33,18 +33,18 @@ import { useMapStyleEpoch } from "../hooks/useMapStyleEpoch";
  * caricati solo all'apertura del relativo strumento.
  */
 const QuadernoPanel = lazy(() =>
-  import("../components/QuadernoPanel").then((m) => ({ default: m.QuadernoPanel })),
+  import("../modules/field-logbook/QuadernoPanel").then((m) => ({ default: m.QuadernoPanel })),
 );
 const RaccoltaPanel = lazy(() =>
-  import("../components/RaccoltaPanel").then((m) => ({ default: m.RaccoltaPanel })),
+  import("../modules/field-logbook/RaccoltaPanel").then((m) => ({ default: m.RaccoltaPanel })),
 );
 const MagazzinoPanel = lazy(() =>
-  import("../components/MagazzinoPanel").then((m) => ({
+  import("../modules/warehouse/MagazzinoPanel").then((m) => ({
     default: m.MagazzinoPanel,
   })),
 );
 const SuoloPanel = lazy(() =>
-  import("../components/SuoloPanel").then((m) => ({ default: m.SuoloPanel })),
+  import("../modules/soil/SuoloPanel").then((m) => ({ default: m.SuoloPanel })),
 );
 const ColturaDatiPanel = lazy(() =>
   import("../modules/crops/ColturaPanel").then((m) => ({
@@ -60,7 +60,7 @@ const VraPanel = lazy(() =>
   import("../modules/vra/VraPanel").then((m) => ({ default: m.VraPanel })),
 );
 const BilancioIdricoPanel = lazy(() =>
-  import("../components/BilancioIdricoPanel").then((m) => ({
+  import("../modules/water-balance/BilancioIdricoPanel").then((m) => ({
     default: m.BilancioIdricoPanel,
   })),
 );
@@ -88,17 +88,17 @@ const SyncPanel = lazy(() =>
   import("../components/SyncPanel").then((m) => ({ default: m.SyncPanel })),
 );
 const ImpostazioniPanel = lazy(() =>
-  import("../components/ImpostazioniPanel").then((m) => ({
+  import("../modules/settings/ImpostazioniPanel").then((m) => ({
     default: m.ImpostazioniPanel,
   })),
 );
 const AnagraficaPanel = lazy(() =>
-  import("../components/AnagraficaPanel").then((m) => ({
+  import("../modules/registry/AnagraficaPanel").then((m) => ({
     default: m.AnagraficaPanel,
   })),
 );
 const GeoCompliancePanel = lazy(() =>
-  import("../components/GeoCompliancePanel").then((m) => ({
+  import("../modules/compliance/GeoCompliancePanel").then((m) => ({
     default: m.GeoCompliancePanel,
   })),
 );

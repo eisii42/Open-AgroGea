@@ -29,7 +29,7 @@ import {
   type SianColumn,
   type SianExportConfig,
   type SianFiltri,
-} from "../lib/sianExport";
+} from "../../lib/sianExport";
 
 /**
  * Dialog di configurazione dell'export SIAN (CSV). Espone TUTTI i filtri

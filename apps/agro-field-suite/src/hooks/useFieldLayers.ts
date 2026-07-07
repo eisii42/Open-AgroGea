@@ -17,7 +17,7 @@ import type { FeatureCollection } from "geojson";
 import {
   buildPoiClusterProperties,
   clusterMeanExpression,
-} from "../modules/suolo/suolo-analytics";
+} from "../modules/soil/suolo-analytics";
 
 /**
  * Proietta i layer "infrastrutture" e "poi" del dominio agronomico nello store

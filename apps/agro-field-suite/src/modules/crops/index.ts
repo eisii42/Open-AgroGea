@@ -1,9 +1,9 @@
-import { cerealiModule } from "./cereali";
-import { fruttaModule } from "./frutta";
-import { olivoModule } from "./olivo";
-import { orticolturaModule } from "./orticoltura";
+import { cerealiModule } from "./cereals";
+import { fruttaModule } from "./fruit";
+import { olivoModule } from "./olive";
+import { orticolturaModule } from "./vegetables";
 import type { CropModule } from "./types";
-import { viteModule } from "./vite";
+import { viteModule } from "./grapevine";
 
 /**
  * Registro dei moduli per coltura (refactor §3). Punto unico da cui la UI

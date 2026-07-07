@@ -15,8 +15,8 @@ import { Button, cn, Input, Label, Select } from "@geolibre/ui";
 import { Copy, MapPin, MapPinOff, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useGeoCompliance } from "../modules/compliance/useGeoCompliance";
-import { useCountryCatalog } from "../hooks/useTenantCountry";
+import { useGeoCompliance } from "../compliance/useGeoCompliance";
+import { useCountryCatalog } from "../../hooks/useTenantCountry";
 import { ConfirmDeleteOperazione } from "./ConfirmDeleteOperazione";
 import { OperazioneDettaglioCard } from "./OperazioneDettaglioCard";
 import {

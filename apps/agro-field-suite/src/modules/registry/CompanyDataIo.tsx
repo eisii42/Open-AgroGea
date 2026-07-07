@@ -9,8 +9,8 @@ import {
   exportFilename,
   importCompanyData,
   pickCompanyFile,
-} from "../services/companyDataIo";
-import { STANDALONE } from "../standalone";
+} from "../../services/companyDataIo";
+import { STANDALONE } from "../../standalone";
 
 /**
  * Import/Export dei dati aziendali in GeoJSON Esteso. Componente unico, ma con

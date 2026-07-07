@@ -30,7 +30,7 @@ import { Button, cn, Input, Label, Select } from "@geolibre/ui";
 import type { Point } from "geojson";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import i18n from "../i18n";
+import i18n from "../../i18n";
 
 /**
  * Form UNICO e ADATTIVO del Quaderno di Campagna: a partire dal tipo operazione

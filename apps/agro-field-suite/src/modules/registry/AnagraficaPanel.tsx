@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { useReadOnly } from "@agrogea/core";
-import { STANDALONE } from "../standalone";
+import { STANDALONE } from "../../standalone";
 import { CompanyDataIo } from "./CompanyDataIo";
 
 /**

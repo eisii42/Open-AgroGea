@@ -18,7 +18,7 @@ import { cn } from "@geolibre/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppHeader } from "../components/AppHeader";
-import { CompanyDataIo } from "../components/CompanyDataIo";
+import { CompanyDataIo } from "../modules/registry/CompanyDataIo";
 import { CompanyOverview } from "../modules/analytics/CompanyOverview";
 import { CustomDashboard } from "../modules/analytics/CustomDashboard";
 import type { DashboardData } from "../modules/analytics/dashboard-datasets";

@@ -15,7 +15,7 @@ import { fillLayerId, lineLayerId, type MapController } from "@geolibre/map";
 import { Sprout } from "lucide-react";
 import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { cropIcon } from "../lib/cropIcon";
+import { cropIcon } from "../../lib/cropIcon";
 
 const LAYER_ID = "agrogea-appezzamenti";
 const HIGHLIGHT_MS = 1000;

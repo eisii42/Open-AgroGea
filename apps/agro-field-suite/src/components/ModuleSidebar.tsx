@@ -35,7 +35,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useReadOnly } from "@agrogea/core";
 import { STANDALONE } from "../standalone";
-import { SianExportDialog } from "./SianExportDialog";
+import { SianExportDialog } from "../modules/sian/SianExportDialog";
 
 /**
  * Sidebar moduli a scomparsa (Modulo UI §5 + §6). Raccoglie gli strumenti

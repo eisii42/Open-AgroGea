@@ -6,8 +6,8 @@ import { useTranslation } from "react-i18next";
 import {
   type PrevisioneDashboard,
   WeatherSyncService,
-} from "../lib/WeatherSyncService";
-import { infoMeteoCodice } from "../lib/meteoCodici";
+} from "../../lib/WeatherSyncService";
+import { infoMeteoCodice } from "../../lib/meteoCodici";
 
 /**
  * Scheda meteo dell'header (di fianco allo switcher azienda): condizioni
