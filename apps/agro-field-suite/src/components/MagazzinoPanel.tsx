@@ -246,6 +246,10 @@ export function MagazzinoPanel({ onClose }: { onClose: () => void }) {
                     statoScadenza(l.expires_at, new Date(), warningDays) !==
                       "valid",
                 );
+                // Scorta minima (v17): badge di riordino sotto soglia.
+                const minStock = prodotto.metadata?.["min_stock"];
+                const sottoScorta =
+                  typeof minStock === "number" && giacenza < minStock;
                 return (
                   <li key={prodotto.id}>
                     <button
@@ -272,6 +276,11 @@ export function MagazzinoPanel({ onClose }: { onClose: () => void }) {
                           </strong>
                         </span>
                       </span>
+                      {sottoScorta && (
+                        <span className="rounded-full bg-[var(--danger-l)] px-1.5 text-[10px] font-semibold text-[var(--danger)]">
+                          {t("warehouse.belowMinStock")}
+                        </span>
+                      )}
                       {critici.length > 0 && (
                         <span className="rounded-full bg-[var(--warn-l)] px-1.5 text-[10px] font-semibold text-[var(--warn)]">
                           {critici.length} ⚠
@@ -306,6 +315,12 @@ interface ProdottoFormInput {
   uma_code: string | null;
   supplier: string | null;
   notes: string | null;
+  /**
+   * Proprietà per categoria (v17): sementi → identità colturale (species,
+   * scientific_name, variety_name, crop_category); agrofarmaci → carenza e
+   * rientro di default; comune → scorta minima (min_stock).
+   */
+  metadata: Record<string, unknown>;
 }
 
 /** Carico iniziale contestuale alla creazione del prodotto (giacenza di partenza). */
@@ -338,6 +353,16 @@ function ProdottoForm({
   const [umaCode, setUmaCode] = useState("");
   const [fornitore, setFornitore] = useState("");
   const [note, setNote] = useState("");
+  // Identità colturale della semente (v17): alimenta l'auto-assegnazione della
+  // coltura al campo quando la semente viene seminata dal Quaderno.
+  const [specie, setSpecie] = useState("");
+  const [nomeScientifico, setNomeScientifico] = useState("");
+  const [varieta, setVarieta] = useState("");
+  const [categoriaColturale, setCategoriaColturale] = useState("seminativo");
+  // Default per il Quaderno (agrofarmaci) + scorta minima (comune).
+  const [carenzaDefault, setCarenzaDefault] = useState("");
+  const [rientroDefault, setRientroDefault] = useState("");
+  const [scortaMinima, setScortaMinima] = useState("");
   // Carico iniziale (fix: quantità e lotto direttamente alla creazione).
   const [numeroLotto, setNumeroLotto] = useState("");
   const [scadenza, setScadenza] = useState("");
@@ -346,6 +371,23 @@ function ProdottoForm({
   const [saving, setSaving] = useState(false);
 
   const num = (s: string) => (s.trim() === "" ? null : Number(s));
+
+  // Metadata per categoria: solo chiavi valorizzate (jsonb pulito).
+  const metadata: Record<string, unknown> = {};
+  if (categoria === "seed") {
+    if (specie.trim()) metadata.species = specie.trim();
+    if (nomeScientifico.trim()) metadata.scientific_name = nomeScientifico.trim();
+    if (varieta.trim()) metadata.variety_name = varieta.trim();
+    metadata.crop_category = categoriaColturale;
+  }
+  if (categoria === "phytosanitary") {
+    const c = num(carenzaDefault);
+    if (c != null) metadata.safety_period_days = c;
+    const r = num(rientroDefault);
+    if (r != null) metadata.reentry_interval_h = r;
+  }
+  const minStock = num(scortaMinima);
+  if (minStock != null && minStock > 0) metadata.min_stock = minStock;
 
   const draft: ProdottoFormInput = {
     category: categoria,
@@ -359,6 +401,7 @@ function ProdottoForm({
     uma_code: umaCode.trim() || null,
     supplier: fornitore.trim() || null,
     notes: note.trim() || null,
+    metadata,
   };
   // Stessa validazione RIGIDA del DAL, anticipata nel form (bottone disattivo).
   const errors = validateProdotto(draft);
@@ -451,7 +494,90 @@ function ProdottoForm({
               onChange={(e) => setSostanzaAttiva(e.target.value)}
             />
           </div>
+          {/* Default per il Quaderno (v17): precompilano carenza e rientro
+              alla selezione del prodotto nel form trattamento. */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="mag-carenza">{t("warehouse.defaultSafetyDays")}</Label>
+            <Input
+              id="mag-carenza"
+              type="number"
+              inputMode="numeric"
+              min="0"
+              value={carenzaDefault}
+              onChange={(e) => setCarenzaDefault(e.target.value)}
+              className="agro-num"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="mag-rientro">{t("warehouse.defaultReentryH")}</Label>
+            <Input
+              id="mag-rientro"
+              type="number"
+              inputMode="numeric"
+              min="0"
+              value={rientroDefault}
+              onChange={(e) => setRientroDefault(e.target.value)}
+              className="agro-num"
+            />
+          </div>
         </div>
+      )}
+
+      {/* Identità colturale della semente (v17): con questi dati la SEMINA dal
+          Quaderno assegna automaticamente la coltura al campo. */}
+      {categoria === "seed" && (
+        <section className="flex flex-col gap-3 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
+            {t("warehouse.seedSection")}
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="mag-specie">{t("warehouse.species")}</Label>
+              <Input
+                id="mag-specie"
+                value={specie}
+                onChange={(e) => setSpecie(e.target.value)}
+                placeholder={t("warehouse.speciesPlaceholder")}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="mag-varieta">{t("warehouse.variety")}</Label>
+              <Input
+                id="mag-varieta"
+                value={varieta}
+                onChange={(e) => setVarieta(e.target.value)}
+                placeholder={t("warehouse.varietyPlaceholder")}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="mag-sci">{t("warehouse.scientificName")}</Label>
+              <Input
+                id="mag-sci"
+                value={nomeScientifico}
+                onChange={(e) => setNomeScientifico(e.target.value)}
+                placeholder="es. Triticum aestivum"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="mag-cropcat">{t("warehouse.cropCategory")}</Label>
+              <Select
+                id="mag-cropcat"
+                value={categoriaColturale}
+                onChange={(e) => setCategoriaColturale(e.target.value)}
+              >
+                <option value="seminativo">
+                  {t("warehouse.cropCategorySeminativo")}
+                </option>
+                <option value="orticoltura">
+                  {t("warehouse.cropCategoryOrticoltura")}
+                </option>
+              </Select>
+            </div>
+          </div>
+          <p className="text-[11px] text-[var(--ink-3)]">
+            {t("warehouse.seedSectionHint")}
+          </p>
+        </section>
       )}
 
       {categoria === "fertilizer" && (
@@ -495,14 +621,31 @@ function ProdottoForm({
         </div>
       )}
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="mag-fornitore">{t("warehouse.supplier")}</Label>
-        <Input
-          id="mag-fornitore"
-          value={fornitore}
-          onChange={(e) => setFornitore(e.target.value)}
-          placeholder={t("warehouse.supplierPlaceholder")}
-        />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="mag-fornitore">{t("warehouse.supplier")}</Label>
+          <Input
+            id="mag-fornitore"
+            value={fornitore}
+            onChange={(e) => setFornitore(e.target.value)}
+            placeholder={t("warehouse.supplierPlaceholder")}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="mag-minstock">
+            {t("warehouse.minStock", { unit: unita })}
+          </Label>
+          <Input
+            id="mag-minstock"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="any"
+            value={scortaMinima}
+            onChange={(e) => setScortaMinima(e.target.value)}
+            className="agro-num"
+          />
+        </div>
       </div>
 
       {/* Carico iniziale: lotto di produzione, scadenza, quantità e costo.

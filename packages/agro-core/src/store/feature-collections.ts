@@ -29,8 +29,10 @@ export function colturaPerAppezzamento(
   campiCampagna: CampoCampagna[],
   crops: Crop[],
 ): string | null {
+  // Le campagne CHIUSE (raccolto delle annuali, v17) non contano: il campo è
+  // tornato libero e la mappa/DSS lo trattano come senza coltura.
   const camp = campiCampagna.find(
-    (c) => c.plot_id === plotId && c.deleted_at == null,
+    (c) => c.plot_id === plotId && c.deleted_at == null && c.closed_at == null,
   );
   if (!camp) return null;
   const crop = crops.find((cr) => cr.id === camp.crop_id);
@@ -46,7 +48,7 @@ function cropPerAppezzamento(
   crops: Crop[],
 ): Crop | null {
   const camp = campiCampagna.find(
-    (c) => c.plot_id === plotId && c.deleted_at == null,
+    (c) => c.plot_id === plotId && c.deleted_at == null && c.closed_at == null,
   );
   if (!camp) return null;
   return crops.find((cr) => cr.id === camp.crop_id) ?? null;

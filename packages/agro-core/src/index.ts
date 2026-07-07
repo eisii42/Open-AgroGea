@@ -155,6 +155,11 @@ export {
   type ValidationError,
 } from "./field/pan-validation";
 export {
+  sianCompleta,
+  sianMancanti,
+  type CampoSianMancante,
+} from "./compliance/sian-campaign";
+export {
   DEFAULT_COUNTRY,
   SUPPORTED_COUNTRIES,
   checkPlotCountry,

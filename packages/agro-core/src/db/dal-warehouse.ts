@@ -57,12 +57,13 @@ export class AgroDalWarehouse extends AgroDalLogbook {
       | "tenant_id"
       | "active_substance"
       | "supplier"
+      | "metadata"
       | "avg_unit_cost"
       | "created_at"
       | "updated_at"
       | "deleted_at"
     > &
-      Partial<Pick<Prodotto, "active_substance" | "supplier">> & {
+      Partial<Pick<Prodotto, "active_substance" | "supplier" | "metadata">> & {
         id?: string;
         created_at?: string;
         avg_unit_cost?: number;
@@ -95,6 +96,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
       // Il CUMP sopravvive agli update anagrafici (lo muove solo il carico).
       avg_unit_cost: input.avg_unit_cost ?? esistente?.avg_unit_cost ?? 0,
       notes: input.notes ?? null,
+      metadata: input.metadata ?? esistente?.metadata ?? {},
       created_at: input.created_at ?? esistente?.created_at ?? ts,
       updated_at: ts,
       deleted_at: null,

@@ -15,6 +15,7 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
     ultimaOperazione: null,
     quadernoApriAppezzamentoId: null,
     scoutingApriOsservazioneId: null,
+    colturaApriAppezzamentoId: null,
     operazioniMappaIds: null,
     scoutingPlacing: false,
 
@@ -90,6 +91,22 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
       })),
 
     consumaScoutingApri: () => set({ scoutingApriOsservazioneId: null }),
+
+    // CTA compliance SIAN (v17): apre la scheda "Dati coltura" già puntata
+    // sull'appezzamento (stesso pattern del Quaderno/Scouting).
+    apriColturaPerAppezzamento: (appezzamentoId) =>
+      set((s) => ({
+        colturaApriAppezzamentoId: appezzamentoId,
+        selectedFeature: null,
+        openPanels:
+          s.panelMode === "docked"
+            ? ["coltura"]
+            : s.openPanels.includes("coltura")
+              ? s.openPanels
+              : [...s.openPanels, "coltura"],
+      })),
+
+    consumaColturaApri: () => set({ colturaApriAppezzamentoId: null }),
 
     setOperazioniMappaIds: (ids) => set({ operazioniMappaIds: ids }),
 

@@ -221,6 +221,7 @@
       "openDetail": "Open operation details",
       "queued": "queued",
       "deleteOperation": "Delete operation",
+      "repeatOperation": "Repeat operation (prefilled form, today's date)",
       "deleteAriaLabel": "Delete {{label}}"
     }
   },
@@ -391,6 +392,18 @@
     "quantity": "Quantity (quintals)",
     "harvestDate": "Harvest date",
     "quantityMustBeNumber": "Quantity must be a number.",
+    "closeCampaign": "Close the {{year}} campaign of {{crop}}: the field becomes free",
+    "closeCampaignHintAnnual": "The annual crop ends with the harvest: map and DSS turn neutral, a new sowing can start right away.",
+    "closeCampaignHintPerennial": "Perennial crop: close only at end of cycle (grubbing-up). Normally it stays open.",
+    "sianMissingTitle": "Incomplete SIAN data for this field",
+    "sianMissingHint": "Missing: {{fields}}. Without this data the season's SIAN export will be incomplete.",
+    "sianCompleteNow": "Complete now (Crop data)",
+    "sianOverride": "Save anyway without SIAN data",
+    "sianField": {
+      "crop_external_code": "SIAN crop code",
+      "reference_parcel_external_id": "reference parcel",
+      "agricultural_parcel_external_id": "SIAN agricultural parcel"
+    },
     "saveAction": "Save",
     "emptyState": "No harvests recorded for this company.",
     "openCard": "Open harvest record",
@@ -534,6 +547,7 @@
   "moduleSidebar": {
     "readOnly": "read-only",
     "readOnlyUnavailable": "Not available in read-only mode (Viewer role)",
+    "warehouseAlerts": "{{count}} lots to check (expired or expiring)",
     "cropData": "Crop data",
     "dssModels": "DSS · forecast models",
     "exportSian": "Export SIAN (CSV)…"
@@ -789,7 +803,13 @@
     "warehouseFreeText": "Without a withdrawal the record stays free-text (no stock movement).",
     "warehouseExpiredOption": "EXPIRED · use blocked",
     "warehouseExpiringOption": "expiring",
-    "warehouseSubmitError": "Registration cancelled: {{message}}"
+    "warehouseSubmitError": "Registration cancelled: {{message}}",
+    "warehouseIncompatibleUnit": "unit differs from the dose ({{unit}})",
+    "warehouseEffectiveDose": "Effective dose: {{dose}} {{unit}}",
+    "warehouseMismatch": "≠ computed total ({{total}} {{unit}})",
+    "warehouseSplitFefo": "Split across lots (FEFO)",
+    "assignCropLabel": "Assign {{crop}} to “{{plot}}” for the {{year}} campaign",
+    "assignCropHint": "Creates crop sheet and campaign automatically. Declaratory data (SIAN codes, reference parcel) still needs completing in Crop data."
   },
   "warehouse": {
     "title": "Warehouse",
@@ -813,6 +833,20 @@
     "supplier": "Supplier",
     "supplierPlaceholder": "e.g. farm co-op",
     "initialLoad": "Initial load (first lot)",
+    "defaultSafetyDays": "Default PHI (days)",
+    "defaultReentryH": "Default re-entry (h)",
+    "seedSection": "Seed crop identity",
+    "seedSectionHint": "With this data, sowing from the logbook automatically assigns the crop to the field (crop sheet + campaign).",
+    "species": "Species (common name)",
+    "speciesPlaceholder": "e.g. winter wheat",
+    "variety": "Variety",
+    "varietyPlaceholder": "e.g. Bologna",
+    "scientificName": "Scientific name",
+    "cropCategory": "Crop type",
+    "cropCategorySeminativo": "Arable crop",
+    "cropCategoryOrticoltura": "Horticulture",
+    "minStock": "Minimum stock ({{unit}})",
+    "belowMinStock": "Below min stock",
     "notes": "Notes",
     "saveProduct": "Save product",
     "deleteProduct": "Delete product",
@@ -993,13 +1027,15 @@
       "expiredLots": "Expired lots",
       "expiredLotsSub": "With residual stock: use blocked",
       "expiringLots": "Expiring ({{days}} days)",
-      "expiringLotsSub": "Use or dispose with priority"
+      "expiringLotsSub": "Use or dispose with priority",
+      "belowMinStock": "{{count}} below min stock"
     },
     "costsByField": "Product cost by field · {{year}}",
     "noCosts": "No product costs recorded for the season: link warehouse lots to logbook activities.",
     "field": "Field",
     "cost": "Cost",
-    "wholeFarm": "Whole farm"
+    "wholeFarm": "Whole farm",
+    "sianAlert": "{{count}} open campaigns without SIAN data — click to complete the declaratory data in Crop data"
   },
   "commandCenter": {
     "allCrops": "All crops",

@@ -326,9 +326,16 @@ export interface DomainSlice {
   salvaCampoCampagna: (
     input: Omit<
       CampoCampagna,
-      "id" | "tenant_id" | "created_at" | "updated_at" | "deleted_at"
-    > & { id?: string },
+      "id" | "tenant_id" | "closed_at" | "created_at" | "updated_at" | "deleted_at"
+    > &
+      Partial<Pick<CampoCampagna, "closed_at">> & { id?: string },
   ) => Promise<CampoCampagna | null>;
+  /**
+   * Chiude il ciclo colturale di una campagna (v17, raccolto delle annuali):
+   * il campo torna libero (mappa neutra, DSS spento) e una nuova semina può
+   * ripartire nello stesso anno. Idrata lo store con la riga chiusa.
+   */
+  chiudiCampagna: (id: string) => Promise<void>;
   /**
    * Crea/aggiorna una specie/varietà coltivata (`crops`) e idrata lo store.
    * Ritorna la riga o null senza DAL attivo.
@@ -349,11 +356,13 @@ export interface DomainSlice {
       | "id"
       | "tenant_id"
       | "company_id"
+      | "metadata"
       | "avg_unit_cost"
       | "created_at"
       | "updated_at"
       | "deleted_at"
-    > & { id?: string },
+    > &
+      Partial<Pick<Prodotto, "metadata">> & { id?: string },
   ) => Promise<Prodotto | null>;
   /** Soft-delete di un prodotto di magazzino (i lotti restano storicizzati). */
   eliminaProdotto: (id: string) => Promise<void>;
@@ -411,6 +420,12 @@ export interface UiSlice {
    */
   scoutingApriOsservazioneId: string | null;
   /**
+   * Appezzamento su cui aprire la scheda "Dati coltura" già puntata (CTA
+   * "Completa ora" della compliance SIAN, v17). `null` = nessuna richiesta
+   * pendente; il ColturaDatiPanel la consuma all'apertura.
+   */
+  colturaApriAppezzamentoId: string | null;
+  /**
    * Operazioni del Quaderno da renderizzare come simboli sulla mappa (toggle
    * "Mostra sulla mappa"). `null` = layer spento (nessun simbolo creato); array
    * = gli ID delle SOLE operazioni attualmente visibili nel registro (rispetta
@@ -441,6 +456,10 @@ export interface UiSlice {
   apriScoutingPerOsservazione: (osservazioneId: string | null) => void;
   /** Consuma la richiesta di apertura Scouting (chiamata dal FieldCollectionTool). */
   consumaScoutingApri: () => void;
+  /** Apre la scheda "Dati coltura" puntata sull'appezzamento (CTA compliance SIAN). */
+  apriColturaPerAppezzamento: (appezzamentoId: string | null) => void;
+  /** Consuma la richiesta di apertura Dati coltura (chiamata dal ColturaDatiPanel). */
+  consumaColturaApri: () => void;
   /** Imposta gli ID delle operazioni da mostrare come simboli in mappa (null = spento). */
   setOperazioniMappaIds: (ids: string[] | null) => void;
   /** Attiva/disattiva l'attesa di un tap per posare la nota scouting. */

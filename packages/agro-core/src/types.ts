@@ -244,6 +244,13 @@ export interface CampoCampagna {
   variety_external_code: string | null;
   /** Superficie ufficiale dichiarata in ettari (IACS declared area, NUMERIC 10,4). */
   declared_area_ha: number;
+  /**
+   * Chiusura del ciclo colturale (ISO): il raccolto di un'ANNUALE termina la
+   * campagna e il campo torna libero (mappa neutra, DSS spento, nuova semina
+   * possibile nello stesso anno). `null` = campagna aperta; le perenni non si
+   * chiudono mai automaticamente.
+   */
+  closed_at: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -584,6 +591,15 @@ export interface Prodotto {
    */
   avg_unit_cost: number;
   notes: string | null;
+  /**
+   * Proprietà estensibili per categoria (JSONB). Chiavi convenzionali:
+   * sementi → `species`, `scientific_name`, `variety_name`, `crop_category`
+   * ("seminativo"|"orticoltura", alimenta l'auto-assegnazione coltura alla
+   * semina); agrofarmaci → `safety_period_days`, `reentry_interval_h` (default
+   * precompilati nel Quaderno); comune → `min_stock` (soglia di riordino
+   * nell'unità del prodotto).
+   */
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;

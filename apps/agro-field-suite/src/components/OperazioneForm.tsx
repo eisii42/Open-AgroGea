@@ -17,6 +17,7 @@ import {
   validateTreatmentLog,
   type WaterUnit,
   waterUnitLabel,
+  useAgroStore,
   useSettingsStore,
 } from "@agrogea/core";
 import {
@@ -27,7 +28,7 @@ import {
 } from "@agrogea/ui";
 import { Button, cn, Input, Label, Select } from "@geolibre/ui";
 import type { Point } from "geojson";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
@@ -185,7 +186,59 @@ interface ScaricoRow {
   productId: string;
   lotId: string;
   quantity: string;
+  /**
+   * true dopo un edit manuale della quantità: la riconciliazione automatica
+   * dose → scarico smette di sovrascriverla (l'utente ha preso il controllo).
+   */
+  manual?: boolean;
 }
+
+/**
+ * Proposta di assegnazione coltura al campo generata da una SEMINA con scarico
+ * di una semente (automazione v17): il chiamante (QuadernoPanel) crea
+ * `crops` + `plots_campaign` dopo la registrazione dell'operazione.
+ */
+export interface AssegnazioneColtura {
+  plotId: string;
+  /** Nome comune della specie (dall'anagrafica semente o dal nome prodotto). */
+  species: string;
+  scientificName: string | null;
+  varietyName: string | null;
+  /** Categoria DSS del campo ("seminativo" | "orticoltura"). */
+  cropCategory: string;
+  /** Densità di semina derivata dalla dose (kg/ha), se disponibile. */
+  densitaSemina: number | null;
+  declaredAreaHa: number;
+}
+
+/** Memoria per-device dell'ultimo operatore usato (precompilazione form). */
+const OPERATOR_KEY = "agrogea.last_operator";
+
+interface OperatorMemory {
+  name?: string;
+  taxCode?: string;
+  license?: string;
+}
+
+function loadOperatorMemory(): OperatorMemory {
+  try {
+    const raw = globalThis.localStorage?.getItem(OPERATOR_KEY);
+    return raw ? (JSON.parse(raw) as OperatorMemory) : {};
+  } catch {
+    return {};
+  }
+}
+
+function persistOperatorMemory(memory: OperatorMemory) {
+  try {
+    globalThis.localStorage?.setItem(OPERATOR_KEY, JSON.stringify(memory));
+  } catch {
+    // storage non disponibile: la memoria resta di sessione.
+  }
+}
+
+/** Stringa da numero nullable (per i default della ripetizione operazione). */
+const numStr = (v: number | null | undefined) => (v == null ? "" : String(v));
 
 export interface OperazioneFormProps {
   operationType: TipoOperazione;
@@ -206,15 +259,22 @@ export interface OperazioneFormProps {
   /**
    * Salvataggio dell'operazione; `scarichi` non vuoto attiva lo scarico
    * ATOMICO dei lotti (§5.2): un errore (giacenza/lotto scaduto) annulla tutto
-   * e risale qui, dove il form lo mostra senza chiudersi.
+   * e risale qui, dove il form lo mostra senza chiudersi. `assegnazione` è la
+   * proposta di coltura da una semina (automazione v17), null se disattivata.
    */
   onSubmit: (
     values: TrattamentoFormValues,
     scarichi?: ScaricoRichiesta[],
+    assegnazione?: AssegnazioneColtura | null,
   ) => Promise<void> | void;
   /** Salvataggio del campionamento di suolo (tabella dedicata). */
   onSubmitSoil?: (input: CampionamentoSuoloInput) => Promise<void> | void;
   onCancel?: () => void;
+  /**
+   * Valori iniziali per "Ripeti operazione": precompila i campi dal record
+   * esistente (la data resta oggi, gli scarichi si riscelgono sui lotti attuali).
+   */
+  defaults?: Partial<TrattamentoFormValues>;
 }
 
 export function OperazioneForm({
@@ -230,6 +290,7 @@ export function OperazioneForm({
   onSubmit,
   onSubmitSoil,
   onCancel,
+  defaults,
 }: OperazioneFormProps) {
   const { t } = useTranslation();
   const spec = operazioneSpec(operationType);
@@ -243,38 +304,65 @@ export function OperazioneForm({
         : undefined;
   const usaCatalogo = (catalogo?.length ?? 0) > 0;
 
-  const [appezzamentoId, setAppezzamentoId] = useState(defaultAppezzamentoId ?? "");
+  // Precompilazioni: appezzamento dal contesto (o dal record da ripetere),
+  // ultimo operatore usato sul device, e — con `defaults` — i campi del record
+  // da ripetere (la data resta oggi).
+  const opMemory = useMemo(loadOperatorMemory, []);
+  const initialApp = defaultAppezzamentoId || defaults?.plot_id || "";
+  const [appezzamentoId, setAppezzamentoId] = useState(initialApp);
   const [campoCampagnaId, setCampoCampagnaId] = useState(() => {
-    if (!usaCampagna || !defaultAppezzamentoId) return "";
+    if (!usaCampagna || !initialApp) return "";
     return (
-      campiCampagna?.find((c) => c.appezzamentoId === defaultAppezzamentoId)
+      campiCampagna?.find((c) => c.appezzamentoId === initialApp)
         ?.campoCampagnaId ?? ""
     );
   });
   const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
-  const [prodotto, setProdotto] = useState("");
+  const [prodotto, setProdotto] = useState(
+    f.tillageType ? "" : defaults?.product_name ?? "",
+  );
   const [prodottoCodice, setProdottoCodice] = useState("");
-  const [numeroRegistrazione, setNumeroRegistrazione] = useState("");
-  const [sostanzaAttiva, setSostanzaAttiva] = useState("");
-  const [target, setTarget] = useState("");
-  const [doseValore, setDoseValore] = useState("");
-  const [doseUnita, setDoseUnita] = useState<DoseUnita>("kg/ha");
-  const [acquaVolume, setAcquaVolume] = useState("");
+  const [numeroRegistrazione, setNumeroRegistrazione] = useState(
+    defaults?.registration_number ?? "",
+  );
+  const [sostanzaAttiva, setSostanzaAttiva] = useState(
+    defaults?.active_substance ?? "",
+  );
+  const [target, setTarget] = useState(defaults?.target_disease ?? "");
+  const [doseValore, setDoseValore] = useState(numStr(defaults?.dose_value));
+  const [doseUnita, setDoseUnita] = useState<DoseUnita>(
+    defaults?.dose_unit ?? "kg/ha",
+  );
+  const [acquaVolume, setAcquaVolume] = useState(
+    f.waterVolume ? numStr(defaults?.water_volume_l) : "",
+  );
   // Irrigazione: quantità + unità (mm/hl). L'unità di default segue la preferenza
   // utente; è sovrascrivibile per singolo intervento.
   const waterPref = useSettingsStore((s) => s.units.water);
   const [irrAmount, setIrrAmount] = useState("");
   const [irrUnit, setIrrUnit] = useState<WaterUnit>(waterPref);
-  const [totaleManuale, setTotaleManuale] = useState("");
-  const [tipoConcime, setTipoConcime] = useState("minerale");
-  const [titoloNpk, setTitoloNpk] = useState("");
-  const [tipoLavorazione, setTipoLavorazione] = useState("");
-  const [operatore, setOperatore] = useState("");
-  const [operatoreCf, setOperatoreCf] = useState("");
-  const [numPatentino, setNumPatentino] = useState("");
-  const [mezzo, setMezzo] = useState("");
-  const [rientro, setRientro] = useState("");
-  const [carenza, setCarenza] = useState("");
+  const [totaleManuale, setTotaleManuale] = useState(
+    f.totalManual ? numStr(defaults?.total_quantity) : "",
+  );
+  const [tipoConcime, setTipoConcime] = useState(
+    defaults?.fertilizer_type ?? "minerale",
+  );
+  const [titoloNpk, setTitoloNpk] = useState(defaults?.npk_ratio ?? "");
+  const [tipoLavorazione, setTipoLavorazione] = useState(
+    f.tillageType ? defaults?.product_name ?? "" : "",
+  );
+  const [operatore, setOperatore] = useState(
+    defaults?.operator_name ?? opMemory.name ?? "",
+  );
+  const [operatoreCf, setOperatoreCf] = useState(
+    defaults?.operator_tax_code ?? opMemory.taxCode ?? "",
+  );
+  const [numPatentino, setNumPatentino] = useState(
+    defaults?.license_number ?? opMemory.license ?? "",
+  );
+  const [mezzo, setMezzo] = useState(defaults?.machinery_equipment ?? "");
+  const [rientro, setRientro] = useState(numStr(defaults?.reentry_interval_h));
+  const [carenza, setCarenza] = useState(numStr(defaults?.safety_period_days));
   const [note, setNote] = useState("");
   // Campionamento: matrice + analisi del suolo.
   const [matrice, setMatrice] = useState<"suolo" | "altro">("suolo");
@@ -394,6 +482,26 @@ export function OperazioneForm({
     return map;
   }, [lottiMagazzino]);
 
+  // -- riconciliazione dose ⇄ scarico (v17) -----------------------------------
+  // Unità di base della quantità prevista: il prefisso della dose (kg/l) o kg
+  // per il totale manuale delle fertilizzazioni. La quantità di scarico segue
+  // il totale calcolato finché l'utente non la modifica a mano (row.manual).
+  const baseDose = f.totalManual ? "kg" : doseUnita.split("/")[0];
+  const totalePrevisto =
+    totaleAutomatico ?? (f.totalManual ? totaleManualeNum : null);
+  /** true se l'unità del prodotto può riconciliarsi con la quantità prevista. */
+  const unitaCompatibile = (unit: string) =>
+    totalePrevisto == null || unit === baseDose;
+
+  /** Lotti utilizzabili del prodotto (giacenza > 0, non scaduti) in ordine FEFO. */
+  const lottiUtilizzabili = (productId: string): LottoProdotto[] =>
+    (lottiMagazzino ?? []).filter(
+      (l) =>
+        l.product_id === productId &&
+        Number(l.quantity_on_hand) > 0 &&
+        statoScadenza(l.expires_at) !== "expired",
+    );
+
   /** Riga compilata per intero e coerente: quantità > 0 e ≤ giacenza, lotto non scaduto. */
   const rowValida = (row: ScaricoRow): boolean => {
     const qty = Number.parseFloat(row.quantity);
@@ -419,6 +527,59 @@ export function OperazioneForm({
       (row.productId || row.lotId || row.quantity.trim() !== "") &&
       !rowValida(row),
   );
+
+  // Auto-fill (v17): con UNA riga di scarico non modificata a mano, la quantità
+  // segue il totale previsto (dose × superficie, o totale manuale in kg).
+  useEffect(() => {
+    if (totalePrevisto == null || totalePrevisto <= 0) return;
+    setScarichiRows((rows) => {
+      if (rows.length !== 1) return rows;
+      const row = rows[0];
+      if (row.manual || !row.productId) return rows;
+      const p = prodottiCategoria.find((x) => x.id === row.productId);
+      if (!p || p.unit !== baseDose) return rows;
+      const q = String(totalePrevisto);
+      return row.quantity === q ? rows : [{ ...row, quantity: q }];
+    });
+  }, [totalePrevisto, baseDose, prodottiCategoria]);
+
+  // -- automazione semina → coltura di campagna (v17) -------------------------
+  const campagnaAttiva = useAgroStore((s) => s.campagnaAttiva);
+  const seedProdotto =
+    operationType === "sowing"
+      ? prodottiCategoria.find((p) => p.id === scarichiRows[0]?.productId) ?? null
+      : null;
+  // Il campo scelto non ha una campagna APERTA per l'annata: la semina può
+  // assegnargli la coltura (crops + plots_campaign) automaticamente.
+  const plotSenzaCampagna = Boolean(
+    appezzamentoId &&
+      !(campiCampagna ?? []).some((c) => c.appezzamentoId === appezzamentoId),
+  );
+  const [assegnaColtura, setAssegnaColtura] = useState(true);
+  const proponiAssegnazione = Boolean(
+    seedProdotto && appezzamentoId && plotSenzaCampagna,
+  );
+  const metaSeed = (seedProdotto?.metadata ?? {}) as Record<string, unknown>;
+  const metaSeedStr = (key: string): string | null => {
+    const v = metaSeed[key];
+    return typeof v === "string" && v.trim() ? v.trim() : null;
+  };
+  const speciesName = metaSeedStr("species") ?? seedProdotto?.name ?? "";
+  const assegnazione: AssegnazioneColtura | null =
+    proponiAssegnazione && assegnaColtura && superficie != null
+      ? {
+          plotId: appezzamentoId,
+          species: speciesName,
+          scientificName: metaSeedStr("scientific_name"),
+          varietyName: metaSeedStr("variety_name"),
+          cropCategory: metaSeedStr("crop_category") ?? "seminativo",
+          densitaSemina:
+            doseUnita === "kg/ha" && doseValore
+              ? Number.parseFloat(doseValore)
+              : null,
+          declaredAreaHa: superficie,
+        }
+      : null;
 
   const canSubmit = !saving && !mancano && !soilSenzaCampo && !scarichiIncompleti;
 
@@ -447,15 +608,36 @@ export function OperazioneForm({
     setScarichiRows((rows) =>
       rows.map((row, i) => {
         if (i !== index) return row;
-        // Cambiare prodotto azzera il lotto (i lotti sono per-prodotto).
-        return patch.productId !== undefined && patch.productId !== row.productId
-          ? { productId: patch.productId, lotId: "", quantity: row.quantity }
-          : { ...row, ...patch };
+        if (patch.productId !== undefined && patch.productId !== row.productId) {
+          // Cambio prodotto: lotto ripreselezionato in FEFO (scadenza valida
+          // più vicina); quantità riproposta dal totale previsto se l'utente
+          // non l'ha ancora modificata a mano.
+          const lotto = patch.productId
+            ? lottiUtilizzabili(patch.productId)[0] ?? null
+            : null;
+          const p = prodottiCategoria.find((x) => x.id === patch.productId);
+          const auto =
+            !row.manual && totalePrevisto != null && p?.unit === baseDose
+              ? String(totalePrevisto)
+              : row.quantity;
+          return {
+            productId: patch.productId,
+            lotId: lotto?.id ?? "",
+            quantity: auto,
+            manual: row.manual,
+          };
+        }
+        // Edit manuale della quantità: da qui in poi comanda l'utente (la
+        // riconciliazione automatica smette di sovrascrivere).
+        if (patch.quantity !== undefined) {
+          return { ...row, quantity: patch.quantity, manual: true };
+        }
+        return { ...row, ...patch };
       }),
     );
     // Prima riga: auto-compila il nome prodotto (fallback testuale del registro)
-    // se il campo è ancora vuoto, così il Quaderno resta leggibile anche senza
-    // consultare il magazzino.
+    // e i default dell'anagrafica (registrazione, sostanza attiva, carenza e
+    // rientro, v17) se i campi sono ancora vuoti.
     if (index === 0 && patch.productId) {
       const p = prodottiCategoria.find((x) => x.id === patch.productId);
       if (p) {
@@ -466,12 +648,49 @@ export function OperazioneForm({
         if (p.active_substance) {
           setSostanzaAttiva((corrente) => corrente || p.active_substance || "");
         }
+        const meta = (p.metadata ?? {}) as Record<string, unknown>;
+        const carenzaDef = meta["safety_period_days"];
+        if (f.safety && (typeof carenzaDef === "number" || typeof carenzaDef === "string")) {
+          setCarenza((corrente) => corrente || String(carenzaDef));
+        }
+        const rientroDef = meta["reentry_interval_h"];
+        if (f.reentry && (typeof rientroDef === "number" || typeof rientroDef === "string")) {
+          setRientro((corrente) => corrente || String(rientroDef));
+        }
       }
     }
   }
 
   function rimuoviScarico(index: number) {
     setScarichiRows((rows) => rows.filter((_, i) => i !== index));
+  }
+
+  /**
+   * Divide la quantità della riga su più lotti in ordine FEFO (v17): la riga
+   * viene sostituita da una riga per lotto finché la quantità è coperta.
+   * No-op se la giacenza complessiva del prodotto non basta.
+   */
+  function dividiFefo(index: number) {
+    setScarichiRows((rows) => {
+      const row = rows[index];
+      const qty = Number.parseFloat(row?.quantity ?? "");
+      if (!row || !Number.isFinite(qty) || qty <= 0) return rows;
+      const nuove: ScaricoRow[] = [];
+      let resto = qty;
+      for (const lotto of lottiUtilizzabili(row.productId)) {
+        if (resto <= 0) break;
+        const presa = Math.min(resto, Number(lotto.quantity_on_hand));
+        nuove.push({
+          productId: row.productId,
+          lotId: lotto.id,
+          quantity: String(Math.round(presa * 1000) / 1000),
+          manual: true,
+        });
+        resto = Math.round((resto - presa) * 1000) / 1000;
+      }
+      if (nuove.length === 0 || resto > 0) return rows;
+      return [...rows.slice(0, index), ...nuove, ...rows.slice(index + 1)];
+    });
   }
 
   async function handleSubmit() {
@@ -534,7 +753,15 @@ export function OperazioneForm({
         executed_at: new Date(`${data}T12:00:00`).toISOString(),
         weather_conditions: null,
         note: note.trim() || null,
-      }, scarichiValidi);
+      }, scarichiValidi, assegnazione);
+      // Memoria operatore (v17): l'ultimo operatore usato precompila i form.
+      if (operatore.trim() || operatoreCf.trim() || numPatentino.trim()) {
+        persistOperatorMemory({
+          name: operatore.trim() || undefined,
+          taxCode: operatoreCf.trim() || undefined,
+          license: numPatentino.trim() || undefined,
+        });
+      }
     } catch (e) {
       // Scarico atomico fallito (giacenza insufficiente, lotto scaduto…): la
       // transazione è stata annullata per intero; il form resta aperto con il
@@ -743,11 +970,20 @@ export function OperazioneForm({
                       }
                     >
                       <option value="">{t("operazioneForm.selectEllipsis")}</option>
-                      {prodottiCategoria.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
+                      {prodottiCategoria.map((p) => {
+                        // Prodotto in unità non riconciliabile con la dose
+                        // (kg vs l): non selezionabile finché c'è un totale
+                        // previsto da far quadrare.
+                        const incompatibile = !unitaCompatibile(p.unit);
+                        return (
+                          <option key={p.id} value={p.id} disabled={incompatibile}>
+                            {p.name} · {p.unit}
+                            {incompatibile
+                              ? ` · ${t("operazioneForm.warehouseIncompatibleUnit", { unit: baseDose })}`
+                              : ""}
+                          </option>
+                        );
+                      })}
                     </Select>
                   </div>
                   <div className="flex flex-col gap-1.5">
@@ -829,6 +1065,59 @@ export function OperazioneForm({
                     {t("operazioneForm.warehouseRemoveRow")}
                   </Button>
                 </div>
+
+                {/* Riconciliazione dose ⇄ scarico: dose effettiva, scostamento
+                    dal totale previsto e split FEFO quando il lotto non basta. */}
+                {(() => {
+                  const qty = Number.parseFloat(row.quantity);
+                  if (!Number.isFinite(qty) || qty <= 0) return null;
+                  const unit = prodottoSel?.unit ?? "";
+                  const doseEffettiva =
+                    superficie && superficie > 0 ? qty / superficie : null;
+                  const scostamento =
+                    totalePrevisto != null &&
+                    totalePrevisto > 0 &&
+                    prodottoSel?.unit === baseDose &&
+                    Math.abs(qty - totalePrevisto) / totalePrevisto > 0.05;
+                  const oltreLotto =
+                    disponibile != null && qty > disponibile;
+                  const copribile =
+                    oltreLotto &&
+                    lottiUtilizzabili(row.productId).reduce(
+                      (s, l) => s + Number(l.quantity_on_hand),
+                      0,
+                    ) >= qty;
+                  if (!doseEffettiva && !scostamento && !oltreLotto) return null;
+                  return (
+                    <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                      {doseEffettiva != null && f.dose && (
+                        <span className="rounded-full bg-[var(--panel-2)] px-2 py-0.5 text-[var(--ink-3)]">
+                          {t("operazioneForm.warehouseEffectiveDose", {
+                            dose: (Math.round(doseEffettiva * 100) / 100).toLocaleString("it-IT"),
+                            unit: `${unit}/ha`,
+                          })}
+                        </span>
+                      )}
+                      {scostamento && (
+                        <span className="rounded-full bg-[var(--warn-l)] px-2 py-0.5 font-medium text-[var(--warn)]">
+                          {t("operazioneForm.warehouseMismatch", {
+                            total: totalePrevisto,
+                            unit,
+                          })}
+                        </span>
+                      )}
+                      {copribile && (
+                        <button
+                          type="button"
+                          onClick={() => dividiFefo(index)}
+                          className="rounded-full border border-[var(--accent-bd)] bg-[var(--accent-l)] px-2 py-0.5 font-medium text-[var(--accent)]"
+                        >
+                          {t("operazioneForm.warehouseSplitFefo")}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
@@ -845,6 +1134,35 @@ export function OperazioneForm({
             {t("operazioneForm.warehouseAddRow")}
           </button>
         </section>
+      )}
+
+      {/* Automazione v17: la semina di una semente su un campo senza coltura
+          propone di creare scheda coltura + campagna agraria in automatico. */}
+      {proponiAssegnazione && (
+        <label className="flex items-start gap-2 rounded-[var(--r-2)] border border-[var(--accent-bd)] bg-[var(--accent-l)] px-3 py-2">
+          <input
+            type="checkbox"
+            checked={assegnaColtura}
+            onChange={(e) => setAssegnaColtura(e.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-medium text-[var(--accent)]">
+              {t("operazioneForm.assignCropLabel", {
+                crop:
+                  speciesName +
+                  (metaSeedStr("variety_name")
+                    ? ` (${metaSeedStr("variety_name")})`
+                    : ""),
+                plot: appezzamento?.user_plot_name ?? "",
+                year: campagnaAttiva,
+              })}
+            </span>
+            <span className="block text-[11px] text-[var(--ink-3)]">
+              {t("operazioneForm.assignCropHint")}
+            </span>
+          </span>
+        </label>
       )}
 
       {f.fertilizerType && (

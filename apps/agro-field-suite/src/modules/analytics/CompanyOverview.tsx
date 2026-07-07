@@ -1,6 +1,7 @@
 import {
   EXPIRY_WARNING_DAYS_DEFAULT,
   type CostoProdottiCampo,
+  sianMancanti,
   statoScadenza,
   useAgroStore,
 } from "@agrogea/core";
@@ -8,6 +9,7 @@ import { Boxes, Euro, MapPinned, PackageX, Timer, Tractor, Wheat } from "lucide-
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useTenantCountry } from "../../hooks/useTenantCountry";
 
 /**
  * Pagina "Azienda" del Data Command Center: andamento GENERALE dell'azienda
@@ -25,6 +27,12 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
   const raccolte = useAgroStore((s) => s.raccolte);
   const prodotti = useAgroStore((s) => s.prodotti);
   const lotti = useAgroStore((s) => s.lotti);
+  const campiCampagna = useAgroStore((s) => s.campiCampagna);
+  const apriColturaPerAppezzamento = useAgroStore(
+    (s) => s.apriColturaPerAppezzamento,
+  );
+  const setActiveView = useAgroStore((s) => s.setActiveView);
+  const { countryCode } = useTenantCountry();
 
   // Costo prodotti per campo dell'annata (aggregato DAL su activity_products).
   const [costiCampo, setCostiCampo] = useState<CostoProdottiCampo[]>([]);
@@ -103,6 +111,13 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
   const lottiInScadenza = lottiConGiacenza.filter(
     (l) => statoScadenza(l.expires_at) === "expiring",
   );
+  // Scorta minima (v17): prodotti sotto la soglia di riordino.
+  const sottoScorta = prodotti.filter((p) => {
+    const min = p.metadata?.["min_stock"];
+    return (
+      typeof min === "number" && (giacenzaPerProdotto.get(p.id) ?? 0) < min
+    );
+  }).length;
 
   const nomeCampo = (plotId: string | null): string =>
     plotId
@@ -113,8 +128,37 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
   const euro = (v: number) =>
     v.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  // Compliance SIAN (Italia): campagne APERTE dell'annata con dichiarativi
+  // incompleti. Il click porta alla scheda Dati coltura del primo campo.
+  const campagneSianKo = useMemo(
+    () =>
+      countryCode === "IT"
+        ? campiCampagna.filter(
+            (c) =>
+              c.deleted_at == null &&
+              c.closed_at == null &&
+              sianMancanti(c).length > 0,
+          )
+        : [],
+    [countryCode, campiCampagna],
+  );
+
   return (
     <div className="flex flex-col gap-4">
+      {/* Alert compliance SIAN: impossibile "dimenticare" i dichiarativi. */}
+      {campagneSianKo.length > 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            apriColturaPerAppezzamento(campagneSianKo[0].plot_id);
+            setActiveView("map");
+          }}
+          className="flex items-center gap-2 rounded-[var(--r-2)] border border-[var(--warn)] bg-[var(--warn-l)] px-3 py-2 text-left text-sm font-medium text-[var(--warn)] hover:opacity-90"
+        >
+          ⚠ {t("companyOverview.sianAlert", { count: campagneSianKo.length })}
+        </button>
+      )}
+
       {/* Andamento generale dell'annata */}
       <section>
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-[var(--ink-4)]">
@@ -158,9 +202,15 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
             Icon={Boxes}
             label={t("companyOverview.kpi.products")}
             value={String(prodotti.length)}
-            sub={t("companyOverview.kpi.productsSub", {
-              count: lottiConGiacenza.length,
-            })}
+            tone={sottoScorta > 0 ? "warn" : undefined}
+            sub={
+              t("companyOverview.kpi.productsSub", {
+                count: lottiConGiacenza.length,
+              }) +
+              (sottoScorta > 0
+                ? ` · ${t("companyOverview.kpi.belowMinStock", { count: sottoScorta })}`
+                : "")
+            }
           />
           <KpiCard
             Icon={Euro}

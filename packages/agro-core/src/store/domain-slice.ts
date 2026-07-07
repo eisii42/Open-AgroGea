@@ -48,6 +48,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         pendingGeometry: null,
         drawIntent: null,
         quadernoApriAppezzamentoId: null,
+        colturaApriAppezzamentoId: null,
         operazioniMappaIds: null,
       });
       if (aziendaId) await get().refreshDomainData();
@@ -432,6 +433,22 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       }
       syncRouter?.notifyLocalWrite();
       return record;
+    },
+
+    chiudiCampagna: async (id) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return;
+      const record = await dal.chiudiCampagna(id);
+      if (!record) return;
+      // La riga resta nello store (i registri storici la referenziano) ma con
+      // closed_at valorizzato: mappa e DSS la ignorano da subito.
+      set((s) => ({
+        campiCampagna: s.campiCampagna.map((c) =>
+          c.id === record.id ? record : c,
+        ),
+      }));
+      syncRouter?.notifyLocalWrite();
     },
 
     salvaCrop: async (input) => {

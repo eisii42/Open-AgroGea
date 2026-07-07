@@ -223,15 +223,22 @@ export class AgroDalRegistry extends AgroDalBase {
   async upsertCampoCampagna(
     input: Omit<
       CampoCampagna,
-      "id" | "tenant_id" | "created_at" | "updated_at" | "deleted_at"
-    > & { id?: string; created_at?: string },
+      "id" | "tenant_id" | "closed_at" | "created_at" | "updated_at" | "deleted_at"
+    > &
+      Partial<Pick<CampoCampagna, "closed_at">> & {
+        id?: string;
+        created_at?: string;
+      },
   ): Promise<CampoCampagna> {
     const ts = nowIso();
-    // Riusa la riga esistente (stesso appezzamento+anno) per restare idempotente
-    // su re-import del Fascicolo, preservandone id e created_at.
+    // Riusa la riga esistente APERTA (stesso appezzamento+anno) per restare
+    // idempotente su re-import del Fascicolo, preservandone id e created_at.
+    // Le campagne CHIUSE (closed_at) non si riaprono mai: una nuova semina dopo
+    // il raccolto crea una nuova riga (secondo raccolto nello stesso anno).
     const esistente = await this.db.query<CampoCampagna>(
       `select * from plots_campaign
-       where plot_id = $1 and campaign_year = $2 and deleted_at is null
+       where plot_id = $1 and campaign_year = $2
+         and deleted_at is null and closed_at is null
        limit 1`,
       [input.plot_id, input.campaign_year],
     );
@@ -247,9 +254,41 @@ export class AgroDalRegistry extends AgroDalBase {
       crop_external_code: input.crop_external_code ?? null,
       variety_external_code: input.variety_external_code ?? null,
       declared_area_ha: input.declared_area_ha,
+      closed_at: input.closed_at ?? corrente?.closed_at ?? null,
       created_at: input.created_at ?? corrente?.created_at ?? ts,
       updated_at: ts,
       deleted_at: null,
+    };
+    await this.writeWithOutbox(
+      "plots_campaign",
+      "update",
+      row as unknown as Row & { id: string },
+    );
+    return row;
+  }
+
+  /**
+   * Chiude il ciclo colturale di una campagna (v17): imposta `closed_at` e
+   * il campo torna libero (mappa neutra, DSS spento, nuova semina possibile).
+   * Percorso transazionale dato+outbox; no-op se la riga non esiste o è già
+   * chiusa. Ritorna la riga aggiornata o null.
+   */
+  async chiudiCampagna(
+    id: string,
+    closedAt?: string,
+  ): Promise<CampoCampagna | null> {
+    const result = await this.db.query<CampoCampagna>(
+      `select * from plots_campaign
+       where id = $1 and deleted_at is null and closed_at is null`,
+      [id],
+    );
+    const corrente = result.rows[0];
+    if (!corrente) return null;
+    const ts = nowIso();
+    const row: CampoCampagna = {
+      ...corrente,
+      closed_at: closedAt ?? ts,
+      updated_at: ts,
     };
     await this.writeWithOutbox(
       "plots_campaign",

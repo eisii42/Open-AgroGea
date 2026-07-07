@@ -2,6 +2,7 @@ import {
   type DashboardModuleId,
   type FieldPanel,
   type GeometriaDisegnata,
+  statoScadenza,
   useAgroStore,
   useSettingsStore,
 } from "@agrogea/core";
@@ -92,6 +93,15 @@ export function ModuleSidebar({
 
   // Dialog di configurazione dell'export SIAN (filtri + struttura CSV).
   const [sianOpen, setSianOpen] = useState(false);
+
+  // Badge alert Magazzino (v17): lotti con giacenza scaduti o in scadenza.
+  const lotti = useAgroStore((s) => s.lotti);
+  const magazzinoAlerts = lotti.filter(
+    (l) =>
+      l.deleted_at == null &&
+      Number(l.quantity_on_hand) > 0 &&
+      statoScadenza(l.expires_at) !== "valid",
+  ).length;
 
   const moduli: ModuleDef[] = [
     {
@@ -301,6 +311,16 @@ export function ModuleSidebar({
             >
               <mod.Icon size={16} className="text-[var(--accent)]" />
               <span className="flex-1">{t(mod.labelKey as never)}</span>
+              {mod.id === "magazzino" && magazzinoAlerts > 0 && (
+                <span
+                  title={t("moduleSidebar.warehouseAlerts", {
+                    count: magazzinoAlerts,
+                  })}
+                  className="rounded-full bg-[var(--warn-l)] px-1.5 text-[10px] font-semibold text-[var(--warn)]"
+                >
+                  {magazzinoAlerts} ⚠
+                </span>
+              )}
               <ChevronRight
                 size={15}
                 className={cn(

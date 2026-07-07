@@ -58,9 +58,24 @@
  *   sync_outbox where table_name in ('products','product_lots',
  *   'activity_products')`, 2) `drop table activity_products, product_lots,
  *   products` (in quest'ordine per le FK). I dati pre-v16 non sono toccati.
+ *
+ * v17 — additiva: automazioni del ciclo colturale (semina → coltura → raccolto).
+ *   * `products.metadata` JSONB: proprietà estensibili per categoria (sementi:
+ *     identità colturale species/scientific_name/variety_name/crop_category;
+ *     agrofarmaci: carenza/rientro di default; comune: scorta minima);
+ *   * `plots_campaign.closed_at`: chiusura del ciclo colturale (il raccolto di
+ *     un'annuale termina la campagna e il campo torna libero);
+ *   * il vincolo `unique_plot_per_campaign` diventa un indice unico PARZIALE
+ *     sulle sole campagne APERTE (closed_at/deleted_at null): consente il
+ *     secondo raccolto nello stesso anno dopo la chiusura della prima campagna.
+ *   Rollback logico v17: `drop index if exists plots_campaign_open_unq` +
+ *   ripristino del vincolo pieno con `alter table plots_campaign add constraint
+ *   unique_plot_per_campaign unique (plot_id, campaign_year)` (possibile solo se
+ *   non esistono doppioni da secondo raccolto); le colonne additive possono
+ *   restare (ignorate dal codice pre-v17), nessun dato viene perso.
  */
 
-export const AGRO_LOCAL_SCHEMA_VERSION = 16;
+export const AGRO_LOCAL_SCHEMA_VERSION = 17;
 
 export const AGRO_LOCAL_SCHEMA_SQL = `
 create table if not exists agro_meta (
@@ -159,11 +174,22 @@ create table if not exists plots_campaign (
   crop_external_code              varchar(30),
   variety_external_code           varchar(30),
   declared_area_ha                numeric(10, 4) not null,
+  -- v17: chiusura del ciclo colturale (raccolto delle annuali). NULL = aperta.
+  closed_at                       timestamptz,
   created_at                      timestamptz not null default now(),
   updated_at                      timestamptz not null default now(),
-  deleted_at                      timestamptz,
-  constraint unique_plot_per_campaign unique (plot_id, campaign_year)
+  deleted_at                      timestamptz
 );
+
+-- v17: colonna additiva per le istanze pre-esistenti + sostituzione del vincolo
+-- pieno con l'unicità PARZIALE sulle campagne aperte (secondo raccolto possibile
+-- dopo la chiusura della prima campagna dello stesso anno).
+alter table plots_campaign add column if not exists closed_at timestamptz;
+alter table plots_campaign
+  drop constraint if exists unique_plot_per_campaign;
+create unique index if not exists plots_campaign_open_unq
+  on plots_campaign (plot_id, campaign_year)
+  where closed_at is null and deleted_at is null;
 
 create index if not exists plots_campaign_year_idx
   on plots_campaign (tenant_id, campaign_year);
@@ -512,6 +538,9 @@ create table if not exists products (
   supplier            text,
   avg_unit_cost       numeric(12, 4) not null default 0,
   notes               text,
+  -- v17: proprietà estensibili per categoria (sementi: identità colturale;
+  -- agrofarmaci: carenza/rientro di default; comune: scorta minima).
+  metadata            jsonb not null default '{}',
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
   deleted_at          timestamptz
@@ -519,9 +548,10 @@ create table if not exists products (
 
 -- Allineamento additivo per le istanze v16 create prima dell'estensione
 -- dell'anagrafica (sostanza attiva per gli agrofarmaci, fornitore comune,
--- categoria residuale 'other' per lubrificanti/materiali di consumo).
+-- categoria residuale 'other' per lubrificanti/materiali di consumo, metadata).
 alter table products add column if not exists active_substance text;
 alter table products add column if not exists supplier text;
+alter table products add column if not exists metadata jsonb not null default '{}';
 alter table products
   drop constraint if exists products_category_check;
 alter table products

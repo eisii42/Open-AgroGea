@@ -221,6 +221,7 @@
       "openDetail": "Abrir ficha de la operación",
       "queued": "en cola",
       "deleteOperation": "Eliminar operación",
+      "repeatOperation": "Repetir operación (formulario precargado, fecha de hoy)",
       "deleteAriaLabel": "Eliminar {{label}}"
     }
   },
@@ -391,6 +392,18 @@
     "quantity": "Cantidad (qq)",
     "harvestDate": "Fecha de cosecha",
     "quantityMustBeNumber": "La cantidad debe ser un número.",
+    "closeCampaign": "Cerrar la campaña {{year}} de {{crop}}: la parcela queda libre",
+    "closeCampaignHintAnnual": "El cultivo anual termina con la cosecha: mapa y DSS vuelven a neutro, una nueva siembra puede empezar enseguida.",
+    "closeCampaignHintPerennial": "Cultivo perenne: cerrar solo al final del ciclo (arranque). Normalmente permanece abierta.",
+    "sianMissingTitle": "Datos SIAN incompletos para esta parcela",
+    "sianMissingHint": "Faltan: {{fields}}. Sin estos datos, la exportación SIAN de la campaña quedará incompleta.",
+    "sianCompleteNow": "Completar ahora (Datos de cultivo)",
+    "sianOverride": "Registrar igualmente sin datos SIAN",
+    "sianField": {
+      "crop_external_code": "código de cultivo SIAN",
+      "reference_parcel_external_id": "parcela de referencia",
+      "agricultural_parcel_external_id": "parcela agrícola SIAN"
+    },
     "saveAction": "Guardar",
     "emptyState": "No hay cosechas registradas para esta empresa.",
     "openCard": "Abrir ficha de cosecha",
@@ -534,6 +547,7 @@
   "moduleSidebar": {
     "readOnly": "solo lectura",
     "readOnlyUnavailable": "No disponible en modo de solo lectura (rol de espectador)",
+    "warehouseAlerts": "{{count}} lotes por revisar (caducados o próximos a caducar)",
     "cropData": "Datos del cultivo",
     "dssModels": "DSS · modelos predictivos",
     "exportSian": "Exportar SIAN (CSV)…"
@@ -789,7 +803,13 @@
     "warehouseFreeText": "Sin salida, el registro queda como texto libre (sin movimiento de existencias).",
     "warehouseExpiredOption": "CADUCADO · uso bloqueado",
     "warehouseExpiringOption": "próximo a caducar",
-    "warehouseSubmitError": "Registro cancelado: {{message}}"
+    "warehouseSubmitError": "Registro cancelado: {{message}}",
+    "warehouseIncompatibleUnit": "unidad distinta de la dosis ({{unit}})",
+    "warehouseEffectiveDose": "Dosis efectiva: {{dose}} {{unit}}",
+    "warehouseMismatch": "≠ total calculado ({{total}} {{unit}})",
+    "warehouseSplitFefo": "Dividir en varios lotes (FEFO)",
+    "assignCropLabel": "Asignar {{crop}} a «{{plot}}» para la campaña {{year}}",
+    "assignCropHint": "Crea automáticamente la ficha de cultivo y la campaña. Los datos declarativos (códigos SIAN, parcela de referencia) quedan por completar en Datos de cultivo."
   },
   "warehouse": {
     "title": "Almacén",
@@ -813,6 +833,20 @@
     "supplier": "Proveedor",
     "supplierPlaceholder": "p. ej. cooperativa agraria",
     "initialLoad": "Carga inicial (primer lote)",
+    "defaultSafetyDays": "Plazo de seguridad por defecto (días)",
+    "defaultReentryH": "Reentrada por defecto (h)",
+    "seedSection": "Identidad de cultivo de la semilla",
+    "seedSectionHint": "Con estos datos, la siembra desde el cuaderno asigna automáticamente el cultivo a la parcela (ficha de cultivo + campaña).",
+    "species": "Especie (nombre común)",
+    "speciesPlaceholder": "p. ej. trigo blando",
+    "variety": "Variedad",
+    "varietyPlaceholder": "p. ej. Bologna",
+    "scientificName": "Nombre científico",
+    "cropCategory": "Tipo de cultivo",
+    "cropCategorySeminativo": "Herbáceo",
+    "cropCategoryOrticoltura": "Horticultura",
+    "minStock": "Existencias mínimas ({{unit}})",
+    "belowMinStock": "Bajo mínimo",
     "notes": "Notas",
     "saveProduct": "Guardar producto",
     "deleteProduct": "Eliminar producto",
@@ -993,13 +1027,15 @@
       "expiredLots": "Lotes caducados",
       "expiredLotsSub": "Con existencias residuales: uso bloqueado",
       "expiringLots": "Próximos a caducar ({{days}} días)",
-      "expiringLotsSub": "Usar o eliminar con prioridad"
+      "expiringLotsSub": "Usar o eliminar con prioridad",
+      "belowMinStock": "{{count}} bajo mínimo"
     },
     "costsByField": "Coste de productos por parcela · {{year}}",
     "noCosts": "Sin costes de productos registrados en la campaña: vincula los lotes de almacén a las actividades del cuaderno.",
     "field": "Parcela",
     "cost": "Coste",
-    "wholeFarm": "Toda la explotación"
+    "wholeFarm": "Toda la explotación",
+    "sianAlert": "{{count}} campañas abiertas sin datos SIAN — pulsa para completar los datos declarativos en Datos de cultivo"
   },
   "commandCenter": {
     "allCrops": "Todos los cultivos",
