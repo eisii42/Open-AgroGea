@@ -1,4 +1,4 @@
-import { colturaPerAppezzamento, useAgroStore } from "@agrogea/core";
+import { cropForPlot, useAgroStore } from "@agrogea/core";
 import {
   type IndiceVegetazionale,
   ndviColor,
@@ -334,7 +334,7 @@ export function SuoloPanel({ onClose }: { onClose: () => void }) {
                   />
                   <span className="flex-1 truncate text-sm">{a.user_plot_name}</span>
                   <span className="text-xs text-[var(--ink-4)]">
-                    {colturaPerAppezzamento(a.id, campiCampagna, crops) ?? "—"}
+                    {cropForPlot(a.id, campiCampagna, crops) ?? "—"}
                   </span>
                 </label>
               ))}

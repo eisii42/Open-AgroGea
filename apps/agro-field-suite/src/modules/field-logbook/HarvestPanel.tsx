@@ -1,7 +1,7 @@
 import {
-  dichiarativiMancanti,
-  type Raccolta,
-  sistemaDichiarativo,
+  missingDeclarative,
+  type Harvest,
+  declarativeSystem,
   useAgroStore,
 } from "@agrogea/core";
 import { FieldSheet } from "@agrogea/ui";
@@ -15,7 +15,7 @@ import { ConfirmDeleteOperazione } from "./ConfirmDeleteOperation";
 import { RaccoltaDettaglioCard } from "./HarvestDetailCard";
 
 /**
- * Modulo Raccolta: lista degli eventi di raccolta + form di registrazione. Ogni
+ * Modulo Harvest: lista degli eventi di raccolta + form di registrazione. Ogni
  * insert passa da `salvaRaccolta` (PGlite + outbox nella stessa transazione) e
  * idrata lo store; il layer "Raccolte" e i grafici della tabella attributi
  * (Barre: somma/media di `quantita_kg` per `cultivar`/`destinazione`) si
@@ -59,12 +59,12 @@ export function RaccoltaPanel({ onClose }: { onClose: () => void }) {
   // Compliance dichiarativa: il paese risolto sceglie il sistema (IT → SIAN,
   // ES → SIEX/CUE); gli altri paesi non hanno gate.
   const { countryCode } = useTenantCountry();
-  const sistema = sistemaDichiarativo(countryCode);
+  const sistema = declarativeSystem(countryCode);
 
-  const [daEliminare, setDaEliminare] = useState<Raccolta | null>(null);
+  const [daEliminare, setDaEliminare] = useState<Harvest | null>(null);
   const [notifica, setNotifica] = useState<string | null>(null);
-  // Raccolta aperta in scheda dettaglio (modale centrale di sola lettura).
-  const [dettaglio, setDettaglio] = useState<Raccolta | null>(null);
+  // Harvest aperta in scheda dettaglio (modale centrale di sola lettura).
+  const [dettaglio, setDettaglio] = useState<Harvest | null>(null);
 
   const [showForm, setShowForm] = useState(false);
   const [appId, setAppId] = useState("");
@@ -123,7 +123,7 @@ export function RaccoltaPanel({ onClose }: { onClose: () => void }) {
   // Gate consapevole, non blocco duro: senza dati dichiarativi il salvataggio
   // richiede la spunta esplicita "Registra comunque" (o la compilazione via CTA).
   const mancantiSian = useMemo(
-    () => (campoAperto ? dichiarativiMancanti(countryCode, campoAperto) : []),
+    () => (campoAperto ? missingDeclarative(countryCode, campoAperto) : []),
     [countryCode, campoAperto],
   );
   const [senzaSian, setSenzaSian] = useState(false);
@@ -148,7 +148,7 @@ export function RaccoltaPanel({ onClose }: { onClose: () => void }) {
       if (
         c.deleted_at == null &&
         c.closed_at == null &&
-        dichiarativiMancanti(countryCode, c).length > 0
+        missingDeclarative(countryCode, c).length > 0
       ) {
         out.add(c.plot_id);
       }
@@ -172,7 +172,7 @@ export function RaccoltaPanel({ onClose }: { onClose: () => void }) {
     return () => clearTimeout(t);
   }, [notifica]);
 
-  function etichettaRaccolta(r: Raccolta): string {
+  function etichettaRaccolta(r: Harvest): string {
     const data = new Date(r.harvested_at).toLocaleDateString("it-IT");
     return `${r.cultivar ?? t("raccoltaPanel.harvestFallbackLabel")} · ${data}`;
   }

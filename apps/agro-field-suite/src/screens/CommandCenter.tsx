@@ -48,7 +48,7 @@ type CommandCenterPage = "crops" | "company";
  *   * «Colture e appezzamenti» — l'analisi agronomica: filtri gerarchici
  *     (annata → coltura → appezzamenti), griglia KPI configurabile, dashboard
  *     editabile, calendario operativo e Raw Data Inspector con cross-filtering;
- *   * «Azienda» — l'andamento generale: superficie/operazioni/raccolto
+ *   * «Company» — l'andamento generale: superficie/operazioni/raccolto
  *     dell'annata, stato del Magazzino (valore giacenze a CUMP, lotti scaduti e
  *     in scadenza), costo prodotti imputato per campo e backup/ripristino.
  * Il contesto aziendale vive nello store e sopravvive allo switch di vista.

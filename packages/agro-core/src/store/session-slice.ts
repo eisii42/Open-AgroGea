@@ -2,7 +2,7 @@ import { controlPlane } from "../control-plane";
 import { AgroDal } from "../db/dal";
 import { useSettingsStore } from "../field/settings-store";
 import { SyncRouter } from "../sync/router";
-import type { ProfiloUtente } from "../types";
+import type { UserProfile } from "../types";
 import { OFFLINE_SNAPSHOT, profiloDaClaims } from "./helpers";
 import type { SessionSlice, StoreGet, StoreSet } from "./state";
 
@@ -27,7 +27,7 @@ export function createSessionSlice(
       // Gate di licenza: online la fonte autorevole è il control plane
       // dell'edizione (se registrato); offline, o senza adapter, si ricade
       // sulle claims correnti.
-      let profilo: ProfiloUtente | null = null;
+      let profilo: UserProfile | null = null;
       if (!options.offlineUnlocked) {
         try {
           profilo = (await controlPlane().fetchUserProfile?.()) ?? null;
@@ -119,7 +119,7 @@ export function createSessionSlice(
 
     refreshProfilo: async () => {
       const { claims, offlineUnlocked } = get();
-      let profilo: ProfiloUtente | null = null;
+      let profilo: UserProfile | null = null;
       if (!offlineUnlocked) {
         try {
           profilo = (await controlPlane().fetchUserProfile?.()) ?? null;

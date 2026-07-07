@@ -1,8 +1,8 @@
 import {
   type DashboardModuleId,
   type FieldPanel,
-  type GeometriaDisegnata,
-  statoScadenza,
+  type DrawnGeometry,
+  expiryStatus,
   useAgroStore,
   useSettingsStore,
 } from "@agrogea/core";
@@ -47,7 +47,7 @@ import { SianExportDialog } from "../modules/sian/SianExportDialog";
 
 type ToolAction =
   | { kind: "panel"; panel: FieldPanel }
-  | { kind: "draw"; intent: GeometriaDisegnata }
+  | { kind: "draw"; intent: DrawnGeometry }
   | { kind: "run"; run: () => void }
   | { kind: "soon" };
 
@@ -100,7 +100,7 @@ export function ModuleSidebar({
     (l) =>
       l.deleted_at == null &&
       Number(l.quantity_on_hand) > 0 &&
-      statoScadenza(l.expires_at) !== "valid",
+      expiryStatus(l.expires_at) !== "valid",
   ).length;
 
   const moduli: ModuleDef[] = [

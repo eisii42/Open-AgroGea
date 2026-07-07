@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { LetturaMeteo, RegistroTrattamento } from "@agrogea/core";
+import type { WeatherReading, TreatmentLog } from "@agrogea/core";
 import {
   bilancioIdricoFao66,
   coefficienteStressIdrico,
@@ -109,8 +109,8 @@ describe("et0PenmanMonteith — sanità fisica", () => {
 
 function lettura(
   data: string,
-  over: Partial<LetturaMeteo> = {},
-): LetturaMeteo {
+  over: Partial<WeatherReading> = {},
+): WeatherReading {
   return {
     id: data,
     tenant_id: "t",
@@ -156,7 +156,7 @@ describe("apportoIrriguoMm / apportiIrriguiDaTrattamenti", () => {
         water_volume_l: null,
         executed_at: "2026-06-03T08:00:00Z",
       },
-    ] as unknown as RegistroTrattamento[];
+    ] as unknown as TreatmentLog[];
     const apporti = apportiIrriguiDaTrattamenti(trattamenti, 2);
     assert.equal(apporti.length, 1);
     assert.equal(apporti[0].data, "2026-06-01");

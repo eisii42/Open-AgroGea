@@ -18,7 +18,7 @@
 import {
   type AgroDal,
   type AgronomicLogs,
-  type Azienda,
+  type Company,
   type CompanySnapshot,
   parseCompanyTransfer,
   serializeCompanySnapshot,
@@ -52,7 +52,7 @@ function groupByPlot<T extends WithPlot>(rows: T[]): {
 /** Legge dal DAL l'istantanea completa dei dati di un'azienda. */
 export async function buildCompanySnapshot(
   dal: AgroDal,
-  company: Azienda,
+  company: Company,
 ): Promise<CompanySnapshot> {
   const id = company.id;
   const [
@@ -112,7 +112,7 @@ export async function buildCompanySnapshot(
 /** Costruisce e serializza l'export di un'azienda (stringa JSON indentata). */
 export async function exportCompanyData(
   dal: AgroDal,
-  company: Azienda,
+  company: Company,
 ): Promise<string> {
   const snapshot = await buildCompanySnapshot(dal, company);
   return JSON.stringify(serializeCompanySnapshot(snapshot), null, 2);
@@ -238,7 +238,7 @@ export async function importCompanyData(
 // --------------------------------------------------------------------------
 
 /** Nome file suggerito: `agrogea_<slug-azienda>_<data>.geojson`. */
-export function exportFilename(company: Azienda): string {
+export function exportFilename(company: Company): string {
   const slug =
     (company.business_name || "azienda")
       .toLowerCase()

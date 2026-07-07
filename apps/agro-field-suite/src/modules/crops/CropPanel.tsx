@@ -1,6 +1,6 @@
 import {
-  type Appezzamento,
-  colturaPerAppezzamento,
+  type Plot,
+  cropForPlot,
   useAgroStore,
 } from "@agrogea/core";
 import { FieldSheet } from "@agrogea/ui";
@@ -14,7 +14,7 @@ import { cropModulePerColtura } from "./index";
 import { DssRiskCard } from "./shared/DssRiskCard";
 
 /**
- * Modulo Coltura, a DUE pannelli indipendenti nella colonna destra:
+ * Modulo CropType, a DUE pannelli indipendenti nella colonna destra:
  *   * {@link ColturaDatiPanel} — form smart per inserire la coltura (singolo
  *     appezzamento) su `crops` + `plots_campaign`;
  *   * {@link ColturaDssPanel} — modelli previsionali (DSS) su UNO O PIÙ
@@ -45,7 +45,7 @@ function PlotSelect({
         className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-1.5 text-sm"
       >
         {appezzamenti.map((a) => {
-          const c = colturaPerAppezzamento(a.id, campiCampagna, crops);
+          const c = cropForPlot(a.id, campiCampagna, crops);
           return (
             <option key={a.id} value={a.id}>
               {a.user_plot_name}
@@ -59,7 +59,7 @@ function PlotSelect({
 }
 
 function useSelectedPlot(): {
-  appezzamento: Appezzamento | null;
+  appezzamento: Plot | null;
   scelto: string;
   setScelto: (id: string) => void;
   vuoto: boolean;
@@ -109,7 +109,7 @@ export function ColturaDatiPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** Pannello "Coltura · DSS": modelli previsionali su uno o più appezzamenti. */
+/** Pannello "CropType · DSS": modelli previsionali su uno o più appezzamenti. */
 export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const appezzamenti = useAgroStore((s) => s.appezzamenti);
@@ -143,7 +143,7 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
     for (const a of appezzamenti) {
       if (!sel.has(a.id)) continue;
       const modulo = cropModulePerColtura(
-        colturaPerAppezzamento(a.id, campiCampagna, crops),
+        cropForPlot(a.id, campiCampagna, crops),
       );
       if (modulo) out.push({ appezzamento: a, modulo });
     }
@@ -188,7 +188,7 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
               </p>
               <div className="flex max-h-40 flex-col gap-1 overflow-y-auto">
                 {appezzamenti.map((a) => {
-                  const col = colturaPerAppezzamento(a.id, campiCampagna, crops);
+                  const col = cropForPlot(a.id, campiCampagna, crops);
                   return (
                     <label
                       key={a.id}

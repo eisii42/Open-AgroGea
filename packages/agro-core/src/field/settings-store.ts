@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { controlPlane } from "../control-plane";
-import type { ProfiloUtente } from "../types";
+import type { UserProfile } from "../types";
 import { loadLocale } from "./locale";
 import {
   DEFAULT_UNITS,
@@ -48,7 +48,7 @@ export interface SettingsState {
    * plane vince per garantire la coerenza cross-device. Persiste anche in
    * localStorage così l'avvio offline successivo parte già allineato.
    */
-  hydrateFromProfile: (profilo: ProfiloUtente | null) => void;
+  hydrateFromProfile: (profilo: UserProfile | null) => void;
   /** Forza la sincronizzazione remota immediata (annulla il debounce). */
   flushRemote: () => Promise<void>;
 }

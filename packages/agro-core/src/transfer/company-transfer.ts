@@ -29,14 +29,14 @@ import type {
   Polygon,
 } from "geojson";
 import type {
-  Appezzamento,
-  AssetInfrastruttura,
-  Azienda,
-  CampionamentoSuolo,
-  CampoCampagna,
+  Plot,
+  InfrastructureAsset,
+  Company,
+  SoilSample,
+  PlotCampaign,
   Crop,
-  Raccolta,
-  RegistroTrattamento,
+  Harvest,
+  TreatmentLog,
   ScoutingObservation,
 } from "../types";
 
@@ -47,9 +47,9 @@ export const COMPANY_TRANSFER_VERSION = 1 as const;
 
 /** Log agronomici associati a un perimetro (appezzamento o azienda). */
 export interface AgronomicLogs {
-  treatments: RegistroTrattamento[];
-  soilSamples: CampionamentoSuolo[];
-  harvests: Raccolta[];
+  treatments: TreatmentLog[];
+  soilSamples: SoilSample[];
+  harvests: Harvest[];
 }
 
 /**
@@ -58,8 +58,8 @@ export interface AgronomicLogs {
  * annata: senza queste righe l'associazione appezzamento↔coltura andrebbe persa.
  */
 export interface PlotBundle extends AgronomicLogs {
-  plot: Appezzamento;
-  campaigns: CampoCampagna[];
+  plot: Plot;
+  campaigns: PlotCampaign[];
 }
 
 /**
@@ -69,10 +69,10 @@ export interface PlotBundle extends AgronomicLogs {
  * appezzamento (`plot_id` null), per non perderli nel backup.
  */
 export interface CompanySnapshot {
-  company: Azienda;
+  company: Company;
   crops: Crop[];
   plots: PlotBundle[];
-  assets: AssetInfrastruttura[];
+  assets: InfrastructureAsset[];
   scouting: ScoutingObservation[];
   unassigned: AgronomicLogs;
 }
@@ -83,7 +83,7 @@ export interface CompanyTransferMeta {
   version: number;
   exportedAt: string;
   /** Anagrafica statica dell'azienda (dati alla radice). */
-  company: Azienda;
+  company: Company;
   /** Catalogo colture referenziate (livello tenant). */
   crops: Crop[];
   /** Log non associati ad alcun appezzamento. */
@@ -93,15 +93,15 @@ export interface CompanyTransferMeta {
 /** Properties di una Feature appezzamento: anagrafica + campagne + log annidati. */
 export interface PlotFeatureProperties extends AgronomicLogs {
   kind: "plot";
-  plot: Omit<Appezzamento, "geometry">;
+  plot: Omit<Plot, "geometry">;
   /** Campagne agrarie (associazione coltura↔appezzamento per annata). */
-  campaigns: CampoCampagna[];
+  campaigns: PlotCampaign[];
 }
 
 /** Properties di una Feature infrastruttura/POI puntuale. */
 export interface AssetFeatureProperties {
   kind: "asset";
-  asset: Omit<AssetInfrastruttura, "geometry">;
+  asset: Omit<InfrastructureAsset, "geometry">;
 }
 
 /** Properties di una Feature rilievo scouting. */
@@ -136,9 +136,9 @@ function asArray<T>(value: unknown): T[] {
 
 function readLogs(source: Partial<AgronomicLogs> | undefined): AgronomicLogs {
   return {
-    treatments: asArray<RegistroTrattamento>(source?.treatments),
-    soilSamples: asArray<CampionamentoSuolo>(source?.soilSamples),
-    harvests: asArray<Raccolta>(source?.harvests),
+    treatments: asArray<TreatmentLog>(source?.treatments),
+    soilSamples: asArray<SoilSample>(source?.soilSamples),
+    harvests: asArray<Harvest>(source?.harvests),
   };
 }
 
@@ -230,7 +230,7 @@ export function parseCompanyTransfer(raw: unknown): CompanySnapshot {
   }
 
   const plots: PlotBundle[] = [];
-  const assets: AssetInfrastruttura[] = [];
+  const assets: InfrastructureAsset[] = [];
   const scouting: ScoutingObservation[] = [];
 
   const features = asArray<Feature<Geometry, TransferFeatureProperties>>(
@@ -251,9 +251,9 @@ export function parseCompanyTransfer(raw: unknown): CompanySnapshot {
         );
       }
       assets.push({
-        ...(assetProps as Omit<AssetInfrastruttura, "geometry">),
+        ...(assetProps as Omit<InfrastructureAsset, "geometry">),
         geometry: feature.geometry,
-      } as AssetInfrastruttura);
+      } as InfrastructureAsset);
       return;
     }
 
@@ -279,12 +279,12 @@ export function parseCompanyTransfer(raw: unknown): CompanySnapshot {
       throw new CompanyTransferError(`Feature #${i + 1} priva di geometria.`);
     }
     const plot = {
-      ...(plotProps as Omit<Appezzamento, "geometry">),
+      ...(plotProps as Omit<Plot, "geometry">),
       geometry: feature.geometry as Polygon | MultiPolygon,
-    } as Appezzamento;
+    } as Plot;
     plots.push({
       plot,
-      campaigns: asArray<CampoCampagna>(
+      campaigns: asArray<PlotCampaign>(
         (props as Partial<PlotFeatureProperties> | null)?.campaigns,
       ),
       ...readLogs((props ?? undefined) as Partial<AgronomicLogs> | undefined),
@@ -292,7 +292,7 @@ export function parseCompanyTransfer(raw: unknown): CompanySnapshot {
   });
 
   return {
-    company: meta.company as Azienda,
+    company: meta.company as Company,
     crops: asArray<Crop>(meta.crops),
     plots,
     assets,

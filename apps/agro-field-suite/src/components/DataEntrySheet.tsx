@@ -1,6 +1,6 @@
 import {
-  type AppezzamentoDrawAttrs,
-  lunghezzaMetri,
+  type PlotDrawAttrs,
+  lengthMeters,
   type PendingGeometry,
   useAgroStore,
 } from "@agrogea/core";
@@ -106,7 +106,7 @@ function AppezzamentoForm({
 }: {
   pending: PendingGeometry;
   onCancel: () => void;
-  onSave: (attrs: AppezzamentoDrawAttrs) => Promise<void>;
+  onSave: (attrs: PlotDrawAttrs) => Promise<void>;
 }) {
   const { t } = useTranslation();
   const readOnly = useReadOnly(useAgroStore((s) => s.aziendaAttivaId));
@@ -217,7 +217,7 @@ function AssetForm({
     if (!isLinea) return null;
     const g = pending.feature.geometry;
     if (g.type === "LineString" || g.type === "MultiLineString") {
-      return lunghezzaMetri(g as LineString | MultiLineString);
+      return lengthMeters(g as LineString | MultiLineString);
     }
     return null;
   }, [isLinea, pending.feature.geometry]);

@@ -1,5 +1,5 @@
 import type { SyncTarget } from "./sync/targets";
-import type { ProfiloUtente, UserPreferenze } from "./types";
+import type { UserProfile, UserPreferences } from "./types";
 
 /**
  * Punto di estensione per un eventuale control plane remoto (account, profili,
@@ -11,13 +11,13 @@ import type { ProfiloUtente, UserPreferenze } from "./types";
  */
 export interface ControlPlaneAdapter {
   /** Profilo/licenza dell'utente dal control plane; `null` se non risolvibile. */
-  fetchUserProfile?: () => Promise<ProfiloUtente | null>;
+  fetchUserProfile?: () => Promise<UserProfile | null>;
   /** Chiude la sessione remota (logout). La sessione locale è gestita dallo store. */
   signOut?: () => Promise<void>;
   /** Persiste le preferenze d'interfaccia cross-device. */
   updateUserPreferences?: (patch: {
     dashboard_layout_config?: Record<string, boolean>;
-    preferences?: UserPreferenze;
+    preferences?: UserPreferences;
   }) => Promise<void>;
   /**
    * INSERT dell'azienda sul data plane remoto (percorso che attraversa i

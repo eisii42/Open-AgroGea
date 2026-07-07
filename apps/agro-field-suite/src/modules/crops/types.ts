@@ -1,6 +1,6 @@
 import type {
   AlertFitopatologico,
-  Coltura as SpecieFenologica,
+  CropType as SpecieFenologica,
   FaseFenologica,
 } from "@agrogea/tools";
 

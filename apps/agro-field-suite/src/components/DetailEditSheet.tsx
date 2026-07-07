@@ -1,7 +1,7 @@
 import {
-  type AssetInfrastruttura,
-  type Appezzamento,
-  type CampionamentoSuolo,
+  type InfrastructureAsset,
+  type Plot,
+  type SoilSample,
   type SelectableKind,
   type SelectedFeatureRef,
   useAgroStore,
@@ -180,7 +180,7 @@ function useCloseDetail(id: string) {
 // Form per tipo
 // ---------------------------------------------------------------------------
 
-function AppezzamentoEdit({ record }: { record: Appezzamento }) {
+function AppezzamentoEdit({ record }: { record: Plot }) {
   const { t } = useTranslation();
   const aggiorna = useAgroStore((s) => s.aggiornaAppezzamento);
   const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
@@ -522,7 +522,7 @@ function SuoloComposizioneSection({
   );
 }
 
-function AssetEdit({ record }: { record: AssetInfrastruttura }) {
+function AssetEdit({ record }: { record: InfrastructureAsset }) {
   const { t } = useTranslation();
   const aggiorna = useAgroStore((s) => s.aggiornaAsset);
   const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
@@ -623,7 +623,7 @@ function AssetEdit({ record }: { record: AssetInfrastruttura }) {
   );
 }
 
-function CampionamentoEdit({ record }: { record: CampionamentoSuolo }) {
+function CampionamentoEdit({ record }: { record: SoilSample }) {
   const { t } = useTranslation();
   const close = useCloseDetail(record.id);
   const ctrl = useGeomEdit("poi", record.id);

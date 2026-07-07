@@ -1,9 +1,9 @@
 import {
-  type Appezzamento,
-  type CatalogoVoce,
-  type DoseUnita,
-  type RegistroTrattamento,
-  type TipoOperazione,
+  type Plot,
+  type CatalogEntry,
+  type DoseUnit,
+  type TreatmentLog,
+  type OperationType,
   type ValidationError,
   validateTreatmentLog,
 } from "@agrogea/core";
@@ -39,9 +39,9 @@ const TIPI = [
   "irrigation",
   "tillage",
   "sampling",
-] as const satisfies readonly TipoOperazione[];
+] as const satisfies readonly OperationType[];
 
-const UNITA: DoseUnita[] = ["kg/ha", "l/ha", "kg/hl", "l/hl", "g/hl", "m3"];
+const UNITA: DoseUnit[] = ["kg/ha", "l/ha", "kg/hl", "l/hl", "g/hl", "m3"];
 
 /** Avversità target PAN (dropdown rigorosa: niente testo libero). */
 export const AVVERSITA_PAN = [
@@ -61,7 +61,7 @@ export const AVVERSITA_PAN = [
 ] as const;
 
 export type TrattamentoFormValues = Omit<
-  RegistroTrattamento,
+  TreatmentLog,
   "id" | "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
 >;
 
@@ -83,10 +83,10 @@ export interface ComplianceTrattamento {
 }
 
 export interface TrattamentoFormProps {
-  appezzamenti: Appezzamento[];
+  appezzamenti: Plot[];
   onSubmit: (values: TrattamentoFormValues) => Promise<void> | void;
   onCancel?: () => void;
-  /** Appezzamento pre-selezionato (es. apertura dal popup del campo). */
+  /** Plot pre-selezionato (es. apertura dal popup del campo). */
   defaultAppezzamentoId?: string | null;
   /**
    * Campi validi per la Campagna Agraria attiva. Se forniti, il selettore mostra
@@ -97,13 +97,13 @@ export interface TrattamentoFormProps {
    * Valuta i vincoli geografici dell'appezzamento (iniettata dall'app, che
    * legge i layer ZVN/SIC-ZPS). Tiene @agrogea/ui disaccoppiato dal motore.
    */
-  valutaCompliance?: (appezzamento: Appezzamento) => ComplianceTrattamento | null;
+  valutaCompliance?: (appezzamento: Plot) => ComplianceTrattamento | null;
   /**
    * Catalogo fitosanitari filtrato per `country_code` (iniettato dall'app via
-   * `useCountryCatalog`). Se fornito, il campo "Prodotto" diventa un dropdown del
+   * `useCountryCatalog`). Se fornito, il campo "Product" diventa un dropdown del
    * registro nazionale che auto-compila sostanza attiva e n. registrazione.
    */
-  prodottiCatalogo?: CatalogoVoce[];
+  prodottiCatalogo?: CatalogEntry[];
 }
 
 export function TrattamentoForm({
@@ -125,7 +125,7 @@ export function TrattamentoForm({
   const usaCampagna = (campiCampagna?.length ?? 0) > 0;
   const usaCatalogo = (prodottiCatalogo?.length ?? 0) > 0;
 
-  const [tipo, setTipo] = useState<TipoOperazione>("phytosanitary");
+  const [tipo, setTipo] = useState<OperationType>("phytosanitary");
   const [appezzamentoId, setAppezzamentoId] = useState<string>(
     defaultAppezzamentoId ?? "",
   );
@@ -144,7 +144,7 @@ export function TrattamentoForm({
   const [numeroRegistrazione, setNumeroRegistrazione] = useState("");
   const [sostanzaAttiva, setSostanzaAttiva] = useState("");
   const [doseValore, setDoseValore] = useState("");
-  const [doseUnita, setDoseUnita] = useState<DoseUnita>("kg/ha");
+  const [doseUnita, setDoseUnita] = useState<DoseUnit>("kg/ha");
   const [acquaVolume, setAcquaVolume] = useState("");
   const [operatoreCf, setOperatoreCf] = useState("");
   const [numPatentino, setNumPatentino] = useState("");
@@ -444,7 +444,7 @@ export function TrattamentoForm({
           <Select
             id="qdc-unita"
             value={doseUnita}
-            onChange={(e) => setDoseUnita(e.target.value as DoseUnita)}
+            onChange={(e) => setDoseUnita(e.target.value as DoseUnit)}
           >
             {UNITA.map((u) => (
               <option key={u} value={u}>

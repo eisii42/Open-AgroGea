@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { Appezzamento, CampionamentoSuolo } from "@agrogea/core";
+import type { Plot, SoilSample } from "@agrogea/core";
 import {
   frazioniDaTessitura,
   normalizzaFrazioni,
@@ -130,7 +130,7 @@ describe("frazioniDaProprieta — feature custom e campionamenti", () => {
   });
 });
 
-function campione(over: Partial<CampionamentoSuolo>): CampionamentoSuolo {
+function campione(over: Partial<SoilSample>): SoilSample {
   return {
     id: "c1",
     tenant_id: "t",
@@ -181,7 +181,7 @@ describe("frazioniDaCampione / aggregaTessitura", () => {
 });
 
 describe("parametriDaMetadata — fallback Tier 3", () => {
-  function plot(meta: Record<string, unknown>): Appezzamento {
+  function plot(meta: Record<string, unknown>): Plot {
     return {
       id: "p1",
       tenant_id: "t",
@@ -220,7 +220,7 @@ describe("parametriDaMetadata — fallback Tier 3", () => {
 });
 
 describe("parametriDaSuoloManuale — Tier 3 inserimento manuale", () => {
-  function plotMeta(meta: Record<string, unknown>): Appezzamento {
+  function plotMeta(meta: Record<string, unknown>): Plot {
     return {
       id: "p2",
       tenant_id: "t",

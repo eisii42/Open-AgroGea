@@ -1,5 +1,5 @@
 import {
-  type Coltura,
+  type CropType,
   rampaPerIndice,
   type IndiceVegetazionale,
 } from "@agrogea/tools";
@@ -36,14 +36,14 @@ export function Colorbar() {
 
   // Idem per il rischio DSS: una legenda per coltura distinta.
   const colture = useMemo(() => {
-    const set = new Set<Coltura>();
+    const set = new Set<CropType>();
     for (const l of layers) {
       if (
         l.visible &&
         l.metadata?.dssOverlay === true &&
         typeof l.metadata?.coltura === "string"
       ) {
-        set.add(l.metadata.coltura as Coltura);
+        set.add(l.metadata.coltura as CropType);
       }
     }
     return [...set];
@@ -68,7 +68,7 @@ export function Colorbar() {
 }
 
 /** Legenda del rischio DSS: rampa verde→giallo→rosso, calibrata per coltura. */
-function DssLegendCard({ coltura }: { coltura: Coltura }) {
+function DssLegendCard({ coltura }: { coltura: CropType }) {
   const { t } = useTranslation();
   const model = buildColorbar(rampaRischioDss(coltura));
   return (

@@ -1,11 +1,11 @@
 import type {
-  Appezzamento,
-  CampoCampagna,
+  Plot,
+  PlotCampaign,
   Crop,
-  DssRisultato,
-  LetturaMeteo,
-  RegistroTrattamento,
-  Raccolta,
+  DssResult,
+  WeatherReading,
+  TreatmentLog,
+  Harvest,
   SoilWaterIndex,
 } from "@agrogea/core";
 import type { KpiParams } from "./kpi-config";
@@ -51,7 +51,7 @@ const CATEGORY_LABEL: Record<CropCategory, string> = {
   olivicoltura: "Olivicoltura",
   frutticoltura: "Frutticoltura",
   orticoltura: "Orticoltura",
-  generic: "Coltura",
+  generic: "CropType",
 };
 
 /** Risolve la categoria DSS di una coltura da metadata o nome comune. */
@@ -182,14 +182,14 @@ export interface AnalyticsResult {
 
 /** Bundle di dominio in ingresso al motore (materializzato dal DAL/store). */
 export interface AnalyticsInput {
-  appezzamenti: Appezzamento[];
+  appezzamenti: Plot[];
   crops: Crop[];
   /** Stato di campagna di TUTTE le annate disponibili (per il confronto storico). */
-  campiCampagna: CampoCampagna[];
-  trattamenti: RegistroTrattamento[];
-  raccolte: Raccolta[];
-  dssRisultati: DssRisultato[];
-  weather: LetturaMeteo[];
+  campiCampagna: PlotCampaign[];
+  trattamenti: TreatmentLog[];
+  raccolte: Harvest[];
+  dssRisultati: DssResult[];
+  weather: WeatherReading[];
   soilIndices: SoilWaterIndex[];
   /** Filtri attivi della vista. */
   campaignYear: number;
@@ -259,7 +259,7 @@ interface DailyTemp {
 }
 
 /** Aggrega le letture orarie in min/max giornalieri per l'anno dato. */
-function dailyTemps(weather: LetturaMeteo[], year: number): DailyTemp[] {
+function dailyTemps(weather: WeatherReading[], year: number): DailyTemp[] {
   const byDay = new Map<string, { min: number; max: number }>();
   for (const r of weather) {
     if (r.air_temperature == null || yearOf(r.measured_at) !== year) continue;
@@ -283,7 +283,7 @@ function dailyTemps(weather: LetturaMeteo[], year: number): DailyTemp[] {
  * della proiezione fenologica (Modulo 3.2).
  */
 function accumulatedGdd(
-  weather: LetturaMeteo[],
+  weather: WeatherReading[],
   year: number,
   base: number,
   startMonth: number,
@@ -330,7 +330,7 @@ function accumulatedGdd(
 
 /** Determina la categoria dominante tra le campagne selezionate. */
 function dominantCategory(
-  campaigns: CampoCampagna[],
+  campaigns: PlotCampaign[],
   crops: Crop[],
   cropId: string | null,
 ): CropCategory {
@@ -360,7 +360,7 @@ function dominantCategory(
  * assente, ritorna null e l'anomalia ricade sulla baseline spaziale. `null` se
  * non presente o non numerica.
  */
-function plotNdviBaseline(plot: Appezzamento): number | null {
+function plotNdviBaseline(plot: Plot): number | null {
   const v = plot.metadata?.["ndvi_baseline"];
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
@@ -715,7 +715,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
       plotIds.has(d.plot_id) &&
       isDiseaseRelevant(d.model_name, category),
   );
-  const worst = pool.reduce<DssRisultato | null>((acc, d) => {
+  const worst = pool.reduce<DssResult | null>((acc, d) => {
     if (!acc) return d;
     return riskRank(d.risk_level) > riskRank(acc.risk_level) ? d : acc;
   }, null);
@@ -758,13 +758,13 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
   return { summary, kpis: ordered };
 }
 
-const RISK_LABEL: Record<DssRisultato["risk_level"], string> = {
+const RISK_LABEL: Record<DssResult["risk_level"], string> = {
   low: "Basso",
   medium: "Medio",
   high: "Elevato",
 };
 
-function riskRank(level: DssRisultato["risk_level"]): number {
+function riskRank(level: DssResult["risk_level"]): number {
   return level === "high" ? 2 : level === "medium" ? 1 : 0;
 }
 
@@ -811,8 +811,8 @@ function valueAsOfToday(series: DatedValue[]): number | null {
 /** Genera gli insight azionabili dalle condizioni correnti del campo. */
 function buildInsights(args: {
   stressMean: number | null;
-  worst: DssRisultato | null;
-  phytoCur: RegistroTrattamento[];
+  worst: DssResult | null;
+  phytoCur: TreatmentLog[];
   ndviMean: number | null;
   params: KpiParams;
 }): KpiResult[] {

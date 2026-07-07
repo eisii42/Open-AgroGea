@@ -1,7 +1,7 @@
 import {
-  type FonteDatiMeteo,
+  type WeatherDataSource,
   useAgroStore,
-  type VariabileMeteo,
+  type WeatherVariable,
 } from "@agrogea/core";
 import { FieldSheet } from "@agrogea/ui";
 import { Button, cn } from "@geolibre/ui";
@@ -14,10 +14,10 @@ import type { TFunction } from "i18next";
  * tenant attivo, la sorgente meteo e le variabili visibili a schermo. Scrive su
  * `config_meteo_azienda` via store/DAL (local-only): nessuna delle credenziali
  * lascia il device. Anagrafica e GeoCompliance vivono in pannelli dedicati
- * sotto lo stesso modulo "Impostazioni Azienda". Lazy-loaded (peso bundle).
+ * sotto lo stesso modulo "Impostazioni Company". Lazy-loaded (peso bundle).
  */
 
-const VARIABILE_IDS: VariabileMeteo[] = [
+const VARIABILE_IDS: WeatherVariable[] = [
   "temperature",
   "humidity",
   "rain",
@@ -28,7 +28,7 @@ const VARIABILE_IDS: VariabileMeteo[] = [
 
 function getVariabili(
   t: TFunction,
-): { id: VariabileMeteo; label: string; descr: string }[] {
+): { id: WeatherVariable; label: string; descr: string }[] {
   return VARIABILE_IDS.map((id) => ({
     id,
     label: t(`impostazioniPanel.variables.${id}.label`),
@@ -42,7 +42,7 @@ export function ImpostazioniPanel({ onClose }: { onClose: () => void }) {
   const salvaConfigMeteo = useAgroStore((s) => s.salvaConfigMeteo);
   const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
 
-  const [fonte, setFonte] = useState<FonteDatiMeteo>(
+  const [fonte, setFonte] = useState<WeatherDataSource>(
     configMeteo?.data_source ?? "public_api",
   );
   const [modello, setModello] = useState(configMeteo?.station_model ?? "");
@@ -50,7 +50,7 @@ export function ImpostazioniPanel({ onClose }: { onClose: () => void }) {
   const [deviceId, setDeviceId] = useState(
     configMeteo?.station_device_id ?? "",
   );
-  const [variabili, setVariabili] = useState<Set<VariabileMeteo>>(
+  const [variabili, setVariabili] = useState<Set<WeatherVariable>>(
     new Set(configMeteo?.visible_variables ?? ["temperature", "humidity", "rain"]),
   );
   const [salvataggio, setSalvataggio] = useState<"idle" | "salvo" | "fatto" | "errore">(
@@ -58,7 +58,7 @@ export function ImpostazioniPanel({ onClose }: { onClose: () => void }) {
   );
   const [erroreMsg, setErroreMsg] = useState<string>();
 
-  const toggleVar = (id: VariabileMeteo) =>
+  const toggleVar = (id: WeatherVariable) =>
     setVariabili((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);

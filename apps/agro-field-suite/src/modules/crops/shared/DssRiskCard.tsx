@@ -1,4 +1,4 @@
-import type { LivelloRischioDss } from "@agrogea/core";
+import type { DssRiskLevel } from "@agrogea/core";
 import { AlertTriangle } from "lucide-react";
 import type { RisultatoDssPlot } from "../../../hooks/useDssCalculation";
 
@@ -9,19 +9,19 @@ import type { RisultatoDssPlot } from "../../../hooks/useDssCalculation";
  * e gli alert testuali. Nessun bilancio idrico qui: vive nel pannello «Acqua».
  */
 
-const COLORE_RISCHIO: Record<LivelloRischioDss, string> = {
+const COLORE_RISCHIO: Record<DssRiskLevel, string> = {
   low: "#1f8a5b",
   medium: "#e8833a",
   high: "#d23b2e",
 };
 
-const ETICHETTA_RISCHIO: Record<LivelloRischioDss, string> = {
+const ETICHETTA_RISCHIO: Record<DssRiskLevel, string> = {
   low: "Basso",
   medium: "Medio",
   high: "Alto",
 };
 
-function rank(level: LivelloRischioDss): number {
+function rank(level: DssRiskLevel): number {
   return level === "high" ? 2 : level === "medium" ? 1 : 0;
 }
 
@@ -36,7 +36,7 @@ export function DssRiskCard({ risultato }: { risultato: RisultatoDssPlot }) {
   const { nome, modulo, esiti, serie, meteo, messaggio } = risultato;
 
   // Livello complessivo = il peggiore tra i modelli patologici.
-  const peggiore = esiti.reduce<LivelloRischioDss | null>((acc, e) => {
+  const peggiore = esiti.reduce<DssRiskLevel | null>((acc, e) => {
     if (!acc) return e.livello;
     return rank(e.livello) > rank(acc) ? e.livello : acc;
   }, null);

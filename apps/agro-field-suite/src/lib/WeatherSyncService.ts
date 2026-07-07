@@ -1,10 +1,10 @@
 import {
   type AgroDal,
-  type Appezzamento,
-  centroide,
-  type ConfigMeteoAzienda,
-  type FonteDatiMeteo,
-  type LetturaMeteo,
+  type Plot,
+  centroid,
+  type CompanyWeatherConfig,
+  type WeatherDataSource,
+  type WeatherReading,
 } from "@agrogea/core";
 import { v5 as uuidv5 } from "uuid";
 import i18n from "../i18n";
@@ -41,7 +41,7 @@ function idLettura(chiaveNaturale: string): string {
 
 /** Riga meteo pronta per il DAL (idempotente per `id`). */
 type LetturaMeteoInput = Omit<
-  LetturaMeteo,
+  WeatherReading,
   "tenant_id" | "created_at" | "updated_at" | "deleted_at"
 >;
 
@@ -73,10 +73,10 @@ export const STAZIONE_OPEN_METEO = "open-meteo";
 export interface MeteoFetchOptions {
   dal: AgroDal;
   aziendaId: string;
-  /** Appezzamento da cui prendere le coordinate (il "principale"). */
-  appezzamentoPrincipale: Appezzamento | null;
+  /** Plot da cui prendere le coordinate (il "principale"). */
+  appezzamentoPrincipale: Plot | null;
   /** Config già caricata; se assente il servizio la legge dal DAL. */
-  config?: ConfigMeteoAzienda | null;
+  config?: CompanyWeatherConfig | null;
   /** Forza il fetch ignorando il lucchetto orario (pulsante "aggiorna ora"). */
   force?: boolean;
 }
@@ -84,9 +84,9 @@ export interface MeteoFetchOptions {
 export interface MeteoFetchResult {
   /** true se ha colpito davvero la rete/centralina in questa chiamata. */
   fetched: boolean;
-  fonte: FonteDatiMeteo;
+  fonte: WeatherDataSource;
   /** Serie completa (storico + previsione) letta da PGlite dopo l'eventuale pull. */
-  letture: LetturaMeteo[];
+  letture: WeatherReading[];
   /** Righe nuove scritte in `letture_meteo` (0 se servita dalla cache). */
   inserite: number;
   /** Perché non ha fetchato, quando `fetched` è false (es. lucchetto orario). */
@@ -360,7 +360,7 @@ async function fetchArchivioGdd(
  */
 type AdapterCentralina = (
   aziendaId: string,
-  config: ConfigMeteoAzienda,
+  config: CompanyWeatherConfig,
 ) => Promise<LetturaMeteoInput[]>;
 
 const ADAPTER_CENTRALINE: Record<string, AdapterCentralina> = {
@@ -376,7 +376,7 @@ const ADAPTER_CENTRALINE: Record<string, AdapterCentralina> = {
 
 async function fetchStazionePrivata(
   aziendaId: string,
-  config: ConfigMeteoAzienda,
+  config: CompanyWeatherConfig,
 ): Promise<LetturaMeteoInput[]> {
   const modello = (config.station_model ?? "").trim().toLowerCase();
   const adapter = ADAPTER_CENTRALINE[modello];
@@ -410,7 +410,7 @@ export const WeatherSyncService = {
     const { dal, aziendaId, appezzamentoPrincipale, force } = opzioni;
     const config =
       opzioni.config ?? (await dal.getConfigMeteo(aziendaId)) ?? null;
-    const fonte: FonteDatiMeteo = config?.data_source ?? "public_api";
+    const fonte: WeatherDataSource = config?.data_source ?? "public_api";
 
     const eta = minutiDa(config?.last_weather_pull_at ?? null);
     const dentroLock = eta < LOCK_METEO_MINUTI;
@@ -439,7 +439,7 @@ export const WeatherSyncService = {
       if (!appezzamentoPrincipale?.geometry) {
         throw new Error(i18n.t("weatherSyncService.noPlotGeometryForStation"));
       }
-      const [lon, lat] = centroide(appezzamentoPrincipale.geometry);
+      const [lon, lat] = centroid(appezzamentoPrincipale.geometry);
       nuove = await fetchOpenMeteo(aziendaId, lon, lat);
     }
 
@@ -465,7 +465,7 @@ export const WeatherSyncService = {
   async assicuraStoricoGdd(opzioni: {
     dal: AgroDal;
     aziendaId: string;
-    appezzamentoPrincipale: Appezzamento | null;
+    appezzamentoPrincipale: Plot | null;
     /** Biofix dell'accumulo (ISO date): si scarica fin qui all'indietro. */
     dataInizio: string;
   }): Promise<{ backfilled: number }> {
@@ -491,7 +491,7 @@ export const WeatherSyncService = {
     const aISO = isoGiorno(fineMs);
     if (inizio > aISO) return { backfilled: 0 }; // nessun buco da colmare
 
-    const [lon, lat] = centroide(appezzamentoPrincipale.geometry);
+    const [lon, lat] = centroid(appezzamentoPrincipale.geometry);
     const righe = await fetchArchivioGdd(aziendaId, lon, lat, inizio, aISO);
     const backfilled = await dal.insertLettureMeteoLocali(righe);
     return { backfilled };
@@ -565,7 +565,7 @@ export const WeatherSyncService = {
 async function leggiSerie(
   dal: AgroDal,
   aziendaId: string,
-): Promise<LetturaMeteo[]> {
+): Promise<WeatherReading[]> {
   const dopo = new Date(
     Date.now() - GIORNI_LETTURA * 24 * 3600 * 1000,
   ).toISOString();

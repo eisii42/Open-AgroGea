@@ -1,11 +1,11 @@
 import type {
-  Appezzamento,
-  CampoCampagna,
+  Plot,
+  PlotCampaign,
   Crop,
-  DssRisultato,
-  LetturaMeteo,
-  Raccolta,
-  RegistroTrattamento,
+  DssResult,
+  WeatherReading,
+  Harvest,
+  TreatmentLog,
   SoilWaterIndex,
 } from "@agrogea/core";
 
@@ -34,14 +34,14 @@ export interface ChartData {
 
 /** Bundle di dominio (già nello scope dei filtri) passato ai builder. */
 export interface DashboardData {
-  appezzamenti: Appezzamento[];
+  appezzamenti: Plot[];
   crops: Crop[];
-  campaigns: CampoCampagna[];
-  trattamenti: RegistroTrattamento[];
-  raccolte: Raccolta[];
+  campaigns: PlotCampaign[];
+  trattamenti: TreatmentLog[];
+  raccolte: Harvest[];
   soilIndices: SoilWaterIndex[];
-  weather: LetturaMeteo[];
-  dssRisultati: DssRisultato[];
+  weather: WeatherReading[];
+  dssRisultati: DssResult[];
 }
 
 export interface PresetDef {

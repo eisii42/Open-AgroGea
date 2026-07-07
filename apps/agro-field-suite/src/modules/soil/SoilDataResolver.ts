@@ -1,4 +1,4 @@
-import type { Appezzamento, CampionamentoSuolo } from "@agrogea/core";
+import type { Plot, SoilSample } from "@agrogea/core";
 import {
   type FrazioniTessitura,
   frazioniDaTessitura,
@@ -181,7 +181,7 @@ export function sostanzaOrganicaDaProprieta(
 
 /** Frazioni di un campionamento: tessitura testuale o percentuali in metadata. */
 export function frazioniDaCampione(
-  c: CampionamentoSuolo,
+  c: SoilSample,
 ): FrazioniTessitura | null {
   const daClasse = frazioniDaTessitura(c.texture);
   if (daClasse) return daClasse;
@@ -227,7 +227,7 @@ export function aggregaTessitura(
  * deplezione manuali hanno la precedenza sugli override del chiamante.
  */
 export function parametriDaSuoloManuale(
-  appezzamento: Appezzamento,
+  appezzamento: Plot,
   opzioni: { profonditaRadiciM?: number; frazioneDeplezione?: number } = {},
 ): ParametriSuolo | null {
   const meta = (appezzamento.metadata ?? {}) as Record<string, unknown>;
@@ -268,7 +268,7 @@ export function parametriDaSuoloManuale(
 
 /** Parametri suolo dal metadata dell'appezzamento, se completi; altrimenti null. */
 export function parametriDaMetadata(
-  appezzamento: Appezzamento,
+  appezzamento: Plot,
 ): ParametriSuolo | null {
   const meta = (appezzamento.metadata ?? {}) as Record<string, unknown>;
   const raw = meta.parametri_suolo;
@@ -290,7 +290,7 @@ export function parametriDaMetadata(
 // ---------------------------------------------------------------------------
 
 /** FeatureCollection con il solo poligono dell'appezzamento. */
-function plotFeatureCollection(appezzamento: Appezzamento): FeatureCollection {
+function plotFeatureCollection(appezzamento: Plot): FeatureCollection {
   return {
     type: "FeatureCollection",
     features: [
@@ -309,9 +309,9 @@ function plotFeatureCollection(appezzamento: Appezzamento): FeatureCollection {
  * restano in JS (mappa per id), così DuckDB esegue unicamente il filtro spaziale.
  */
 function sampleFeatureCollection(
-  campionamenti: CampionamentoSuolo[],
-): { fc: FeatureCollection; byId: Map<string, CampionamentoSuolo> } {
-  const byId = new Map<string, CampionamentoSuolo>();
+  campionamenti: SoilSample[],
+): { fc: FeatureCollection; byId: Map<string, SoilSample> } {
+  const byId = new Map<string, SoilSample>();
   const features: Feature[] = [];
   for (const c of campionamenti) {
     if (c.deleted_at != null || !c.sampling_position) continue;
@@ -336,8 +336,8 @@ export class SoilDataResolver {
    * tessitura, errore spaziale) ricade sul successivo.
    */
   async risolvi(
-    appezzamento: Appezzamento,
-    campionamenti: CampionamentoSuolo[],
+    appezzamento: Plot,
+    campionamenti: SoilSample[],
     opzioni: OpzioniRisoluzione = {},
   ): Promise<ParametriSuoloRisolti> {
     const opzSaxton = {
@@ -433,7 +433,7 @@ export class SoilDataResolver {
 
   /** Tier 1: interseca lo strato custom col poligono e ne aggrega la tessitura. */
   private async daMappaCustom(
-    appezzamento: Appezzamento,
+    appezzamento: Plot,
     mappa: FeatureCollection,
   ): Promise<Aggregato | null> {
     const { SpatialAnalysisEngine } = await import(
@@ -455,8 +455,8 @@ export class SoilDataResolver {
 
   /** Tier 2: filtra i campioni interni/vicini al poligono e aggrega la tessitura. */
   private async daCampionamenti(
-    appezzamento: Appezzamento,
-    campionamenti: CampionamentoSuolo[],
+    appezzamento: Plot,
+    campionamenti: SoilSample[],
     tolleranzaDeg: number,
   ): Promise<Aggregato | null> {
     const { fc, byId } = sampleFeatureCollection(campionamenti);

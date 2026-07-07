@@ -8,7 +8,7 @@
  *
  * Nessuna dipendenza da React/MapLibre/DuckDB: solo dati e matematica.
  */
-import type { Appezzamento, CampionamentoSuolo } from "@agrogea/core";
+import type { Plot, SoilSample } from "@agrogea/core";
 
 /** Variabili chimiche del campionamento usabili come asse X dello scatter. */
 export type VariabileSuolo =
@@ -45,7 +45,7 @@ function media(values: number[]): number | null {
 
 /** Media per appezzamento di una variabile chimica (ignora i valori nulli). */
 export function mediaCampionamentiPerAppezzamento(
-  campionamenti: CampionamentoSuolo[],
+  campionamenti: SoilSample[],
   variabile: VariabileSuolo,
 ): Map<string, { media: number; n: number }> {
   const byApz = new Map<string, number[]>();
@@ -71,8 +71,8 @@ export function mediaCampionamentiPerAppezzamento(
  * variabile scelta.
  */
 export function buildNdviScatter(
-  appezzamenti: Appezzamento[],
-  campionamenti: CampionamentoSuolo[],
+  appezzamenti: Plot[],
+  campionamenti: SoilSample[],
   variabile: VariabileSuolo,
 ): PuntoScatterSuolo[] {
   const medie = mediaCampionamentiPerAppezzamento(campionamenti, variabile);

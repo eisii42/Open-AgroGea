@@ -1,6 +1,6 @@
 import {
-  type Appezzamento,
-  colturaPerAppezzamento,
+  type Plot,
+  cropForPlot,
   useAgroStore,
 } from "@agrogea/core";
 import { FieldSheet } from "@agrogea/ui";
@@ -163,7 +163,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
     for (const a of appezzamenti) {
       if (!sel.has(a.id)) continue;
       const modulo = cropModulePerColtura(
-        colturaPerAppezzamento(a.id, campiCampagna, crops),
+        cropForPlot(a.id, campiCampagna, crops),
       );
       if (modulo) out.push({ appezzamento: a, modulo });
     }
@@ -207,7 +207,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
       completato
         ? stato.risultati
             .map((r) => appezzamenti.find((a) => a.id === r.appezzamentoId))
-            .filter((a): a is Appezzamento => a != null)
+            .filter((a): a is Plot => a != null)
         : [],
     [completato, stato.risultati, appezzamenti],
   );
@@ -275,7 +275,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
               </p>
               <div className="flex max-h-40 flex-col gap-1 overflow-y-auto">
                 {appezzamenti.map((a) => {
-                  const col = colturaPerAppezzamento(a.id, campiCampagna, crops);
+                  const col = cropForPlot(a.id, campiCampagna, crops);
                   return (
                     <label
                       key={a.id}

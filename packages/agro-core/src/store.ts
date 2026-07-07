@@ -24,23 +24,23 @@ export const useAgroStore = create<AgroState>((set, get) => ({
 export type {
   AgroState,
   AppView,
-  AppezzamentoDrawAttrs,
+  PlotDrawAttrs,
   AssetDrawAttrs,
   GeomEditRequest,
   GeomEditSession,
   GeometrySnapshot,
-  NuovaAziendaInput,
+  NewCompanyInput,
   PendingGeometry,
   SelectableKind,
   SelectedFeatureRef,
 } from "./store/state";
 export { isViewerReadOnly } from "./store/helpers";
 export {
-  appezzamentiToFeatureCollection,
+  plotsToFeatureCollection,
   assetsToFeatureCollection,
-  colturaPerAppezzamento,
+  cropForPlot,
   cropLabelPerAppezzamento,
   poiToFeatureCollection,
-  raccolteToFeatureCollection,
-  trattamentiToFeatureCollection,
+  harvestsToFeatureCollection,
+  treatmentsToFeatureCollection,
 } from "./store/feature-collections";

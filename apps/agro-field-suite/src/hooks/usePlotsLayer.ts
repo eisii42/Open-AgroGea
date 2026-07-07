@@ -1,5 +1,5 @@
 import {
-  appezzamentiToFeatureCollection,
+  plotsToFeatureCollection,
   NO_CROP_COLOR,
   useAgroStore,
 } from "@agrogea/core";
@@ -26,7 +26,7 @@ export function useAppezzamentiLayer(
   styleEpoch = 0,
 ): void {
   const appezzamenti = useAgroStore((s) => s.appezzamenti);
-  // Coltura associata (Campagna attiva) e catalogo crops: alimentano la
+  // CropType associata (Campagna attiva) e catalogo crops: alimentano la
   // property `crop` del tooltip hover. Cambiano con annata/registro campagna.
   const campiCampagna = useAgroStore((s) => s.campiCampagna);
   const crops = useAgroStore((s) => s.crops);
@@ -34,7 +34,7 @@ export function useAppezzamentiLayer(
 
   useEffect(() => {
     const store = useAppStore.getState();
-    const geojson = appezzamentiToFeatureCollection(
+    const geojson = plotsToFeatureCollection(
       appezzamenti,
       campiCampagna,
       crops,

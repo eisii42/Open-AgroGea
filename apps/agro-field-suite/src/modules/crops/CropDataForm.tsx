@@ -1,6 +1,6 @@
 import {
-  type Appezzamento,
-  type CampoCampagna,
+  type Plot,
+  type PlotCampaign,
   useAgroStore,
 } from "@agrogea/core";
 import { Button, Input, Label, Select } from "@geolibre/ui";
@@ -10,7 +10,7 @@ import { useCountryCatalog } from "../../hooks/useTenantCountry";
 import { allCropFormSchemas, cropFormSchema } from "./cropFormSchema";
 
 /**
- * Scheda "Dati coltura" del modulo Coltura. Sistema smart e semplice per
+ * Scheda "Dati coltura" del modulo CropType. Sistema smart e semplice per
  * registrare la coltura di un appezzamento per la Campagna Agraria attiva:
  *   * scheda dedicata per ogni tipo (vite/olivo/frutteto/seminativo/orticoltura),
  *     con i campi di filiera specifici (clone, sesto, portainnesto, ciclo…);
@@ -45,7 +45,7 @@ export function CropDataForm({
   appezzamento,
   onSaved,
 }: {
-  appezzamento: Appezzamento;
+  appezzamento: Plot;
   onSaved?: () => void;
 }) {
   const { t } = useTranslation();
@@ -65,7 +65,7 @@ export function CropDataForm({
 
   // Tutte le campagne dell'appezzamento (ogni annata), per modifica + copia anno
   // precedente. Ricaricate al cambio appezzamento e dopo ogni salvataggio.
-  const [plotCampaigns, setPlotCampaigns] = useState<CampoCampagna[]>([]);
+  const [plotCampaigns, setPlotCampaigns] = useState<PlotCampaign[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
     let vivo = true;

@@ -16,7 +16,7 @@ import {
 import { DetachedWindow } from "./DetachedWindow";
 
 /**
- * Preset di espressioni agronomiche per il Field Calculator (Modulo Raccolta /
+ * Preset di espressioni agronomiche per il Field Calculator (Modulo Harvest /
  * gestione del territorio). Inseriti nel calcolatore come chip cliccabili via
  * `insertExpressionSnippet`, così l'agronomo applica una formula validata senza
  * digitarla. Usano l'accesso `props["campo"]` per essere robusti a nomi con

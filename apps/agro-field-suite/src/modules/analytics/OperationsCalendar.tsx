@@ -1,8 +1,8 @@
 import {
-  type DssRisultato,
-  type Raccolta,
-  type RegistroTrattamento,
-  type TipoOperazione,
+  type DssResult,
+  type Harvest,
+  type TreatmentLog,
+  type OperationType,
   useAgroStore,
 } from "@agrogea/core";
 import { cn } from "@geolibre/ui";
@@ -24,8 +24,8 @@ import { useTranslation } from "react-i18next";
  * PGlite (note/data per i trattamenti, quantità/data per le raccolte).
  */
 
-function opLabel(t: TFunction, type: TipoOperazione): string {
-  const OP_LABEL: Record<TipoOperazione, string> = {
+function opLabel(t: TFunction, type: OperationType): string {
+  const OP_LABEL: Record<OperationType, string> = {
     phytosanitary: t("rawDataInspector.opType.phytosanitary"),
     fertilization: t("rawDataInspector.opType.fertilization"),
     irrigation: t("rawDataInspector.opType.irrigation"),
@@ -37,7 +37,7 @@ function opLabel(t: TFunction, type: TipoOperazione): string {
   return OP_LABEL[type];
 }
 
-const OP_COLOR: Record<TipoOperazione, string> = {
+const OP_COLOR: Record<OperationType, string> = {
   phytosanitary: "var(--accent)",
   fertilization: "var(--ok)",
   irrigation: "#0ea5e9",
@@ -116,9 +116,9 @@ export function OperationsCalendar({
   campaignYear: number;
   /** Appezzamenti nello scope (null = tutta l'azienda). */
   plotIds: Set<string> | null;
-  trattamenti: RegistroTrattamento[];
-  raccolte: Raccolta[];
-  dssRisultati: DssRisultato[];
+  trattamenti: TreatmentLog[];
+  raccolte: Harvest[];
+  dssRisultati: DssResult[];
 }) {
   const { t } = useTranslation();
   const initialMonth =
@@ -310,9 +310,9 @@ function DayDetail({
 }: {
   day: string;
   events: CalEvent[];
-  trattamenti: RegistroTrattamento[];
-  raccolte: Raccolta[];
-  dssRisultati: DssRisultato[];
+  trattamenti: TreatmentLog[];
+  raccolte: Harvest[];
+  dssRisultati: DssResult[];
   onClose: () => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -410,7 +410,7 @@ function TreatmentEditor({
   record,
   onDone,
 }: {
-  record: RegistroTrattamento | undefined;
+  record: TreatmentLog | undefined;
   onDone: () => void;
 }) {
   const { t } = useTranslation();
@@ -489,7 +489,7 @@ function HarvestEditor({
   record,
   onDone,
 }: {
-  record: Raccolta | undefined;
+  record: Harvest | undefined;
   onDone: () => void;
 }) {
   const { t } = useTranslation();
@@ -555,7 +555,7 @@ function HarvestEditor({
   );
 }
 
-function DssDetail({ record }: { record: DssRisultato | undefined }) {
+function DssDetail({ record }: { record: DssResult | undefined }) {
   const { t, i18n } = useTranslation();
   if (!record) return null;
   return (

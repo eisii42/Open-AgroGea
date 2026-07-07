@@ -1,11 +1,11 @@
 import {
-  type CategoriaProdotto,
+  type ProductCategory,
   EXPIRY_WARNING_DAYS_DEFAULT,
-  type LottoProdotto,
-  type Prodotto,
-  statoScadenza,
+  type ProductLot,
+  type Product,
+  expiryStatus,
   useAgroStore,
-  validateProdotto,
+  validateProduct,
 } from "@agrogea/core";
 import { FieldSheet } from "@agrogea/ui";
 import { Button, cn, Input, Label, Select } from "@geolibre/ui";
@@ -21,7 +21,7 @@ import { useTranslation } from "react-i18next";
  * è BLOCCATO (vedi OperazioneForm); la nota in testa al pannello lo esplicita.
  */
 
-const CATEGORIE: CategoriaProdotto[] = [
+const CATEGORIE: ProductCategory[] = [
   "phytosanitary",
   "fertilizer",
   "seed",
@@ -57,11 +57,11 @@ function ExpiryBadge({
   lotto,
   warningDays,
 }: {
-  lotto: LottoProdotto;
+  lotto: ProductLot;
   warningDays: number;
 }) {
   const { t } = useTranslation();
-  const stato = statoScadenza(lotto.expires_at, new Date(), warningDays);
+  const stato = expiryStatus(lotto.expires_at, new Date(), warningDays);
   if (stato === "valid") return null;
   return (
     <span
@@ -98,7 +98,7 @@ export function MagazzinoPanel({ onClose }: { onClose: () => void }) {
   );
 
   const lottiPerProdotto = useMemo(() => {
-    const map = new Map<string, LottoProdotto[]>();
+    const map = new Map<string, ProductLot[]>();
     for (const lotto of lotti) {
       const list = map.get(lotto.product_id) ?? [];
       list.push(lotto);
@@ -113,7 +113,7 @@ export function MagazzinoPanel({ onClose }: { onClose: () => void }) {
       lotti.filter(
         (l) =>
           l.quantity_on_hand > 0 &&
-          statoScadenza(l.expires_at, new Date(), warningDays) !== "valid",
+          expiryStatus(l.expires_at, new Date(), warningDays) !== "valid",
       ),
     [lotti, warningDays],
   );
@@ -164,7 +164,7 @@ export function MagazzinoPanel({ onClose }: { onClose: () => void }) {
       {nuovo ? (
         <ProdottoForm
           onSubmit={async (input, lottoIniziale) => {
-            // Prodotto + carico del lotto iniziale (giacenza di partenza): il
+            // Product + carico del lotto iniziale (giacenza di partenza): il
             // carico aggiorna anche il CUMP dal costo unitario indicato.
             await conErrore(async () => {
               const record = await salvaProdotto(input);
@@ -243,7 +243,7 @@ export function MagazzinoPanel({ onClose }: { onClose: () => void }) {
                 const critici = suoi.filter(
                   (l) =>
                     l.quantity_on_hand > 0 &&
-                    statoScadenza(l.expires_at, new Date(), warningDays) !==
+                    expiryStatus(l.expires_at, new Date(), warningDays) !==
                       "valid",
                 );
                 // Scorta minima (v17): badge di riordino sotto soglia.
@@ -304,7 +304,7 @@ export function MagazzinoPanel({ onClose }: { onClose: () => void }) {
 // ---------------------------------------------------------------------------
 
 interface ProdottoFormInput {
-  category: CategoriaProdotto;
+  category: ProductCategory;
   name: string;
   unit: string;
   registration_number: string | null;
@@ -342,7 +342,7 @@ function ProdottoForm({
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
-  const [categoria, setCategoria] = useState<CategoriaProdotto>("phytosanitary");
+  const [categoria, setCategoria] = useState<ProductCategory>("phytosanitary");
   const [nome, setNome] = useState("");
   const [unita, setUnita] = useState("kg");
   const [numeroRegistrazione, setNumeroRegistrazione] = useState("");
@@ -404,7 +404,7 @@ function ProdottoForm({
     metadata,
   };
   // Stessa validazione RIGIDA del DAL, anticipata nel form (bottone disattivo).
-  const errors = validateProdotto(draft);
+  const errors = validateProduct(draft);
   // La giacenza iniziale è FONDAMENTALE: quantità > 0 e costo >= 0 richiesti.
   const qtaNum = Number.parseFloat(quantita);
   const costoNum = Number.parseFloat(costo);
@@ -759,8 +759,8 @@ function ProdottoDettaglio({
   onDeleteLotto,
   onDeleteProdotto,
 }: {
-  prodotto: Prodotto;
-  lotti: LottoProdotto[];
+  prodotto: Product;
+  lotti: ProductLot[];
   warningDays: number;
   onBack: () => void;
   onCarica: (input: {

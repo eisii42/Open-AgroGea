@@ -1,9 +1,9 @@
 import type { PGlite, Transaction } from "@electric-sql/pglite";
 import { v4 as uuidv4 } from "uuid";
 import type {
-  OperazioneMutazione,
-  OutboxMutazione,
-  TabellaSync,
+  MutationOperation,
+  OutboxMutation,
+  SyncTable,
 } from "../types";
 import { type Row, upsertSql } from "./write";
 
@@ -42,8 +42,8 @@ export class AgroDalBase {
    */
   protected async enqueueOutbox(
     tx: Transaction,
-    tabella: TabellaSync,
-    operazione: OperazioneMutazione,
+    tabella: SyncTable,
+    operazione: MutationOperation,
     row: Row & { id: string },
   ): Promise<void> {
     await tx.query(
@@ -63,8 +63,8 @@ export class AgroDalBase {
   }
 
   protected async writeWithOutbox(
-    tabella: TabellaSync,
-    operazione: OperazioneMutazione,
+    tabella: SyncTable,
+    operazione: MutationOperation,
     row: Row & { id: string },
   ): Promise<void> {
     await this.db.transaction(async (tx: Transaction) => {
@@ -82,7 +82,7 @@ export class AgroDalBase {
   }
 
   /** Soft-delete standard: tombstone (`deleted_at`) + mutazione di delete in outbox. */
-  protected async softDelete(tabella: TabellaSync, id: string): Promise<void> {
+  protected async softDelete(tabella: SyncTable, id: string): Promise<void> {
     await this.writeWithOutbox(tabella, "delete", {
       id,
       updated_at: new Date().toISOString(),
@@ -95,7 +95,7 @@ export class AgroDalBase {
    * Applica righe arrivate dal data plane remoto (pull di idratazione): upsert
    * LWW SENZA voce di outbox. Una riga locale più recente non viene sovrascritta.
    */
-  async applyRemoteRows(tabella: TabellaSync, rows: Row[]): Promise<number> {
+  async applyRemoteRows(tabella: SyncTable, rows: Row[]): Promise<number> {
     if (rows.length === 0) return 0;
     await this.db.transaction(async (tx: Transaction) => {
       for (const row of rows) {
@@ -124,7 +124,7 @@ export class AgroDalBase {
     return out;
   }
 
-  async setPullWatermark(tabella: TabellaSync, isoTs: string): Promise<void> {
+  async setPullWatermark(tabella: SyncTable, isoTs: string): Promise<void> {
     await this.db.query(
       `insert into agro_meta (key, value) values ($1, $2)
        on conflict (key) do update set value = excluded.value`,
@@ -134,8 +134,8 @@ export class AgroDalBase {
 
   // -- outbox ----------------------------------------------------------------
 
-  async listPendingMutations(limit = 200): Promise<OutboxMutazione[]> {
-    const result = await this.db.query<OutboxMutazione>(
+  async listPendingMutations(limit = 200): Promise<OutboxMutation[]> {
+    const result = await this.db.query<OutboxMutation>(
       `select * from sync_outbox
        where sync_status in ('pending', 'error')
        order by created_at
@@ -154,8 +154,8 @@ export class AgroDalBase {
   }
 
   /** Coda di sync visibile all'utente: tutte le mutazioni non confermate. */
-  async listOutbox(limit = 500): Promise<OutboxMutazione[]> {
-    const result = await this.db.query<OutboxMutazione>(
+  async listOutbox(limit = 500): Promise<OutboxMutation[]> {
+    const result = await this.db.query<OutboxMutation>(
       `select * from sync_outbox
        where sync_status in ('pending', 'error', 'in_flight')
        order by created_at desc

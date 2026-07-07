@@ -1,4 +1,4 @@
-import type { LivelloRischioDss } from "@agrogea/core";
+import type { DssRiskLevel } from "@agrogea/core";
 import type { AlertFitopatologico, LivelloRischio } from "@agrogea/tools";
 import type { ContestoDss, CropModule, DssModel, MeteoGiornoDss } from "../types";
 
@@ -17,13 +17,13 @@ export interface EsitoDss {
   alert: AlertFitopatologico | null;
   /** Nome stabile del modello in cache (es. "peronospora_vite"). */
   modelloNome: string;
-  livello: LivelloRischioDss;
+  livello: DssRiskLevel;
   /** Indice numerico salvato in `valore_output` (0 se nessun alert). */
   valore: number;
 }
 
 /** Riduce i 4 livelli del motore ai 3 della cache DSS ('nullo' → 'low'). */
-function normalizzaLivello(rischio: LivelloRischio): LivelloRischioDss {
+function normalizzaLivello(rischio: LivelloRischio): DssRiskLevel {
   switch (rischio) {
     case "alto":
       return "high";
@@ -63,7 +63,7 @@ export function esitiToRisultatiDss(
   esiti: EsitoDss[],
 ): Array<{
   model_name: string;
-  risk_level: LivelloRischioDss;
+  risk_level: DssRiskLevel;
   output_value: number;
 }> {
   return esiti.map((e) => ({

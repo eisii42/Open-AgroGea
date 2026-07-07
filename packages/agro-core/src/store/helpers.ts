@@ -5,9 +5,9 @@ import type {
   MultiPolygon,
   Polygon,
 } from "geojson";
-import { lunghezzaMetri } from "../geo/area";
+import { lengthMeters } from "../geo/area";
 import type {
-  ProfiloUtente,
+  UserProfile,
   SyncSnapshot,
   TenantClaims,
   TenantMembership,
@@ -31,7 +31,7 @@ export const MAX_GEOMETRY_HISTORY = 50;
  * non è leggibile online (sblocco offline, o control plane non raggiungibile):
  * lo stato di licenza ricade su `licenzaAttiva` delle claims.
  */
-export function profiloDaClaims(claims: TenantClaims): ProfiloUtente {
+export function profiloDaClaims(claims: TenantClaims): UserProfile {
   return {
     id: claims.tenantId,
     email: "",
@@ -73,7 +73,7 @@ export function currentEmail(s: AgroState): string | null {
 /**
  * Guard centralizzato: SOLLEVA se l'utente attivo è un VIEWER (sola lettura).
  * Chiamato in testa a ogni mutazione di dominio dello store, così la regola RBAC
- * vale per OGNI entry-point (Quaderno, Raccolta, geometrie, anagrafica…) senza
+ * vale per OGNI entry-point (Quaderno, Harvest, geometrie, anagrafica…) senza
  * doverla replicare nei singoli componenti. Specchio client delle regole
  * di accesso server-side.
  */
@@ -129,7 +129,7 @@ export async function persistiGeometriaSuDal(
     const before = existing.geometry;
     const length_m =
       geometry.type === "LineString" || geometry.type === "MultiLineString"
-        ? lunghezzaMetri(geometry as LineString | MultiLineString)
+        ? lengthMeters(geometry as LineString | MultiLineString)
         : existing.length_m;
     const record = await dal.upsertAsset({ ...existing, geometry, length_m });
     set((s) => ({

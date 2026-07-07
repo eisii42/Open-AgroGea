@@ -1,5 +1,5 @@
 import {
-  type TipoOperazione,
+  type OperationType,
   useAgroStore,
 } from "@agrogea/core";
 import { cn } from "@geolibre/ui";
@@ -28,7 +28,7 @@ type CellValue = string | number | null;
 
 interface InspectorRow extends Record<string, CellValue> {
   __id: string;
-  /** Appezzamento di riferimento per il cross-filtering (null se assente). */
+  /** Plot di riferimento per il cross-filtering (null se assente). */
   __plotId: string | null;
 }
 
@@ -40,8 +40,8 @@ interface InspectorDataset {
   save: (rowId: string, key: string, value: string) => Promise<void>;
 }
 
-function opLabel(t: TFunction, type: TipoOperazione): string {
-  const OP_LABEL: Record<TipoOperazione, string> = {
+function opLabel(t: TFunction, type: OperationType): string {
+  const OP_LABEL: Record<OperationType, string> = {
     phytosanitary: t("rawDataInspector.opType.phytosanitary"),
     fertilization: t("rawDataInspector.opType.fertilization"),
     irrigation: t("rawDataInspector.opType.irrigation"),
@@ -69,7 +69,7 @@ export function RawDataInspector({
 }: {
   plotIds: Set<string> | null;
   campaignYear: number;
-  /** Appezzamento attualmente isolato dal cross-filtering (riga evidenziata). */
+  /** Plot attualmente isolato dal cross-filtering (riga evidenziata). */
   focusedPlotId?: string | null;
   /** Innesca il cross-filtering su un appezzamento (clic sul focus di riga). */
   onFocusPlot?: (plotId: string) => void;

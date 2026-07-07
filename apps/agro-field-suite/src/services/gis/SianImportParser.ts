@@ -11,7 +11,7 @@
  * La decodifica dei campi rigidi ministeriali è delegata al modulo PURO
  * {@link ./sian-mapping}, testabile sotto Node.
  */
-import { areaEttari } from "@agrogea/core";
+import { areaHectares } from "@agrogea/core";
 import type { FeatureCollection, Geometry, Polygon, MultiPolygon } from "geojson";
 import {
   mapSianFeature,
@@ -43,7 +43,7 @@ export function mapFeatureCollection(
   const out: SianCampoMappato[] = [];
   for (const f of fc.features) {
     const geom = f.geometry ?? null;
-    const area = isPoligono(geom) ? areaEttari(geom) : null;
+    const area = isPoligono(geom) ? areaHectares(geom) : null;
     out.push(mapSianFeature(f.properties ?? {}, geom, area));
   }
   return out;

@@ -5,7 +5,7 @@
  * `country_code` del tenant. Ogni adapter conosce il tracciato ufficiale del suo
  * paese:
  *   * IT → SIAN/PAN: CSV `;`, UTF-8 con BOM (apertura corretta in Excel IT),
- *     header e codici Isola/Appezzamento ministeriali (riusa `sianExport`).
+ *     header e codici Isola/Plot ministeriali (riusa `sianExport`).
  *   * ES → SIEX/CUE: JSON strutturato del *Cuaderno Digital de Explotación*
  *     (FEGA), campi in spagnolo.
  *   * EU → base internazionale: CSV `,`, UTF-8 pulito, date ISO `YYYY-MM-DD`.
@@ -14,10 +14,10 @@
  * `node --test`. Il download nel browser è in `scaricaExport`.
  */
 import type {
-  Appezzamento,
-  CampoCampagna,
+  Plot,
+  PlotCampaign,
   CountryCode,
-  RegistroTrattamento,
+  TreatmentLog,
 } from "@agrogea/core";
 import {
   buildSianCsv,
@@ -27,9 +27,9 @@ import {
 
 /** Dati grezzi dell'export (registro + anagrafica fisica + stato di campagna). */
 export interface RegionalExportInput {
-  trattamenti: RegistroTrattamento[];
-  appezzamenti: Appezzamento[];
-  campiCampagna: CampoCampagna[];
+  trattamenti: TreatmentLog[];
+  appezzamenti: Plot[];
+  campiCampagna: PlotCampaign[];
   aziendaName?: string;
 }
 

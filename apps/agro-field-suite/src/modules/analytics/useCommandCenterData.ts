@@ -1,7 +1,7 @@
 import {
-  type CampoCampagna,
-  type DssRisultato,
-  type LetturaMeteo,
+  type PlotCampaign,
+  type DssResult,
+  type WeatherReading,
   type SoilWaterIndex,
   useAgroStore,
 } from "@agrogea/core";
@@ -25,12 +25,12 @@ export interface CommandCenterData {
   loading: boolean;
   result: AnalyticsResult | null;
   /** Campagne di tutte le annate (per i selettori e l'inspector). */
-  allCampaigns: CampoCampagna[];
+  allCampaigns: PlotCampaign[];
   /** Anni di campagna distinti, dal più recente (per il selettore d'annata). */
   years: number[];
-  dssRisultati: DssRisultato[];
+  dssRisultati: DssResult[];
   soilIndices: SoilWaterIndex[];
-  weather: LetturaMeteo[];
+  weather: WeatherReading[];
   /**
    * Ricarica dal DAL meteo, campagne, cache DSS e indici idrici. Da chiamare
    * dopo aver eseguito calcoli DSS/bilancio idrico altrove (mappa) per riflettere
@@ -52,9 +52,9 @@ export function useCommandCenterData(
   const trattamenti = useAgroStore((s) => s.trattamenti);
   const raccolte = useAgroStore((s) => s.raccolte);
 
-  const [allCampaigns, setAllCampaigns] = useState<CampoCampagna[]>([]);
-  const [weather, setWeather] = useState<LetturaMeteo[]>([]);
-  const [dssRisultati, setDssRisultati] = useState<DssRisultato[]>([]);
+  const [allCampaigns, setAllCampaigns] = useState<PlotCampaign[]>([]);
+  const [weather, setWeather] = useState<WeatherReading[]>([]);
+  const [dssRisultati, setDssRisultati] = useState<DssResult[]>([]);
   const [soilIndices, setSoilIndices] = useState<SoilWaterIndex[]>([]);
   const [loadingBase, setLoadingBase] = useState(true);
   const [loadingScope, setLoadingScope] = useState(true);

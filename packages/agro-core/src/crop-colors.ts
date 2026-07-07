@@ -158,7 +158,7 @@ export function cropStyle(commonName: string | null | undefined): CropStyle {
       return { color: group.color, icon: group.icon };
     }
   }
-  // Coltura sconosciuta: colore deterministico dalla palette di fallback.
+  // CropType sconosciuta: colore deterministico dalla palette di fallback.
   const color = FALLBACK_PALETTE[hashString(norm) % FALLBACK_PALETTE.length];
   return { color, icon: "generic" };
 }

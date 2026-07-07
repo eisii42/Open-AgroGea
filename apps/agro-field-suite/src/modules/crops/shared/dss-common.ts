@@ -1,7 +1,7 @@
 import {
   accumuloGradiGiorno,
   type AlertFitopatologico,
-  type Coltura as SpecieFenologica,
+  type CropType as SpecieFenologica,
   getMatriceColtura,
   type LivelloRischio,
   type PuntoTermico,

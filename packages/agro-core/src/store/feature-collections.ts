@@ -1,15 +1,15 @@
 import type { Feature, FeatureCollection, Point } from "geojson";
 import { cropStyle } from "../crop-colors";
 import type {
-  Appezzamento,
-  AppezzamentiFeatureCollection,
-  AssetInfrastruttura,
-  CampionamentoSuolo,
-  CampoCampagna,
+  Plot,
+  PlotsFeatureCollection,
+  InfrastructureAsset,
+  SoilSample,
+  PlotCampaign,
   Crop,
-  Raccolta,
-  RaccolteFeatureCollection,
-  RegistroTrattamento,
+  Harvest,
+  HarvestsFeatureCollection,
+  TreatmentLog,
 } from "../types";
 
 /**
@@ -24,9 +24,9 @@ import type {
  * comune della coltura. Coerente con la normalizzazione: un plot ha una coltura
  * solo nel contesto di un'annata. `null` se l'appezzamento non ha campagna/coltura.
  */
-export function colturaPerAppezzamento(
+export function cropForPlot(
   plotId: string,
-  campiCampagna: CampoCampagna[],
+  campiCampagna: PlotCampaign[],
   crops: Crop[],
 ): string | null {
   // Le campagne CHIUSE (raccolto delle annuali, v17) non contano: il campo è
@@ -41,10 +41,10 @@ export function colturaPerAppezzamento(
   return typeof category === "string" ? category : crop.common_name;
 }
 
-/** Coltura (record `crops`) associata a un appezzamento nell'annata attiva. */
+/** CropType (record `crops`) associata a un appezzamento nell'annata attiva. */
 function cropPerAppezzamento(
   plotId: string,
-  campiCampagna: CampoCampagna[],
+  campiCampagna: PlotCampaign[],
   crops: Crop[],
 ): Crop | null {
   const camp = campiCampagna.find(
@@ -58,12 +58,12 @@ function cropPerAppezzamento(
  * Etichetta leggibile della coltura associata a un appezzamento nella Campagna
  * attiva (`plots_campaign` → `crops`): nome comune con varietà tra parentesi se
  * presente (es. "Vite (Sangiovese)"). `null` se non c'è coltura per l'annata.
- * A differenza di {@link colturaPerAppezzamento} (che ritorna la categoria DSS),
+ * A differenza di {@link cropForPlot} (che ritorna la categoria DSS),
  * qui si privilegia il nome reale della coltura, più informativo nel tooltip.
  */
 export function cropLabelPerAppezzamento(
   plotId: string,
-  campiCampagna: CampoCampagna[],
+  campiCampagna: PlotCampaign[],
   crops: Crop[],
 ): string | null {
   const crop = cropPerAppezzamento(plotId, campiCampagna, crops);
@@ -74,11 +74,11 @@ export function cropLabelPerAppezzamento(
 }
 
 /** FeatureCollection degli appezzamenti dell'azienda attiva, pronta per MapLibre. */
-export function appezzamentiToFeatureCollection(
-  appezzamenti: Appezzamento[],
-  campiCampagna: CampoCampagna[] = [],
+export function plotsToFeatureCollection(
+  appezzamenti: Plot[],
+  campiCampagna: PlotCampaign[] = [],
   crops: Crop[] = [],
-): AppezzamentiFeatureCollection {
+): PlotsFeatureCollection {
   return {
     type: "FeatureCollection",
     features: appezzamenti.map((a) => {
@@ -118,7 +118,7 @@ export function appezzamentiToFeatureCollection(
 
 /** FeatureCollection delle infrastrutture (asset CAD-GIS) per il layer. */
 export function assetsToFeatureCollection(
-  assets: AssetInfrastruttura[],
+  assets: InfrastructureAsset[],
 ): FeatureCollection {
   return {
     type: "FeatureCollection",
@@ -138,18 +138,18 @@ export function assetsToFeatureCollection(
 }
 
 /**
- * FeatureCollection delle raccolte (Modulo Raccolta). Le properties (cultivar,
+ * FeatureCollection delle raccolte (Modulo Harvest). Le properties (cultivar,
  * destinazione, quantita_kg) alimentano i grafici della tabella attributi (es.
  * Barre: somma/media di `quantita_kg` per `cultivar`/`destinazione`). Le raccolte
- * prive di geometria vengono emesse con un Point al centroide dell'appezzamento
+ * prive di geometria vengono emesse con un Point al centroid dell'appezzamento
  * collegato, se fornito tramite la mappa `centroidi`; altrimenti sono escluse dal
  * layer cartografico ma restano nei dati per i grafici via store.
  */
-export function raccolteToFeatureCollection(
-  raccolte: Raccolta[],
+export function harvestsToFeatureCollection(
+  raccolte: Harvest[],
   centroidi?: Map<string, Point>,
-): RaccolteFeatureCollection {
-  const features: RaccolteFeatureCollection["features"] = [];
+): HarvestsFeatureCollection {
+  const features: HarvestsFeatureCollection["features"] = [];
   for (const r of raccolte) {
     const geometry =
       r.geometry ??
@@ -175,12 +175,12 @@ export function raccolteToFeatureCollection(
 /**
  * FeatureCollection del Registro operazioni (Quaderno di Campagna). Le properties
  * (tipo_operazione, prodotto, dose, quantità, avversità) alimentano la tabella
- * attributi e i suoi grafici. Geometria puntuale al centroide dell'appezzamento
+ * attributi e i suoi grafici. Geometria puntuale al centroid dell'appezzamento
  * collegato (se disponibile in `centroidi`); le operazioni "intera azienda" senza
  * appezzamento restano fuori dal layer cartografico ma nei dati via store.
  */
-export function trattamentiToFeatureCollection(
-  trattamenti: RegistroTrattamento[],
+export function treatmentsToFeatureCollection(
+  trattamenti: TreatmentLog[],
   centroidi?: Map<string, Point>,
 ): FeatureCollection<Point> {
   const features: Feature<Point>[] = [];
@@ -215,7 +215,7 @@ export function trattamentiToFeatureCollection(
  * disegnati come Point: entrambi hanno geometria puntuale.
  */
 export function poiToFeatureCollection(
-  campionamenti: CampionamentoSuolo[],
+  campionamenti: SoilSample[],
 ): FeatureCollection {
   return {
     type: "FeatureCollection",

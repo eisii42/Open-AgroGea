@@ -1,4 +1,4 @@
-import type { Appezzamento } from "@agrogea/core";
+import type { Plot } from "@agrogea/core";
 import type { Feature, FeatureCollection, Point, Position } from "geojson";
 import {
   type ExportArtifact,
@@ -32,7 +32,7 @@ export interface RigaStoricoUmidita {
 export type FormatoStoricoUmidita = "geojson" | "shapefile" | "csv";
 
 /** Baricentro grezzo (media dei vertici) del poligono, senza dipendenze pesanti. */
-function baricentro(geometry: Appezzamento["geometry"]): Position {
+function baricentro(geometry: Plot["geometry"]): Position {
   const punti: Position[] = [];
   const raccogli = (rings: Position[][]) => {
     for (const ring of rings) for (const p of ring) punti.push(p);
@@ -52,7 +52,7 @@ function baricentro(geometry: Appezzamento["geometry"]): Position {
  * baricentro dell'appezzamento, con gli indici idrici come attributi numerici.
  */
 export function costruisciStoricoUmiditaFc(
-  appezzamento: Appezzamento,
+  appezzamento: Plot,
   serie: RigaStoricoUmidita[],
 ): FeatureCollection {
   const centro = baricentro(appezzamento.geometry);

@@ -1,12 +1,12 @@
 import { v4 as uuidv4 } from "uuid";
-import { normalizzaGeometria } from "../geo/area";
+import { normalizeGeometry } from "../geo/area";
 import type {
-  AssetInfrastruttura,
-  CampionamentoSuolo,
-  Raccolta,
-  RegistroTrattamento,
+  InfrastructureAsset,
+  SoilSample,
+  Harvest,
+  TreatmentLog,
   ScoutingObservation,
-  UltimaOperazione,
+  LastOperation,
 } from "../types";
 import { AgroDalRegistry } from "./dal-registry";
 import { nowIso, type Row } from "./write";
@@ -17,7 +17,7 @@ const ETICHETTE_OPERAZIONE: Record<string, string> = {
   irrigation: "Irrigazione",
   tillage: "Lavorazione",
   sowing: "Semina",
-  harvest: "Raccolta",
+  harvest: "Harvest",
   sampling: "Campionamento",
   survey: "Rilievo",
 };
@@ -31,12 +31,12 @@ export class AgroDalLogbook extends AgroDalRegistry {
 
   async insertTrattamento(
     input: Omit<
-      RegistroTrattamento,
+      TreatmentLog,
       "id" | "tenant_id" | "created_at" | "updated_at" | "deleted_at"
     > & { id?: string },
-  ): Promise<RegistroTrattamento> {
+  ): Promise<TreatmentLog> {
     const ts = nowIso();
-    const row: RegistroTrattamento = {
+    const row: TreatmentLog = {
       ...input,
       id: input.id ?? uuidv4(),
       tenant_id: this.tenantId,
@@ -63,7 +63,7 @@ export class AgroDalLogbook extends AgroDalRegistry {
   async listTrattamenti(
     aziendaId: string,
     options: { appezzamentoId?: string; limit?: number } = {},
-  ): Promise<RegistroTrattamento[]> {
+  ): Promise<TreatmentLog[]> {
     const conditions = ["company_id = $1", "deleted_at is null"];
     const params: unknown[] = [aziendaId];
     if (options.appezzamentoId) {
@@ -71,7 +71,7 @@ export class AgroDalLogbook extends AgroDalRegistry {
       conditions.push(`plot_id = $${params.length}`);
     }
     params.push(options.limit ?? 200);
-    const result = await this.db.query<RegistroTrattamento>(
+    const result = await this.db.query<TreatmentLog>(
       `select * from treatment_logs
        where ${conditions.join(" and ")}
        order by executed_at desc
@@ -88,8 +88,8 @@ export class AgroDalLogbook extends AgroDalRegistry {
    */
   async ultimaOperazione(
     appezzamentoId: string,
-  ): Promise<UltimaOperazione | null> {
-    const result = await this.db.query<RegistroTrattamento>(
+  ): Promise<LastOperation | null> {
+    const result = await this.db.query<TreatmentLog>(
       `select * from treatment_logs
        where plot_id = $1 and deleted_at is null
        order by executed_at desc
@@ -113,12 +113,12 @@ export class AgroDalLogbook extends AgroDalRegistry {
 
   async upsertCampionamento(
     input: Omit<
-      CampionamentoSuolo,
+      SoilSample,
       "tenant_id" | "created_at" | "updated_at" | "deleted_at"
     >,
-  ): Promise<CampionamentoSuolo> {
+  ): Promise<SoilSample> {
     const ts = nowIso();
-    const row: CampionamentoSuolo = {
+    const row: SoilSample = {
       ...input,
       tenant_id: this.tenantId,
       created_at: ts,
@@ -137,8 +137,8 @@ export class AgroDalLogbook extends AgroDalRegistry {
     await this.softDelete("soil_samples", id);
   }
 
-  async listCampionamenti(aziendaId: string): Promise<CampionamentoSuolo[]> {
-    const result = await this.db.query<CampionamentoSuolo>(
+  async listCampionamenti(aziendaId: string): Promise<SoilSample[]> {
+    const result = await this.db.query<SoilSample>(
       `select * from soil_samples
        where company_id = $1 and deleted_at is null
        order by sampled_at desc`,
@@ -147,17 +147,17 @@ export class AgroDalLogbook extends AgroDalRegistry {
     return result.rows;
   }
 
-  // -- harvest_logs (Modulo Raccolta) ----------------------------------------
+  // -- harvest_logs (Modulo Harvest) ----------------------------------------
 
   async upsertRaccolta(
     input: Omit<
-      Raccolta,
+      Harvest,
       "tenant_id" | "created_at" | "updated_at" | "deleted_at"
     > &
-      Partial<Pick<Raccolta, "created_at">>,
-  ): Promise<Raccolta> {
+      Partial<Pick<Harvest, "created_at">>,
+  ): Promise<Harvest> {
     const ts = nowIso();
-    const row: Raccolta = {
+    const row: Harvest = {
       created_at: ts,
       ...input,
       tenant_id: this.tenantId,
@@ -179,7 +179,7 @@ export class AgroDalLogbook extends AgroDalRegistry {
   async listRaccolte(
     aziendaId: string,
     options: { appezzamentoId?: string; limit?: number } = {},
-  ): Promise<Raccolta[]> {
+  ): Promise<Harvest[]> {
     const conditions = ["company_id = $1", "deleted_at is null"];
     const params: unknown[] = [aziendaId];
     if (options.appezzamentoId) {
@@ -187,7 +187,7 @@ export class AgroDalLogbook extends AgroDalRegistry {
       conditions.push(`plot_id = $${params.length}`);
     }
     params.push(options.limit ?? 1000);
-    const result = await this.db.query<Raccolta>(
+    const result = await this.db.query<Harvest>(
       `select * from harvest_logs
        where ${conditions.join(" and ")}
        order by harvested_at desc
@@ -201,14 +201,14 @@ export class AgroDalLogbook extends AgroDalRegistry {
 
   async upsertAsset(
     input: Omit<
-      AssetInfrastruttura,
+      InfrastructureAsset,
       "tenant_id" | "created_at" | "updated_at" | "deleted_at"
     >,
-  ): Promise<AssetInfrastruttura> {
+  ): Promise<InfrastructureAsset> {
     const ts = nowIso();
-    const row: AssetInfrastruttura = {
+    const row: InfrastructureAsset = {
       ...input,
-      geometry: normalizzaGeometria(input.geometry),
+      geometry: normalizeGeometry(input.geometry),
       tenant_id: this.tenantId,
       created_at: ts,
       updated_at: ts,
@@ -229,14 +229,14 @@ export class AgroDalLogbook extends AgroDalRegistry {
   async listAssets(
     aziendaId: string,
     options: { categoria?: "fixed" | "mobile" } = {},
-  ): Promise<AssetInfrastruttura[]> {
+  ): Promise<InfrastructureAsset[]> {
     const conditions = ["company_id = $1", "deleted_at is null"];
     const params: unknown[] = [aziendaId];
     if (options.categoria) {
       params.push(options.categoria);
       conditions.push(`category = $${params.length}`);
     }
-    const result = await this.db.query<AssetInfrastruttura>(
+    const result = await this.db.query<InfrastructureAsset>(
       `select * from infrastructure_assets
        where ${conditions.join(" and ")}
        order by asset_type`,

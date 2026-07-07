@@ -1,5 +1,5 @@
 import { boundingBox, useAgroStore } from "@agrogea/core";
-import type { Appezzamento } from "@agrogea/core";
+import type { Plot } from "@agrogea/core";
 import {
   cercaSerieScene,
   filtraFinestraDaUltima,
@@ -193,7 +193,7 @@ export function useSuoloPipeline() {
   );
 
   const calcola = useCallback(
-    async (appezzamenti: Appezzamento[], opzioni: OpzioniSuolo) => {
+    async (appezzamenti: Plot[], opzioni: OpzioniSuolo) => {
       if (appezzamenti.length === 0 || opzioni.indici.length === 0) return;
       rimuoviOverlay();
       const risultati: RisultatoAppezzamento[] = [];

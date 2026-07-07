@@ -1,7 +1,7 @@
 import {
-  type CampoCampagna,
-  colturaPerAppezzamento,
-  type TipoOperazione,
+  type PlotCampaign,
+  cropForPlot,
+  type OperationType,
   useAgroStore,
 } from "@agrogea/core";
 import {
@@ -39,7 +39,7 @@ import {
  * filtra → costruisce → scarica → registra il tag di export nel giornale.
  */
 
-const TIPI_OPERAZIONE: TipoOperazione[] = [
+const TIPI_OPERAZIONE: OperationType[] = [
   "phytosanitary",
   "fertilization",
   "irrigation",
@@ -49,8 +49,8 @@ const TIPI_OPERAZIONE: TipoOperazione[] = [
   "sampling",
 ];
 
-function etichettaTipo(t: TFunction, tipo: TipoOperazione): string {
-  const map: Record<TipoOperazione, string> = {
+function etichettaTipo(t: TFunction, tipo: OperationType): string {
+  const map: Record<OperationType, string> = {
     phytosanitary: t("sianExportDialog.operationType.phytosanitary"),
     fertilization: t("sianExportDialog.operationType.fertilization"),
     irrigation: t("sianExportDialog.operationType.irrigation"),
@@ -97,7 +97,7 @@ export function SianExportDialog({
   // Campagne di TUTTI gli anni (lo store ne tiene solo l'anno attivo): servono a
   // risolvere i codici SIAN delle operazioni di annate diverse. Caricate
   // all'apertura del dialog; fallback allo store finché non arrivano.
-  const [campiTutti, setCampiTutti] = useState<CampoCampagna[]>([]);
+  const [campiTutti, setCampiTutti] = useState<PlotCampaign[]>([]);
   useEffect(() => {
     if (!open || !agroDal) return;
     let alive = true;
@@ -126,7 +126,7 @@ export function SianExportDialog({
   const [colture, setColture] = useState<string[]>([]);
   const [includiSenzaApp, setIncludiSenzaApp] = useState(true);
   // -- filtro operazioni --
-  const [tipi, setTipi] = useState<TipoOperazione[]>([]);
+  const [tipi, setTipi] = useState<OperationType[]>([]);
   // -- struttura CSV --
   const [colonne, setColonne] = useState<string[]>(COLONNE_SIAN_DEFAULT);
   const [separatore, setSeparatore] = useState<SeparatoreCsv>(";");
@@ -136,7 +136,7 @@ export function SianExportDialog({
   const coltureDisponibili = useMemo<string[]>(() => {
     const set = new Set<string>();
     for (const a of appezzamenti) {
-      const c = colturaPerAppezzamento(a.id, campiCampagna, crops);
+      const c = cropForPlot(a.id, campiCampagna, crops);
       if (c) set.add(c);
     }
     return [...set];
@@ -290,7 +290,7 @@ export function SianExportDialog({
                       checked={appIds.includes(a.id)}
                       onChange={() => toggleInArray(appIds, a.id, setAppIds)}
                       label={`${a.user_plot_name} · ${
-                        colturaPerAppezzamento(a.id, campiCampagna, crops) ?? "—"
+                        cropForPlot(a.id, campiCampagna, crops) ?? "—"
                       }`}
                     />
                   ))

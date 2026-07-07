@@ -20,7 +20,7 @@ describe("AbstractGisParser / selezione adapter per country_code", () => {
 });
 
 describe("Adapter IT (SIAN/AGEA)", () => {
-  it("decodifica Isola/Appezzamento e superficie dichiarata (formato IT)", () => {
+  it("decodifica Isola/Plot e superficie dichiarata (formato IT)", () => {
     const p = itSianAdapter.mapFeature(
       { ID_ISOLA: "12", ID_APPEZZ: "3", COD_PROD: "060", SUP_HA: "1,5000" },
       null,

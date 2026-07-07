@@ -1,4 +1,4 @@
-import { type OutboxMutazione, useAgroStore } from "@agrogea/core";
+import { type OutboxMutation, useAgroStore } from "@agrogea/core";
 import { FieldSheet } from "@agrogea/ui";
 import { Button } from "@geolibre/ui";
 import { AlertTriangle, RefreshCw, Trash2 } from "lucide-react";
@@ -43,7 +43,7 @@ export function SyncPanel({ onClose }: { onClose: () => void }) {
   const eliminaMutazioneCoda = useAgroStore((s) => s.eliminaMutazioneCoda);
   const svuotaCodaSync = useAgroStore((s) => s.svuotaCodaSync);
 
-  const [coda, setCoda] = useState<OutboxMutazione[]>([]);
+  const [coda, setCoda] = useState<OutboxMutation[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 

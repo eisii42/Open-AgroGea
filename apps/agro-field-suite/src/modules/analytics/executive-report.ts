@@ -1,4 +1,4 @@
-import type { RegistroTrattamento, Raccolta } from "@agrogea/core";
+import type { TreatmentLog, Harvest } from "@agrogea/core";
 import { BOM_UTF8 } from "../../services/gis/geo-export";
 import type { AnalyticsResult, KpiResult } from "./CommandCenterEngine";
 
@@ -47,12 +47,12 @@ function kpiRows(kpis: KpiResult[]): string[] {
   return out;
 }
 
-function treatmentRows(trattamenti: RegistroTrattamento[]): string[] {
+function treatmentRows(trattamenti: TreatmentLog[]): string[] {
   const out = [
     row([
       "Data",
       "Operazione",
-      "Prodotto",
+      "Product",
       "Sostanza attiva",
       "Dose",
       "Unità dose",
@@ -81,7 +81,7 @@ function treatmentRows(trattamenti: RegistroTrattamento[]): string[] {
   return out;
 }
 
-function harvestRows(raccolte: Raccolta[]): string[] {
+function harvestRows(raccolte: Harvest[]): string[] {
   const out = [
     row(["Data", "Cultivar", "Quantità (kg)", "Destinazione", "Note"]),
   ];
@@ -105,8 +105,8 @@ function harvestRows(raccolte: Raccolta[]): string[] {
  */
 export function buildExecutiveReportCsv(args: {
   result: AnalyticsResult;
-  trattamenti: RegistroTrattamento[];
-  raccolte: Raccolta[];
+  trattamenti: TreatmentLog[];
+  raccolte: Harvest[];
   companyName: string;
 }): string {
   const { result, trattamenti, raccolte, companyName } = args;
@@ -114,9 +114,9 @@ export function buildExecutiveReportCsv(args: {
   const lines: string[] = [];
 
   lines.push(row(["AgroGea — Executive Report"]));
-  lines.push(row(["Azienda", companyName]));
+  lines.push(row(["Company", companyName]));
   lines.push(row(["Annata agraria", summary.campaignYear]));
-  lines.push(row(["Coltura", summary.categoryLabel]));
+  lines.push(row(["CropType", summary.categoryLabel]));
   lines.push(row(["Appezzamenti", summary.plotCount]));
   lines.push(row(["Superficie (ha)", summary.totalAreaHa.toFixed(2)]));
   lines.push(row(["Generato il", new Date().toLocaleString("it-IT")]));

@@ -1,9 +1,9 @@
 import type {
-  Appezzamento,
-  CampoCampagna,
-  Raccolta,
-  RegistroTrattamento,
-  TipoOperazione,
+  Plot,
+  PlotCampaign,
+  Harvest,
+  TreatmentLog,
+  OperationType,
 } from "@agrogea/core";
 
 /**
@@ -43,16 +43,16 @@ function csvCell(value: unknown, separatore: SeparatoreCsv): string {
  */
 export interface SianColumnContext {
   /** Etichetta localizzata del tipo operazione (default: italiano). */
-  resolveOperationType?: (op: TipoOperazione) => string;
+  resolveOperationType?: (op: OperationType) => string;
 }
 
 export interface SianColumn {
   id: string;
   label: string;
   value: (
-    t: RegistroTrattamento,
-    app: Appezzamento | undefined,
-    campo: CampoCampagna | undefined,
+    t: TreatmentLog,
+    app: Plot | undefined,
+    campo: PlotCampaign | undefined,
     ctx?: SianColumnContext,
   ) => unknown;
 }
@@ -68,12 +68,12 @@ export const ETICHETTE_TIPO_IT: Record<string, string> = {
   irrigation: "Irrigazione",
   tillage: "Lavorazione",
   sowing: "Semina/Trapianto",
-  harvest: "Raccolta",
+  harvest: "Harvest",
   sampling: "Campionamento",
 };
 
 function etichettaTipoOperazione(
-  op: TipoOperazione,
+  op: OperationType,
   ctx?: SianColumnContext,
 ): string {
   return ctx?.resolveOperationType?.(op) ?? ETICHETTE_TIPO_IT[op] ?? op;
@@ -86,8 +86,8 @@ function etichettaTipoOperazione(
 export const COLONNE_SIAN: SianColumn[] = [
   { id: "data", label: "Data", value: (t) => isoData(t.executed_at) },
   { id: "ora", label: "Ora", value: (t) => isoOra(t.executed_at) },
-  { id: "appezzamento", label: "Appezzamento", value: (_t, a) => a?.user_plot_name ?? "" },
-  { id: "coltura", label: "Coltura", value: (_t, _a, c) => c?.crop_external_code ?? "" },
+  { id: "appezzamento", label: "Plot", value: (_t, a) => a?.user_plot_name ?? "" },
+  { id: "coltura", label: "CropType", value: (_t, _a, c) => c?.crop_external_code ?? "" },
   { id: "varieta", label: "Varietà", value: (_t, _a, c) => c?.variety_external_code ?? "" },
   {
     id: "foglio_catastale",
@@ -107,7 +107,7 @@ export const COLONNE_SIAN: SianColumn[] = [
     // sovrascrivibile con la lingua attiva dalla UI.
     value: (t, _a, _c, ctx) => etichettaTipoOperazione(t.operation_type, ctx),
   },
-  { id: "prodotto", label: "Prodotto", value: (t) => t.product_name ?? "" },
+  { id: "prodotto", label: "Product", value: (t) => t.product_name ?? "" },
   {
     id: "numero_registrazione",
     label: "N. registrazione",
@@ -156,7 +156,7 @@ export const COLONNE_SIAN: SianColumn[] = [
   },
   {
     id: "agricultural_parcel_external_id",
-    label: "ID Appezzamento SIAN",
+    label: "ID Plot SIAN",
     value: (_t, _a, c) => c?.agricultural_parcel_external_id ?? "",
   },
   {
@@ -185,7 +185,7 @@ export const COLONNE_SIAN: SianColumn[] = [
     label: "Carenza (gg)",
     value: (t) => t.safety_period_days ?? "",
   },
-  // -- colonne del Modulo Raccolta (righe con tipo_operazione = harvest) --
+  // -- colonne del Modulo Harvest (righe con tipo_operazione = harvest) --
   {
     id: "raccolta_kg",
     label: "Quantità raccolta (kg)",
@@ -226,7 +226,7 @@ export const COLONNE_SIAN_DEFAULT: string[] = [
   "operatore_cf",
   "num_patentino",
   "carenza_giorni",
-  // Raccolta (QDCA): valorizzate solo sulle righe harvest, vuote altrove.
+  // Harvest (QDCA): valorizzate solo sulle righe harvest, vuote altrove.
   "raccolta_kg",
   "destinazione",
 ];
@@ -249,7 +249,7 @@ export interface SianFiltri {
   /** Colture ammesse (vuoto = tutte). */
   colture?: string[];
   /** Tipi di operazione ammessi (vuoto = tutti). */
-  tipiOperazione?: TipoOperazione[];
+  tipiOperazione?: OperationType[];
   /** Includi le operazioni "intera azienda" (senza appezzamento). Default true. */
   includiSenzaAppezzamento?: boolean;
 }
@@ -277,10 +277,10 @@ export const CONFIG_SIAN_DEFAULT: SianExportConfig = {
  * o coltura, perché non hanno un riferimento spaziale da confrontare.
  */
 export function filtraTrattamentiSian(
-  trattamenti: RegistroTrattamento[],
-  appezzamenti: Appezzamento[],
+  trattamenti: TreatmentLog[],
+  appezzamenti: Plot[],
   filtri: SianFiltri,
-): RegistroTrattamento[] {
+): TreatmentLog[] {
   const daTs = filtri.dal ? new Date(`${filtri.dal}T00:00:00`).getTime() : null;
   const aTs = filtri.al ? new Date(`${filtri.al}T23:59:59.999`).getTime() : null;
   const appSet =
@@ -326,10 +326,10 @@ export function risolviColonne(ids: string[]): SianColumn[] {
  * semina con auto-assegnazione) compaiono comunque nell'export.
  */
 function risolviCampo(
-  t: RegistroTrattamento,
-  perCampoId: Map<string, CampoCampagna>,
-  perPlotAnno: Map<string, CampoCampagna[]>,
-): CampoCampagna | undefined {
+  t: TreatmentLog,
+  perCampoId: Map<string, PlotCampaign>,
+  perPlotAnno: Map<string, PlotCampaign[]>,
+): PlotCampaign | undefined {
   if (t.plot_campaign_id) {
     const diretto = perCampoId.get(t.plot_campaign_id);
     if (diretto) return diretto;
@@ -350,10 +350,10 @@ function risolviCampo(
  * lo stato di campagna corrente, non una fotografia al momento dell'operazione.
  */
 export function buildSianCsv(
-  trattamenti: RegistroTrattamento[],
-  appezzamenti: Appezzamento[],
+  trattamenti: TreatmentLog[],
+  appezzamenti: Plot[],
   config: SianExportConfig = CONFIG_SIAN_DEFAULT,
-  campiCampagna: CampoCampagna[] = [],
+  campiCampagna: PlotCampaign[] = [],
   // Risolve l'etichetta di intestazione per colonna; default = etichetta IT
   // hardcoded (usata dai test e da chi consuma il modulo fuori dalla UI).
   resolveLabel: (col: SianColumn) => string = (col) => col.label,
@@ -362,7 +362,7 @@ export function buildSianCsv(
   const perId = new Map(appezzamenti.map((a) => [a.id, a]));
   const perCampo = new Map(campiCampagna.map((c) => [c.id, c]));
   // Indice appezzamento+anno per il fallback di risoluzione campagna.
-  const perPlotAnno = new Map<string, CampoCampagna[]>();
+  const perPlotAnno = new Map<string, PlotCampaign[]>();
   for (const c of campiCampagna) {
     if (c.deleted_at != null) continue;
     const key = `${c.plot_id}:${c.campaign_year}`;
@@ -393,8 +393,8 @@ export function buildSianCsv(
  * `plot_campaign_id`) è preservato per la risoluzione dei codici SIAN.
  */
 export function raccolteToOperazioni(
-  raccolte: Raccolta[],
-): RegistroTrattamento[] {
+  raccolte: Harvest[],
+): TreatmentLog[] {
   return raccolte
     .filter((r) => r.deleted_at == null)
     .map((r) => ({
@@ -463,11 +463,11 @@ export function scaricaSianCsv(
  * usata dal dialog di export. Ritorna il nome del file scaricato.
  */
 export function esportaSianCsv(
-  trattamenti: RegistroTrattamento[],
-  appezzamenti: Appezzamento[],
+  trattamenti: TreatmentLog[],
+  appezzamenti: Plot[],
   nomeAzienda = "azienda",
   config: SianExportConfig = CONFIG_SIAN_DEFAULT,
-  campiCampagna: CampoCampagna[] = [],
+  campiCampagna: PlotCampaign[] = [],
   resolveLabel?: (col: SianColumn) => string,
   ctx: SianColumnContext = {},
 ): string {

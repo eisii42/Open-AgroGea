@@ -95,7 +95,7 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
       }
     >
       <div className="flex flex-col gap-4">
-        {/* Appezzamento */}
+        {/* Plot */}
         <section>
           <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
             {t("logbook.common.plot")}

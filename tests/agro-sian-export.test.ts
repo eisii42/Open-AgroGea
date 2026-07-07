@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type {
-  Appezzamento,
-  CampoCampagna,
-  Raccolta,
-  RegistroTrattamento,
+  Plot,
+  PlotCampaign,
+  Harvest,
+  TreatmentLog,
 } from "@agrogea/core";
 import {
   buildSianCsv,
@@ -14,7 +14,7 @@ import {
   risolviColonne,
 } from "../apps/agro-field-suite/src/lib/sianExport";
 
-function app(id: string, nome: string): Appezzamento {
+function app(id: string, nome: string): Plot {
   return {
     id,
     tenant_id: "t",
@@ -39,8 +39,8 @@ function tratt(
   id: string,
   plot_id: string | null,
   executed_at: string,
-  tipo: RegistroTrattamento["operation_type"] = "phytosanitary",
-): RegistroTrattamento {
+  tipo: TreatmentLog["operation_type"] = "phytosanitary",
+): TreatmentLog {
   return {
     id,
     tenant_id: "t",
@@ -76,8 +76,8 @@ function tratt(
 function campo(
   plot_id: string,
   anno: number,
-  over: Partial<CampoCampagna> = {},
-): CampoCampagna {
+  over: Partial<PlotCampaign> = {},
+): PlotCampaign {
   return {
     id: `cc-${plot_id}`,
     tenant_id: "t",
@@ -101,8 +101,8 @@ function raccolta(
   id: string,
   plot_id: string | null,
   harvested_at: string,
-  over: Partial<Raccolta> = {},
-): Raccolta {
+  over: Partial<Harvest> = {},
+): Harvest {
   return {
     id,
     tenant_id: "t",
@@ -174,7 +174,7 @@ describe("buildSianCsv · struttura", () => {
       bom: true,
     });
     const [header, riga] = csv.split("\n");
-    assert.equal(header, "Appezzamento;Data;Prodotto");
+    assert.equal(header, "Plot;Data;Product");
     assert.equal(riga, "Vigna Alta;2026-03-10;Rame");
   });
 
@@ -228,7 +228,7 @@ describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
     const [header, riga] = csv.split("\n");
     assert.equal(
       header,
-      "ID Isola SIAN;ID Appezzamento SIAN;Codice coltura SIAN;Anno campagna",
+      "ID Isola SIAN;ID Plot SIAN;Codice coltura SIAN;Anno campagna",
     );
     assert.equal(riga, "IS-1;AP-9;060;2026");
   });
@@ -333,8 +333,8 @@ describe("raccolteToOperazioni · le raccolte rientrano nel QDCA", () => {
       },
       [campo("a1", 2026)],
     );
-    // Tipo "Raccolta", cultivar, kg, destinazione e codice SIAN dalla campagna.
-    assert.equal(csv, "Raccolta;Sangiovese;3200;Cantina Sociale;060");
+    // Tipo "Harvest", cultivar, kg, destinazione e codice SIAN dalla campagna.
+    assert.equal(csv, "Harvest;Sangiovese;3200;Cantina Sociale;060");
   });
 
   it("le colonne raccolta restano vuote sulle operazioni non-harvest", () => {

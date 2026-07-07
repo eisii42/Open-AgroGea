@@ -4,7 +4,7 @@
  * Speculare a {@link OperazioneDettaglioCard} del Quaderno; si apre al tap/click
  * su una voce della lista del registro raccolte.
  */
-import type { Raccolta } from "@agrogea/core";
+import type { Harvest } from "@agrogea/core";
 import { Trash2, Wheat, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -27,7 +27,7 @@ export function RaccoltaDettaglioCard({
   onClose,
   onDelete,
 }: {
-  raccolta: Raccolta;
+  raccolta: Harvest;
   appezzamentoNome: string | null;
   onClose: () => void;
   onDelete: () => void | Promise<void>;

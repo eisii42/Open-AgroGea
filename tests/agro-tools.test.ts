@@ -45,7 +45,7 @@ import {
   type RasterWindow,
   type StacItemCollection,
 } from "@agrogea/tools";
-import { areaEttari, boundingBox } from "@agrogea/core";
+import { areaHectares, boundingBox } from "@agrogea/core";
 import type { Polygon } from "geojson";
 
 const f32 = (xs: number[]) => Float32Array.from(xs);
@@ -144,7 +144,7 @@ describe("zonazione VRA", () => {
   it("dose conservativa: più dose dove il vigore è basso", () => {
     const res = zonazioneKMeans(f32([0.2, 0.21, 0.8, 0.81]), 2);
     const dosi = dosiPerClasse(res.classi, 100, "conservativa", 0.3);
-    // ordinate per centroide crescente: la prima (vigore basso) ha dose maggiore
+    // ordinate per centroid crescente: la prima (vigore basso) ha dose maggiore
     assert.ok(dosi[0].dose > dosi[1].dose);
   });
 
@@ -269,7 +269,7 @@ describe("geometria (area geodetica + bbox)", () => {
   };
 
   it("area in ettari plausibile per il quadrato 0.01°", () => {
-    const ha = areaEttari(quadrato);
+    const ha = areaHectares(quadrato);
     // ~0.0089° lon reali × 0.01° lat → ~90 ha; banda larga ma sanity check.
     assert.ok(ha > 70 && ha < 100, `area inattesa: ${ha} ha`);
   });

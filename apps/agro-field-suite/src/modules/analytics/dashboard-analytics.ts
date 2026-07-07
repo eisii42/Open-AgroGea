@@ -1,4 +1,4 @@
-import type { TipoOperazione } from "@agrogea/core";
+import type { OperationType } from "@agrogea/core";
 import {
   type ChartData,
   type DashboardData,
@@ -49,7 +49,7 @@ export interface EntityDef {
 // Helper
 // ---------------------------------------------------------------------------
 
-const OP_LABEL: Record<TipoOperazione, string> = {
+const OP_LABEL: Record<OperationType, string> = {
   phytosanitary: "Trattamenti",
   fertilization: "Fertilizzazioni",
   irrigation: "Irrigazioni",
@@ -112,7 +112,7 @@ export const ENTITIES: EntityDef[] = [
     label: "Appezzamenti",
     fields: [
       { key: "nome", label: "Nome", kind: "dimension" },
-      { key: "coltura", label: "Coltura", kind: "dimension" },
+      { key: "coltura", label: "CropType", kind: "dimension" },
       { key: "irrigazione", label: "Tipo irrigazione", kind: "dimension" },
       { key: "anno", label: "Anno impianto", kind: "dimension" },
       { key: "area_ha", label: "Superficie (ha)", kind: "measure" },
@@ -137,10 +137,10 @@ export const ENTITIES: EntityDef[] = [
     label: "Operazioni (Quaderno)",
     fields: [
       { key: "tipo", label: "Tipo operazione", kind: "dimension" },
-      { key: "prodotto", label: "Prodotto", kind: "dimension" },
+      { key: "prodotto", label: "Product", kind: "dimension" },
       { key: "avversita", label: "Avversità", kind: "dimension" },
       { key: "mese", label: "Mese", kind: "dimension", temporal: true },
-      { key: "appezzamento", label: "Appezzamento", kind: "dimension" },
+      { key: "appezzamento", label: "Plot", kind: "dimension" },
       { key: "dose", label: "Dose", kind: "measure" },
       { key: "quantita", label: "Quantità totale", kind: "measure" },
       { key: "acqua_l", label: "Acqua (l)", kind: "measure" },
@@ -171,7 +171,7 @@ export const ENTITIES: EntityDef[] = [
       { key: "cultivar", label: "Cultivar", kind: "dimension" },
       { key: "destinazione", label: "Destinazione", kind: "dimension" },
       { key: "mese", label: "Mese", kind: "dimension", temporal: true },
-      { key: "appezzamento", label: "Appezzamento", kind: "dimension" },
+      { key: "appezzamento", label: "Plot", kind: "dimension" },
       { key: "kg", label: "Quantità (kg)", kind: "measure" },
       { key: "area_ha", label: "Superficie (ha)", kind: "measure" },
     ],
@@ -195,7 +195,7 @@ export const ENTITIES: EntityDef[] = [
     label: "Bilancio idrico (giornaliero)",
     fields: [
       { key: "data", label: "Data", kind: "dimension", temporal: true },
-      { key: "appezzamento", label: "Appezzamento", kind: "dimension" },
+      { key: "appezzamento", label: "Plot", kind: "dimension" },
       { key: "et0", label: "ET0", kind: "measure" },
       { key: "etc", label: "ETc", kind: "measure" },
       { key: "dr", label: "Deplezione Dr", kind: "measure" },
@@ -243,7 +243,7 @@ export const ENTITIES: EntityDef[] = [
     label: "DSS (rischio modelli)",
     fields: [
       { key: "modello", label: "Modello", kind: "dimension" },
-      { key: "appezzamento", label: "Appezzamento", kind: "dimension" },
+      { key: "appezzamento", label: "Plot", kind: "dimension" },
       { key: "valore", label: "Indice di rischio", kind: "measure" },
     ],
     rows: (d) => {

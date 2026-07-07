@@ -1,5 +1,5 @@
 import { boundingBox, useAgroStore } from "@agrogea/core";
-import type { Appezzamento } from "@agrogea/core";
+import type { Plot } from "@agrogea/core";
 import { cercaSerieScene, type IndiceVegetazionale } from "@agrogea/tools";
 import {
   DEFAULT_LAYER_STYLE,
@@ -128,7 +128,7 @@ export function useVraGenerator() {
   );
 
   const genera = useCallback(
-    async (appezzamento: Appezzamento, opzioni: OpzioniGeneraVra) => {
+    async (appezzamento: Plot, opzioni: OpzioniGeneraVra) => {
       try {
         setStato({ fase: "lavorazione", etichetta: "Ricerca scena satellitare…" });
         const bbox = boundingBox(appezzamento.geometry);

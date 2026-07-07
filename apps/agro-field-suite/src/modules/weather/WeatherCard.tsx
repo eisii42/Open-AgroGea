@@ -1,4 +1,4 @@
-import { centroide, useAgroStore } from "@agrogea/core";
+import { centroid, useAgroStore } from "@agrogea/core";
 import { cn } from "@geolibre/ui";
 import { Droplets, RefreshCw, Wind } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -14,7 +14,7 @@ import { infoMeteoCodice } from "../../lib/weather-codes";
  * correnti + previsione di oggi e dei 4 giorni successivi, con icone.
  *
  * Sorgente: `WeatherSyncService.previsioneDashboard` (Open-Meteo, endpoint
- * daily/current), localizzata sul centroide dell'azienda — la sede se nota,
+ * daily/current), localizzata sul centroid dell'azienda — la sede se nota,
  * altrimenti il primo appezzamento con geometria. Si aggiorna all'avvio dell'app
  * (montaggio) e ogni ora (lucchetto orario condiviso con il resto del meteo).
  */
@@ -30,7 +30,7 @@ function useCoordinateAzienda(): [number, number] | null {
     const sede = azienda?.centroid?.coordinates;
     if (sede && sede.length >= 2) return [sede[0], sede[1]];
     const conGeometria = appezzamenti.find((a) => a.geometry);
-    if (conGeometria) return centroide(conGeometria.geometry);
+    if (conGeometria) return centroid(conGeometria.geometry);
     return null;
   }, [aziendaAttivaId, aziende, appezzamenti]);
 }

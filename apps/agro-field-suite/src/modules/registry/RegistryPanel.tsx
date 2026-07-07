@@ -1,4 +1,4 @@
-import { type Azienda, useAgroStore } from "@agrogea/core";
+import { type Company, useAgroStore } from "@agrogea/core";
 import { FieldSheet } from "@agrogea/ui";
 import { Button, cn } from "@geolibre/ui";
 import {
@@ -16,7 +16,7 @@ import { STANDALONE } from "../../standalone";
 import { CompanyDataIo } from "./CompanyDataIo";
 
 /**
- * Pannello "Anagrafica Azienda" (scheda dedicata sotto Impostazioni Azienda).
+ * Pannello "Anagrafica Company" (scheda dedicata sotto Impostazioni Company).
  * Banner laterale a sezioni per inserire tutti i dati e i codici dell'azienda
  * attiva — identità, codici fiscali/agricoli, sede/contatti, referente. Salva
  * via `aggiornaAzienda` → DAL → outbox: stessa logica di sync di ogni altro dato
@@ -141,7 +141,7 @@ const CHIAVI: CampoChiave[] = getSezioni(((k: string) => k) as unknown as TFunct
 
 type FormState = Record<CampoChiave, string>;
 
-function statoIniziale(azienda: Azienda | undefined): FormState {
+function statoIniziale(azienda: Company | undefined): FormState {
   const out = {} as FormState;
   for (const k of CHIAVI) {
     const v = azienda?.[k];
@@ -189,7 +189,7 @@ export function AnagraficaPanel({ onClose }: { onClose: () => void }) {
         patch[k] =
           k === "business_name" ? v || azienda.business_name : v || null;
       }
-      await aggiornaAzienda(patch as unknown as Partial<Azienda>);
+      await aggiornaAzienda(patch as unknown as Partial<Company>);
       setStato("fatto");
     } catch (err) {
       setStato("errore");

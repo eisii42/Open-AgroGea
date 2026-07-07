@@ -1,13 +1,13 @@
 import type { Transaction } from "@electric-sql/pglite";
 import { v4 as uuidv4 } from "uuid";
 import type {
-  CatalogoVoce,
-  ConfigMeteoAzienda,
+  CatalogEntry,
+  CompanyWeatherConfig,
   DataTransferLog,
-  DssRisultato,
-  LetturaMeteo,
+  DssResult,
+  WeatherReading,
   SoilWaterIndex,
-  TipoCatalogo,
+  CatalogType,
 } from "../types";
 import { AgroDalWarehouse } from "./dal-warehouse";
 import { nowIso, type Row, upsertSql } from "./write";
@@ -27,12 +27,12 @@ export class AgroDalLocal extends AgroDalWarehouse {
    */
   async insertLettureMeteo(
     letture: Array<
-      Omit<LetturaMeteo, "tenant_id" | "created_at" | "updated_at" | "deleted_at">
+      Omit<WeatherReading, "tenant_id" | "created_at" | "updated_at" | "deleted_at">
     >,
   ): Promise<number> {
     const ts = nowIso();
     for (const lettura of letture) {
-      const row: LetturaMeteo = {
+      const row: WeatherReading = {
         ...lettura,
         metadata: lettura.metadata ?? {},
         tenant_id: this.tenantId,
@@ -55,14 +55,14 @@ export class AgroDalLocal extends AgroDalWarehouse {
    */
   async insertLettureMeteoLocali(
     letture: Array<
-      Omit<LetturaMeteo, "tenant_id" | "created_at" | "updated_at" | "deleted_at">
+      Omit<WeatherReading, "tenant_id" | "created_at" | "updated_at" | "deleted_at">
     >,
   ): Promise<number> {
     if (letture.length === 0) return 0;
     const ts = nowIso();
     await this.db.transaction(async (tx: Transaction) => {
       for (const lettura of letture) {
-        const row: LetturaMeteo = {
+        const row: WeatherReading = {
           ...lettura,
           metadata: lettura.metadata ?? {},
           tenant_id: this.tenantId,
@@ -83,7 +83,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
   async listLettureMeteo(
     aziendaId: string,
     options: { stazioneId?: string; dopo?: string; limit?: number } = {},
-  ): Promise<LetturaMeteo[]> {
+  ): Promise<WeatherReading[]> {
     const conditions = ["company_id = $1", "deleted_at is null"];
     const params: unknown[] = [aziendaId];
     if (options.stazioneId) {
@@ -95,7 +95,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
       conditions.push(`measured_at >= $${params.length}`);
     }
     params.push(options.limit ?? 5000);
-    const result = await this.db.query<LetturaMeteo>(
+    const result = await this.db.query<WeatherReading>(
       `select * from weather_readings
        where ${conditions.join(" and ")}
        order by measured_at asc
@@ -121,8 +121,8 @@ export class AgroDalLocal extends AgroDalWarehouse {
 
   // -- config meteo azienda (Modulo Meteo, local-only) -----------------------
 
-  async getConfigMeteo(aziendaId: string): Promise<ConfigMeteoAzienda | null> {
-    const result = await this.db.query<ConfigMeteoAzienda>(
+  async getConfigMeteo(aziendaId: string): Promise<CompanyWeatherConfig | null> {
+    const result = await this.db.query<CompanyWeatherConfig>(
       `select * from weather_config where company_id = $1`,
       [aziendaId],
     );
@@ -134,12 +134,12 @@ export class AgroDalLocal extends AgroDalWarehouse {
    * Preserva `last_weather_pull_at` se non passato esplicitamente.
    */
   async upsertConfigMeteo(
-    input: Pick<ConfigMeteoAzienda, "company_id"> &
-      Partial<Omit<ConfigMeteoAzienda, "company_id" | "tenant_id" | "created_at" | "updated_at">>,
-  ): Promise<ConfigMeteoAzienda> {
+    input: Pick<CompanyWeatherConfig, "company_id"> &
+      Partial<Omit<CompanyWeatherConfig, "company_id" | "tenant_id" | "created_at" | "updated_at">>,
+  ): Promise<CompanyWeatherConfig> {
     const ts = nowIso();
     const corrente = await this.getConfigMeteo(input.company_id);
-    const row: ConfigMeteoAzienda = {
+    const row: CompanyWeatherConfig = {
       company_id: input.company_id,
       tenant_id: this.tenantId,
       data_source: input.data_source ?? corrente?.data_source ?? "public_api",
@@ -218,13 +218,13 @@ export class AgroDalLocal extends AgroDalWarehouse {
   async salvaDssRisultati(
     appezzamentoId: string,
     risultati: Array<
-      Pick<DssRisultato, "model_name" | "risk_level" | "output_value"> & {
+      Pick<DssResult, "model_name" | "risk_level" | "output_value"> & {
         calculated_at?: string;
       }
     >,
-  ): Promise<DssRisultato[]> {
+  ): Promise<DssResult[]> {
     const ts = nowIso();
-    const righe: DssRisultato[] = risultati.map((r) => ({
+    const righe: DssResult[] = risultati.map((r) => ({
       id: uuidv4(),
       plot_id: appezzamentoId,
       model_name: r.model_name,
@@ -263,8 +263,8 @@ export class AgroDalLocal extends AgroDalWarehouse {
   async listDssRisultati(
     appezzamentoId: string,
     options: { limit?: number } = {},
-  ): Promise<DssRisultato[]> {
-    const result = await this.db.query<DssRisultato>(
+  ): Promise<DssResult[]> {
+    const result = await this.db.query<DssResult>(
       `select * from dss_results
        where plot_id = $1
        order by calculated_at desc
@@ -412,9 +412,9 @@ export class AgroDalLocal extends AgroDalWarehouse {
    */
   async listCatalogo(
     countryCode: string,
-    tipo: TipoCatalogo,
-  ): Promise<CatalogoVoce[]> {
-    const result = await this.db.query<CatalogoVoce>(
+    tipo: CatalogType,
+  ): Promise<CatalogEntry[]> {
+    const result = await this.db.query<CatalogEntry>(
       `select * from product_catalogs
        where country_code = $1 and type = $2
        order by name`,
@@ -429,8 +429,8 @@ export class AgroDalLocal extends AgroDalWarehouse {
    */
   async upsertCatalogoVoci(
     voci: Array<
-      Pick<CatalogoVoce, "country_code" | "type" | "code" | "name"> &
-        Partial<Pick<CatalogoVoce, "id" | "active_substance" | "registration_number" | "metadata">>
+      Pick<CatalogEntry, "country_code" | "type" | "code" | "name"> &
+        Partial<Pick<CatalogEntry, "id" | "active_substance" | "registration_number" | "metadata">>
     >,
   ): Promise<number> {
     if (voci.length === 0) return 0;

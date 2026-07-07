@@ -5,9 +5,9 @@ import { AgroDal } from "../packages/agro-core/src/db/dal";
 import { WarehouseError } from "../packages/agro-core/src/db/dal-warehouse";
 import { AGRO_LOCAL_SCHEMA_SQL } from "../packages/agro-core/src/db/schema";
 import {
-  cumpDopoCarico,
-  statoScadenza,
-  validateProdotto,
+  cumpAfterInbound,
+  expiryStatus,
+  validateProduct,
 } from "../packages/agro-core/src/warehouse/cump";
 
 /**
@@ -32,7 +32,7 @@ class TestDal extends AgroDal {
 async function seedCompany(dal: TestDal): Promise<string> {
   const company = await dal.rawQuery<{ id: string }>(
     `insert into companies (id, tenant_id, business_name)
-     values (gen_random_uuid(), $1, 'Azienda Test') returning id`,
+     values (gen_random_uuid(), $1, 'Company Test') returning id`,
     [TENANT],
   );
   return company.rows[0].id;
@@ -83,44 +83,44 @@ const TRATTAMENTO_BASE = {
 
 describe("CUMP / media ponderata mobile (funzione pura)", () => {
   it("primo carico su giacenza vuota: CUMP = costo di carico", () => {
-    assert.equal(cumpDopoCarico(0, 0, 100, 12.5), 12.5);
+    assert.equal(cumpAfterInbound(0, 0, 100, 12.5), 12.5);
   });
 
   it("carico successivo: media ponderata sulle giacenze", () => {
     // 100 kg a 10 € in giacenza + 50 kg a 16 € → (1000+800)/150 = 12 €
-    assert.equal(cumpDopoCarico(100, 10, 50, 16), 12);
+    assert.equal(cumpAfterInbound(100, 10, 50, 16), 12);
   });
 
   it("giacenza esaurita: il CUMP riparte dal costo del nuovo carico", () => {
-    assert.equal(cumpDopoCarico(0, 10, 40, 20), 20);
+    assert.equal(cumpAfterInbound(0, 10, 40, 20), 20);
   });
 
   it("quantità non positiva: CUMP invariato", () => {
-    assert.equal(cumpDopoCarico(100, 10, 0, 99), 10);
+    assert.equal(cumpAfterInbound(100, 10, 0, 99), 10);
   });
 });
 
-describe("statoScadenza / alert lotti", () => {
+describe("expiryStatus / alert lotti", () => {
   it("classifica valido, in scadenza (soglia 30gg) e scaduto", () => {
     const oggi = new Date();
-    assert.equal(statoScadenza(null, oggi), "valid");
-    assert.equal(statoScadenza(giornoRelativo(60), oggi), "valid");
-    assert.equal(statoScadenza(giornoRelativo(10), oggi), "expiring");
-    assert.equal(statoScadenza(giornoRelativo(-1), oggi), "expired");
+    assert.equal(expiryStatus(null, oggi), "valid");
+    assert.equal(expiryStatus(giornoRelativo(60), oggi), "valid");
+    assert.equal(expiryStatus(giornoRelativo(10), oggi), "expiring");
+    assert.equal(expiryStatus(giornoRelativo(-1), oggi), "expired");
     // Un lotto che scade oggi è ancora utilizzabile.
-    assert.notEqual(statoScadenza(giornoRelativo(0), oggi), "expired");
+    assert.notEqual(expiryStatus(giornoRelativo(0), oggi), "expired");
   });
 
   it("soglia configurabile", () => {
     const oggi = new Date();
-    assert.equal(statoScadenza(giornoRelativo(10), oggi, 5), "valid");
-    assert.equal(statoScadenza(giornoRelativo(4), oggi, 5), "expiring");
+    assert.equal(expiryStatus(giornoRelativo(10), oggi, 5), "valid");
+    assert.equal(expiryStatus(giornoRelativo(4), oggi, 5), "expiring");
   });
 });
 
-describe("validateProdotto / categorie rigide", () => {
+describe("validateProduct / categorie rigide", () => {
   it("agrofarmaco senza n. registrazione PAN è invalido", () => {
-    const errors = validateProdotto({
+    const errors = validateProduct({
       category: "phytosanitary",
       name: "Poltiglia",
       unit: "kg",
@@ -129,7 +129,7 @@ describe("validateProdotto / categorie rigide", () => {
   });
 
   it("concime richiede i tre titoli N-P-K in percentuale", () => {
-    const errors = validateProdotto({
+    const errors = validateProduct({
       category: "fertilizer",
       name: "Concime",
       unit: "kg",
@@ -144,12 +144,12 @@ describe("validateProdotto / categorie rigide", () => {
 
   it("carburante richiede l'assegnazione UMA; le sementi solo nome+unità", () => {
     assert.ok(
-      validateProdotto({ category: "fuel", name: "Gasolio", unit: "l" }).some(
+      validateProduct({ category: "fuel", name: "Gasolio", unit: "l" }).some(
         (e) => e.field === "uma_code",
       ),
     );
     assert.equal(
-      validateProdotto({ category: "seed", name: "Frumento", unit: "kg" }).length,
+      validateProduct({ category: "seed", name: "Frumento", unit: "kg" }).length,
       0,
     );
   });
@@ -170,7 +170,7 @@ describe("schema v16 / migrazione additiva", () => {
       `insert into treatment_logs
          (id, tenant_id, company_id, operation_type, product_name, machinery_equipment, executed_at)
        values (gen_random_uuid(), $1, '22222222-2222-2222-2222-222222222222',
-               'phytosanitary', 'Prodotto testo libero', 'Atomizzatore vecchio', now())`,
+               'phytosanitary', 'Product testo libero', 'Atomizzatore vecchio', now())`,
       [TENANT],
     );
 
@@ -205,7 +205,7 @@ describe("schema v16 / migrazione additiva", () => {
       `select product_name, machinery_equipment from treatment_logs`,
     );
     assert.equal(legacy.rows.length, 1);
-    assert.equal(legacy.rows[0].product_name, "Prodotto testo libero");
+    assert.equal(legacy.rows[0].product_name, "Product testo libero");
     assert.equal(legacy.rows[0].machinery_equipment, "Atomizzatore vecchio");
   });
 });
@@ -432,7 +432,7 @@ describe("Definition of Done §6 / flusso end-to-end", () => {
       product_name: "Vecchio prodotto testo libero",
     });
 
-    // 1) Prodotto con i campi obbligatori della categoria + lotto con scadenza.
+    // 1) Product con i campi obbligatori della categoria + lotto con scadenza.
     const prodotto = await dal.upsertProdotto({
       company_id: companyId,
       category: "fertilizer",

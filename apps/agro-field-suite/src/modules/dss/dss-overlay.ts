@@ -1,6 +1,6 @@
-import type { Appezzamento } from "@agrogea/core";
+import type { Plot } from "@agrogea/core";
 import {
-  type Coltura,
+  type CropType,
   type FaseFenologica,
   getCalibrazioneFase,
   hexToRgb,
@@ -52,7 +52,7 @@ export interface CalibrazioneSintesi {
  * indicativi, non costanti regolatorie.
  */
 const PESI_COLTURA: Record<
-  Coltura,
+  CropType,
   Pick<CalibrazioneSintesi, "pesoStress" | "pesoPatologico" | "pesoVigore" | "pesoSuolo">
 > = {
   vite: { pesoStress: 0.3, pesoPatologico: 0.35, pesoVigore: 0.2, pesoSuolo: 0.15 },
@@ -63,7 +63,7 @@ const PESI_COLTURA: Record<
   pomodoro: { pesoStress: 0.4, pesoPatologico: 0.25, pesoVigore: 0.2, pesoSuolo: 0.15 },
 };
 
-const AZOTO_TARGET: Record<Coltura, number> = {
+const AZOTO_TARGET: Record<CropType, number> = {
   vite: 20,
   olivo: 18,
   melo: 25,
@@ -74,7 +74,7 @@ const AZOTO_TARGET: Record<Coltura, number> = {
 
 /** Calibrazione della sintesi per coltura e fase (banda NDVI dalla fenologia). */
 export function calibrazioneSintesi(
-  coltura: Coltura,
+  coltura: CropType,
   fase: FaseFenologica,
 ): CalibrazioneSintesi {
   return {
@@ -154,7 +154,7 @@ const ROSSO = "#d73027";
  * sensibilità della coltura — le più sensibili allertano prima. Il rosso marca
  * lo stato critico (≥ soglia rossa).
  */
-export function rampaRischioDss(coltura: Coltura): RampaColore {
+export function rampaRischioDss(coltura: CropType): RampaColore {
   // Sensibilità ≈ peso combinato di stress+patologie: più alta ⇒ allerta prima.
   const pesi = PESI_COLTURA[coltura];
   const sensibilita = pesi.pesoStress + pesi.pesoPatologico; // ~0.5..0.6
@@ -201,7 +201,7 @@ export interface SintesiCampo {
  * sintesi disponibile sono omessi (nessun colore arbitrario).
  */
 export function costruisciOverlayDss(
-  appezzamenti: Appezzamento[],
+  appezzamenti: Plot[],
   sintesiPerCampo: Map<string, SintesiCampo>,
   rampa: RampaColore,
 ): FeatureCollection {

@@ -4,13 +4,13 @@ import { PGlite } from "@electric-sql/pglite";
 import { AgroDal } from "../packages/agro-core/src/db/dal";
 import { AGRO_LOCAL_SCHEMA_SQL } from "../packages/agro-core/src/db/schema";
 import {
-  dichiarativiMancanti,
-  sianCompleta,
-  sianMancanti,
-  sistemaDichiarativo,
+  missingDeclarative,
+  sianComplete,
+  missingSian,
+  declarativeSystem,
 } from "../packages/agro-core/src/compliance/sian-campaign";
-import { colturaPerAppezzamento } from "../packages/agro-core/src/store/feature-collections";
-import type { CampoCampagna, Crop } from "../packages/agro-core/src/types";
+import { cropForPlot } from "../packages/agro-core/src/store/feature-collections";
+import type { PlotCampaign, Crop } from "../packages/agro-core/src/types";
 
 /**
  * Ciclo colturale v17: chiusura della campagna al raccolto (closed_at),
@@ -33,7 +33,7 @@ class TestDal extends AgroDal {
 async function seedPlot(dal: TestDal): Promise<{ companyId: string; plotId: string }> {
   const company = await dal.rawQuery<{ id: string }>(
     `insert into companies (id, tenant_id, business_name)
-     values (gen_random_uuid(), $1, 'Azienda Test') returning id`,
+     values (gen_random_uuid(), $1, 'Company Test') returning id`,
     [TENANT],
   );
   const companyId = company.rows[0].id;
@@ -172,16 +172,16 @@ describe("compliance SIAN / campi dichiarativi mancanti", () => {
       reference_parcel_external_id: null,
       agricultural_parcel_external_id: null,
     };
-    assert.deepEqual(sianMancanti(vuota), [
+    assert.deepEqual(missingSian(vuota), [
       "crop_external_code",
       "reference_parcel_external_id",
       "agricultural_parcel_external_id",
     ]);
-    assert.equal(sianCompleta(vuota), false);
+    assert.equal(sianComplete(vuota), false);
 
     // Stringhe di soli spazi = mancante (input sporco dai form).
     assert.ok(
-      sianMancanti({ ...vuota, crop_external_code: "  " }).includes(
+      missingSian({ ...vuota, crop_external_code: "  " }).includes(
         "crop_external_code",
       ),
     );
@@ -191,15 +191,15 @@ describe("compliance SIAN / campi dichiarativi mancanti", () => {
       reference_parcel_external_id: "ISL-1",
       agricultural_parcel_external_id: "APP-9",
     };
-    assert.deepEqual(sianMancanti(completa), []);
-    assert.equal(sianCompleta(completa), true);
+    assert.deepEqual(missingSian(completa), []);
+    assert.equal(sianComplete(completa), true);
   });
 
   it("country-aware: IT→SIAN, ES→SIEX, altri paesi senza gate", () => {
-    assert.equal(sistemaDichiarativo("IT"), "SIAN");
-    assert.equal(sistemaDichiarativo("ES"), "SIEX");
-    assert.equal(sistemaDichiarativo("FR"), null);
-    assert.equal(sistemaDichiarativo(null), null);
+    assert.equal(declarativeSystem("IT"), "SIAN");
+    assert.equal(declarativeSystem("ES"), "SIEX");
+    assert.equal(declarativeSystem("FR"), null);
+    assert.equal(declarativeSystem(null), null);
 
     const vuota = {
       crop_external_code: null,
@@ -207,15 +207,15 @@ describe("compliance SIAN / campi dichiarativi mancanti", () => {
       agricultural_parcel_external_id: null,
     };
     // Stessa terna richiesta per IT (SIAN) ed ES (SIEX/SIGPAC)...
-    assert.equal(dichiarativiMancanti("IT", vuota).length, 3);
-    assert.equal(dichiarativiMancanti("ES", vuota).length, 3);
+    assert.equal(missingDeclarative("IT", vuota).length, 3);
+    assert.equal(missingDeclarative("ES", vuota).length, 3);
     // ...nessun vincolo per i paesi senza sistema gateato.
-    assert.deepEqual(dichiarativiMancanti("FR", vuota), []);
-    assert.deepEqual(dichiarativiMancanti("EU", vuota), []);
+    assert.deepEqual(missingDeclarative("FR", vuota), []);
+    assert.deepEqual(missingDeclarative("EU", vuota), []);
   });
 });
 
-describe("v17 / colturaPerAppezzamento ignora le campagne chiuse", () => {
+describe("v17 / cropForPlot ignora le campagne chiuse", () => {
   it("campo con campagna chiusa = campo libero", () => {
     const crop: Crop = {
       id: "crop-1",
@@ -228,7 +228,7 @@ describe("v17 / colturaPerAppezzamento ignora le campagne chiuse", () => {
       updated_at: "2026-01-01T00:00:00Z",
       deleted_at: null,
     };
-    const base: CampoCampagna = {
+    const base: PlotCampaign = {
       id: "camp-1",
       tenant_id: TENANT,
       plot_id: "plot-1",
@@ -244,9 +244,9 @@ describe("v17 / colturaPerAppezzamento ignora le campagne chiuse", () => {
       updated_at: "2026-01-01T00:00:00Z",
       deleted_at: null,
     };
-    assert.equal(colturaPerAppezzamento("plot-1", [base], [crop]), "seminativo");
+    assert.equal(cropForPlot("plot-1", [base], [crop]), "seminativo");
     assert.equal(
-      colturaPerAppezzamento(
+      cropForPlot(
         "plot-1",
         [{ ...base, closed_at: "2026-07-01T00:00:00Z" }],
         [crop],

@@ -1,4 +1,4 @@
-import type { LetturaMeteo } from "@agrogea/core";
+import type { WeatherReading } from "@agrogea/core";
 import type { MeteoGiornoDss } from "../types";
 
 /**
@@ -40,7 +40,7 @@ function mediaFinita(valori: number[]): number | null {
 }
 
 /** Aggrega le letture (orarie) in record giornalieri grezzi, con buchi. */
-function aggregaPerGiorno(letture: LetturaMeteo[]): Map<string, GiornoAgg> {
+function aggregaPerGiorno(letture: WeatherReading[]): Map<string, GiornoAgg> {
   const perGiorno = new Map<string, GiornoAgg>();
   for (const l of letture) {
     const data = giornoDi(l.measured_at);
@@ -162,7 +162,7 @@ function riempiMediaAdiacenti(
  * c'è alcuna lettura: i moduli interpretano la serie vuota come "dati meteo
  * assenti" senza crashare.
  */
-export function costruisciSerieDss(letture: LetturaMeteo[]): MeteoGiornoDss[] {
+export function costruisciSerieDss(letture: WeatherReading[]): MeteoGiornoDss[] {
   if (letture.length === 0) return [];
   const perGiorno = aggregaPerGiorno(letture);
   const date = [...perGiorno.keys()].sort();

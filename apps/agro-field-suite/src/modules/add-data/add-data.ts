@@ -7,7 +7,7 @@
  * sotto `node --test`. Il caricamento WASM (Shapefile/PBF via DuckDB Spatial)
  * vive nel componente {@link ../../components/AddDataControl}.
  */
-import type { FormatoFile } from "@agrogea/core";
+import type { FileFormat } from "@agrogea/core";
 import type { FeatureCollection } from "geojson";
 
 /** Marcatore di metadata che identifica un layer caricato via Add Data. */
@@ -24,7 +24,7 @@ export function estensioneFile(nome: string): string {
  * shapefile). Ritorna null per le estensioni non riconosciute, così il chiamante
  * può rifiutare il file invece di registrare un formato errato nel giornale.
  */
-export function formatoDaNomeFile(nome: string): FormatoFile | null {
+export function formatoDaNomeFile(nome: string): FileFormat | null {
   const ext = estensioneFile(nome);
   switch (ext) {
     case "geojson":

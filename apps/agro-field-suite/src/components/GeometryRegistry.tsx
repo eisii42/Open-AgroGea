@@ -1,7 +1,7 @@
 import {
-  type AssetInfrastruttura,
-  type Appezzamento,
-  type CampionamentoSuolo,
+  type InfrastructureAsset,
+  type Plot,
+  type SoilSample,
   type SelectableKind,
   useAgroStore,
 } from "@agrogea/core";
@@ -73,7 +73,7 @@ interface Entry {
   geometry: Geometry;
 }
 
-function appezzamentoEntry(a: Appezzamento, t: TFunction): Entry {
+function appezzamentoEntry(a: Plot, t: TFunction): Entry {
   const area = a.area_ha;
   return {
     id: a.id,
@@ -84,7 +84,7 @@ function appezzamentoEntry(a: Appezzamento, t: TFunction): Entry {
   };
 }
 
-function assetEntry(a: AssetInfrastruttura, t: TFunction): Entry {
+function assetEntry(a: InfrastructureAsset, t: TFunction): Entry {
   return {
     id: a.id,
     kind: "infrastruttura",
@@ -96,7 +96,7 @@ function assetEntry(a: AssetInfrastruttura, t: TFunction): Entry {
   };
 }
 
-function campionamentoEntry(c: CampionamentoSuolo, t: TFunction): Entry {
+function campionamentoEntry(c: SoilSample, t: TFunction): Entry {
   return {
     id: c.id,
     kind: "poi",

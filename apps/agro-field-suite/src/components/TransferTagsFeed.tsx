@@ -1,4 +1,4 @@
-import type { DataTransferLog, FormatoFile } from "@agrogea/core";
+import type { DataTransferLog, FileFormat } from "@agrogea/core";
 import { useAgroStore } from "@agrogea/core";
 import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react";
  * la sorgente è `dataTransferLogs` nello store.
  */
 
-const ETICHETTA_FORMATO: Record<FormatoFile, string> = {
+const ETICHETTA_FORMATO: Record<FileFormat, string> = {
   csv: "CSV",
   geojson: "GeoJSON",
   isoxml: "ISOXML",

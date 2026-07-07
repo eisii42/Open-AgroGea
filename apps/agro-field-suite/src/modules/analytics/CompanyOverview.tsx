@@ -1,9 +1,9 @@
 import {
-  dichiarativiMancanti,
+  missingDeclarative,
   EXPIRY_WARNING_DAYS_DEFAULT,
-  type CostoProdottiCampo,
-  sistemaDichiarativo,
-  statoScadenza,
+  type FieldProductCost,
+  declarativeSystem,
+  expiryStatus,
   useAgroStore,
 } from "@agrogea/core";
 import { Boxes, Euro, MapPinned, PackageX, Timer, Tractor, Wheat } from "lucide-react";
@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 import { useTenantCountry } from "../../hooks/useTenantCountry";
 
 /**
- * Pagina "Azienda" del Data Command Center: andamento GENERALE dell'azienda
+ * Pagina "Company" del Data Command Center: andamento GENERALE dell'azienda
  * (superficie, campi, operazioni e raccolto dell'annata) e stato del Magazzino
  * (valore giacenze a CUMP, lotti scaduti/in scadenza, costo prodotti imputato
  * per campo). Complementare alla pagina "Colture e appezzamenti", che resta
@@ -36,7 +36,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
   const { countryCode } = useTenantCountry();
 
   // Costo prodotti per campo dell'annata (aggregato DAL su activity_products).
-  const [costiCampo, setCostiCampo] = useState<CostoProdottiCampo[]>([]);
+  const [costiCampo, setCostiCampo] = useState<FieldProductCost[]>([]);
   useEffect(() => {
     if (!dal || !aziendaAttivaId) return;
     let attivo = true;
@@ -107,10 +107,10 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
     [lotti],
   );
   const lottiScaduti = lottiConGiacenza.filter(
-    (l) => statoScadenza(l.expires_at) === "expired",
+    (l) => expiryStatus(l.expires_at) === "expired",
   );
   const lottiInScadenza = lottiConGiacenza.filter(
-    (l) => statoScadenza(l.expires_at) === "expiring",
+    (l) => expiryStatus(l.expires_at) === "expiring",
   );
   // Scorta minima (v17): prodotti sotto la soglia di riordino.
   const sottoScorta = prodotti.filter((p) => {
@@ -131,7 +131,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
 
   // Compliance dichiarativa (IT → SIAN, ES → SIEX): campagne APERTE dell'annata
   // con dati incompleti. Il click porta alla scheda Dati coltura del primo campo.
-  const sistema = sistemaDichiarativo(countryCode);
+  const sistema = declarativeSystem(countryCode);
   const campagneSianKo = useMemo(
     () =>
       sistema
@@ -139,7 +139,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
             (c) =>
               c.deleted_at == null &&
               c.closed_at == null &&
-              dichiarativiMancanti(countryCode, c).length > 0,
+              missingDeclarative(countryCode, c).length > 0,
           )
         : [],
     [sistema, countryCode, campiCampagna],

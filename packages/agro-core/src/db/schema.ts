@@ -307,7 +307,7 @@ create table if not exists infrastructure_assets (
 create index if not exists infrastructure_assets_company_idx
   on infrastructure_assets (company_id, category);
 
--- harvest_logs — eventi di raccolto/conferimento per appezzamento (Modulo Raccolta).
+-- harvest_logs — eventi di raccolto/conferimento per appezzamento (Modulo Harvest).
 create table if not exists harvest_logs (
   id                   uuid primary key,
   tenant_id            uuid not null,
@@ -514,7 +514,7 @@ create index if not exists product_catalogs_country_idx
 -- v16 — Magazzino (0.2.0) ----------------------------------------------------
 
 -- products — anagrafica prodotti di magazzino a categorie RIGIDE. La categoria
--- determina i campi obbligatori (enforced lato TS in validateProdotto, come
+-- determina i campi obbligatori (enforced lato TS in validateProduct, come
 -- la validazione PAN; qui le colonne restano nullable per non irrigidire le
 -- migrazioni): agrofarmaci → registration_number (registro PAN); concimi →
 -- titoli N-P-K; carburante → codice assegnazione UMA. avg_unit_cost è il

@@ -1,4 +1,4 @@
-import type { Appezzamento } from "@agrogea/core";
+import type { Plot } from "@agrogea/core";
 import { useAgroStore } from "@agrogea/core";
 import { useMemo } from "react";
 import { buildDueDiligenceReport } from "./due-diligence";
@@ -14,7 +14,7 @@ import { useComplianceVincoli } from "./useGeoCompliance";
 export function ComplianceBadges({
   appezzamento,
 }: {
-  appezzamento: Appezzamento;
+  appezzamento: Plot;
 }) {
   const valuta = useComplianceVincoli();
   const aziende = useAgroStore((s) => s.aziende);

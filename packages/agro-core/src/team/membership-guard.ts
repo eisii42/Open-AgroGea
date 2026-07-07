@@ -13,7 +13,7 @@
  */
 
 import type {
-  StatoMembership,
+  MembershipStatus,
   TenantMembership,
 } from "../types";
 import {
@@ -26,12 +26,9 @@ import {
 } from "./subscription-limits";
 
 // Il tipo canonico del posto collaboratore vive in `@agrogea/core`
-// (`tenant_memberships`, sincronizzato): qui lo si ri-esporta perché l'engine e
-// i suoi test ragionano in termini di membership. `import type` ⇒ zero costo a
-// runtime (i moduli puri non caricano il barrel del core).
-
-/** Stato del posto: un invito pendente occupa il posto quanto un membro attivo. */
-export type MembershipStatus = StatoMembership;
+// (`tenant_memberships`, sincronizzato): qui è importato per l'engine e i suoi
+// test. `import type` ⇒ zero costo a runtime (i moduli puri non caricano il
+// barrel del core).
 
 /** Stati che OCCUPANO un posto (un invito pendente conta come occupato). */
 const OCCUPIES_SEAT: ReadonlySet<MembershipStatus> = new Set<MembershipStatus>([

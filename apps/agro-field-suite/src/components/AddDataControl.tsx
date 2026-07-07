@@ -1,4 +1,4 @@
-import { type FormatoFile, useAgroStore } from "@agrogea/core";
+import { type FileFormat, useAgroStore } from "@agrogea/core";
 import {
   DEFAULT_LAYER_STYLE,
   type GeoLibreLayer,
@@ -186,7 +186,7 @@ export function AddDataControl() {
       scaricaArtifact(artifact);
       await registraTrasferimento({
         operation_type: "export",
-        file_format: format as FormatoFile,
+        file_format: format as FileFormat,
         file_name: artifact.filename,
       });
       setEsito(

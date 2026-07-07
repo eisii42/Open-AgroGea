@@ -11,7 +11,7 @@
  * di campo in modalità standalone sia, in futuro, dalla shell OSS.
  */
 
-import type { NuovaAziendaInput } from "./store";
+import type { NewCompanyInput } from "./store";
 import type { TenantClaims } from "./types";
 
 /**
@@ -38,11 +38,11 @@ export function localTenantClaims(): TenantClaims {
 }
 
 /**
- * Azienda di default creata al primo avvio standalone, così la dashboard ha un
+ * Company di default creata al primo avvio standalone, così la dashboard ha un
  * `aziendaAttivaId` valido (chiave di filtro PGlite dei moduli agronomici)
  * senza passare dalla schermata di selezione workspace.
  */
-export const LOCAL_COMPANY_DEFAULT: NuovaAziendaInput = {
-  business_name: "Azienda locale",
+export const LOCAL_COMPANY_DEFAULT: NewCompanyInput = {
+  business_name: "Company locale",
   country: "IT",
 };

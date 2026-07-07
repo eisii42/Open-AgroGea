@@ -4,7 +4,7 @@
  *
  * Due sorgenti, in ordine di autorevolezza:
  *   1. **Anagrafica (primaria):** il paese impostato nell'indirizzo legale
- *      dell'azienda (`Azienda.paese`, ISO 3166-1 alpha-2).
+ *      dell'azienda (`Company.paese`, ISO 3166-1 alpha-2).
  *   2. **Validazione spaziale (cross-check):** le coordinate reali dei poligoni
  *      degli appezzamenti. Se i campi cadono fuori dai confini nazionali
  *      dell'indirizzo, si emette un alert e/o si aggiorna il contesto normativo
@@ -16,7 +16,7 @@
  * resta testabile sotto `node --test`.
  */
 import type { MultiPolygon, Polygon } from "geojson";
-import { boundingBox, centroide } from "../geo/area";
+import { boundingBox, centroid } from "../geo/area";
 
 /**
  * Codici paese supportati dagli adapter regionali (ISO 3166-1 alpha-2), più il
@@ -148,7 +148,7 @@ export function checkPlotCountry(
   plot: PlotGeometry,
   declared: CountryCode | null,
 ): PlotCountryCheck {
-  const [lon, lat] = centroide(plot.geometria);
+  const [lon, lat] = centroid(plot.geometria);
   const detected = detectCountryAtPoint(lon, lat);
   const matchesDeclared =
     declared != null && declared !== "EU" && pointInCountry(lon, lat, declared);
@@ -253,7 +253,7 @@ export function resolvePerPlotCountry(
 ): Map<string, CountryCode> {
   const out = new Map<string, CountryCode>();
   for (const p of plots) {
-    const [lon, lat] = centroide(p.geometria);
+    const [lon, lat] = centroid(p.geometria);
     const detected = detectCountryAtPoint(lon, lat);
     out.set(p.plotId, detected ?? tenantCountry);
   }

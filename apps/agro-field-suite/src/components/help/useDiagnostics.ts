@@ -53,7 +53,7 @@ export function useDiagnostics(): Diagnostics {
       });
     }
 
-    // Azienda attiva senza configurazione meteo: il DSS/cache meteo non parte.
+    // Company attiva senza configurazione meteo: il DSS/cache meteo non parte.
     if (aziendaAttivaId && !configMeteo) {
       issues.push({
         id: "weather-missing",

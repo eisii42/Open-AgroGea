@@ -30,14 +30,14 @@ export { AgroDal } from "./db/dal";
 export { WarehouseError } from "./db/dal-warehouse";
 export {
   EXPIRY_WARNING_DAYS_DEFAULT,
-  categoriaPerOperazione,
-  cumpDopoCarico,
-  lottoScaduto,
-  statoScadenza,
-  validateProdotto,
-  type ProdottoDraft,
-  type ProdottoValidationError,
-  type StatoScadenzaLotto,
+  categoryForOperation,
+  cumpAfterInbound,
+  lotExpired,
+  expiryStatus,
+  validateProduct,
+  type ProductDraft,
+  type ProductValidationError,
+  type LotExpiryStatus,
 } from "./warehouse/cump";
 export {
   OnPremiseSyncTarget,
@@ -74,17 +74,17 @@ export { SyncRouter, type SyncRouterOptions } from "./sync/router";
 export {
   useAgroStore,
   isViewerReadOnly,
-  appezzamentiToFeatureCollection,
+  plotsToFeatureCollection,
   assetsToFeatureCollection,
-  colturaPerAppezzamento,
+  cropForPlot,
   poiToFeatureCollection,
-  raccolteToFeatureCollection,
-  trattamentiToFeatureCollection,
+  harvestsToFeatureCollection,
+  treatmentsToFeatureCollection,
   type AgroState,
   type AppView,
-  type AppezzamentoDrawAttrs,
+  type PlotDrawAttrs,
   type AssetDrawAttrs,
-  type NuovaAziendaInput,
+  type NewCompanyInput,
   type PendingGeometry,
   type SelectableKind,
   type SelectedFeatureRef,
@@ -92,17 +92,17 @@ export {
 } from "./store";
 export { bindGeoEditorCapture } from "./field/geo-editor-bridge";
 export {
-  areaEttari,
+  areaHectares,
   boundingBox,
-  centroide,
-  classificaGeometria,
-  geometriaHaCoordinate,
+  centroid,
+  classifyGeometry,
+  geometryHasCoordinates,
   geometryFamily,
-  lunghezzaMetri,
-  normalizzaGeometria,
+  lengthMeters,
+  normalizeGeometry,
   pickEditedFeature,
   sameGeometryFamily,
-  type GeometriaDisegnata,
+  type DrawnGeometry,
 } from "./geo/area";
 export {
   applyTheme,
@@ -155,13 +155,13 @@ export {
   type ValidationError,
 } from "./field/pan-validation";
 export {
-  dichiarativiMancanti,
-  sianCompleta,
-  sianMancanti,
-  sistemaDichiarativo,
-  type CampoDichiarativoMancante,
-  type CampoSianMancante,
-  type SistemaDichiarativo,
+  missingDeclarative,
+  sianComplete,
+  missingSian,
+  declarativeSystem,
+  type MissingDeclarativeField,
+  type MissingSianField,
+  type DeclarativeSystem,
 } from "./compliance/sian-campaign";
 export {
   DEFAULT_COUNTRY,

@@ -1,4 +1,4 @@
-import { colturaPerAppezzamento, useAgroStore } from "@agrogea/core";
+import { cropForPlot, useAgroStore } from "@agrogea/core";
 import { useCallback, useRef, useState } from "react";
 import { useDssCalcolo } from "../../hooks/useDssCalculation";
 import {
@@ -78,7 +78,7 @@ export function useFullRecalc(onDone?: () => void) {
 
       // 2) DSS patologici + bilancio idrico (solo se la coltura ha un modulo).
       const modulo = cropModulePerColtura(
-        colturaPerAppezzamento(plot.id, campiCampagna, crops),
+        cropForPlot(plot.id, campiCampagna, crops),
       );
       if (modulo) {
         setState((s) => ({

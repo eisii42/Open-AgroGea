@@ -38,7 +38,7 @@ export {
   MATRICI_COLTURA,
   sogliaSoilMask,
   type CalibrazioneFase,
-  type Coltura,
+  type CropType,
   type FaseFenologica,
   type MatriceColtura,
 } from "./phenology";

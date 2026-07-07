@@ -1,17 +1,17 @@
 import type { Transaction } from "@electric-sql/pglite";
 import { v4 as uuidv4 } from "uuid";
 import type {
-  CostoProdottiCampo,
-  LottoProdotto,
-  Prodotto,
-  RegistroTrattamento,
-  ScaricoAttivita,
-  ScaricoRichiesta,
+  FieldProductCost,
+  ProductLot,
+  Product,
+  TreatmentLog,
+  ActivityProduct,
+  IssueRequest,
 } from "../types";
 import {
-  cumpDopoCarico,
-  lottoScaduto,
-  validateProdotto,
+  cumpAfterInbound,
+  lotExpired,
+  validateProduct,
 } from "../warehouse/cump";
 import { AgroDalLogbook } from "./dal-logbook";
 import { nowIso, type Row, upsertSql } from "./write";
@@ -47,12 +47,12 @@ export class AgroDalWarehouse extends AgroDalLogbook {
 
   /**
    * Crea o aggiorna un prodotto di magazzino. Valida i campi obbligatori della
-   * categoria (`validateProdotto`); il CUMP (`avg_unit_cost`) NON si imposta da
+   * categoria (`validateProduct`); il CUMP (`avg_unit_cost`) NON si imposta da
    * qui: lo aggiorna solo il carico lotti ({@link caricaLotto}).
    */
   async upsertProdotto(
     input: Omit<
-      Prodotto,
+      Product,
       | "id"
       | "tenant_id"
       | "active_substance"
@@ -63,13 +63,13 @@ export class AgroDalWarehouse extends AgroDalLogbook {
       | "updated_at"
       | "deleted_at"
     > &
-      Partial<Pick<Prodotto, "active_substance" | "supplier" | "metadata">> & {
+      Partial<Pick<Product, "active_substance" | "supplier" | "metadata">> & {
         id?: string;
         created_at?: string;
         avg_unit_cost?: number;
       },
-  ): Promise<Prodotto> {
-    const errors = validateProdotto(input);
+  ): Promise<Product> {
+    const errors = validateProduct(input);
     if (errors.length > 0) {
       throw new WarehouseError(
         "invalid_product",
@@ -79,7 +79,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
     }
     const ts = nowIso();
     const esistente = input.id ? await this.getProdotto(input.id) : null;
-    const row: Prodotto = {
+    const row: Product = {
       id: input.id ?? uuidv4(),
       tenant_id: this.tenantId,
       company_id: input.company_id,
@@ -109,8 +109,8 @@ export class AgroDalWarehouse extends AgroDalLogbook {
     return row;
   }
 
-  async getProdotto(id: string): Promise<Prodotto | null> {
-    const result = await this.db.query<Prodotto>(
+  async getProdotto(id: string): Promise<Product | null> {
+    const result = await this.db.query<Product>(
       `select * from products where id = $1`,
       [id],
     );
@@ -119,15 +119,15 @@ export class AgroDalWarehouse extends AgroDalLogbook {
 
   async listProdotti(
     aziendaId: string,
-    options: { categoria?: Prodotto["category"] } = {},
-  ): Promise<Prodotto[]> {
+    options: { categoria?: Product["category"] } = {},
+  ): Promise<Product[]> {
     const conditions = ["company_id = $1", "deleted_at is null"];
     const params: unknown[] = [aziendaId];
     if (options.categoria) {
       params.push(options.categoria);
       conditions.push(`category = $${params.length}`);
     }
-    const result = await this.db.query<Prodotto>(
+    const result = await this.db.query<Product>(
       `select * from products
        where ${conditions.join(" and ")}
        order by category, name`,
@@ -149,19 +149,19 @@ export class AgroDalWarehouse extends AgroDalLogbook {
    */
   async caricaLotto(
     input: Omit<
-      LottoProdotto,
+      ProductLot,
       "id" | "tenant_id" | "quantity_on_hand" | "created_at" | "updated_at" | "deleted_at"
     > & { id?: string },
-  ): Promise<LottoProdotto> {
+  ): Promise<ProductLot> {
     const ts = nowIso();
     const prodotto = await this.getProdotto(input.product_id);
     if (!prodotto || prodotto.deleted_at) {
       throw new WarehouseError(
         "invalid_product",
-        `Prodotto ${input.product_id} inesistente: carico annullato.`,
+        `Product ${input.product_id} inesistente: carico annullato.`,
       );
     }
-    const lotto: LottoProdotto = {
+    const lotto: ProductLot = {
       id: input.id ?? uuidv4(),
       tenant_id: this.tenantId,
       product_id: input.product_id,
@@ -183,7 +183,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
         [input.product_id],
       );
       const giacenzaEsistente = Number(giacenza.rows[0]?.q ?? 0);
-      const nuovoCump = cumpDopoCarico(
+      const nuovoCump = cumpAfterInbound(
         giacenzaEsistente,
         Number(prodotto.avg_unit_cost),
         input.initial_quantity,
@@ -199,7 +199,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
         lotto as unknown as Row & { id: string },
       );
 
-      const prodottoAggiornato: Prodotto = {
+      const prodottoAggiornato: Product = {
         ...prodotto,
         avg_unit_cost: nuovoCump,
         updated_at: ts,
@@ -219,7 +219,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
   async listLotti(
     aziendaId: string,
     options: { productId?: string; soloDisponibili?: boolean } = {},
-  ): Promise<LottoProdotto[]> {
+  ): Promise<ProductLot[]> {
     const conditions = [
       "p.company_id = $1",
       "l.deleted_at is null",
@@ -233,7 +233,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
     if (options.soloDisponibili) {
       conditions.push("l.quantity_on_hand > 0");
     }
-    const result = await this.db.query<LottoProdotto>(
+    const result = await this.db.query<ProductLot>(
       `select l.* from product_lots l
        join products p on p.id = l.product_id
        where ${conditions.join(" and ")}
@@ -250,8 +250,8 @@ export class AgroDalWarehouse extends AgroDalLogbook {
   async listLottiInScadenza(
     aziendaId: string,
     warningDays: number,
-  ): Promise<LottoProdotto[]> {
-    const result = await this.db.query<LottoProdotto>(
+  ): Promise<ProductLot[]> {
+    const result = await this.db.query<ProductLot>(
       `select l.* from product_lots l
        join products p on p.id = l.product_id
        where p.company_id = $1
@@ -282,16 +282,16 @@ export class AgroDalWarehouse extends AgroDalLogbook {
    */
   async insertTrattamentoConScarichi(
     input: Omit<
-      RegistroTrattamento,
+      TreatmentLog,
       "id" | "tenant_id" | "created_at" | "updated_at" | "deleted_at"
     > & { id?: string },
-    scarichi: ScaricoRichiesta[],
-  ): Promise<{ trattamento: RegistroTrattamento; scarichi: ScaricoAttivita[] }> {
+    scarichi: IssueRequest[],
+  ): Promise<{ trattamento: TreatmentLog; scarichi: ActivityProduct[] }> {
     if (scarichi.length === 0) {
       return { trattamento: await this.insertTrattamento(input), scarichi: [] };
     }
     const ts = nowIso();
-    const trattamento: RegistroTrattamento = {
+    const trattamento: TreatmentLog = {
       ...input,
       id: input.id ?? uuidv4(),
       tenant_id: this.tenantId,
@@ -299,7 +299,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
       updated_at: ts,
       deleted_at: null,
     };
-    const righeScarico: ScaricoAttivita[] = [];
+    const righeScarico: ActivityProduct[] = [];
 
     await this.db.transaction(async (tx: Transaction) => {
       const insTratt = upsertSql("treatment_logs", trattamento as unknown as Row);
@@ -312,7 +312,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
       );
 
       for (const richiesta of scarichi) {
-        const lookup = await tx.query<LottoProdotto & { avg_unit_cost: number | string; product_name: string }>(
+        const lookup = await tx.query<ProductLot & { avg_unit_cost: number | string; product_name: string }>(
           `select l.*, p.avg_unit_cost, p.name as product_name
            from product_lots l join products p on p.id = l.product_id
            where l.id = $1 and l.deleted_at is null`,
@@ -326,7 +326,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
           );
         }
         // Uso di lotti scaduti BLOCCATO (comportamento §5.1, esplicitato in UI).
-        if (lottoScaduto(lotto)) {
+        if (lotExpired(lotto)) {
           throw new WarehouseError(
             "expired_lot",
             `Il lotto ${lotto.lot_number ?? lotto.id.slice(0, 8)} di "${lotto.product_name}" è scaduto il ${lotto.expires_at}: uso bloccato.`,
@@ -344,7 +344,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
         // rete di sicurezza atomica anche in caso di scritture concorrenti.
         // La riga di outbox è COMPLETA (solo colonne di product_lots, senza i
         // campi del join) come ogni altra mutazione sincronizzata.
-        const lottoAggiornato: LottoProdotto = {
+        const lottoAggiornato: ProductLot = {
           id: lotto.id,
           tenant_id: lotto.tenant_id,
           product_id: lotto.product_id,
@@ -369,7 +369,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
 
         // Costo imputato = CUMP del prodotto CONGELATO al momento dello scarico.
         const cump = Number(lotto.avg_unit_cost);
-        const scarico: ScaricoAttivita = {
+        const scarico: ActivityProduct = {
           id: uuidv4(),
           tenant_id: this.tenantId,
           treatment_log_id: trattamento.id,
@@ -413,7 +413,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
         updated_at: ts,
       } as Row & { id: string });
 
-      const scarichi = await tx.query<ScaricoAttivita>(
+      const scarichi = await tx.query<ActivityProduct>(
         `select * from activity_products
          where treatment_log_id = $1 and deleted_at is null`,
         [id],
@@ -425,7 +425,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
            where id = $1 and deleted_at is null`,
           [scarico.product_lot_id, scarico.quantity, ts],
         );
-        const lotto = await tx.query<LottoProdotto>(
+        const lotto = await tx.query<ProductLot>(
           `select * from product_lots where id = $1`,
           [scarico.product_lot_id],
         );
@@ -452,9 +452,9 @@ export class AgroDalWarehouse extends AgroDalLogbook {
   /** Scarichi (con lotto e prodotto) di una singola attività del Quaderno. */
   async listScarichiAttivita(
     treatmentLogId: string,
-  ): Promise<Array<ScaricoAttivita & { lot_number: string | null; product_name: string; unit: string }>> {
+  ): Promise<Array<ActivityProduct & { lot_number: string | null; product_name: string; unit: string }>> {
     const result = await this.db.query<
-      ScaricoAttivita & { lot_number: string | null; product_name: string; unit: string }
+      ActivityProduct & { lot_number: string | null; product_name: string; unit: string }
     >(
       `select a.*, l.lot_number, p.name as product_name, p.unit
        from activity_products a
@@ -475,7 +475,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
   async costiProdottiPerCampo(
     aziendaId: string,
     options: { dal?: string; al?: string } = {},
-  ): Promise<CostoProdottiCampo[]> {
+  ): Promise<FieldProductCost[]> {
     const conditions = [
       "t.company_id = $1",
       "a.deleted_at is null",
@@ -490,7 +490,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
       params.push(options.al);
       conditions.push(`t.executed_at <= $${params.length}`);
     }
-    const result = await this.db.query<CostoProdottiCampo>(
+    const result = await this.db.query<FieldProductCost>(
       `select t.plot_id, sum(a.total_cost)::float as total_cost
        from activity_products a
        join treatment_logs t on t.id = a.treatment_log_id

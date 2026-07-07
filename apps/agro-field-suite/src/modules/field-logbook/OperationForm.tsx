@@ -1,17 +1,17 @@
 import {
-  type Appezzamento,
-  type CampionamentoSuolo,
-  type CatalogoVoce,
-  categoriaPerOperazione,
-  centroide,
-  type DoseUnita,
+  type Plot,
+  type SoilSample,
+  type CatalogEntry,
+  categoryForOperation,
+  centroid,
+  type DoseUnit,
   irrigationToLitres,
   litresToIrrigation,
-  type LottoProdotto,
-  type Prodotto,
-  type ScaricoRichiesta,
-  statoScadenza,
-  type TipoOperazione,
+  type ProductLot,
+  type Product,
+  type IssueRequest,
+  expiryStatus,
+  type OperationType,
   type ValidationError,
   validateFertilizationLog,
   validateTreatmentLog,
@@ -38,11 +38,11 @@ import i18n from "../../i18n";
  * patentino; il rilievo solo data/operatore/note). I tipi "di registro" scrivono
  * nella stessa tabella `treatment_logs` (colonne nullable): nessuna modifica di
  * schema. Il campionamento di SUOLO è un caso speciale: scrive sulla tabella
- * dedicata `soil_samples` (via `onSubmitSoil`), con posizione = centroide del
+ * dedicata `soil_samples` (via `onSubmitSoil`), con posizione = centroid del
  * campo.
  */
 
-const UNITA: DoseUnita[] = ["kg/ha", "l/ha", "kg/hl", "l/hl", "g/hl", "m3"];
+const UNITA: DoseUnit[] = ["kg/ha", "l/ha", "kg/hl", "l/hl", "g/hl", "m3"];
 
 type ProductMode = "phyto" | "fertilizer" | "seed";
 
@@ -74,7 +74,7 @@ interface OpFieldSpec {
 }
 
 export interface OperazioneSpec {
-  type: TipoOperazione;
+  type: OperationType;
   label: string;
   descr: string;
   fields: OpFieldSpec;
@@ -171,13 +171,13 @@ export const OPERAZIONI: OperazioneSpec[] = [
   },
 ];
 
-export function operazioneSpec(type: TipoOperazione): OperazioneSpec {
+export function operazioneSpec(type: OperationType): OperazioneSpec {
   return OPERAZIONI.find((o) => o.type === type) ?? OPERAZIONI[0];
 }
 
 /** Input del campionamento suolo emesso dal form (verso `soil_samples`). */
 export type CampionamentoSuoloInput = Omit<
-  CampionamentoSuolo,
+  SoilSample,
   "id" | "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
 >;
 
@@ -241,20 +241,20 @@ function persistOperatorMemory(memory: OperatorMemory) {
 const numStr = (v: number | null | undefined) => (v == null ? "" : String(v));
 
 export interface OperazioneFormProps {
-  operationType: TipoOperazione;
-  appezzamenti: Appezzamento[];
+  operationType: OperationType;
+  appezzamenti: Plot[];
   campiCampagna?: CampoCampagnaOption[];
-  prodottiCatalogo?: CatalogoVoce[];
-  concimiCatalogo?: CatalogoVoce[];
+  prodottiCatalogo?: CatalogEntry[];
+  concimiCatalogo?: CatalogEntry[];
   /**
    * Anagrafica e lotti del Magazzino (0.2.0). Se ci sono prodotti della
    * categoria pertinente al tipo operazione, il form mostra la sezione
    * "Scarico da magazzino": prodotto → lotto → quantità. I lotti SCADUTI sono
    * mostrati ma NON selezionabili (uso bloccato, §5.1).
    */
-  prodottiMagazzino?: Prodotto[];
-  lottiMagazzino?: LottoProdotto[];
-  valutaCompliance?: (appezzamento: Appezzamento) => ComplianceTrattamento | null;
+  prodottiMagazzino?: Product[];
+  lottiMagazzino?: ProductLot[];
+  valutaCompliance?: (appezzamento: Plot) => ComplianceTrattamento | null;
   defaultAppezzamentoId?: string | null;
   /**
    * Salvataggio dell'operazione; `scarichi` non vuoto attiva lo scarico
@@ -264,7 +264,7 @@ export interface OperazioneFormProps {
    */
   onSubmit: (
     values: TrattamentoFormValues,
-    scarichi?: ScaricoRichiesta[],
+    scarichi?: IssueRequest[],
     assegnazione?: AssegnazioneColtura | null,
   ) => Promise<void> | void;
   /** Salvataggio del campionamento di suolo (tabella dedicata). */
@@ -330,7 +330,7 @@ export function OperazioneForm({
   );
   const [target, setTarget] = useState(defaults?.target_disease ?? "");
   const [doseValore, setDoseValore] = useState(numStr(defaults?.dose_value));
-  const [doseUnita, setDoseUnita] = useState<DoseUnita>(
+  const [doseUnita, setDoseUnita] = useState<DoseUnit>(
     defaults?.dose_unit ?? "kg/ha",
   );
   const [acquaVolume, setAcquaVolume] = useState(
@@ -461,11 +461,11 @@ export function OperazioneForm({
     totaleManualeNum,
   ]);
   const mancano = panErrors.length > 0;
-  // Per il campione di suolo serve un campo georeferenziato (centroide = posizione).
+  // Per il campione di suolo serve un campo georeferenziato (centroid = posizione).
   const soilSenzaCampo = soilMode && !appezzamento;
 
   // -- Magazzino (0.2.0): categoria pertinente e validazione righe scarico ----
-  const categoriaMagazzino = categoriaPerOperazione(operationType);
+  const categoriaMagazzino = categoryForOperation(operationType);
   const prodottiCategoria = useMemo(
     () =>
       categoriaMagazzino
@@ -477,7 +477,7 @@ export function OperazioneForm({
   );
   const usaMagazzino = prodottiCategoria.length > 0;
   const lottoById = useMemo(() => {
-    const map = new Map<string, LottoProdotto>();
+    const map = new Map<string, ProductLot>();
     for (const l of lottiMagazzino ?? []) map.set(l.id, l);
     return map;
   }, [lottiMagazzino]);
@@ -494,12 +494,12 @@ export function OperazioneForm({
     totalePrevisto == null || unit === baseDose;
 
   /** Lotti utilizzabili del prodotto (giacenza > 0, non scaduti) in ordine FEFO. */
-  const lottiUtilizzabili = (productId: string): LottoProdotto[] =>
+  const lottiUtilizzabili = (productId: string): ProductLot[] =>
     (lottiMagazzino ?? []).filter(
       (l) =>
         l.product_id === productId &&
         Number(l.quantity_on_hand) > 0 &&
-        statoScadenza(l.expires_at) !== "expired",
+        expiryStatus(l.expires_at) !== "expired",
     );
 
   /** Riga compilata per intero e coerente: quantità > 0 e ≤ giacenza, lotto non scaduto. */
@@ -512,10 +512,10 @@ export function OperazioneForm({
         Number.isFinite(qty) &&
         qty > 0 &&
         qty <= Number(lotto.quantity_on_hand) &&
-        statoScadenza(lotto.expires_at) !== "expired",
+        expiryStatus(lotto.expires_at) !== "expired",
     );
   };
-  const scarichiValidi: ScaricoRichiesta[] = scarichiRows
+  const scarichiValidi: IssueRequest[] = scarichiRows
     .filter(rowValida)
     .map((row) => ({
       product_lot_id: row.lotId,
@@ -699,7 +699,7 @@ export function OperazioneForm({
     setSaving(true);
     try {
       if (soilMode && appezzamento) {
-        const [lon, lat] = centroide(appezzamento.geometry);
+        const [lon, lat] = centroid(appezzamento.geometry);
         const position: Point = { type: "Point", coordinates: [lon, lat] };
         await onSubmitSoil?.({
           plot_id: appezzamento.id,
@@ -911,7 +911,7 @@ export function OperazioneForm({
         </div>
       )}
 
-      {/* Prodotto (fito/concime/seme) */}
+      {/* Product (fito/concime/seme) */}
       {f.product && (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="op-prod">{productLabel}</Label>
@@ -971,7 +971,7 @@ export function OperazioneForm({
                     >
                       <option value="">{t("operazioneForm.selectEllipsis")}</option>
                       {prodottiCategoria.map((p) => {
-                        // Prodotto in unità non riconciliabile con la dose
+                        // Product in unità non riconciliabile con la dose
                         // (kg vs l): non selezionabile finché c'è un totale
                         // previsto da far quadrare.
                         const incompatibile = !unitaCompatibile(p.unit);
@@ -1000,7 +1000,7 @@ export function OperazioneForm({
                     >
                       <option value="">{t("operazioneForm.selectEllipsis")}</option>
                       {lottiProdotto.map((l) => {
-                        const stato = statoScadenza(l.expires_at);
+                        const stato = expiryStatus(l.expires_at);
                         const scaduto = stato === "expired";
                         return (
                           <option key={l.id} value={l.id} disabled={scaduto}>
@@ -1223,7 +1223,7 @@ export function OperazioneForm({
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="op-unita">{t("logbook.treatment.unit")}</Label>
-                <Select id="op-unita" value={doseUnita} onChange={(e) => setDoseUnita(e.target.value as DoseUnita)}>
+                <Select id="op-unita" value={doseUnita} onChange={(e) => setDoseUnita(e.target.value as DoseUnit)}>
                   {UNITA.map((u) => (
                     <option key={u} value={u}>
                       {u === "m3" ? "m³" : u}

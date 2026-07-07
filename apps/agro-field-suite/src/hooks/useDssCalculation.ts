@@ -1,10 +1,10 @@
 import {
-  type Appezzamento,
-  type LetturaMeteo,
-  type RegistroTrattamento,
+  type Plot,
+  type WeatherReading,
+  type TreatmentLog,
   useAgroStore,
 } from "@agrogea/core";
-import type { AgroDal, ConfigMeteoAzienda, Crop } from "@agrogea/core";
+import type { AgroDal, CompanyWeatherConfig, Crop } from "@agrogea/core";
 import type { FaseFenologica } from "@agrogea/tools";
 import type { FeatureCollection } from "geojson";
 import { useCallback, useState } from "react";
@@ -87,9 +87,9 @@ export interface RisultatoDssPlot {
   messaggio?: string;
 }
 
-/** Appezzamento + modulo coltura da calcolare. */
+/** Plot + modulo coltura da calcolare. */
 export interface TargetDss {
-  appezzamento: Appezzamento;
+  appezzamento: Plot;
   modulo: CropModule;
 }
 
@@ -127,7 +127,7 @@ const FASI_VALIDE: readonly FaseFenologica[] = [
 ];
 
 /** Fase fenologica dal metadata (override), default "piena" (piena stagione). */
-function faseFenologica(appezzamento: Appezzamento): FaseFenologica {
+function faseFenologica(appezzamento: Plot): FaseFenologica {
   const meta = (appezzamento.metadata ?? {}) as Record<string, unknown>;
   const fase = meta.fase;
   return typeof fase === "string" && FASI_VALIDE.includes(fase as FaseFenologica)
@@ -156,8 +156,8 @@ function numeroMeta(value: unknown): number | undefined {
  * corrente (convenzione per i gradi-giorno stagionali).
  */
 function biofixGdd(
-  appezzamento: Appezzamento,
-  trattamenti: RegistroTrattamento[],
+  appezzamento: Plot,
+  trattamenti: TreatmentLog[],
 ): string {
   const ultimaSemina = trattamenti
     .filter((t) => t.operation_type === "sowing" && t.executed_at)
@@ -176,7 +176,7 @@ function biofixGdd(
 interface ContestoCalcolo {
   dal: AgroDal;
   aziendaAttivaId: string;
-  configMeteo: ConfigMeteoAzienda | null;
+  configMeteo: CompanyWeatherConfig | null;
   crops: Crop[];
 }
 
@@ -240,7 +240,7 @@ async function calcolaPlot(
   //    fallback sulle letture già in PGlite.
   let serie: MeteoGiornoDss[];
   let meteo: InfoMeteoDss;
-  let lettureRaw: LetturaMeteo[] = [];
+  let lettureRaw: WeatherReading[] = [];
   try {
     const res = await WeatherSyncService.assicuraDatiMeteo({
       dal,

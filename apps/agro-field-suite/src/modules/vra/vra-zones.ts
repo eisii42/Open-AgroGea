@@ -37,7 +37,7 @@ export const UNITA_LAVORAZIONE: Record<TipoLavorazione, string> = {
 export interface ZonaVra {
   /** Indice zona 0..k-1, crescente per valore medio dell'indice. */
   zona: number;
-  /** Valore medio dell'indice nella zona (centroide K-means). */
+  /** Valore medio dell'indice nella zona (centroid K-means). */
   valoreMedio: number;
   /** Numero di celle assegnate alla zona. */
   nCelle: number;

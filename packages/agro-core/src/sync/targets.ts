@@ -2,10 +2,10 @@ import { controlPlane } from "../control-plane";
 import { isTauriRuntime, tauriInvoke } from "../runtime";
 import type { AgroDal } from "../db/dal";
 import type {
-  OutboxMutazione,
+  OutboxMutation,
   StorageConfig,
   SyncPushResult,
-  TabellaSync,
+  SyncTable,
 } from "../types";
 
 /**
@@ -16,7 +16,7 @@ import type {
  */
 export interface SyncTarget {
   readonly tipo: StorageConfig["tipo"];
-  push(batch: OutboxMutazione[]): Promise<SyncPushResult>;
+  push(batch: OutboxMutation[]): Promise<SyncPushResult>;
   /**
    * Idratazione inversa: scarica le righe del tenant dal data plane remoto
    * nel PGlite locale (primo avvio su un dispositivo nuovo, o riallineamento
@@ -27,7 +27,7 @@ export interface SyncTarget {
 }
 
 /** Serializza il batch nel wire format condiviso con i data plane remoti. */
-export function toWirePayload(batch: OutboxMutazione[]) {
+export function toWirePayload(batch: OutboxMutation[]) {
   return batch.map((m) => ({
     mutation_id: m.mutation_id,
     table_name: m.table_name,
@@ -64,7 +64,7 @@ export function maxUpdatedAt(rows: Record<string, unknown>[]): string | null {
  * materializzata server-side, che PGlite non conosce). In ordine parent →
  * child, così gli upsert locali rispettano le foreign key.
  */
-export const PULL_TABLES: { tabella: TabellaSync; columns: string }[] = [
+export const PULL_TABLES: { tabella: SyncTable; columns: string }[] = [
   {
     tabella: "companies",
     columns:
@@ -172,7 +172,7 @@ export class OnPremiseSyncTarget implements SyncTarget {
     private readonly tenantId: string,
   ) {}
 
-  async push(batch: OutboxMutazione[]): Promise<SyncPushResult> {
+  async push(batch: OutboxMutation[]): Promise<SyncPushResult> {
     if (!isTauriRuntime()) {
       throw new Error(
         "Il sync on-premise richiede l'app nativa (comandi Rust di Tauri).",
@@ -234,7 +234,7 @@ export class OnPremiseSyncTarget implements SyncTarget {
 export class LocalOnlySyncTarget implements SyncTarget {
   readonly tipo = "local" as const;
 
-  async push(batch: OutboxMutazione[]): Promise<SyncPushResult> {
+  async push(batch: OutboxMutation[]): Promise<SyncPushResult> {
     return { applied: batch.length, skipped_lww: 0, duplicates: 0 };
   }
 }

@@ -9,7 +9,7 @@ import {
   type PlotGeometry,
 } from "../packages/agro-core/src/compliance/country-resolution";
 
-/** Quadratino ~0.02° attorno a [lon, lat]: il suo centroide è [lon, lat]. */
+/** Quadratino ~0.02° attorno a [lon, lat]: il suo centroid è [lon, lat]. */
 function squareAt(lon: number, lat: number): Polygon {
   const d = 0.01;
   return {

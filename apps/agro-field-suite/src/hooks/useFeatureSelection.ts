@@ -112,7 +112,7 @@ export function useFeatureSelection(
 
       const layerKind = LAYER_KINDS.find((l) => l.id === top.layer.id);
       if (!layerKind) return;
-      // Appezzamento → Quaderno filtrato sulle sue lavorazioni; altri → dettaglio.
+      // Plot → Quaderno filtrato sulle sue lavorazioni; altri → dettaglio.
       if (layerKind.kind === "appezzamento") {
         apriQuadernoPerAppezzamento(id);
       } else {

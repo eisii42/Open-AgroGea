@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { controlPlane } from "../control-plane";
-import type { RuoloMembro } from "../types";
+import type { MemberRole } from "../types";
 import { assertWritable } from "./helpers";
 import type { DomainSlice, StoreGet, StoreSet } from "./state";
 
@@ -186,7 +186,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
           m.email.trim().toLowerCase() === target,
       );
       if (exists) return;
-      const role: RuoloMembro = "OWNER";
+      const role: MemberRole = "OWNER";
       const record = await dal.upsertMembership({
         company_id: companyId,
         email,

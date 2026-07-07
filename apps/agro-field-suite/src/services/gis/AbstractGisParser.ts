@@ -13,12 +13,12 @@
  * {@link SpatialAnalysisEngine} (DuckDB Spatial, in-browser): l'adapter lavora
  * solo sulle properties, quindi è PURO e testabile sotto `node --test`.
  *
- *   * Adapter IT → SIAN/AGEA (Isola / Appezzamento)
+ *   * Adapter IT → SIAN/AGEA (Isola / Plot)
  *   * Adapter ES → SIGPAC/SIEX (Provincia, Municipio, Poligono, Parcela, Recinto)
  *   * Adapter FR → TelePAC/RPG (Îlot, Parcelle, Code culture)
  *   * Adapter EU → base internazionale (alias inglesi generici)
  */
-import { areaEttari, type CountryCode } from "@agrogea/core";
+import { areaHectares, type CountryCode } from "@agrogea/core";
 import type {
   FeatureCollection,
   Geometry,
@@ -151,10 +151,10 @@ function makeAdapter(
 
 // -- adapter per nazione -----------------------------------------------------
 
-/** IT — SIAN/AGEA. Delega al mapper SIAN robusto già esistente (Isola/Appezzamento). */
+/** IT — SIAN/AGEA. Delega al mapper SIAN robusto già esistente (Isola/Plot). */
 export const itSianAdapter: GisParcelAdapter = {
   countryCode: "IT",
-  label: "SIAN/AGEA (Isola/Appezzamento)",
+  label: "SIAN/AGEA (Isola/Plot)",
   mapFeature: (props, geometria, areaGeodeticaHa) =>
     mapSianFeature(props, geometria, areaGeodeticaHa),
 };
@@ -242,7 +242,7 @@ export function mapFeatureCollectionWith(
   const out: MappedParcel[] = [];
   for (const f of fc.features) {
     const geom = f.geometry ?? null;
-    const area = isPoligono(geom) ? areaEttari(geom) : null;
+    const area = isPoligono(geom) ? areaHectares(geom) : null;
     out.push(adapter.mapFeature(f.properties ?? {}, geom, area));
   }
   return out;

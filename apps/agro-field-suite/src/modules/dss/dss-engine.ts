@@ -1,6 +1,6 @@
 import {
   alertA01,
-  type Coltura,
+  type CropType,
   riduzioneResaFao66,
 } from "@agrogea/tools";
 import {
@@ -46,7 +46,7 @@ export interface StatoIdricoCampo {
  * Fattori di risposta della resa Ky (FAO-33, stagionali) come default editabili
  * per coltura — non costanti regolatorie. Valori indicativi da letteratura.
  */
-export const KY_DEFAULT: Record<Coltura, number> = {
+export const KY_DEFAULT: Record<CropType, number> = {
   vite: 0.85,
   olivo: 0.8,
   melo: 1.0,
@@ -56,7 +56,7 @@ export const KY_DEFAULT: Record<Coltura, number> = {
 };
 
 /** Ky di default della coltura (fallback prudente 1.0). */
-export function kyColtura(coltura: Coltura): number {
+export function kyColtura(coltura: CropType): number {
   return KY_DEFAULT[coltura] ?? 1.0;
 }
 
@@ -85,7 +85,7 @@ export function inStressIdrico(stato: StatoIdricoCampo): boolean {
 /** Costruisce il vettore di stress idrico (riduzione resa via Ky, FAO 66). */
 export function vettoreStressIdrico(
   stato: StatoIdricoCampo,
-  coltura: Coltura,
+  coltura: CropType,
 ): VettoreRischioDss {
   const rischio01 = rischioIdrico01(stato);
   const ky = kyColtura(coltura);

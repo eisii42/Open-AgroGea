@@ -1,6 +1,6 @@
 import {
   boundingBox,
-  colturaPerAppezzamento,
+  cropForPlot,
   type DashboardModuleId,
   useAgroStore,
   useSettingsStore,
@@ -198,7 +198,7 @@ export function CommandPalette({
     }
 
     const navigazione: Comando[] = appezzamenti.map((apz) => {
-      const coltura = colturaPerAppezzamento(apz.id, campiCampagna, crops);
+      const coltura = cropForPlot(apz.id, campiCampagna, crops);
       return {
       id: `apz-${apz.id}`,
       titolo: apz.user_plot_name,

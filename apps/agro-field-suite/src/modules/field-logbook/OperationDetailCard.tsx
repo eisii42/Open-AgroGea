@@ -4,13 +4,13 @@
  * dosi, operatore, sicurezza, note). Si apre al tap/click su una voce della
  * lista del Quaderno.
  */
-import type { RegistroTrattamento, TipoOperazione } from "@agrogea/core";
+import type { TreatmentLog, OperationType } from "@agrogea/core";
 import { Trash2, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 
-function opLabel(t: TFunction, tipo: TipoOperazione): string {
+function opLabel(t: TFunction, tipo: OperationType): string {
   return t(`operazioneDettaglioCard.opLabel.${tipo}`);
 }
 
@@ -32,7 +32,7 @@ export function OperazioneDettaglioCard({
   onClose,
   onDelete,
 }: {
-  operazione: RegistroTrattamento;
+  operazione: TreatmentLog;
   appezzamentoNome: string | null;
   onClose: () => void;
   onDelete: () => void | Promise<void>;

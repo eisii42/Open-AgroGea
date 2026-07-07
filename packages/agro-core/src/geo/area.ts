@@ -30,10 +30,10 @@ const MQ_PER_ETTARO = 10_000;
  * (`Cannot read properties of undefined`), eccezione che, propagata dentro la
  * subscription/effect, mandava in schermata bianca la WebView. Su input non
  * valido o non finito si ritorna 0. I chiamati che la persistono devono
- * comunque passare prima da `normalizzaGeometria`.
+ * comunque passare prima da `normalizeGeometry`.
  */
-export function areaEttari(geometria: Polygon | MultiPolygon): number {
-  if (!geometriaHaCoordinate(geometria)) return 0;
+export function areaHectares(geometria: Polygon | MultiPolygon): number {
+  if (!geometryHasCoordinates(geometria)) return 0;
   try {
     const mq = Math.abs(turfArea(geometria));
     if (!Number.isFinite(mq)) return 0;
@@ -49,7 +49,7 @@ export function areaEttari(geometria: Polygon | MultiPolygon): number {
  * Guardia leggera (non valida l'intera topologia): basta a evitare i crash da
  * `coordinates` undefined durante il trascinamento dei vertici.
  */
-export function geometriaHaCoordinate(geometry: Geometry): boolean {
+export function geometryHasCoordinates(geometry: Geometry): boolean {
   if (geometry.type === "GeometryCollection") {
     return (
       Array.isArray(geometry.geometries) && geometry.geometries.length > 0
@@ -72,7 +72,7 @@ export function boundingBox(
  * per la query meteo (Open-Meteo campiona la cella, non serve il baricentro
  * geometrico esatto) ed evita una dipendenza in più rispetto a `@turf/centroid`.
  */
-export function centroide(
+export function centroid(
   geometria: Polygon | MultiPolygon,
 ): [number, number] {
   const [minX, minY, maxX, maxY] = turfBbox(geometria);
@@ -80,7 +80,7 @@ export function centroide(
 }
 
 /** Lunghezza geodetica di una linea in metri (0 decimali). */
-export function lunghezzaMetri(
+export function lengthMeters(
   geometria: LineString | MultiLineString,
 ): number {
   const feature: Feature<LineString | MultiLineString> = {
@@ -95,7 +95,7 @@ export function lunghezzaMetri(
  * Tipo di geometria per il workflow di data-entry su disegno: poligono →
  * appezzamento, linea → infrastruttura, punto → POI/asset puntuale.
  */
-export type GeometriaDisegnata = "polygon" | "line" | "point";
+export type DrawnGeometry = "polygon" | "line" | "point";
 
 /**
  * Famiglia primitiva di un `Geometry["type"]` GeoJSON: poligono, linea o punto.
@@ -104,7 +104,7 @@ export type GeometriaDisegnata = "polygon" | "line" | "point";
  */
 export function geometryFamily(
   type: Geometry["type"],
-): GeometriaDisegnata | null {
+): DrawnGeometry | null {
   switch (type) {
     case "Polygon":
     case "MultiPolygon":
@@ -120,7 +120,7 @@ export function geometryFamily(
   }
 }
 
-export function classificaGeometria(geometry: Geometry): GeometriaDisegnata | null {
+export function classifyGeometry(geometry: Geometry): DrawnGeometry | null {
   return geometryFamily(geometry.type);
 }
 
@@ -231,7 +231,7 @@ function normalizzaAnelliPoligono(coords: Position[][]): Position[][] {
  * così il salvataggio fallisce in modo visibile invece di corrompere il DB
  * locale e la coda di sync.
  */
-export function normalizzaGeometria<G extends Geometry>(geometry: G): G {
+export function normalizeGeometry<G extends Geometry>(geometry: G): G {
   if (geometry.type === "Polygon") {
     let coords = coord2D(geometry.coordinates);
     const depth = profonditaCoordinate(coords);

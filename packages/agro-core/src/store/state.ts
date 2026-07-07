@@ -2,31 +2,31 @@ import type { Feature, Geometry } from "geojson";
 import type { StoreApi } from "zustand";
 import type { AgroDal } from "../db/dal";
 import type { AgroTheme } from "../field/theme";
-import type { GeometriaDisegnata } from "../geo/area";
+import type { DrawnGeometry } from "../geo/area";
 import type { SyncRouter } from "../sync/router";
 import type {
-  Appezzamento,
-  AssetInfrastruttura,
+  Plot,
+  InfrastructureAsset,
   AuthSession,
-  Azienda,
-  CampionamentoSuolo,
-  CampoCampagna,
-  ConfigMeteoAzienda,
+  Company,
+  SoilSample,
+  PlotCampaign,
+  CompanyWeatherConfig,
   Crop,
   DataTransferLog,
   FieldPanel,
-  LottoProdotto,
-  OutboxMutazione,
+  ProductLot,
+  OutboxMutation,
   PanelMode,
-  Prodotto,
-  ProfiloUtente,
-  Raccolta,
-  RegistroTrattamento,
-  ScaricoRichiesta,
+  Product,
+  UserProfile,
+  Harvest,
+  TreatmentLog,
+  IssueRequest,
   SyncSnapshot,
   TenantClaims,
   TenantMembership,
-  UltimaOperazione,
+  LastOperation,
 } from "../types";
 
 /**
@@ -45,7 +45,7 @@ import type {
  */
 export interface PendingGeometry {
   feature: Feature;
-  kind: GeometriaDisegnata;
+  kind: DrawnGeometry;
   /** Chiave dello sketch nel layer geo-editor, per la rimozione su annulla. */
   sketchKey: string;
   /** Area in ettari pre-calcolata (solo poligoni). */
@@ -109,7 +109,7 @@ export interface AssetDrawAttrs {
   length_m?: number | null;
 }
 
-export interface AppezzamentoDrawAttrs {
+export interface PlotDrawAttrs {
   id?: string;
   /** Nome libero dell'appezzamento (LPIS user plot name). */
   name?: string;
@@ -120,11 +120,11 @@ export interface AppezzamentoDrawAttrs {
 }
 
 /**
- * Dati raccolti dal form "Crea Nuova Azienda" dell'onboarding. L'indirizzo
+ * Dati raccolti dal form "Crea Nuova Company" dell'onboarding. L'indirizzo
  * completo (in particolare `country`) è metadato critico per la Country
  * Resolution GIS: governa cataloghi e regole burocratiche del workspace.
  */
-export interface NuovaAziendaInput {
+export interface NewCompanyInput {
   business_name: string;
   /** P.IVA aziendale. */
   vat_number?: string | null;
@@ -151,7 +151,7 @@ export interface SessionSlice {
    * onboarding. `null` finché non risolto; il consumo lato UI decide il
    * blocco di "attesa approvazione" quando `stato_licenza !== 'active'`.
    */
-  profilo: ProfiloUtente | null;
+  profilo: UserProfile | null;
   /** true quando lo sblocco è avvenuto offline (PIN) e non c'è JWT fresco. */
   offlineUnlocked: boolean;
 
@@ -166,11 +166,11 @@ export interface SessionSlice {
   ) => Promise<void>;
   endSession: () => void;
   /** Ricarica il profilo/licenza dal control plane (pulsante "Ricontrolla"). */
-  refreshProfilo: () => Promise<ProfiloUtente | null>;
+  refreshProfilo: () => Promise<UserProfile | null>;
 
   // -- coda di sincronizzazione (outbox) --
   /** Carica la coda di mutazioni non ancora sincronizzate (per il pannello Sync). */
-  caricaCodaSync: () => Promise<OutboxMutazione[]>;
+  caricaCodaSync: () => Promise<OutboxMutation[]>;
   /** Rimuove una voce dalla coda di sync (non sincronizzerà più). */
   eliminaMutazioneCoda: (mutationId: string) => Promise<void>;
   /** Svuota l'intera coda di mutazioni non sincronizzate. */
@@ -182,32 +182,32 @@ export interface SessionSlice {
 // ---------------------------------------------------------------------------
 
 export interface DomainSlice {
-  aziende: Azienda[];
+  aziende: Company[];
   aziendaAttivaId: string | null;
-  appezzamenti: Appezzamento[];
+  appezzamenti: Plot[];
   /** Specie/varietà coltivate del workspace (catalogo `crops`). */
   crops: Crop[];
-  trattamenti: RegistroTrattamento[];
+  trattamenti: TreatmentLog[];
   /** Infrastrutture (CAD-GIS): layer "infrastrutture". */
-  assets: AssetInfrastruttura[];
+  assets: InfrastructureAsset[];
   /** Campionamenti suolo georeferenziati: layer "poi". */
-  campionamenti: CampionamentoSuolo[];
-  /** Eventi di raccolta dell'azienda attiva (Modulo Raccolta): layer "raccolte". */
-  raccolte: Raccolta[];
+  campionamenti: SoilSample[];
+  /** Eventi di raccolta dell'azienda attiva (Modulo Harvest): layer "raccolte". */
+  raccolte: Harvest[];
   /** Configurazione meteo dell'azienda attiva (Modulo Meteo), o null. */
-  configMeteo: ConfigMeteoAzienda | null;
+  configMeteo: CompanyWeatherConfig | null;
   /** Giornale dei trasferimenti dati (import/export), più recenti prima. */
   dataTransferLogs: DataTransferLog[];
   /** Anno della Campagna Agraria attiva (filtra i campi burocratici/registri). */
   campagnaAttiva: number;
   /** Stato di campagna dei campi (SIAN/AGEA) dell'anno attivo. */
-  campiCampagna: CampoCampagna[];
+  campiCampagna: PlotCampaign[];
   /** Posti collaboratore del workspace (multiutente), idratati dal DAL. */
   memberships: TenantMembership[];
   /** Anagrafica prodotti di magazzino dell'azienda attiva (Modulo Magazzino). */
-  prodotti: Prodotto[];
+  prodotti: Product[];
   /** Lotti di magazzino (tutti i prodotti dell'azienda attiva). */
-  lotti: LottoProdotto[];
+  lotti: ProductLot[];
 
   setAziendaAttiva: (aziendaId: string | null) => Promise<void>;
   /**
@@ -226,7 +226,7 @@ export interface DomainSlice {
    * database (messaggio del vincolo) al chiamante per il banner di errore nel
    * form.
    */
-  creaAzienda: (input: NuovaAziendaInput) => Promise<Azienda>;
+  creaAzienda: (input: NewCompanyInput) => Promise<Company>;
   /**
    * Crea/aggiorna un posto collaboratore (`tenant_memberships`) via DAL → outbox
    * e idrata lo store. La quota per ruolo/piano è verificata a monte dal
@@ -251,12 +251,12 @@ export interface DomainSlice {
    * UPDATE alfanumerico dell'anagrafica dell'azienda attiva (preserva i campi
    * non passati). Scrive via DAL → outbox come ogni altra mutazione di dominio.
    */
-  aggiornaAzienda: (patch: Partial<Azienda>) => Promise<void>;
+  aggiornaAzienda: (patch: Partial<Company>) => Promise<void>;
   /** Salva la configurazione meteo dell'azienda attiva e idrata lo store. */
   salvaConfigMeteo: (
     patch: Partial<
       Omit<
-        ConfigMeteoAzienda,
+        CompanyWeatherConfig,
         "company_id" | "tenant_id" | "created_at" | "updated_at"
       >
     >,
@@ -269,11 +269,11 @@ export interface DomainSlice {
    */
   registraTrattamento: (
     input: Omit<
-      RegistroTrattamento,
+      TreatmentLog,
       "id" | "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
     >,
-    scarichi?: ScaricoRichiesta[],
-  ) => Promise<RegistroTrattamento>;
+    scarichi?: IssueRequest[],
+  ) => Promise<TreatmentLog>;
   /**
    * Cancellazione protetta di una singola operazione del Quaderno (soft-delete
    * via DAL → outbox) e rimozione reattiva dalla lista. La conferma invasiva
@@ -287,19 +287,19 @@ export interface DomainSlice {
    */
   aggiornaTrattamento: (
     id: string,
-    patch: Partial<RegistroTrattamento>,
-  ) => Promise<RegistroTrattamento | null>;
+    patch: Partial<TreatmentLog>,
+  ) => Promise<TreatmentLog | null>;
   /** Salva la cache NDVI di un appezzamento (pipeline STAC) e idrata lo store. */
   salvaNdviMedio: (appezzamentoId: string, ndviMedio: number) => Promise<void>;
-  /** Registra/aggiorna un evento di raccolta (Modulo Raccolta) e idrata lo store. */
+  /** Registra/aggiorna un evento di raccolta (Modulo Harvest) e idrata lo store. */
   salvaRaccolta: (
     input: Partial<
       Omit<
-        Raccolta,
+        Harvest,
         "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
       >
     > & { harvested_at: string },
-  ) => Promise<Raccolta | null>;
+  ) => Promise<Harvest | null>;
   /**
    * Cancellazione protetta di un evento di raccolta (soft-delete via DAL →
    * outbox) e rimozione reattiva dalla lista. La conferma invasiva è
@@ -325,11 +325,11 @@ export interface DomainSlice {
    */
   salvaCampoCampagna: (
     input: Omit<
-      CampoCampagna,
+      PlotCampaign,
       "id" | "tenant_id" | "closed_at" | "created_at" | "updated_at" | "deleted_at"
     > &
-      Partial<Pick<CampoCampagna, "closed_at">> & { id?: string },
-  ) => Promise<CampoCampagna | null>;
+      Partial<Pick<PlotCampaign, "closed_at">> & { id?: string },
+  ) => Promise<PlotCampaign | null>;
   /**
    * Chiude il ciclo colturale di una campagna (v17, raccolto delle annuali):
    * il campo torna libero (mappa neutra, DSS spento) e una nuova semina può
@@ -352,7 +352,7 @@ export interface DomainSlice {
    */
   salvaProdotto: (
     input: Omit<
-      Prodotto,
+      Product,
       | "id"
       | "tenant_id"
       | "company_id"
@@ -362,8 +362,8 @@ export interface DomainSlice {
       | "updated_at"
       | "deleted_at"
     > &
-      Partial<Pick<Prodotto, "metadata">> & { id?: string },
-  ) => Promise<Prodotto | null>;
+      Partial<Pick<Product, "metadata">> & { id?: string },
+  ) => Promise<Product | null>;
   /** Soft-delete di un prodotto di magazzino (i lotti restano storicizzati). */
   eliminaProdotto: (id: string) => Promise<void>;
   /**
@@ -372,7 +372,7 @@ export interface DomainSlice {
    */
   caricaLotto: (
     input: Omit<
-      LottoProdotto,
+      ProductLot,
       | "id"
       | "tenant_id"
       | "quantity_on_hand"
@@ -380,16 +380,16 @@ export interface DomainSlice {
       | "updated_at"
       | "deleted_at"
     > & { id?: string },
-  ) => Promise<LottoProdotto | null>;
+  ) => Promise<ProductLot | null>;
   /** Soft-delete di un lotto di magazzino. */
   eliminaLotto: (id: string) => Promise<void>;
   /** Registra un campionamento di suolo (`soil_samples`) e idrata lo store. */
   salvaCampionamento: (
     input: Omit<
-      CampionamentoSuolo,
+      SoilSample,
       "id" | "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
     > & { id?: string },
-  ) => Promise<CampionamentoSuolo | null>;
+  ) => Promise<SoilSample | null>;
 }
 
 // ---------------------------------------------------------------------------
@@ -406,9 +406,9 @@ export interface UiSlice {
   sidebarCollapsed: boolean;
   appezzamentoSelezionatoId: string | null;
   /** Ultima operazione dell'appezzamento selezionato (scheda dettaglio). */
-  ultimaOperazione: UltimaOperazione | null;
+  ultimaOperazione: LastOperation | null;
   /**
-   * Appezzamento per cui aprire il Quaderno filtrato sulle sue lavorazioni
+   * Plot per cui aprire il Quaderno filtrato sulle sue lavorazioni
    * (click sul campo in mappa). `null` = nessuna richiesta pendente. Il
    * QuadernoPanel lo consuma all'apertura impostando il filtro.
    */
@@ -420,7 +420,7 @@ export interface UiSlice {
    */
   scoutingApriOsservazioneId: string | null;
   /**
-   * Appezzamento su cui aprire la scheda "Dati coltura" già puntata (CTA
+   * Plot su cui aprire la scheda "Dati coltura" già puntata (CTA
    * "Completa ora" della compliance SIAN, v17). `null` = nessuna richiesta
    * pendente; il ColturaDatiPanel la consuma all'apertura.
    */
@@ -474,7 +474,7 @@ export interface GeometrySlice {
   /** Geometria disegnata in attesa di data-entry (scheda dati). */
   pendingGeometry: PendingGeometry | null;
   /** Tipo di geometria che l'utente intende tracciare (menu rapido disegno). */
-  drawIntent: GeometriaDisegnata | null;
+  drawIntent: DrawnGeometry | null;
   /** Elemento selezionato sulla mappa (apre la scheda dettaglio/editing). */
   selectedFeature: SelectedFeatureRef | null;
   /** Sessione di editing spaziale attiva (marcatore: quale elemento). */
@@ -487,20 +487,20 @@ export interface GeometrySlice {
   geometryRedo: GeometrySnapshot[];
 
   salvaAppezzamentoDisegnato: (
-    geometria: Appezzamento["geometry"],
-    attrs?: AppezzamentoDrawAttrs,
-  ) => Promise<Appezzamento | null>;
+    geometria: Plot["geometry"],
+    attrs?: PlotDrawAttrs,
+  ) => Promise<Plot | null>;
   salvaAssetDisegnato: (
     geometria: Geometry,
     attrs?: AssetDrawAttrs,
-  ) => Promise<AssetInfrastruttura | null>;
+  ) => Promise<InfrastructureAsset | null>;
 
   // -- data-entry geometria --
   setPendingGeometry: (pending: PendingGeometry | null) => void;
   clearPendingGeometry: () => void;
 
   // -- disegno / selezione / editing completo --
-  setDrawIntent: (kind: GeometriaDisegnata | null) => void;
+  setDrawIntent: (kind: DrawnGeometry | null) => void;
   selectFeatureOnMap: (ref: SelectedFeatureRef | null) => Promise<void>;
   clearSelectedFeature: () => void;
   /** Avvia l'editing geometrico nativo di un elemento (marcatore + apertura suite). */
@@ -524,12 +524,12 @@ export interface GeometrySlice {
   /** UPDATE alfanumerico di un appezzamento esistente (preserva i campi non passati). */
   aggiornaAppezzamento: (
     id: string,
-    patch: Partial<Appezzamento>,
+    patch: Partial<Plot>,
   ) => Promise<void>;
   /** UPDATE alfanumerico di un asset/infrastruttura esistente. */
   aggiornaAsset: (
     id: string,
-    patch: Partial<AssetInfrastruttura>,
+    patch: Partial<InfrastructureAsset>,
   ) => Promise<void>;
 }
 

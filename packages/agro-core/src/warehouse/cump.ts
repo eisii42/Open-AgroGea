@@ -1,4 +1,4 @@
-import type { CategoriaProdotto, LottoProdotto, Prodotto } from "../types";
+import type { ProductCategory, ProductLot, Product } from "../types";
 
 /**
  * Motore PURO del Magazzino (0.2.0): CUMP (Costo Unitario Medio Ponderato,
@@ -17,7 +17,7 @@ export const EXPIRY_WARNING_DAYS_DEFAULT = 30;
  * Con giacenza totale nulla o negativa il CUMP riparte dal costo di carico.
  * Arrotondato a 4 decimali (precisione della colonna `avg_unit_cost`).
  */
-export function cumpDopoCarico(
+export function cumpAfterInbound(
   giacenzaEsistente: number,
   cumpCorrente: number,
   quantitaCaricata: number,
@@ -31,7 +31,7 @@ export function cumpDopoCarico(
 }
 
 /** Stato di scadenza di un lotto rispetto a una data di riferimento. */
-export type StatoScadenzaLotto = "valid" | "expiring" | "expired";
+export type LotExpiryStatus = "valid" | "expiring" | "expired";
 
 /**
  * Classifica la scadenza di un lotto: `expired` se la data è passata,
@@ -40,11 +40,11 @@ export type StatoScadenzaLotto = "valid" | "expiring" | "expired";
  * è ancora utilizzabile). Accetta sia la stringa ISO del tipo di dominio sia
  * il `Date` che PGlite può restituire per le colonne `date`.
  */
-export function statoScadenza(
+export function expiryStatus(
   expiresAt: string | Date | null,
   riferimento: Date = new Date(),
   warningDays: number = EXPIRY_WARNING_DAYS_DEFAULT,
-): StatoScadenzaLotto {
+): LotExpiryStatus {
   if (!expiresAt) return "valid";
   // Il Date di PGlite è a mezzanotte LOCALE: si riformatta con i componenti
   // locali (toISOString slitterebbe di un giorno nei fusi positivi).
@@ -61,24 +61,24 @@ export function statoScadenza(
 }
 
 /** true se il lotto è scaduto (uso BLOCCATO nello scarico, DAL + UI). */
-export function lottoScaduto(
-  lotto: Pick<LottoProdotto, "expires_at">,
+export function lotExpired(
+  lotto: Pick<ProductLot, "expires_at">,
   riferimento: Date = new Date(),
 ): boolean {
-  return statoScadenza(lotto.expires_at, riferimento) === "expired";
+  return expiryStatus(lotto.expires_at, riferimento) === "expired";
 }
 
 /** Errore di validazione dell'anagrafica prodotto (chiave i18n come la PAN). */
-export interface ProdottoValidationError {
+export interface ProductValidationError {
   field: string;
   messageKey: string;
 }
 
 /** Bozza di prodotto in ingresso dal form (campi della categoria inclusi). */
-export type ProdottoDraft = Pick<Prodotto, "category" | "name" | "unit"> &
+export type ProductDraft = Pick<Product, "category" | "name" | "unit"> &
   Partial<
     Pick<
-      Prodotto,
+      Product,
       | "registration_number"
       | "active_substance"
       | "npk_n"
@@ -99,17 +99,17 @@ const isPct = (v: number | null | undefined) =>
  * percentuale (0–100); carburante → codice assegnazione UMA. Le sementi non
  * hanno campi aggiuntivi obbligatori.
  */
-export function validateProdotto(
-  draft: ProdottoDraft,
-): ProdottoValidationError[] {
-  const errors: ProdottoValidationError[] = [];
+export function validateProduct(
+  draft: ProductDraft,
+): ProductValidationError[] {
+  const errors: ProductValidationError[] = [];
   if (isBlank(draft.name)) {
     errors.push({ field: "name", messageKey: "warehouse.validation.required" });
   }
   if (isBlank(draft.unit)) {
     errors.push({ field: "unit", messageKey: "warehouse.validation.required" });
   }
-  const byCategory: Record<CategoriaProdotto, () => void> = {
+  const byCategory: Record<ProductCategory, () => void> = {
     phytosanitary: () => {
       if (isBlank(draft.registration_number)) {
         errors.push({
@@ -147,9 +147,9 @@ export function validateProdotto(
  * Mappa tipo operazione del Quaderno → categoria di magazzino pertinente per
  * lo scarico (i tipi senza consumo di prodotto non hanno categoria).
  */
-export function categoriaPerOperazione(
+export function categoryForOperation(
   operationType: string,
-): CategoriaProdotto | null {
+): ProductCategory | null {
   switch (operationType) {
     case "phytosanitary":
       return "phytosanitary";

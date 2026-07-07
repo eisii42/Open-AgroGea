@@ -1,8 +1,8 @@
 import {
   assetsToFeatureCollection,
-  centroide,
+  centroid,
   poiToFeatureCollection,
-  raccolteToFeatureCollection,
+  harvestsToFeatureCollection,
   useAgroStore,
 } from "@agrogea/core";
 import type { Point } from "geojson";
@@ -136,8 +136,8 @@ export function useFieldLayers(
     });
   }, [campionamenti, styleEpoch]);
 
-  // Modulo Raccolta: proietta gli eventi di raccolta come layer puntuale. Le
-  // raccolte senza geometria propria ereditano il centroide dell'appezzamento
+  // Modulo Harvest: proietta gli eventi di raccolta come layer puntuale. Le
+  // raccolte senza geometria propria ereditano il centroid dell'appezzamento
   // collegato, così compaiono in mappa; le loro properties (cultivar,
   // destinazione, quantita_kg) alimentano i grafici della tabella attributi.
   useEffect(() => {
@@ -145,13 +145,13 @@ export function useFieldLayers(
     for (const a of appezzamenti) {
       centroidi.set(a.id, {
         type: "Point",
-        coordinates: centroide(a.geometry),
+        coordinates: centroid(a.geometry),
       });
     }
     syncLayer({
       id: RACCOLTE_ID,
       name: "Raccolte",
-      geojson: raccolteToFeatureCollection(raccolte, centroidi),
+      geojson: harvestsToFeatureCollection(raccolte, centroidi),
       style: {
         circleRadius: 6,
         fillColor: "#e3a008",
@@ -169,6 +169,6 @@ export function useFieldLayers(
 
   // NB: le operazioni del Quaderno (trattamenti) NON sono più proiettate qui
   // come layer fisso. Sono mostrate on-demand come simboli (icone per tipo,
-  // disposti intorno al centroide) tramite il toggle "Mostra sulla mappa" del
+  // disposti intorno al centroid) tramite il toggle "Mostra sulla mappa" del
   // QuadernoPanel → vedi OperationMarkers.tsx (marker rimossi allo spegnimento).
 }

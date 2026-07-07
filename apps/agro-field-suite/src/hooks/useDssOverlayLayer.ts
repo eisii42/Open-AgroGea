@@ -1,5 +1,5 @@
-import type { Appezzamento } from "@agrogea/core";
-import type { Coltura } from "@agrogea/tools";
+import type { Plot } from "@agrogea/core";
+import type { CropType } from "@agrogea/tools";
 import {
   DEFAULT_LAYER_STYLE,
   type GeoLibreLayer,
@@ -33,11 +33,11 @@ const STOPS_DSS: VectorStyleStop[] = [
 ];
 
 export interface DssOverlayParams {
-  appezzamenti: Appezzamento[];
+  appezzamenti: Plot[];
   /** Punteggio sintetico 0..1 per appezzamento (id → sintesi). */
   sintesiPerCampo: Map<string, SintesiCampo>;
-  /** Coltura prevalente, per la calibrazione della rampa/legenda. */
-  coltura: Coltura;
+  /** CropType prevalente, per la calibrazione della rampa/legenda. */
+  coltura: CropType;
   /** true per mostrare l'overlay; false lo rimuove dalla mappa. */
   attivo: boolean;
   /** Epoch dello stile mappa: forza la re-iniezione dopo un cambio basemap. */

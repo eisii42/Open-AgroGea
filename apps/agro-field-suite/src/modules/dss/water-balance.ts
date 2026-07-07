@@ -1,8 +1,8 @@
-import type { LetturaMeteo, RegistroTrattamento } from "@agrogea/core";
+import type { WeatherReading, TreatmentLog } from "@agrogea/core";
 import {
   bilancioIdricoFao66,
   type BilancioIdricoGiorno,
-  type Coltura,
+  type CropType,
   type DatiMeteoGiorno,
   et0PenmanMonteith,
   etColturale,
@@ -36,10 +36,10 @@ export interface ApportoIrriguo {
 
 export interface BilancioIdricoParams {
   /** Letture meteo orarie/giornaliere dell'azienda (`weather_readings`). */
-  letture: LetturaMeteo[];
+  letture: WeatherReading[];
   /** Apporti irrigui giornalieri (mm), dai log gestionali. */
   irrigazioni?: ApportoIrriguo[];
-  coltura: Coltura;
+  coltura: CropType;
   fase: FaseFenologica;
   suolo: ParametriSuolo;
   /** Quota della stazione (m s.l.m.) per il termine altimetrico di ET0. */
@@ -76,7 +76,7 @@ export function apportoIrriguoMm(litri: number, areaHa: number): number {
 }
 
 /** Volume d'acqua (litri) di un'irrigazione: `total_quantity`, poi `water_volume_l`. */
-function volumeIrriguoLitri(t: RegistroTrattamento): number | null {
+function volumeIrriguoLitri(t: TreatmentLog): number | null {
   if (t.total_quantity != null && Number.isFinite(t.total_quantity)) {
     return t.total_quantity;
   }
@@ -93,7 +93,7 @@ function volumeIrriguoLitri(t: RegistroTrattamento): number | null {
  * dell'appezzamento.
  */
 export function apportiIrriguiDaTrattamenti(
-  trattamenti: RegistroTrattamento[],
+  trattamenti: TreatmentLog[],
   areaHa: number,
 ): ApportoIrriguo[] {
   return trattamenti
@@ -134,7 +134,7 @@ function media(valori: number[], fallback: number): number {
  * 2 m/s, radiazione 0) così ET0 non riceve mai NaN. Ordina per data crescente.
  */
 export function serieAgrometeoDaLetture(
-  letture: LetturaMeteo[],
+  letture: WeatherReading[],
   altitudine = 0,
 ): { meteo: DatiMeteoGiorno[]; pioggia: number[]; date: string[] } {
   const perGiorno = new Map<

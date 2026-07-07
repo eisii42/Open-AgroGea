@@ -3,7 +3,7 @@ import type { TFunction } from "i18next";
 /**
  * Schemi dichiarativi del form "Dati coltura" (una scheda per tipo di coltura).
  *
- * Ogni categoria (allineata a `CropModule.categorie` → `colturaPerAppezzamento`)
+ * Ogni categoria (allineata a `CropModule.categorie` → `cropForPlot`)
  * definisce i campi di filiera SPECIFICI che finiscono in `crops.crop_metadata`
  * (JSONB dinamico), oltre ai campi comuni (nome comune/scientifico/varietà) e ai
  * campi annuali di `plots_campaign`. La `category` salvata in `crop_metadata`

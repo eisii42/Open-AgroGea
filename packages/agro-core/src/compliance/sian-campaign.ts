@@ -1,33 +1,33 @@
-import type { CampoCampagna } from "../types";
+import type { PlotCampaign } from "../types";
 
 /**
  * Compliance DICHIARATIVA della Campagna Agraria: i campi di `plots_campaign`
  * richiesti perché l'export ministeriale della stagione sia completo. Unica
  * fonte di verità per i punti UI che segnalano/gateano la compilazione (badge
- * nei selettori, banner alla raccolta, contatore nella pagina Azienda).
+ * nei selettori, banner alla raccolta, contatore nella pagina Company).
  *
  * I sistemi nazionali coperti condividono la STESSA terna di colonne (il
  * modello è EU-agnostico), cambia solo la semantica:
  *   * IT — SIAN (AGEA): codice coltura ministeriale, Isola (reference parcel),
- *     Appezzamento SIAN — consumati da `buildSianCsv`;
+ *     Plot SIAN — consumati da `buildSianCsv`;
  *   * ES — SIEX/CUE (FEGA): código de cultivo, parcela de referencia e recinto
  *     SIGPAC — consumati da `buildSiexJson` (cultivo/parcela_referencia/recinto).
  * Gli altri paesi non hanno (ancora) un sistema gateato: nessun vincolo.
  */
 
 /** Sistema dichiarativo nazionale che richiede i campi di campagna compilati. */
-export type SistemaDichiarativo = "SIAN" | "SIEX";
+export type DeclarativeSystem = "SIAN" | "SIEX";
 
 /** Campo dichiarativo mancante su una campagna. */
-export type CampoDichiarativoMancante =
+export type MissingDeclarativeField =
   | "crop_external_code"
   | "reference_parcel_external_id"
   | "agricultural_parcel_external_id";
 
-/** @deprecated alias storico (prima versione IT-only): usa CampoDichiarativoMancante. */
-export type CampoSianMancante = CampoDichiarativoMancante;
+/** @deprecated alias storico (prima versione IT-only): usa MissingDeclarativeField. */
+export type MissingSianField = MissingDeclarativeField;
 
-const CAMPI_DICHIARATIVI: CampoDichiarativoMancante[] = [
+const CAMPI_DICHIARATIVI: MissingDeclarativeField[] = [
   "crop_external_code",
   "reference_parcel_external_id",
   "agricultural_parcel_external_id",
@@ -37,9 +37,9 @@ const CAMPI_DICHIARATIVI: CampoDichiarativoMancante[] = [
  * Sistema dichiarativo del paese risolto, o null se il paese non ne ha uno
  * gateato (il gate UI si disattiva del tutto).
  */
-export function sistemaDichiarativo(
+export function declarativeSystem(
   countryCode: string | null | undefined,
-): SistemaDichiarativo | null {
+): DeclarativeSystem | null {
   switch (countryCode) {
     case "IT":
       return "SIAN";
@@ -55,11 +55,11 @@ export function sistemaDichiarativo(
  * o paese senza sistema gateato). `variety_external_code` resta facoltativo
  * (non tutte le colture lo hanno).
  */
-export function dichiarativiMancanti(
+export function missingDeclarative(
   countryCode: string | null | undefined,
-  campo: Pick<CampoCampagna, CampoDichiarativoMancante>,
-): CampoDichiarativoMancante[] {
-  if (!sistemaDichiarativo(countryCode)) return [];
+  campo: Pick<PlotCampaign, MissingDeclarativeField>,
+): MissingDeclarativeField[] {
+  if (!declarativeSystem(countryCode)) return [];
   return CAMPI_DICHIARATIVI.filter((key) => {
     const v = campo[key];
     return v == null || v.trim() === "";
@@ -67,15 +67,15 @@ export function dichiarativiMancanti(
 }
 
 /** Variante IT-only, senza country (test e chiamate esplicitamente SIAN). */
-export function sianMancanti(
-  campo: Pick<CampoCampagna, CampoDichiarativoMancante>,
-): CampoDichiarativoMancante[] {
-  return dichiarativiMancanti("IT", campo);
+export function missingSian(
+  campo: Pick<PlotCampaign, MissingDeclarativeField>,
+): MissingDeclarativeField[] {
+  return missingDeclarative("IT", campo);
 }
 
 /** true se la campagna ha tutti i dati dichiarativi richiesti dal paese. */
-export function sianCompleta(
-  campo: Pick<CampoCampagna, CampoDichiarativoMancante>,
+export function sianComplete(
+  campo: Pick<PlotCampaign, MissingDeclarativeField>,
 ): boolean {
-  return sianMancanti(campo).length === 0;
+  return missingSian(campo).length === 0;
 }

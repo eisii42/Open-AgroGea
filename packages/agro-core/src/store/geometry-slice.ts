@@ -28,7 +28,7 @@ export function createGeometrySlice(
       const record = await dal.upsertAppezzamento({
         id: attrs.id ?? uuidv4(),
         company_id: aziendaAttivaId,
-        user_plot_name: attrs.name ?? `Appezzamento ${appezzamenti.length + 1}`,
+        user_plot_name: attrs.name ?? `Plot ${appezzamenti.length + 1}`,
         cadastral_sheet: attrs.cadastral_sheet ?? null,
         cadastral_parcel: attrs.cadastral_parcel ?? null,
         last_ndvi_mean: null,

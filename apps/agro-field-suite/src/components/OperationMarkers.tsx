@@ -6,12 +6,12 @@
  * Renderizza unicamente le operazioni VISIBILI nel registro (gli ID arrivano già
  * filtrati dal QuadernoPanel). Più operazioni sullo stesso appezzamento NON si
  * sovrappongono: vengono disposte ad anello (offset in pixel, stabile a ogni
- * zoom) attorno al centroide dell'appezzamento.
+ * zoom) attorno al centroid dell'appezzamento.
  */
 import {
-  centroide,
-  type RegistroTrattamento,
-  type TipoOperazione,
+  centroid,
+  type TreatmentLog,
+  type OperationType,
   useAgroStore,
 } from "@agrogea/core";
 import type { MapController } from "@geolibre/map";
@@ -30,7 +30,7 @@ import maplibregl from "maplibre-gl";
 import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-const OP_ICON: Record<TipoOperazione, LucideIcon> = {
+const OP_ICON: Record<OperationType, LucideIcon> = {
   phytosanitary: SprayCan,
   fertilization: FlaskConical,
   irrigation: Droplets,
@@ -40,7 +40,7 @@ const OP_ICON: Record<TipoOperazione, LucideIcon> = {
   sampling: TestTube,
 };
 
-const OP_COLOR: Record<TipoOperazione, string> = {
+const OP_COLOR: Record<OperationType, string> = {
   phytosanitary: "#dc2626",
   fertilization: "#16a34a",
   irrigation: "#0ea5e9",
@@ -50,25 +50,25 @@ const OP_COLOR: Record<TipoOperazione, string> = {
   sampling: "#0d9488",
 };
 
-const OP_LABEL: Record<TipoOperazione, string> = {
+const OP_LABEL: Record<OperationType, string> = {
   phytosanitary: "Trattamento",
   fertilization: "Fertilizzazione",
   irrigation: "Irrigazione",
   tillage: "Lavorazione",
   sowing: "Semina",
-  harvest: "Raccolta",
+  harvest: "Harvest",
   sampling: "Campionamento",
 };
 
 interface Placement {
-  op: RegistroTrattamento;
+  op: TreatmentLog;
   lngLat: [number, number];
   offset: [number, number];
 }
 
 interface Slot {
   el: HTMLDivElement;
-  op: RegistroTrattamento;
+  op: TreatmentLog;
 }
 
 interface MarkerEntry {
@@ -101,15 +101,15 @@ export function OperationMarkers({
   const appezzamenti = useAgroStore((s) => s.appezzamenti);
 
   // Posizioni: una per operazione visibile, raggruppate per appezzamento e
-  // disposte ad anello attorno al centroide (offset in pixel → niente overlap).
+  // disposte ad anello attorno al centroid (offset in pixel → niente overlap).
   const placements = useMemo<Placement[]>(() => {
     if (!ids) return [];
     const idSet = new Set(ids);
     const centroids = new Map<string, [number, number]>();
     for (const a of appezzamenti) {
-      centroids.set(a.id, centroide(a.geometry) as [number, number]);
+      centroids.set(a.id, centroid(a.geometry) as [number, number]);
     }
-    const byPlot = new Map<string, RegistroTrattamento[]>();
+    const byPlot = new Map<string, TreatmentLog[]>();
     for (const t of trattamenti) {
       if (t.deleted_at != null || !idSet.has(t.id)) continue;
       if (!t.plot_id || !centroids.has(t.plot_id)) continue;
@@ -186,7 +186,7 @@ export function OperationMarkers({
   );
 }
 
-function OpBadge({ op }: { op: RegistroTrattamento }) {
+function OpBadge({ op }: { op: TreatmentLog }) {
   const Icon = OP_ICON[op.operation_type] ?? Leaf;
   const color = OP_COLOR[op.operation_type] ?? "#64748b";
   const data = new Date(op.executed_at).toLocaleDateString("it-IT");

@@ -1,9 +1,9 @@
 import {
-  dichiarativiMancanti,
-  type RegistroTrattamento,
-  type ScaricoRichiesta,
-  sistemaDichiarativo,
-  type TipoOperazione,
+  missingDeclarative,
+  type TreatmentLog,
+  type IssueRequest,
+  declarativeSystem,
+  type OperationType,
   useAgroStore,
 } from "@agrogea/core";
 import {
@@ -49,7 +49,7 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
   const campiCampagna = useAgroStore((s) => s.campiCampagna);
   const valutaCompliance = useGeoCompliance();
   // Cataloghi di stato filtrati per il country_code risolto del tenant (Modulo 3):
-  // i dropdown Prodotto/Concime mostrano solo le voci del registro nazionale.
+  // i dropdown Product/Concime mostrano solo le voci del registro nazionale.
   const { voci: fitosanitari, countryCode } = useCountryCatalog("phytosanitary");
   const { voci: concimi } = useCountryCatalog("fertilizer");
   // Magazzino (0.2.0): anagrafica e lotti per la sezione di scarico del form.
@@ -72,7 +72,7 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
 
   // Tipo operazione in compilazione (null = nessun form aperto); `chooser`
   // mostra il selettore impilato di tutti i tipi operazione.
-  const [formType, setFormType] = useState<TipoOperazione | null>(null);
+  const [formType, setFormType] = useState<OperationType | null>(null);
   const [chooser, setChooser] = useState(false);
   const [formDefaultAppId, setFormDefaultAppId] = useState<string>("");
   // Valori iniziali per "Ripeti operazione" (v17); null = form vuoto. Il nonce
@@ -96,9 +96,9 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
             t("quadernoPanel.fieldFallbackName", { id: c.plot_id.slice(0, 6) });
           // Badge compliance: dichiarativi incompleti per il sistema del paese
           // (IT → SIAN, ES → SIEX), visibile a ogni selezione del campo.
-          const sistema = sistemaDichiarativo(countryCode);
+          const sistema = declarativeSystem(countryCode);
           const dichiarativiKo =
-            sistema != null && dichiarativiMancanti(countryCode, c).length > 0;
+            sistema != null && missingDeclarative(countryCode, c).length > 0;
           return {
             campoCampagnaId: c.id,
             appezzamentoId: c.plot_id,
@@ -110,7 +110,7 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
     [campiCampagna, appezzamenti, countryCode],
   );
 
-  function apriForm(type: TipoOperazione) {
+  function apriForm(type: OperationType) {
     setFormType(type);
     setFormDefaultAppId(filtroAppId);
     setFormDefaults(null);
@@ -121,7 +121,7 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
   // "Ripeti operazione" (v17): riapre il form del tipo giusto precompilato dal
   // record esistente; la data resta oggi e gli scarichi si riscelgono sui
   // lotti attuali del magazzino.
-  function ripetiOperazione(op: RegistroTrattamento) {
+  function ripetiOperazione(op: TreatmentLog) {
     setFormDefaults({
       plot_id: op.plot_id,
       plot_campaign_id: op.plot_campaign_id,
@@ -150,12 +150,12 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
   }
 
   // Cancellazione protetta: operazione in attesa di conferma + notifica esito.
-  const [daEliminare, setDaEliminare] = useState<RegistroTrattamento | null>(
+  const [daEliminare, setDaEliminare] = useState<TreatmentLog | null>(
     null,
   );
   const [notifica, setNotifica] = useState<string | null>(null);
   // Operazione aperta in scheda dettaglio (modale centrale di sola lettura).
-  const [dettaglio, setDettaglio] = useState<RegistroTrattamento | null>(null);
+  const [dettaglio, setDettaglio] = useState<TreatmentLog | null>(null);
 
   // Filtri lista.
   const [filtroAppId, setFiltroAppId] = useState<string>("");
@@ -180,7 +180,7 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
   // su campo libero, v17) crea scheda coltura + campagna agraria in automatico.
   async function handleSubmit(
     values: TrattamentoFormValues,
-    scarichi?: ScaricoRichiesta[],
+    scarichi?: IssueRequest[],
     assegnazione?: AssegnazioneColtura | null,
   ) {
     await registraTrattamento(values, scarichi);
@@ -232,7 +232,7 @@ export function QuadernoPanel({ onClose }: { onClose: () => void }) {
   }, [notifica]);
 
   /** Etichetta sintetica dell'operazione, per il banner di conferma. */
-  function etichettaOperazione(t: RegistroTrattamento): string {
+  function etichettaOperazione(t: TreatmentLog): string {
     const data = new Date(t.executed_at).toLocaleDateString("it-IT");
     return `${t.product_name ?? t.operation_type} · ${data}`;
   }

@@ -1,4 +1,4 @@
-import type { Appezzamento } from "@agrogea/core";
+import type { Plot } from "@agrogea/core";
 import type { FeatureCollection } from "geojson";
 import { useEffect, useState } from "react";
 
@@ -30,7 +30,7 @@ const VUOTO: ComplianceAnalysisResult = {
 
 /** FeatureCollection degli appezzamenti con `id` in properties (per il join). */
 function appezzamentiFeatureCollection(
-  appezzamenti: Appezzamento[],
+  appezzamenti: Plot[],
 ): FeatureCollection {
   return {
     type: "FeatureCollection",
@@ -43,7 +43,7 @@ function appezzamentiFeatureCollection(
 }
 
 export function useComplianceLayerAnalysis(
-  appezzamenti: Appezzamento[],
+  appezzamenti: Plot[],
   layerGeojson: FeatureCollection | null,
 ): ComplianceAnalysisResult {
   const [stato, setStato] = useState<ComplianceAnalysisResult>(VUOTO);

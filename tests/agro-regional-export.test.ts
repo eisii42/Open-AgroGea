@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type {
-  Appezzamento,
-  CampoCampagna,
-  RegistroTrattamento,
+  Plot,
+  PlotCampaign,
+  TreatmentLog,
 } from "@agrogea/core";
 import {
   baseExporter,
@@ -16,7 +16,7 @@ import {
   type RegionalExportInput,
 } from "../apps/agro-field-suite/src/lib/regionalExport";
 
-function plot(id: string, nome: string): Appezzamento {
+function plot(id: string, nome: string): Plot {
   return {
     id,
     tenant_id: "t",
@@ -37,7 +37,7 @@ function plot(id: string, nome: string): Appezzamento {
   };
 }
 
-function campaign(plotId: string): CampoCampagna {
+function campaign(plotId: string): PlotCampaign {
   return {
     id: `cc-${plotId}`,
     tenant_id: "t",
@@ -55,7 +55,7 @@ function campaign(plotId: string): CampoCampagna {
   };
 }
 
-function tratt(plotId: string): RegistroTrattamento {
+function tratt(plotId: string): TreatmentLog {
   return {
     id: "t1",
     tenant_id: "t",

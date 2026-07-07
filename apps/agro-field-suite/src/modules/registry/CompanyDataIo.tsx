@@ -20,7 +20,7 @@ import { STANDALONE } from "../../standalone";
  *   - Standalone (OSS): backup/restore dell'istanza locale; l'import è un
  *     ripristino che sovrascrive lo stato corrente, previa conferma.
  *
- * Collocazione: Anagrafica/Impostazioni Azienda (cloud) e Data Command Center
+ * Collocazione: Anagrafica/Impostazioni Company (cloud) e Data Command Center
  * (standalone) — vedi punti d'innesto in AnagraficaPanel / CommandCenter.
  */
 type Status =

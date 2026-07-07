@@ -7,7 +7,7 @@
  *     stesso output, requisito per mappe riproducibili e auditabili;
  *   * 1-D, quindi l'assegnazione è una semplice ricerca della soglia.
  *
- * Output orientato all'uso agronomico: per ogni classe i confini, il centroide,
+ * Output orientato all'uso agronomico: per ogni classe i confini, il centroid,
  * la numerosità e (opzionale) la dose prescritta. Le geometrie delle zone si
  * vettorializzano poi in DuckDB Spatial (fase B); qui si lavora sui soli valori.
  */
@@ -15,8 +15,8 @@
 export interface ClasseVigore {
   /** Indice di classe, 0 = vigore minore. */
   classe: number;
-  /** Valore medio dell'indice nella classe (centroide). */
-  centroide: number;
+  /** Valore medio dell'indice nella classe (centroid). */
+  centroid: number;
   /** Estremi [min,max) dell'indice che ricadono nella classe. */
   intervallo: [number, number];
   /** Numero di pixel assegnati. */
@@ -116,9 +116,9 @@ export function zonazioneKMeans(
     if (finiti[p] > maxClasse[c]) maxClasse[c] = finiti[p];
   }
 
-  const classi: ClasseVigore[] = centroidi.map((centroide, i) => ({
+  const classi: ClasseVigore[] = centroidi.map((centroid, i) => ({
     classe: i,
-    centroide,
+    centroid,
     intervallo: [
       conteggi[i] > 0 ? minClasse[i] : Number.NaN,
       conteggi[i] > 0 ? maxClasse[i] : Number.NaN,
@@ -143,7 +143,7 @@ export function zonazioneKMeans(
  *     produttivo) — tipico per la semina a rateo variabile.
  *
  * `intensita` (0..1) regola lo scostamento massimo dalla dose di riferimento.
- * Le classi sono ordinate per centroide crescente prima di mappare le dosi.
+ * Le classi sono ordinate per centroid crescente prima di mappare le dosi.
  */
 export function dosiPerClasse(
   classi: ClasseVigore[],
@@ -151,7 +151,7 @@ export function dosiPerClasse(
   logica: LogicaVRA,
   intensita = 0.3,
 ): { classe: number; dose: number }[] {
-  const ordinate = [...classi].sort((a, b) => a.centroide - b.centroide);
+  const ordinate = [...classi].sort((a, b) => a.centroid - b.centroid);
   const n = ordinate.length;
   if (n < 2) return ordinate.map((c) => ({ classe: c.classe, dose: doseRiferimento }));
 

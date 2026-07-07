@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { Appezzamento } from "@agrogea/core";
+import type { Plot } from "@agrogea/core";
 import {
   calibrazioneSintesi,
   coloreRischioDss,
@@ -97,7 +97,7 @@ describe("coloreRischioDss / livelloRischioDss", () => {
   });
 });
 
-function apz(id: string): Appezzamento {
+function apz(id: string): Plot {
   return {
     id,
     tenant_id: "t",

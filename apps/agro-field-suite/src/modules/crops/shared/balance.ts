@@ -1,5 +1,5 @@
 import {
-  type Coltura as SpecieFenologica,
+  type CropType as SpecieFenologica,
   type DatiMeteoGiorno,
   et0PenmanMonteith,
   etColturale,

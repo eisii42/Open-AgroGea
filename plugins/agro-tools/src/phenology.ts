@@ -14,7 +14,7 @@
  * editabili dall'utente: NON costanti regolatorie.
  */
 
-export type Coltura =
+export type CropType =
   | "vite"
   | "olivo"
   | "melo"
@@ -39,8 +39,8 @@ export interface CalibrazioneFase {
 }
 
 export interface MatriceColtura {
-  coltura: Coltura;
-  /** Coltura arborea/specializzata: il soil-masking è attivo di default. */
+  coltura: CropType;
+  /** CropType arborea/specializzata: il soil-masking è attivo di default. */
   arborea: boolean;
   /** Soglie termiche per i gradi-giorno (°C): base e cutoff superiore. */
   tBase: number;
@@ -48,7 +48,7 @@ export interface MatriceColtura {
   fasi: CalibrazioneFase[];
 }
 
-export const MATRICI_COLTURA: Record<Coltura, MatriceColtura> = {
+export const MATRICI_COLTURA: Record<CropType, MatriceColtura> = {
   vite: {
     coltura: "vite",
     arborea: true,
@@ -123,14 +123,14 @@ export const MATRICI_COLTURA: Record<Coltura, MatriceColtura> = {
   },
 };
 
-export function getMatriceColtura(coltura: Coltura): MatriceColtura {
+export function getMatriceColtura(coltura: CropType): MatriceColtura {
   const matrice = MATRICI_COLTURA[coltura];
-  if (!matrice) throw new Error(`Coltura senza matrice di calibrazione: ${coltura}`);
+  if (!matrice) throw new Error(`CropType senza matrice di calibrazione: ${coltura}`);
   return matrice;
 }
 
 export function getCalibrazioneFase(
-  coltura: Coltura,
+  coltura: CropType,
   fase: FaseFenologica,
 ): CalibrazioneFase {
   const cal = getMatriceColtura(coltura).fasi.find((f) => f.fase === fase);
@@ -144,7 +144,7 @@ export function getCalibrazioneFase(
  * continua restituisce `null` (masking non applicato).
  */
 export function sogliaSoilMask(
-  coltura: Coltura,
+  coltura: CropType,
   fase: FaseFenologica,
 ): number | null {
   const matrice = getMatriceColtura(coltura);
