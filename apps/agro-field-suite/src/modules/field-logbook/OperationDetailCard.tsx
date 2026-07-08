@@ -2,7 +2,8 @@
  * Scheda dettaglio di un'operazione del Quaderno di Campagna: modale centrale
  * in sola reading con TUTTE le informazioni registrate (anagrafica treatment,
  * dosi, operatore, sicurezza, note). Si apre al tap/click su una voce della
- * lista del Quaderno.
+ * lista del Quaderno. Il layout è a griglia adattiva su più colonne: ogni
+ * sezione mostra solo i campi valorizzati e sparisce se non ha nulla da dire.
  */
 import type { TreatmentLog, OperationType } from "@agrogea/core";
 import { Trash2, X } from "lucide-react";
@@ -26,6 +27,16 @@ function dataEstesa(value: string): string {
       });
 }
 
+/** Campo della griglia: etichetta + valore, con span opzionale su due colonne. */
+interface FieldSpec {
+  label: string;
+  value: string | number | null | undefined;
+  /** Allinea a destra e usa il tabular-numbers per i valori numerici. */
+  num?: boolean;
+  /** Testo lungo (nome prodotto, note brevi…): occupa entrambe le colonne. */
+  wide?: boolean;
+}
+
 export function OperationDetailCard({
   operation,
   appezzamentoNome,
@@ -42,13 +53,45 @@ export function OperationDetailCard({
   const dose =
     o.dose_value != null ? `${o.dose_value} ${o.dose_unit ?? ""}`.trim() : null;
 
+  const cropPlot: FieldSpec[] = [
+    {
+      label: t("operazioneDettaglioCard.field.plot"),
+      value: appezzamentoNome ?? t("operazioneDettaglioCard.wholeFarm"),
+      wide: true,
+    },
+  ];
+
+  const productDose: FieldSpec[] = [
+    { label: t("operazioneDettaglioCard.field.product"), value: o.product_name, wide: true },
+    { label: t("operazioneDettaglioCard.field.activeSubstance"), value: o.active_substance, wide: true },
+    { label: t("operazioneDettaglioCard.field.targetDisease"), value: o.target_disease, wide: true },
+    { label: t("operazioneDettaglioCard.field.registrationNumber"), value: o.registration_number, num: true },
+    { label: t("operazioneDettaglioCard.field.dose"), value: dose, num: true },
+    { label: t("operazioneDettaglioCard.field.totalQuantity"), value: o.total_quantity, num: true },
+    { label: t("operazioneDettaglioCard.field.waterVolume"), value: o.water_volume_l, num: true },
+    { label: t("operazioneDettaglioCard.field.fertilizerType"), value: o.fertilizer_type },
+    { label: t("operazioneDettaglioCard.field.npkRatio"), value: o.npk_ratio, num: true },
+  ];
+
+  const operator: FieldSpec[] = [
+    { label: t("operazioneDettaglioCard.field.operatorName"), value: o.operator_name, wide: true },
+    { label: t("operazioneDettaglioCard.field.operatorTaxCode"), value: o.operator_tax_code, num: true },
+    { label: t("operazioneDettaglioCard.field.licenseNumber"), value: o.license_number, num: true },
+    { label: t("operazioneDettaglioCard.field.machineryEquipment"), value: o.machinery_equipment, wide: true },
+  ];
+
+  const safety: FieldSpec[] = [
+    { label: t("operazioneDettaglioCard.field.reentryInterval"), value: o.reentry_interval_h, num: true },
+    { label: t("operazioneDettaglioCard.field.safetyPeriod"), value: o.safety_period_days, num: true },
+  ];
+
   return (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4"
       onMouseDown={onClose}
     >
       <div
-        className="flex max-h-[85dvh] w-full max-w-md flex-col overflow-hidden rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-pop)]"
+        className="flex max-h-[85dvh] w-full max-w-lg flex-col overflow-hidden rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-pop)]"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--line)] px-4 py-3">
@@ -73,37 +116,14 @@ export function OperationDetailCard({
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
-          <Section title={t("operazioneDettaglioCard.section.cropPlot")}>
-            <Row label={t("operazioneDettaglioCard.field.plot")} value={appezzamentoNome ?? t("operazioneDettaglioCard.wholeFarm")} />
-          </Section>
-
-          <Section title={t("operazioneDettaglioCard.section.productDose")}>
-            <Row label={t("operazioneDettaglioCard.field.product")} value={o.product_name} />
-            <Row label={t("operazioneDettaglioCard.field.activeSubstance")} value={o.active_substance} />
-            <Row label={t("operazioneDettaglioCard.field.registrationNumber")} value={o.registration_number} num />
-            <Row label={t("operazioneDettaglioCard.field.targetDisease")} value={o.target_disease} />
-            <Row label={t("operazioneDettaglioCard.field.dose")} value={dose} num />
-            <Row label={t("operazioneDettaglioCard.field.totalQuantity")} value={o.total_quantity} num />
-            <Row label={t("operazioneDettaglioCard.field.waterVolume")} value={o.water_volume_l} num />
-            <Row label={t("operazioneDettaglioCard.field.fertilizerType")} value={o.fertilizer_type} />
-            <Row label={t("operazioneDettaglioCard.field.npkRatio")} value={o.npk_ratio} num />
-          </Section>
-
-          <Section title={t("operazioneDettaglioCard.section.operator")}>
-            <Row label={t("operazioneDettaglioCard.field.operatorName")} value={o.operator_name} />
-            <Row label={t("operazioneDettaglioCard.field.operatorTaxCode")} value={o.operator_tax_code} num />
-            <Row label={t("operazioneDettaglioCard.field.licenseNumber")} value={o.license_number} num />
-            <Row label={t("operazioneDettaglioCard.field.machineryEquipment")} value={o.machinery_equipment} />
-          </Section>
-
-          <Section title={t("operazioneDettaglioCard.section.safety")}>
-            <Row label={t("operazioneDettaglioCard.field.reentryInterval")} value={o.reentry_interval_h} num />
-            <Row label={t("operazioneDettaglioCard.field.safetyPeriod")} value={o.safety_period_days} num />
-          </Section>
+          <InfoSection title={t("operazioneDettaglioCard.section.cropPlot")} fields={cropPlot} />
+          <InfoSection title={t("operazioneDettaglioCard.section.productDose")} fields={productDose} />
+          <InfoSection title={t("operazioneDettaglioCard.section.operator")} fields={operator} />
+          <InfoSection title={t("operazioneDettaglioCard.section.safety")} fields={safety} />
 
           {o.note && (
             <Section title={t("operazioneDettaglioCard.section.notes")}>
-              <p className="whitespace-pre-wrap rounded-[var(--r-2)] bg-[var(--panel-2)] px-3 py-2 text-sm text-[var(--ink-1)]">
+              <p className="col-span-2 whitespace-pre-wrap rounded-[var(--r-2)] bg-[var(--panel-2)] px-3 py-2 text-sm text-[var(--ink-1)]">
                 {o.note}
               </p>
             </Section>
@@ -131,33 +151,42 @@ export function OperationDetailCard({
   );
 }
 
+/** Griglia a due colonne di una sezione. */
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="mb-4 last:mb-0">
       <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-4)]">
         {title}
       </p>
-      <div className="space-y-1">{children}</div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">{children}</div>
     </div>
   );
 }
 
-/** Riga etichetta/value. Non renderizza nulla se il value è vuoto. */
-function Row({
-  label,
-  value,
-  num = false,
-}: {
-  label: string;
-  value: string | number | null | undefined;
-  num?: boolean;
-}) {
-  if (value == null || value === "") return null;
+/**
+ * Sezione data-driven: filtra i campi vuoti e non renderizza nulla se non ne
+ * resta alcuno, così la scheda mostra SOLO le informazioni effettivamente
+ * inserite, disposte su più colonne.
+ */
+function InfoSection({ title, fields }: { title: string; fields: FieldSpec[] }) {
+  const visible = fields.filter((f) => f.value != null && f.value !== "");
+  if (visible.length === 0) return null;
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <span className="shrink-0 text-[11px] text-[var(--ink-3)]">{label}</span>
+    <Section title={title}>
+      {visible.map((f) => (
+        <Field key={f.label} {...f} />
+      ))}
+    </Section>
+  );
+}
+
+/** Cella etichetta-sopra / valore-sotto. */
+function Field({ label, value, num = false, wide = false }: FieldSpec) {
+  return (
+    <div className={`flex flex-col gap-0.5${wide ? " col-span-2" : ""}`}>
+      <span className="text-[11px] text-[var(--ink-3)]">{label}</span>
       <span
-        className={`text-right text-[13px] font-medium text-[var(--ink-1)]${num ? " agro-num" : ""}`}
+        className={`break-words text-[13px] font-medium text-[var(--ink-1)]${num ? " agro-num" : ""}`}
       >
         {value}
       </span>

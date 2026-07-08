@@ -25,6 +25,24 @@ describe("crop-colors", () => {
     assert.notEqual(cropColor("Vite"), cropColor("Olivo"));
   });
 
+  it("riconosce anche i nomi inglesi delle specie note", () => {
+    assert.equal(cropStyle("Grapevine").icon, "grape");
+    assert.equal(cropStyle("Wheat").icon, "cereal");
+    assert.equal(cropStyle("Maize").icon, "corn");
+    assert.equal(cropStyle("Olive").icon, "olive");
+    assert.equal(cropStyle("Orange").icon, "citrus");
+    assert.equal(cropStyle("Tomato").icon, "tomato");
+    assert.equal(cropStyle("Apple").icon, "pome");
+    assert.equal(cropStyle("Pear").icon, "pome");
+    assert.equal(cropStyle("Peach").icon, "stone-fruit");
+    assert.equal(cropStyle("Bean").icon, "legume");
+    assert.equal(cropStyle("Pea").icon, "legume");
+    assert.equal(cropStyle("Walnut").icon, "nut");
+    assert.equal(cropStyle("Lavender").icon, "aromatic");
+    // Un name inglese noto NON deve cadere sul fallback generico.
+    assert.notEqual(cropStyle("Sunflower").icon, "generic");
+  });
+
   it("è deterministico per crops sconosciute (stesso name → stesso colore)", () => {
     const a = cropColor("Quinoa");
     const b = cropColor("Quinoa");

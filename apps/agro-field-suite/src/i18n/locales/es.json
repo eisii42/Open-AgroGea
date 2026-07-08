@@ -412,6 +412,10 @@
       }
     },
     "saveAction": "Guardar",
+    "map": {
+      "hide": "Ocultar del mapa ({{count}})",
+      "show": "Mostrar en el mapa ({{count}})"
+    },
     "emptyState": "No hay cosechas registradas para esta empresa.",
     "openCard": "Abrir ficha de cosecha",
     "wholeFarmLower": "toda la empresa",
@@ -804,6 +808,7 @@
     "warehouseLot": "Lote",
     "warehouseQuantity": "Cantidad a descargar ({{unit}})",
     "warehouseAvailable": "disp. {{qty}} {{unit}}",
+    "warehouseExpiresAt": "cad. {{date}}",
     "warehouseAddRow": "+ Añadir salida",
     "warehouseRemoveRow": "Quitar salida",
     "warehouseNoLots": "No hay lotes disponibles para este producto: carga uno desde el Almacén.",

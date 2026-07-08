@@ -433,6 +433,14 @@ export interface UiSlice {
    */
   mapOperationIds: string[] | null;
   /**
+   * Harvests da renderizzare come simboli sulla mappa (toggle "Mostra sulla
+   * mappa" del pannello Harvest). Come `mapOperationIds`: `null` = spento
+   * (nessun simbolo), array = ID delle harvests da mostrare. Le harvests non
+   * sono più un layer persistente (niente voce in legenda): compaiono solo
+   * on-demand come marker HTML e spariscono allo spegnimento del toggle.
+   */
+  mapHarvestIds: string[] | null;
+  /**
    * `true` mentre il tool Scouting è in attesa di un tap sulla mappa per posare
    * la nota. Inibisce la selezione globale delle feature (`useFeatureSelection`),
    * così il click serve a posizionare la nota e non apre il Quaderno/dettaglio.
@@ -462,6 +470,8 @@ export interface UiSlice {
   consumeCropOpen: () => void;
   /** Imposta gli ID delle operazioni da mostrare come simboli in mappa (null = spento). */
   setMapOperationIds: (ids: string[] | null) => void;
+  /** Imposta gli ID delle harvests da mostrare come simboli in mappa (null = spento). */
+  setMapHarvestIds: (ids: string[] | null) => void;
   /** Attiva/disattiva l'attesa di un tap per posare la nota scouting. */
   setScoutingPlacing: (placing: boolean) => void;
 }

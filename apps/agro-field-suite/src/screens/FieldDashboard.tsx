@@ -15,6 +15,7 @@ import { CommandPalette } from "../modules/command-palette/CommandPalette";
 import { MapControls } from "../components/MapControls";
 import { MapTooltip } from "../components/MapTooltip";
 import { OperationMarkers } from "../components/OperationMarkers";
+import { HarvestMarkers } from "../components/HarvestMarkers";
 import { ModuleSidebar } from "../components/ModuleSidebar";
 import { TransferTagsFeed } from "../components/TransferTagsFeed";
 import { useReadOnly } from "@agrogea/core";
@@ -265,9 +266,11 @@ export function FieldDashboard() {
           <GeometryEditToolbar />
         </div>
 
-        {/* Simboli operazioni del Quaderno (toggle "Mostra sulla mappa"):
-            marker on-demand, creati solo quando il toggle è active. */}
+        {/* Simboli operazioni del Quaderno e harvests (toggle "Mostra sulla
+            mappa"): marker HTML on-demand, creati solo quando il toggle è
+            active e rimossi allo spegnimento. Le harvests non sono un layer. */}
         <OperationMarkers mapControllerRef={mapControllerRef} mapReady={mapReady} />
+        <HarvestMarkers mapControllerRef={mapControllerRef} mapReady={mapReady} />
 
         {/* Tooltip hover (Modulo UI §2). */}
         <MapTooltip hover={hover} />

@@ -57,63 +57,106 @@ interface CropGroup {
  * coerenti con la cultura visiva agronomica (vite=viola, oliveto=verde oliva,
  * cereali=oro, ecc.).
  */
+// Ogni gruppo elenca sia le parole-chiave italiane sia i sinonimi inglesi: così
+// una crop inserita col name inglese ("Wheat", "Grapevine") riceve la stessa
+// icona/colore della corrispondente italiana, invece di cadere sul fallback
+// generico (foglia). L'ordine resta significativo: il primo gruppo che matcha
+// vince, e protegge i casi di sottostringa (es. "grape" prima di "rape").
 const CROP_GROUPS: CropGroup[] = [
-  { keywords: ["vite", "vigneto", "vigna", "uva"], color: "#7c3aed", icon: "grape" },
-  { keywords: ["olivo", "oliveto", "oliva"], color: "#6b8e23", icon: "olive" },
-  { keywords: ["mais", "granoturco", "granturco"], color: "#eab308", icon: "corn" },
+  { keywords: ["vite", "vigneto", "vigna", "uva", "grape", "grapevine", "vineyard"], color: "#7c3aed", icon: "grape" },
+  { keywords: ["olivo", "oliveto", "oliva", "olive"], color: "#6b8e23", icon: "olive" },
+  { keywords: ["mais", "granoturco", "granturco", "corn", "maize"], color: "#eab308", icon: "corn" },
   // Seminativo (categoria generica a copertura erbacea/cerealicola): giallo
   // paglierino, più tenue dell'oro dei cereali specifici qui sotto.
-  { keywords: ["seminativo", "seminativi"], color: "#e4d96f", icon: "cereal" },
+  { keywords: ["seminativo", "seminativi", "arable"], color: "#e4d96f", icon: "cereal" },
   {
-    keywords: ["grano", "frumento", "cereale", "cereali", "orzo", "avena", "farro", "segale", "spelta"],
+    keywords: [
+      "grano", "frumento", "cereale", "cereali", "orzo", "avena", "farro", "segale", "spelta",
+      "cereal", "wheat", "barley", "oat", "oats", "rye", "spelt", "grain", "sorghum", "sorgo",
+    ],
     color: "#d4a017",
     icon: "cereal",
   },
-  { keywords: ["girasole"], color: "#facc15", icon: "sunflower" },
-  { keywords: ["colza", "ravizzone"], color: "#fde047", icon: "rapeseed" },
-  { keywords: ["pomodoro"], color: "#dc2626", icon: "tomato" },
-  { keywords: ["soia", "soja"], color: "#65a30d", icon: "soy" },
-  { keywords: ["riso", "risaia"], color: "#0891b2", icon: "rice" },
-  { keywords: ["patata"], color: "#a16207", icon: "root" },
-  { keywords: ["barbabietola", "bietola"], color: "#be185d", icon: "root" },
+  { keywords: ["girasole", "sunflower"], color: "#facc15", icon: "sunflower" },
+  { keywords: ["colza", "ravizzone", "rapeseed", "canola"], color: "#fde047", icon: "rapeseed" },
+  { keywords: ["pomodoro", "tomato"], color: "#dc2626", icon: "tomato" },
+  { keywords: ["soia", "soja", "soybean", "soya"], color: "#65a30d", icon: "soy" },
+  { keywords: ["riso", "risaia", "rice", "paddy"], color: "#0891b2", icon: "rice" },
+  { keywords: ["patata", "potato"], color: "#a16207", icon: "root" },
+  { keywords: ["barbabietola", "bietola", "sugar beet", "sugarbeet", "beet"], color: "#be185d", icon: "root" },
   {
-    keywords: ["agrumi", "arancio", "arancia", "limone", "clementine", "mandarino", "pompelmo", "bergamotto"],
+    keywords: [
+      "agrumi", "arancio", "arancia", "limone", "clementine", "mandarino", "pompelmo", "bergamotto",
+      "citrus", "orange", "lemon", "mandarin", "tangerine",
+    ],
     color: "#f97316",
     icon: "citrus",
   },
   {
-    keywords: ["melo", "mela", "pero", "pera", "pomacee", "frutteto", "frutta", "cotogno"],
+    keywords: [
+      "melo", "mela", "pero", "pera", "pomacee", "frutteto", "frutta", "cotogno",
+      "pome", "apple", "pear", "quince", "orchard",
+    ],
     color: "#e11d48",
     icon: "pome",
   },
   {
-    keywords: ["pesco", "pesca", "susino", "susina", "ciliegio", "ciliegia", "albicocco", "albicocca", "drupacee", "prugno", "prugna"],
+    keywords: [
+      "pesco", "pesca", "susino", "susina", "ciliegio", "ciliegia", "albicocco", "albicocca", "drupacee", "prugno", "prugna",
+      "peach", "plum", "cherry", "apricot", "nectarine", "stone fruit", "stonefruit",
+    ],
     color: "#db2777",
     icon: "stone-fruit",
   },
   {
-    keywords: ["erba medica", "medica", "foraggio", "foraggere", "prato", "erbaio", "trifoglio", "loietto", "sulla"],
+    keywords: [
+      "erba medica", "medica", "foraggio", "foraggere", "prato", "erbaio", "trifoglio", "loietto", "sulla",
+      "forage", "alfalfa", "clover", "hay", "pasture", "ryegrass", "meadow", "fodder",
+    ],
     color: "#22c55e",
     icon: "forage",
   },
-  { keywords: ["tabacco"], color: "#92400e", icon: "tobacco" },
+  { keywords: ["tabacco", "tobacco"], color: "#92400e", icon: "tobacco" },
   {
-    keywords: ["fagiolo", "fagiolino", "cece", "ceci", "lenticchia", "pisello", "fava", "lupino", "legume", "leguminose"],
+    keywords: [
+      "fagiolo", "fagiolino", "cece", "ceci", "lenticchia", "pisello", "fava", "lupino", "legume", "leguminose", "arachide",
+      "bean", "pea", "peas", "lentil", "chickpea", "lupin", "pulse", "faba", "peanut", "groundnut", "soybean",
+    ],
     color: "#84cc16",
     icon: "legume",
   },
   {
-    keywords: ["nocciolo", "nocciola", "noce", "mandorlo", "mandorla", "castagno", "castagna", "pistacchio", "carrubo"],
+    keywords: [
+      "nocciolo", "nocciola", "noce", "mandorlo", "mandorla", "castagno", "castagna", "pistacchio", "carrubo",
+      "hazelnut", "walnut", "almond", "chestnut", "pistachio", "carob", "nut",
+    ],
     color: "#854d0e",
     icon: "nut",
   },
   {
-    keywords: ["ortaggi", "ortaggio", "orticola", "insalata", "lattuga", "zucchino", "zucca", "peperone", "melanzana", "cavolo", "finocchio", "carota", "cipolla", "aglio"],
+    keywords: [
+      "ortaggi", "ortaggio", "orticola", "insalata", "lattuga", "zucchino", "zucca", "peperone", "melanzana", "cavolo", "finocchio", "carota", "cipolla", "aglio",
+      "vegetable", "lettuce", "cabbage", "onion", "garlic", "pepper", "zucchini", "squash", "pumpkin", "carrot", "fennel", "eggplant",
+    ],
     color: "#16a34a",
     icon: "vegetable",
   },
-  { keywords: ["lavanda", "aromatiche", "aromatica", "salvia", "rosmarino", "timo", "menta", "officinali"], color: "#8b5cf6", icon: "aromatic" },
-  { keywords: ["bosco", "forestale", "ceduo", "pioppeto", "pioppo"], color: "#166534", icon: "forest" },
+  {
+    keywords: [
+      "lavanda", "aromatiche", "aromatica", "salvia", "rosmarino", "timo", "menta", "officinali",
+      "lavender", "aromatic", "sage", "rosemary", "thyme", "mint", "herb", "medicinal",
+    ],
+    color: "#8b5cf6",
+    icon: "aromatic",
+  },
+  {
+    keywords: [
+      "bosco", "forestale", "ceduo", "pioppeto", "pioppo",
+      "forest", "poplar", "woodland", "timber", "coppice",
+    ],
+    color: "#166534",
+    icon: "forest",
+  },
 ];
 
 /**

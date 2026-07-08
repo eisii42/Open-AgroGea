@@ -412,6 +412,10 @@
       }
     },
     "saveAction": "Enregistrer",
+    "map": {
+      "hide": "Masquer de la carte ({{count}})",
+      "show": "Afficher sur la carte ({{count}})"
+    },
     "emptyState": "Aucune récolte enregistrée pour cette entreprise.",
     "openCard": "Ouvrir la fiche de récolte",
     "wholeFarmLower": "toute l'exploitation",
@@ -804,6 +808,7 @@
     "warehouseLot": "Lot",
     "warehouseQuantity": "Quantité à sortir ({{unit}})",
     "warehouseAvailable": "disp. {{qty}} {{unit}}",
+    "warehouseExpiresAt": "exp. {{date}}",
     "warehouseAddRow": "+ Ajouter une sortie",
     "warehouseRemoveRow": "Retirer la sortie",
     "warehouseNoLots": "Aucun lot disponible pour ce produit : chargez-en un depuis le Magasin.",

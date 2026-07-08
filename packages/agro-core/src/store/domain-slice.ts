@@ -50,6 +50,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         logbookOpenPlotId: null,
         cropOpenPlotId: null,
         mapOperationIds: null,
+        mapHarvestIds: null,
       });
       if (companyId) await get().refreshDomainData();
     },

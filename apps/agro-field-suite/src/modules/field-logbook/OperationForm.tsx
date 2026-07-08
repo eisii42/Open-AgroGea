@@ -543,6 +543,30 @@ export function OperationForm({
     });
   }, [totalePrevisto, baseDose, categoryProducts]);
 
+  // Auto-dose (fix): direzione inversa della riconciliazione. Quando l'utente
+  // compila a mano la quantità dello scarico (row.manual), la DOSE segue lo
+  // scarico invece di essere digitata a parte: dose = quantità / area del field
+  // (la stessa "dose effettiva" già mostrata sotto la riga). Vale solo per i
+  // tipi con dose (fito/semina), con field georeferenziato (area nota) e
+  // product in kg/l (unità dose valida). Nessun loop con l'effetto sopra: quello
+  // scrive la quantità solo per le rows NON manuali, questo legge le manuali.
+  useEffect(() => {
+    if (!f.dose || area == null || area <= 0) return;
+    if (scarichiRows.length !== 1) return;
+    const row = scarichiRows[0];
+    if (!row.manual || !row.productId) return;
+    const qty = Number.parseFloat(row.quantity);
+    if (!Number.isFinite(qty) || qty <= 0) return;
+    const p = categoryProducts.find((x) => x.id === row.productId);
+    if (!p || (p.unit !== "kg" && p.unit !== "l")) return;
+    const dose = Math.round((qty / area) * 100) / 100;
+    const unit = `${p.unit}/ha` as DoseUnit;
+    setDoseValore((current) =>
+      current === String(dose) ? current : String(dose),
+    );
+    setDoseUnita((current) => (current === unit ? current : unit));
+  }, [f.dose, area, scarichiRows, categoryProducts]);
+
   // -- automazione semina → crop di campagna (v17) -------------------------
   const activeCampaign = useAgroStore((s) => s.activeCampaign);
   const seedProduct =
@@ -1002,15 +1026,14 @@ export function OperationForm({
                       {productLots.map((l) => {
                         const stato = expiryStatus(l.expires_at);
                         const scaduto = stato === "expired";
+                        // Solo il lot nell'opzione: scadenza (Timestamp) e
+                        // disponibilità NON vanno accodate qui — restano nella
+                        // riga informativa sotto la select una volta scelto il
+                        // lot. Si mantiene solo la parola di stato (scaduto/in
+                        // scadenza), utile a orientare la scelta FEFO.
                         return (
                           <option key={l.id} value={l.id} disabled={scaduto}>
                             {l.lot_number ?? l.id.slice(0, 8)}
-                            {l.expires_at ? ` · ${l.expires_at}` : ""}
-                            {" · "}
-                            {t("operazioneForm.warehouseAvailable", {
-                              qty: Number(l.quantity_on_hand),
-                              unit: selectedProduct?.unit ?? "",
-                            })}
                             {scaduto
                               ? ` · ${t("operazioneForm.warehouseExpiredOption")}`
                               : stato === "expiring"
@@ -1048,12 +1071,26 @@ export function OperationForm({
                       className="agro-num"
                     />
                   </div>
-                  {available != null && (
+                  {/* Riga informativa del lot scelto: disponibilità +
+                      scadenza formattata (spostate qui dalla dropdown). */}
+                  {lottoSel && (
                     <p className="pb-2 text-[11px] text-[var(--ink-3)]">
-                      {t("operazioneForm.warehouseAvailable", {
-                        qty: available,
-                        unit: selectedProduct?.unit ?? "",
-                      })}
+                      {available != null
+                        ? t("operazioneForm.warehouseAvailable", {
+                            qty: available,
+                            unit: selectedProduct?.unit ?? "",
+                          })
+                        : ""}
+                      {lottoSel.expires_at
+                        ? `${available != null ? " · " : ""}${t(
+                            "operazioneForm.warehouseExpiresAt",
+                            {
+                              date: new Date(
+                                lottoSel.expires_at,
+                              ).toLocaleDateString("it-IT"),
+                            },
+                          )}`
+                        : ""}
                     </p>
                   )}
                   <Button

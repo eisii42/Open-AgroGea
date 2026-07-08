@@ -1,11 +1,8 @@
 import {
   assetsToFeatureCollection,
-  centroid,
   poiToFeatureCollection,
-  harvestsToFeatureCollection,
   useAgroStore,
 } from "@agrogea/core";
-import type { Point } from "geojson";
 import {
   DEFAULT_LAYER_STYLE,
   type GeoLibreLayer,
@@ -42,7 +39,6 @@ interface ManagedLayer {
 
 const INFRASTRUTTURE_ID = "agrogea-infrastrutture";
 const POI_ID = "agrogea-poi";
-const RACCOLTE_ID = "agrogea-harvests";
 
 function syncLayer(layer: ManagedLayer): void {
   const store = useAppStore.getState();
@@ -83,8 +79,6 @@ export function useFieldLayers(
 ): void {
   const assets = useAgroStore((s) => s.assets);
   const soilSamples = useAgroStore((s) => s.soilSamples);
-  const harvests = useAgroStore((s) => s.harvests);
-  const plots = useAgroStore((s) => s.plots);
 
   // Visibilità e opacità sono gestite dal Layer Manager NATIVO di GeoLibre:
   // qui proiettiamo solo i dati con i layer creati visibili.
@@ -136,39 +130,10 @@ export function useFieldLayers(
     });
   }, [soilSamples, styleEpoch]);
 
-  // Modulo Harvest: proietta gli eventi di harvest come layer puntuale. Le
-  // harvests senza geometria propria ereditano il centroid dell'appezzamento
-  // collegato, così compaiono in mappa; le loro properties (cultivar,
-  // destinazione, quantita_kg) alimentano i grafici della tabella attributi.
-  useEffect(() => {
-    const centroidi = new Map<string, Point>();
-    for (const a of plots) {
-      centroidi.set(a.id, {
-        type: "Point",
-        coordinates: centroid(a.geometry),
-      });
-    }
-    syncLayer({
-      id: RACCOLTE_ID,
-      name: "Raccolte",
-      geojson: harvestsToFeatureCollection(harvests, centroidi),
-      style: {
-        circleRadius: 6,
-        fillColor: "#e3a008",
-        fillOpacity: 0.9,
-        strokeColor: "#ffffff",
-        strokeWidth: 1.5,
-      },
-      // Nascosto di default: le harvests NON devono creare un punto in mappa
-      // all'inserimento (richiesta UX). I dati restano per la tabella attributi
-      // e per il Command Center; l'utente può attivarli dal Layer Manager.
-      visible: false,
-      opacity: 1,
-    });
-  }, [harvests, plots, styleEpoch]);
-
-  // NB: le operazioni del Quaderno (treatments) NON sono più proiettate qui
-  // come layer fisso. Sono mostrate on-demand come simboli (icone per tipo,
-  // disposti intorno al centroid) tramite il toggle "Mostra sulla mappa" del
-  // LogbookPanel → vedi OperationMarkers.tsx (marker rimossi allo spegnimento).
+  // NB: né le operazioni del Quaderno (treatments) né le harvests sono più
+  // proiettate qui come layer fisso (nessuna voce in legenda, nessun punto
+  // permanente). Compaiono on-demand come simboli HTML (icone disposte intorno
+  // al centroid dell'appezzamento) tramite il toggle "Mostra sulla mappa" dei
+  // rispettivi pannelli → vedi OperationMarkers.tsx e HarvestMarkers.tsx
+  // (marker rimossi allo spegnimento del toggle).
 }

@@ -49,10 +49,9 @@ function getAgroExpressionSnippets(t: TFunction): ExpressionSnippet[] {
  * usePlotsLayer).
  */
 function getTableOptions(t: TFunction): { layerId: string; label: string }[] {
-  return [
-    { layerId: "agrogea-harvests", label: t("fieldAttributeTable.harvests") },
-    { layerId: "agrogea-plots", label: t("fieldAttributeTable.plots") },
-  ];
+  // Le harvests non sono più un layer cartografico (compaiono on-demand come
+  // simboli HTML, come le operazioni del Quaderno): resta la tabella plots.
+  return [{ layerId: "agrogea-plots", label: t("fieldAttributeTable.plots") }];
 }
 
 /**

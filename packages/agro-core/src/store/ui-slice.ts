@@ -17,6 +17,7 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
     scoutingOpenObservationId: null,
     cropOpenPlotId: null,
     mapOperationIds: null,
+    mapHarvestIds: null,
     scoutingPlacing: false,
 
     setTheme: (theme) => {
@@ -109,6 +110,8 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
     consumeCropOpen: () => set({ cropOpenPlotId: null }),
 
     setMapOperationIds: (ids) => set({ mapOperationIds: ids }),
+
+    setMapHarvestIds: (ids) => set({ mapHarvestIds: ids }),
 
     setScoutingPlacing: (placing) => set({ scoutingPlacing: placing }),
   };

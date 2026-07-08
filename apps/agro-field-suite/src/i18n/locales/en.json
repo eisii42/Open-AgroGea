@@ -412,6 +412,10 @@
       }
     },
     "saveAction": "Save",
+    "map": {
+      "hide": "Hide from map ({{count}})",
+      "show": "Show on map ({{count}})"
+    },
     "emptyState": "No harvests recorded for this company.",
     "openCard": "Open harvest record",
     "wholeFarmLower": "whole farm",
@@ -804,6 +808,7 @@
     "warehouseLot": "Lot",
     "warehouseQuantity": "Quantity to withdraw ({{unit}})",
     "warehouseAvailable": "avail. {{qty}} {{unit}}",
+    "warehouseExpiresAt": "exp. {{date}}",
     "warehouseAddRow": "+ Add withdrawal",
     "warehouseRemoveRow": "Remove withdrawal",
     "warehouseNoLots": "No lot available for this product: load one from the Warehouse.",

@@ -5,8 +5,8 @@ import {
   useAgroStore,
 } from "@agrogea/core";
 import { FieldSheet } from "@agrogea/ui";
-import { Button, Input, Label, Select } from "@geolibre/ui";
-import { Trash2 } from "lucide-react";
+import { Button, cn, Input, Label, Select } from "@geolibre/ui";
+import { MapPin, MapPinOff, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -17,9 +17,10 @@ import { HarvestDetailCard } from "./HarvestDetailCard";
 /**
  * Modulo Harvest: lista degli eventi di harvest + form di registrazione. Ogni
  * insert passa da `saveHarvest` (PGlite + outbox nella stessa transazione) e
- * idrata lo store; il layer "Raccolte" e i grafici della tabella attributi
- * (Barre: somma/media di `quantita_kg` per `cultivar`/`destinazione`) si
- * aggiornano di conseguenza.
+ * idrata lo store. Le harvests NON sono un layer cartografico: si mostrano
+ * on-demand come simboli HTML (toggle "Mostra sulla mappa" → HarvestMarkers),
+ * come le operazioni del Quaderno, così non lasciano un punto permanente né una
+ * voce nella legenda dei layer.
  */
 
 const DESTINAZIONE_IDS = [
@@ -56,6 +57,10 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
     (s) => s.openCropForPlot,
   );
   const sync = useAgroStore((s) => s.sync);
+  // Toggle "Mostra sulla mappa": come per le operazioni del Quaderno, le
+  // harvests compaiono on-demand come simboli HTML (nessun layer/legenda).
+  const mapHarvestIds = useAgroStore((s) => s.mapHarvestIds);
+  const setMapHarvestIds = useAgroStore((s) => s.setMapHarvestIds);
   // Compliance dichiarativa: il paese risolto sceglie il sistema (IT → SIAN,
   // ES → SIEX/CUE); gli altri paesi non hanno gate.
   const { countryCode } = useTenantCountry();
@@ -215,6 +220,19 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
   }
 
   const destinazioni = getDestinazioni(t);
+
+  // Mentre il toggle è active, il set di ID resta allineato alla lista delle
+  // harvests (le rimozioni si propagano ai marker).
+  const activeMap = mapHarvestIds !== null;
+  useEffect(() => {
+    if (!activeMap) return;
+    setMapHarvestIds(harvests.map((r) => r.id));
+  }, [harvests, activeMap, setMapHarvestIds]);
+
+  const toggleMap = () => {
+    if (activeMap) setMapHarvestIds(null);
+    else setMapHarvestIds(harvests.map((r) => r.id));
+  };
 
   return (
     <FieldSheet
@@ -412,6 +430,22 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
           {t("raccoltaPanel.emptyState")}
         </p>
       ) : (
+        <div className="flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={toggleMap}
+          className={cn(
+            "flex items-center justify-center gap-2 rounded-[var(--r-2)] border px-3 py-2 text-sm font-medium transition-colors",
+            activeMap
+              ? "border-[var(--accent)] bg-[var(--accent-l)] text-[var(--accent)]"
+              : "border-[var(--line)] text-[var(--ink-2)] hover:bg-[var(--panel-2)]",
+          )}
+        >
+          {activeMap ? <MapPinOff size={15} /> : <MapPin size={15} />}
+          {activeMap
+            ? t("raccoltaPanel.map.hide", { count: harvests.length })
+            : t("raccoltaPanel.map.show", { count: harvests.length })}
+        </button>
         <ul className="flex flex-col gap-2">
           {harvests.map((r) => {
             const plot = plots.find(
@@ -473,6 +507,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
             );
           })}
         </ul>
+        </div>
       )}
 
       <ConfirmDeleteOperation

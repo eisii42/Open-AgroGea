@@ -9,6 +9,13 @@ export {
   type CropIconKey,
   type CropStyle,
 } from "./crop-colors";
+export {
+  assetColor,
+  assetStyle,
+  ASSET_NEUTRAL_COLOR,
+  type AssetIconKey,
+  type AssetStyle,
+} from "./asset-colors";
 export { isTauriRuntime, tauriInvoke } from "./runtime";
 export {
   controlPlane,

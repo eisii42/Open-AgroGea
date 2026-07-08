@@ -114,6 +114,7 @@ export function createSessionSlice(
         geometryRedo: [],
         logbookOpenPlotId: null,
         mapOperationIds: null,
+        mapHarvestIds: null,
       });
     },
 

@@ -412,6 +412,10 @@
       }
     },
     "saveAction": "Salva",
+    "map": {
+      "hide": "Nascondi dalla mappa ({{count}})",
+      "show": "Mostra sulla mappa ({{count}})"
+    },
     "emptyState": "Nessuna raccolta registrata per quest'azienda.",
     "openCard": "Apri scheda raccolta",
     "wholeFarmLower": "intera azienda",
@@ -804,6 +808,7 @@
     "warehouseLot": "Lotto",
     "warehouseQuantity": "Quantità da scaricare ({{unit}})",
     "warehouseAvailable": "disp. {{qty}} {{unit}}",
+    "warehouseExpiresAt": "scad. {{date}}",
     "warehouseAddRow": "+ Aggiungi scarico",
     "warehouseRemoveRow": "Rimuovi scarico",
     "warehouseNoLots": "Nessun lotto disponibile per questo prodotto: caricane uno dal Magazzino.",
