@@ -98,7 +98,7 @@ function rgbaToDataUrl(overlay: OverlayRaster): string {
   canvas.width = overlay.width;
   canvas.height = overlay.height;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas 2D non disponibile per l'overlay.");
+  if (!ctx) throw new Error("Canvas 2D non available per l'overlay.");
   // Copia in un buffer ArrayBuffer dedicato: dopo il transfer dal worker il
   // tipo è Uint8ClampedArray<ArrayBufferLike>, che ImageData non accetta.
   const pixels = new Uint8ClampedArray(overlay.rgba);
@@ -193,13 +193,13 @@ export function useSoilPipeline() {
   );
 
   const compute = useCallback(
-    async (plots: Plot[], opzioni: SoilOptions) => {
-      if (plots.length === 0 || opzioni.indici.length === 0) return;
+    async (plots: Plot[], options: SoilOptions) => {
+      if (plots.length === 0 || options.indici.length === 0) return;
       removeOverlay();
       const risultati: PlotResult[] = [];
 
       try {
-        const strategia = opzioni.strategia;
+        const strategia = options.strategia;
         // Parametri di ricerca STAC comuni a tutti gli plots: intervallo
         // esplicito per l'analisi personalizzata (capato a 60 gg), altrimenti N
         // giorni indietro ("ultima" usa una finestra ampia per trovare l'ultimo
@@ -226,8 +226,8 @@ export function useSoilPipeline() {
 
           const bbox = boundingBox(plot.geometry);
           let sceneSeries = await searchSceneSeries(bbox, {
-            indici: opzioni.indici,
-            cloudCoverMax: opzioni.cloudCoverMax,
+            indici: options.indici,
+            cloudCoverMax: options.cloudCoverMax,
             ...(datetimeRange
               ? { datetimeRange }
               : { giorniIndietro: giorniRicerca }),
@@ -253,8 +253,8 @@ export function useSoilPipeline() {
           const job: SuoloJob = {
             tipo: "suolo",
             scene,
-            indici: opzioni.indici,
-            indicePrimario: opzioni.indicePrimario,
+            indici: options.indici,
+            indicePrimario: options.indicePrimario,
             geometria: plot.geometry,
             bbox,
           };
@@ -287,8 +287,8 @@ export function useSoilPipeline() {
         setStato({
           phase: "completato",
           risultati,
-          indici: opzioni.indici,
-          indicePrimario: opzioni.indicePrimario,
+          indici: options.indici,
+          indicePrimario: options.indicePrimario,
         });
       } catch (error) {
         setStato({

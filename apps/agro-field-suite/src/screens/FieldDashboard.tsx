@@ -266,7 +266,7 @@ export function FieldDashboard() {
         </div>
 
         {/* Simboli operazioni del Quaderno (toggle "Mostra sulla mappa"):
-            marker on-demand, creati solo quando il toggle è attivo. */}
+            marker on-demand, creati solo quando il toggle è active. */}
         <OperationMarkers mapControllerRef={mapControllerRef} mapReady={mapReady} />
 
         {/* Tooltip hover (Modulo UI §2). */}

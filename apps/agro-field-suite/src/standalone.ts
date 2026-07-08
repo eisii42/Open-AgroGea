@@ -26,7 +26,7 @@ let bootstrapPromise: Promise<void> | null = null;
 
 /**
  * Avvia la sessione locale standalone: claims sintetiche (licenza attiva,
- * storage `local`), poi garantisce un'azienda di default come tenant attivo.
+ * storage `local`), poi garantisce un'azienda di default come tenant active.
  * Idempotente: una sessione già aperta non viene reinizializzata, e chiamate
  * concorrenti condividono la stessa promise (evita doppi bootstrap in StrictMode).
  */

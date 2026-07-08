@@ -10,7 +10,7 @@ import { buildLegenda, buildPrintSvg } from "./print-layout";
 /**
  * Print Layout Composer: compone un layout di stampa professionale (mappa +
  * legenda dinamica dei layer attivi + scala + freccia del nord + note + logo
- * AgroGea) ed esporta in SVG vettoriale, PNG ad alta risoluzione o PDF (via
+ * AgroGea) ed runExport in SVG vettoriale, PNG ad alta risoluzione o PDF (via
  * stampa del browser) per i fascicoli aziendali / domande PAC-PSR.
  */
 
@@ -64,7 +64,7 @@ export function PrintComposer({ onClose, mapControllerRef }: Props) {
   const catturaMappa = useCallback(() => {
     const map = mapControllerRef.current?.getMap();
     if (!map) return;
-    // preserveDrawingBuffer è attivo (MapController): ridisegna e leggi il buffer.
+    // preserveDrawingBuffer è active (MapController): ridisegna e leggi il buffer.
     map.redraw();
     try {
       setMappaDataUrl(map.getCanvas().toDataURL("image/png"));
@@ -98,7 +98,7 @@ export function PrintComposer({ onClose, mapControllerRef }: Props) {
   const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   const fileName = title.replace(/[^\p{L}\p{N}_-]+/gu, "_") || "mappa";
 
-  const esportaPng = useCallback(() => {
+  const exportPng = useCallback(() => {
     const img = new Image();
     img.onload = () => {
       const scala = 2; // alta risoluzione.
@@ -144,7 +144,7 @@ export function PrintComposer({ onClose, mapControllerRef }: Props) {
           <Button className="min-h-[var(--touch-min)]" onClick={stampaPdf}>
             PDF
           </Button>
-          <Button className="min-h-[var(--touch-min)]" onClick={esportaPng}>
+          <Button className="min-h-[var(--touch-min)]" onClick={exportPng}>
             PNG
           </Button>
           <Button

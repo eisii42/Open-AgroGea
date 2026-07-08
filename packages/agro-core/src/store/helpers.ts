@@ -42,7 +42,7 @@ export function profiloDaClaims(claims: TenantClaims): UserProfile {
 }
 
 /**
- * Sola reading (RBAC): l'utente corrente è in modalità read-only quando, per
+ * Sola reading (RBAC): l'utente current è in modalità read-only quando, per
  * l'azienda attiva, la sua membership (per email) ha ruolo `VIEWER`. Fonte di
  * verità del guard centralizzato delle mutazioni e — riusabile dall'UI — di
  * qualunque affordance read-only. Un ruolo non-VIEWER o l'assenza di membership
@@ -65,13 +65,13 @@ export function isViewerReadOnly(args: {
   return membership?.role === "VIEWER";
 }
 
-/** Email dell'utente corrente (sessione remota, ripiego sul profile). */
+/** Email dell'utente current (sessione remota, ripiego sul profile). */
 export function currentEmail(s: AgroState): string | null {
   return s.session?.user?.email ?? s.profile?.email ?? null;
 }
 
 /**
- * Guard centralizzato: SOLLEVA se l'utente attivo è un VIEWER (sola reading).
+ * Guard centralizzato: SOLLEVA se l'utente active è un VIEWER (sola reading).
  * Chiamato in testa a ogni mutazione di dominio dello store, così la regola RBAC
  * vale per OGNI entry-point (Quaderno, Harvest, geometrie, anagrafica…) senza
  * doverla replicare nei singoli componenti. Specchio client delle regole

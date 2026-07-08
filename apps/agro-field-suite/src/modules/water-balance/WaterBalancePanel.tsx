@@ -176,7 +176,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
   const inCorso = stato.phase === "calcolo";
   const completato = stato.phase === "completato";
 
-  const esporta = async (r: DssPlotResult, formato: MoistureHistoryFormat) => {
+  const runExport = async (r: DssPlotResult, formato: MoistureHistoryFormat) => {
     const plot = plots.find((a) => a.id === r.plotId);
     if (!plot || r.balanceSeries.length === 0) return;
     setEsportando(true);
@@ -239,7 +239,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
     plots: plotsOverlay,
     summaryPerField,
     crop: stato.risultati[0]?.module.mainSpecies ?? "vite",
-    attivo: mostraOverlay && completato,
+    active: mostraOverlay && completato,
   });
 
   return (
@@ -361,7 +361,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
                       key={r.plotId}
                       risultato={r}
                       esportando={esportando}
-                      onExport={(f) => void esporta(r, f)}
+                      onExport={(f) => void runExport(r, f)}
                     />
                   ))}
                 </div>

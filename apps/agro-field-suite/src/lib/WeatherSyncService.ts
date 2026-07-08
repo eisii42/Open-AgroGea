@@ -99,7 +99,7 @@ export interface MeteoFetchResult {
 
 /** Condizioni correnti per la row principale della scheda meteo. */
 export interface MeteoCorrente {
-  /** ISO dell'osservazione corrente restituita da Open-Meteo. */
+  /** ISO dell'osservazione current restituita da Open-Meteo. */
   ora: string;
   temperatura: number | null;
   umidita: number | null;
@@ -121,7 +121,7 @@ export interface GiornoPrevisione {
 }
 
 export interface PrevisioneDashboard {
-  corrente: MeteoCorrente;
+  current: MeteoCorrente;
   /** Oggi in testa, poi i giorni successivi. */
   giorni: GiornoPrevisione[];
   /** ISO del momento in cui è stata recuperata (per il "aggiornato alle…"). */
@@ -405,11 +405,11 @@ export const WeatherSyncService = {
    * cache), così il chiamante ha la serie pronta per i DSS senza un secondo giro.
    */
   async assicuraDatiMeteo(
-    opzioni: MeteoFetchOptions,
+    options: MeteoFetchOptions,
   ): Promise<MeteoFetchResult> {
-    const { dal, companyId, appezzamentoPrincipale, force } = opzioni;
+    const { dal, companyId, appezzamentoPrincipale, force } = options;
     const config =
-      opzioni.config ?? (await dal.getConfigMeteo(companyId)) ?? null;
+      options.config ?? (await dal.getConfigMeteo(companyId)) ?? null;
     const fonte: WeatherDataSource = config?.data_source ?? "public_api";
 
     const eta = minutiDa(config?.last_weather_pull_at ?? null);
@@ -462,14 +462,14 @@ export const WeatherSyncService = {
    * silenzioso in offline (ritorna 0). Sfrutta il free tier senza sprechi: una
    * sola chiamata copre l'intero buco, poi il lucchetto/min lo evitano.
    */
-  async assicuraStoricoGdd(opzioni: {
+  async assicuraStoricoGdd(options: {
     dal: AgroDal;
     companyId: string;
     appezzamentoPrincipale: Plot | null;
     /** Biofix dell'accumulo (ISO date): si download fin qui all'indietro. */
     dataInizio: string;
   }): Promise<{ backfilled: number }> {
-    const { dal, companyId, appezzamentoPrincipale, dataInizio } = opzioni;
+    const { dal, companyId, appezzamentoPrincipale, dataInizio } = options;
     if (!appezzamentoPrincipale?.geometry) return { backfilled: 0 };
 
     const inizio = dataInizio.slice(0, 10);
@@ -504,14 +504,14 @@ export const WeatherSyncService = {
    * (payload minimo) e una cache in-memory con lo stesso lucchetto orario, così
    * apertura e cambi company non consumano quota oltre una volta l'ora.
    */
-  async previsioneDashboard(opzioni: {
+  async previsioneDashboard(options: {
     companyId: string;
     lon: number;
     lat: number;
     /** Ignora il lucchetto orario (pulsante "aggiorna"). */
     force?: boolean;
   }): Promise<PrevisioneDashboard> {
-    const { companyId, lon, lat, force } = opzioni;
+    const { companyId, lon, lat, force } = options;
     const cached = cachePrevisione.get(companyId);
     if (
       cached &&
@@ -529,7 +529,7 @@ export const WeatherSyncService = {
     const time = d.time ?? [];
 
     const data: PrevisioneDashboard = {
-      corrente: {
+      current: {
         ora: c.time ?? new Date().toISOString(),
         temperatura: c.temperature_2m ?? null,
         umidita: c.relative_humidity_2m ?? null,

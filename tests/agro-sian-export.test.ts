@@ -168,8 +168,8 @@ describe("filterSianTreatments · spaziale", () => {
 describe("buildSianCsv · struttura", () => {
   it("rispetta l'ordine e la selezione delle colonne", () => {
     const csv = buildSianCsv([TRATT[0]], APPS, {
-      colonne: ["appezzamento", "data", "prodotto"],
-      separatore: ";",
+      columns: ["appezzamento", "data", "prodotto"],
+      separator: ";",
       includiIntestazioni: true,
       bom: true,
     });
@@ -178,10 +178,10 @@ describe("buildSianCsv · struttura", () => {
     assert.equal(row, "Vigna Alta;2026-03-10;Rame");
   });
 
-  it("onora il separatore e l'assenza di intestazioni", () => {
+  it("onora il separator e l'assenza di intestazioni", () => {
     const csv = buildSianCsv([TRATT[0]], APPS, {
-      colonne: ["data", "prodotto"],
-      separatore: ",",
+      columns: ["data", "prodotto"],
+      separator: ",",
       includiIntestazioni: false,
       bom: false,
     });
@@ -191,8 +191,8 @@ describe("buildSianCsv · struttura", () => {
   it("quota le celle che contengono il separatore", () => {
     const conNote = { ...TRATT[0], note: "riga; con; separatore" };
     const csv = buildSianCsv([conNote], APPS, {
-      colonne: ["note"],
-      separatore: ";",
+      columns: ["note"],
+      separator: ";",
       includiIntestazioni: false,
       bom: false,
     });
@@ -213,13 +213,13 @@ describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
       [TRATT[0]],
       APPS,
       {
-        colonne: [
+        columns: [
           "reference_parcel_external_id",
           "agricultural_parcel_external_id",
           "crop_external_code",
           "campaign_year",
         ],
-        separatore: ";",
+        separator: ";",
         includiIntestazioni: true,
         bom: true,
       },
@@ -238,8 +238,8 @@ describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
       [TRATT[2]], // operation intera company, plot_campaign_id null e plot_id null
       APPS,
       {
-        colonne: ["tipo_operazione", "crop_external_code"],
-        separatore: ";",
+        columns: ["tipo_operazione", "crop_external_code"],
+        separator: ";",
         includiIntestazioni: false,
         bom: false,
       },
@@ -257,8 +257,8 @@ describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
       [senzaAggancio],
       APPS,
       {
-        colonne: ["crop_external_code", "reference_parcel_external_id"],
-        separatore: ";",
+        columns: ["crop_external_code", "reference_parcel_external_id"],
+        separator: ";",
         includiIntestazioni: false,
         bom: false,
       },
@@ -279,8 +279,8 @@ describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
       [op],
       APPS,
       {
-        colonne: ["crop_external_code"],
-        separatore: ";",
+        columns: ["crop_external_code"],
+        separator: ";",
         includiIntestazioni: false,
         bom: false,
       },
@@ -293,8 +293,8 @@ describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
 describe("buildSianCsv · tipo operation localizzato", () => {
   it("default italiano leggibile, mai il codice interno", () => {
     const csv = buildSianCsv([TRATT[1]], APPS, {
-      colonne: ["tipo_operazione"],
-      separatore: ";",
+      columns: ["tipo_operazione"],
+      separator: ";",
       includiIntestazioni: false,
       bom: false,
     });
@@ -305,7 +305,7 @@ describe("buildSianCsv · tipo operation localizzato", () => {
     const csv = buildSianCsv(
       [TRATT[0]],
       APPS,
-      { colonne: ["tipo_operazione"], separatore: ";", includiIntestazioni: false, bom: false },
+      { columns: ["tipo_operazione"], separator: ";", includiIntestazioni: false, bom: false },
       [],
       undefined,
       { resolveOperationType: (op) => (op === "phytosanitary" ? "Treatment" : op) },
@@ -326,8 +326,8 @@ describe("raccolteToOperazioni · le harvests rientrano nel QDCA", () => {
       ops,
       APPS,
       {
-        colonne: ["tipo_operazione", "prodotto", "raccolta_kg", "destinazione", "crop_external_code"],
-        separatore: ";",
+        columns: ["tipo_operazione", "prodotto", "raccolta_kg", "destinazione", "crop_external_code"],
+        separator: ";",
         includiIntestazioni: false,
         bom: false,
       },
@@ -337,10 +337,10 @@ describe("raccolteToOperazioni · le harvests rientrano nel QDCA", () => {
     assert.equal(csv, "Harvest;Sangiovese;3200;Cantina Sociale;060");
   });
 
-  it("le colonne harvest restano vuote sulle operazioni non-harvest", () => {
+  it("le columns harvest restano vuote sulle operazioni non-harvest", () => {
     const csv = buildSianCsv([TRATT[0]], APPS, {
-      colonne: ["raccolta_kg", "destinazione"],
-      separatore: ";",
+      columns: ["raccolta_kg", "destinazione"],
+      separator: ";",
       includiIntestazioni: false,
       bom: false,
     });

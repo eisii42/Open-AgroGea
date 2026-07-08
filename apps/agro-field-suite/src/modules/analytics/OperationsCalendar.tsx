@@ -93,7 +93,7 @@ function months(t: TFunction): string[] {
 }
 
 /**
- * Chiave-giorno "YYYY-MM-DD" robusta: PGlite restituisce le colonne
+ * Chiave-giorno "YYYY-MM-DD" robusta: PGlite restituisce le columns
  * timestamptz/date come oggetti `Date` a runtime (i tipi TS dicono `string`),
  * quindi normalizziamo entrambe le forme prima di affettare.
  */

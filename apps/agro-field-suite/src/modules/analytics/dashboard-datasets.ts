@@ -32,7 +32,7 @@ export interface ChartData {
   empty: boolean;
 }
 
-/** Bundle di dominio (già nello scope dei filtri) passato ai builder. */
+/** Bundle di dominio (già nello scope dei filters) passato ai builder. */
 export interface DashboardData {
   plots: Plot[];
   crops: Crop[];

@@ -18,7 +18,7 @@ import {
   isGeoJson,
   toFeatureCollection,
 } from "../modules/add-data/add-data";
-import { importaFascicoloSian } from "../modules/sian/import-dossier";
+import { importSianDossier } from "../modules/sian/import-dossier";
 import {
   combinaLayer,
   type ExportFormat,
@@ -163,14 +163,14 @@ export function AddDataControl() {
    * mappe DSS…) in uno dei formati GIS della filiera. Serializzazione pura,
    * tracciata nel giornale dei trasferimenti.
    */
-  async function esportaConfigurazione(format: ExportFormat) {
+  async function exportConfiguration(format: ExportFormat) {
     setErrore(null);
     setEsito(null);
-    const esportabili = layers.filter(
+    const exportable = layers.filter(
       (l) => l.metadata?.agrogea === true && l.geojson,
     );
     const fc = combinaLayer(
-      esportabili.map((l) => ({
+      exportable.map((l) => ({
         id: l.id,
         name: l.name,
         geojson: l.geojson ?? null,
@@ -220,7 +220,7 @@ export function AddDataControl() {
         setErrore(t("addDataControl.noFieldsRecognized"));
         return;
       }
-      const esitoImport = await importaFascicoloSian(campi, activeCampaign);
+      const esitoImport = await importSianDossier(campi, activeCampaign);
       await recordTransfer({
         operation_type: "import",
         file_format: formato === "csv" ? "csv" : "shapefile",
@@ -332,7 +332,7 @@ export function AddDataControl() {
             />
           </label>
 
-          {/* Warning file massivo (>50 MB): l'utente conferma o annulla. */}
+          {/* Warning file massivo (>50 MB): l'utente confirm o annulla. */}
           {warnFile && (
             <div className="mt-2 rounded-[var(--r-2)] border border-[var(--warn)] bg-[var(--warn-l)] p-2.5 text-xs text-[var(--warn)]">
               <p className="font-semibold">
@@ -381,7 +381,7 @@ export function AddDataControl() {
                   key={f.format}
                   type="button"
                   disabled={busy}
-                  onClick={() => void esportaConfigurazione(f.format)}
+                  onClick={() => void exportConfiguration(f.format)}
                   className={cn(
                     "rounded-[var(--r-1)] border border-[var(--line)] px-2 py-1 text-[11px] font-medium text-[var(--ink-2)] hover:bg-[var(--panel-2)]",
                     busy && "pointer-events-none opacity-60",

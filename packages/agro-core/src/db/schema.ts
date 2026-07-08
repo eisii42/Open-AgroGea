@@ -11,12 +11,12 @@
  *     ritorno della connettività.
  *
  * v12 — RISTRUTTURAZIONE EN + NORMALIZZAZIONE COLTURE (clean rewrite).
- *   * tutte le tabelle e le colonne residue passano a un inglese tecnico
+ *   * tutte le tabelle e le columns residue passano a un inglese tecnico
  *     standard (GIS/IACS europeo); l'outbox diventa `sync_outbox`;
  *   * la specie/varietà coltivata è ISOLATA nella nuova tabella `crops`
  *     (proprietà di filiera dentro `crop_metadata` JSONB), referenziata da
  *     `plots_campaign.crop_id`: l'appezzamento fisico (`plots_registry`) non
- *     porta più colonne colturali hardcoded (crop/varieta/vite_*);
+ *     porta più columns colturali hardcoded (crop/varieta/vite_*);
  *   * area: un'unica colonna `area_ha NUMERIC(10,4)` (eliminati i
  *     duplicati `superficie_ha`/`area_ettari`), autocompilata dal calcolo
  *     geometrico nel DAL.
@@ -24,7 +24,7 @@
  * Clean rewrite: niente blocchi `DO $$` di rename incrementale. Le istanze
  * PGlite di sviluppo pre-v12 vanno ricreate (siamo su feature/agrogea-foundation,
  * pre-release). I CREATE TABLE sono idempotenti (`if not exists`); le ALTER
- * additive coprono l'aggiunta di colonne a istanze v12 già create.
+ * additive coprono l'aggiunta di columns a istanze v12 già create.
  *
  * v13 — additiva: tabella local-only `soil_water_indices` (output giornaliero
  * del bilancio idrico FAO 56/66, ricomputabile) e formati `kml`/`gpx` nel CHECK
@@ -41,9 +41,9 @@
  *
  * v16 — additiva: Magazzino (0.2.0). Tre tabelle sincronizzate:
  *   * `products` — anagrafica products a categorie RIGIDE (agrofarmaci, concimi,
- *     sementi, carburante) con i campi specifici di categoria e il CUMP corrente
+ *     sementi, carburante) con i campi specifici di categoria e il CUMP current
  *     (`avg_unit_cost`, media ponderata mobile aggiornata a ogni carico);
- *   * `product_lots` — lots con scadenza, stock corrente e costo di carico.
+ *   * `product_lots` — lots con scadenza, stock current e costo di carico.
  *     Il CHECK `quantity_on_hand >= 0` è la guardia ATOMICA dello issue: uno
  *     issue che porterebbe la stock sotto zero fa fallire l'intera
  *     transazione (nessuno issue parziale);
@@ -71,7 +71,7 @@
  *   Rollback logico v17: `drop index if exists plots_campaign_open_unq` +
  *   ripristino del vincolo pieno con `alter table plots_campaign add constraint
  *   unique_plot_per_campaign unique (plot_id, campaign_year)` (possibile solo se
- *   non esistono doppioni da secondo raccolto); le colonne additive possono
+ *   non esistono doppioni da secondo raccolto); le columns additive possono
  *   restare (ignorate dal codice pre-v17), nessun dato viene perso.
  */
 
@@ -113,7 +113,7 @@ create table if not exists companies (
 
 -- crops — specie/varietà coltivata, isolata dall'anagrafica fisica. Le
 -- proprietà di filiera (clone, sesto d'impianto, portainnesto…) vivono dentro
--- crop_metadata (JSONB dinamico), non come colonne hardcoded.
+-- crop_metadata (JSONB dinamico), non come columns hardcoded.
 create table if not exists crops (
   id              uuid primary key,
   tenant_id       uuid not null,
@@ -515,10 +515,10 @@ create index if not exists product_catalogs_country_idx
 
 -- products — anagrafica products di warehouse a categorie RIGIDE. La categoria
 -- determina i campi obbligatori (enforced lato TS in validateProduct, come
--- la validazione PAN; qui le colonne restano nullable per non irrigidire le
+-- la validazione PAN; qui le columns restano nullable per non irrigidire le
 -- migrazioni): agrofarmaci → registration_number (registro PAN); concimi →
 -- titoli N-P-K; carburante → codice assegnazione UMA. avg_unit_cost è il
--- CUMP corrente (Costo Unitario Medio Ponderato, media ponderata mobile),
+-- CUMP current (Costo Unitario Medio Ponderato, media ponderata mobile),
 -- aggiornato in transazione a ogni carico lot.
 create table if not exists products (
   id                  uuid primary key,
@@ -561,7 +561,7 @@ alter table products
 create index if not exists products_company_idx
   on products (company_id, category);
 
--- product_lots — lots di warehouse: number lot, scadenza, stock corrente
+-- product_lots — lots di warehouse: number lot, scadenza, stock current
 -- e costo unitario di carico (input del CUMP). Il CHECK "quantity_on_hand >= 0"
 -- è la guardia ATOMICA dello issue: la transazione che porterebbe la stock
 -- sotto zero fallisce per intero (nessuno stato parziale/inconsistente).

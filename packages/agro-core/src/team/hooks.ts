@@ -3,7 +3,7 @@
  * ora in `tenant_memberships` (persistiti su PGlite e sincronizzati via outbox):
  * il core `useAgroStore` è la fonte di verità, questi hook compongono l'engine
  * PURO ({@link MembershipGuard}) sui dati idratati. L'identità dell'utente
- * corrente è la sessione del control plane.
+ * current è la sessione del control plane.
  */
 
 import { useAgroStore } from "../store";
@@ -70,7 +70,7 @@ export function useInviteDecision(
   );
 }
 
-/** Ruolo dell'utente corrente in una specifica company (o null se esterno/owner). */
+/** Ruolo dell'utente current in una specifica company (o null se esterno/owner). */
 export function useCurrentRole(companyId: string | null): TeamRole | null {
   const memberships = useAgroStore((s) => s.memberships);
   const email = useAgroStore(
@@ -83,7 +83,7 @@ export function useCurrentRole(companyId: string | null): TeamRole | null {
 }
 
 /**
- * true se l'utente corrente è in SOLA LETTURA nell'azienda data (ruolo VIEWER):
+ * true se l'utente current è in SOLA LETTURA nell'azienda data (ruolo VIEWER):
  * l'intera interfaccia (Command Center, mappa, Field Attributes) va configurata
  * read-only e le mutazioni disattivate.
  */
@@ -99,7 +99,7 @@ export function useReadOnly(companyId: string | null): boolean {
 /**
  * Invita un collaboratore: valida la quota del ruolo per l'azienda (solleva
  * {@link QuotaExceededError} se saturata) e, se ammesso, persiste la membership
- * con stato `invited`. La verifica usa lo stato corrente del core store.
+ * con stato `invited`. La verifica usa lo stato current del core store.
  */
 export async function inviteMember(input: {
   plan: string | null | undefined;

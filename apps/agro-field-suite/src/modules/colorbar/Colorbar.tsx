@@ -12,7 +12,7 @@ import { buildColorbar, type ColorbarModel } from "./colorbar-model";
 /**
  * Legenda a gradiente (colorbar) degli indici spettrali. Ancorata in basso a
  * destra sulla mappa: compare automaticamente quando un overlay raster di indice
- * è attivo (visibile) e si nasconde quando non ce ne sono. Una barra per indice.
+ * è active (visibile) e si nasconde quando non ce ne sono. Una barra per indice.
  */
 export function Colorbar() {
   const layers = useAppStore((s) => s.layers);

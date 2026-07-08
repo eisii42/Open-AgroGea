@@ -13,7 +13,7 @@ export const EXPIRY_WARNING_DAYS_DEFAULT = 30;
 
 /**
  * CUMP dopo un carico: media ponderata tra la stock complessiva esistente
- * (valorizzata al CUMP corrente) e la quantità caricata (al costo di carico).
+ * (valorizzata al CUMP current) e la quantità caricata (al costo di carico).
  * Con stock totale nulla o negativa il CUMP riparte dal costo di carico.
  * Arrotondato a 4 decimali (precisione della colonna `avg_unit_cost`).
  */
@@ -38,7 +38,7 @@ export type LotExpiryStatus = "valid" | "expiring" | "expired";
  * `expiring` se cade entro `warningDays` giorni, `valid` altrimenti (o senza
  * scadenza). Il confronto è per GIORNO di calendario (un lot che scade oggi
  * è ancora utilizzabile). Accetta sia la stringa ISO del tipo di dominio sia
- * il `Date` che PGlite può restituire per le colonne `date`.
+ * il `Date` che PGlite può restituire per le columns `date`.
  */
 export function expiryStatus(
   expiresAt: string | Date | null,

@@ -183,12 +183,12 @@ export class AgroDalRegistry extends AgroDalBase {
       `select * from plots_registry where id = $1 and deleted_at is null`,
       [id],
     );
-    const corrente = result.rows[0];
-    if (!corrente) {
+    const current = result.rows[0];
+    if (!current) {
       throw new Error(`Plot ${id} inesistente: NDVI non salvato.`);
     }
     const row: Plot = {
-      ...corrente,
+      ...current,
       last_ndvi_mean: meanNdvi,
       updated_at: ts,
     };
@@ -242,9 +242,9 @@ export class AgroDalRegistry extends AgroDalBase {
        limit 1`,
       [input.plot_id, input.campaign_year],
     );
-    const corrente = esistente.rows[0];
+    const current = esistente.rows[0];
     const row: PlotCampaign = {
-      id: input.id ?? corrente?.id ?? uuidv4(),
+      id: input.id ?? current?.id ?? uuidv4(),
       tenant_id: this.tenantId,
       plot_id: input.plot_id,
       crop_id: input.crop_id,
@@ -254,8 +254,8 @@ export class AgroDalRegistry extends AgroDalBase {
       crop_external_code: input.crop_external_code ?? null,
       variety_external_code: input.variety_external_code ?? null,
       declared_area_ha: input.declared_area_ha,
-      closed_at: input.closed_at ?? corrente?.closed_at ?? null,
-      created_at: input.created_at ?? corrente?.created_at ?? ts,
+      closed_at: input.closed_at ?? current?.closed_at ?? null,
+      created_at: input.created_at ?? current?.created_at ?? ts,
       updated_at: ts,
       deleted_at: null,
     };
@@ -282,11 +282,11 @@ export class AgroDalRegistry extends AgroDalBase {
        where id = $1 and deleted_at is null and closed_at is null`,
       [id],
     );
-    const corrente = result.rows[0];
-    if (!corrente) return null;
+    const current = result.rows[0];
+    if (!current) return null;
     const ts = nowIso();
     const row: PlotCampaign = {
-      ...corrente,
+      ...current,
       closed_at: closedAt ?? ts,
       updated_at: ts,
     };

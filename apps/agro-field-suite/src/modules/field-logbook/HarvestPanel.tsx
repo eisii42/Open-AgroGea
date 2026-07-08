@@ -77,10 +77,10 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
   const [saving, setSaving] = useState(false);
 
   const quintaliNum = quintali.trim() === "" ? null : Number(quintali);
-  const quintaliValidi = quintaliNum == null || Number.isFinite(quintaliNum);
+  const validQuintals = quintaliNum == null || Number.isFinite(quintaliNum);
 
   // -- ciclo colturale (v17): campagna APERTA del field scelto ---------------
-  const campoAperto = useMemo(
+  const openField = useMemo(
     () =>
       appId
         ? campaignFields.find(
@@ -94,10 +94,10 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
   );
   const fieldCrop = useMemo(
     () =>
-      campoAperto
-        ? crops.find((c) => c.id === campoAperto.crop_id) ?? null
+      openField
+        ? crops.find((c) => c.id === openField.crop_id) ?? null
         : null,
-    [crops, campoAperto],
+    [crops, openField],
   );
   // Solo le ANNUALI si chiudono col raccolto (le perenni restano in field).
   const fieldCategory =
@@ -114,7 +114,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
     setChiudi(isAnnuale);
     if (fieldCrop) {
       const label = fieldCrop.variety_name ?? fieldCrop.common_name;
-      setCultivar((corrente) => corrente || label);
+      setCultivar((current) => current || label);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appId, isAnnuale, fieldCrop?.id]);
@@ -123,8 +123,8 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
   // Gate consapevole, non blocco duro: senza dati dichiarativi il salvataggio
   // richiede la spunta esplicita "Registra comunque" (o la compilazione via CTA).
   const mancantiSian = useMemo(
-    () => (campoAperto ? missingDeclarative(countryCode, campoAperto) : []),
-    [countryCode, campoAperto],
+    () => (openField ? missingDeclarative(countryCode, openField) : []),
+    [countryCode, openField],
   );
   const [senzaSian, setSenzaSian] = useState(false);
   useEffect(() => {
@@ -132,7 +132,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
   }, [appId]);
   const sianOk = mancantiSian.length === 0 || senzaSian;
 
-  const canSubmit = data !== "" && quintaliValidi && sianOk && !saving;
+  const canSubmit = data !== "" && validQuintals && sianOk && !saving;
 
   /** Etichette leggibili dei campi mancanti, nella semantica del paese. */
   const etichetteMancanti = mancantiSian
@@ -192,7 +192,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
       await saveHarvest({
         plot_id: appId || null,
         // Aggancio alla campagna APERTA del field (le chiuse sono storia).
-        plot_campaign_id: campoAperto?.id ?? null,
+        plot_campaign_id: openField?.id ?? null,
         cultivar: cultivar.trim() || null,
         destination_logistics: destinazione.trim() || null,
         // Quintali → kg per la persistenza (la metrica aggregata resta in kg).
@@ -204,8 +204,8 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
       });
       // v17: il raccolto di un'annuale chiude il ciclo colturale — il field
       // torna libero (mappa neutra, DSS spento, nuova semina possibile).
-      if (chiudi && campoAperto) {
-        await closeCampaign(campoAperto.id);
+      if (chiudi && openField) {
+        await closeCampaign(openField.id);
       }
       resetForm();
       setShowForm(false);
@@ -334,7 +334,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
                 min="0"
                 value={quintali}
                 placeholder="0"
-                aria-invalid={!quintaliValidi || undefined}
+                aria-invalid={!validQuintals || undefined}
                 onChange={(e) => setQuintali(e.target.value)}
               />
             </div>
@@ -348,12 +348,12 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
               />
             </div>
           </div>
-          {quintaliNum != null && quintaliValidi && (
+          {quintaliNum != null && validQuintals && (
             <p className="text-xs text-[var(--ink-4)]">
               = {(quintaliNum * 100).toLocaleString("it-IT")} kg
             </p>
           )}
-          {!quintaliValidi && (
+          {!validQuintals && (
             <p className="text-xs text-[var(--danger)]">
               {t("raccoltaPanel.quantityMustBeNumber")}
             </p>
@@ -361,7 +361,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
 
           {/* v17: chiusura del ciclo colturale al raccolto (solo campagne
               aperte; proposta pre-attiva per le annuali). */}
-          {campoAperto && fieldCrop && (
+          {openField && fieldCrop && (
             <label className="flex items-start gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2">
               <input
                 type="checkbox"

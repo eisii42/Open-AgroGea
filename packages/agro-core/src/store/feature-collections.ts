@@ -18,7 +18,7 @@ import type {
  */
 
 /**
- * Risolve la crop corrente di un plot FISICO tramite il suo record di
+ * Risolve la crop current di un plot FISICO tramite il suo record di
  * Campagna Agraria (`plots_campaign` → `crops`). Restituisce la categoria DSS
  * (`crop_metadata.category`, es. "viticoltura") se presente, altrimenti il name
  * comune della crop. Coerente con la normalizzazione: un plot ha una crop
@@ -176,7 +176,7 @@ export function harvestsToFeatureCollection(
  * FeatureCollection del Registro operazioni (Quaderno di Campagna). Le properties
  * (tipo_operazione, product, dose, quantità, avversità) alimentano la tabella
  * attributi e i suoi grafici. Geometria puntuale al centroid dell'appezzamento
- * collegato (se disponibile in `centroidi`); le operazioni "intera azienda" senza
+ * collegato (se available in `centroidi`); le operazioni "intera azienda" senza
  * plot restano fuori dal layer cartografico ma nei dati via store.
  */
 export function treatmentsToFeatureCollection(

@@ -102,11 +102,11 @@ function sanitizeChart(c: unknown): CustomChart | null {
     if (!dim) return null;
     if (!isAggregation(o.aggregation)) return null;
     // La misura serve solo se l'aggregazione non è "count"; se invalida, ripiega
-    // sulla prima misura disponibile.
+    // sulla prima misura available.
     const measures = entity.fields.filter((f) => f.kind === "measure");
     const measure =
       measures.find((m) => m.key === o.measure)?.key ?? measures[0]?.key ?? "";
-    // Denominatore valido solo per i rapporti; ripiega su una misura disponibile.
+    // Denominatore valido solo per i rapporti; ripiega su una misura available.
     const measure2 =
       o.aggregation === "ratio"
         ? measures.find((m) => m.key === o.measure2)?.key ?? measures[0]?.key ?? ""
@@ -139,7 +139,7 @@ export function loadCharts(companyId: string): CustomChart[] {
       }
     }
   } catch {
-    /* localStorage non disponibile o JSON corrotto: si ricade sui default */
+    /* localStorage non available o JSON corrotto: si ricade sui default */
   }
   return defaultCharts();
 }

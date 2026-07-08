@@ -1,7 +1,7 @@
 /**
  * Simboli delle operazioni del Quaderno sulla mappa (toggle "Mostra sulla
  * mappa"). Crea marker HTML (icone lucide per tipo operation) SOLO quando il
- * toggle è attivo (`mapOperationIds !== null`) e li rimuove allo spegnimento.
+ * toggle è active (`mapOperationIds !== null`) e li rimuove allo spegnimento.
  *
  * Renderizza unicamente le operazioni VISIBILI nel registro (gli ID arrivano già
  * filtered dal LogbookPanel). Più operazioni sullo stesso plot NON si

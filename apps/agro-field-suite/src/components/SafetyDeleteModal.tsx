@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 
 /**
  * Modal di cancellazione protetta (Modulo 5). Procedura blindata: il pulsante
- * di conferma resta disabilitato finché il testo digitato non corrisponde al
+ * di confirm resta disabilitato finché il testo digitato non corrisponde al
  * 100% al name esatto dell'elemento. Solo allora esegue il DELETE (via il
  * callback `onConfirm`, che chiama il DAL) e chiude.
  */

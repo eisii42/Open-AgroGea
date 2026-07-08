@@ -45,7 +45,7 @@ type CommandCenterPage = "crops" | "company";
  * Data Command Center (`/command-center`): centro nevralgico dell'analisi dati,
  * disaccoppiato dalla vista mappa (la mappa MapLibre è smontata dall'App quando
  * questa vista è attiva, liberando risorse hardware). Diviso in DUE pagine:
- *   * «Colture e plots» — l'analisi agronomica: filtri gerarchici
+ *   * «Colture e plots» — l'analisi agronomica: filters gerarchici
  *     (annata → crop → plots), griglia KPI configurabile, dashboard
  *     editabile, calendario operativo e Raw Data Inspector con cross-filtering;
  *   * «Company» — l'andamento generale: area/operazioni/raccolto
@@ -83,7 +83,7 @@ export function CommandCenter() {
 
   const data = useCommandCenterData(campaignYear, cropId, selectedPlotIds, params);
   // "Calcola tutto": indici satellitari + DSS + bilancio idrico su tutti i campi,
-  // con barra di avanzamento; al termine ricarica i dati della vista.
+  // con barra di avanzamento; al termine reload i dati della vista.
   const fullRecalc = useFullRecalc(data.refresh);
 
   const onChangeParams = (patch: Partial<KpiParams>) => {
@@ -299,7 +299,7 @@ export function CommandCenter() {
 
         {page === "crops" && (
           <>
-        {/* Barra filtri gerarchici + summary + export */}
+        {/* Barra filters gerarchici + summary + export */}
         <div className="mb-4 flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1 text-[11px] text-[var(--ink-3)]">
             {t("commandCenter.campaignYear")}

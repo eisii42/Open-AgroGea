@@ -168,7 +168,7 @@ export function pickEditedFeature(
  * `coordinates` di un Polygon profondità 3, di un MultiPolygon profondità 4.
  * 0 se non è un array.
  */
-function profonditaCoordinate(value: unknown): number {
+function depthCoordinates(value: unknown): number {
   let depth = 0;
   let cur: unknown = value;
   while (Array.isArray(cur)) {
@@ -207,13 +207,13 @@ function chiudiAnello(ring: Position[]): Position[] {
 
 function normalizzaAnelliPoligono(coords: Position[][]): Position[][] {
   return coords.map((ring) => {
-    const chiuso = chiudiAnello(ring);
-    if (chiuso.length < 4) {
+    const closed = chiudiAnello(ring);
+    if (closed.length < 4) {
       throw new Error(
         "Geometria poligono non valida: anello con meno di 3 vertici.",
       );
     }
-    return chiuso;
+    return closed;
   });
 }
 
@@ -234,7 +234,7 @@ function normalizzaAnelliPoligono(coords: Position[][]): Position[][] {
 export function normalizeGeometry<G extends Geometry>(geometry: G): G {
   if (geometry.type === "Polygon") {
     let coords = coord2D(geometry.coordinates);
-    const depth = profonditaCoordinate(coords);
+    const depth = depthCoordinates(coords);
     // Profondità attesa 3; 2 = anello "nudo" senza il livello dei ring → avvolgi.
     if (depth === 2) coords = [coords];
     else if (depth !== 3) {
@@ -250,7 +250,7 @@ export function normalizeGeometry<G extends Geometry>(geometry: G): G {
 
   if (geometry.type === "MultiPolygon") {
     let coords = coord2D(geometry.coordinates);
-    const depth = profonditaCoordinate(coords);
+    const depth = depthCoordinates(coords);
     // Profondità attesa 4; 3 = singolo poligono senza il livello multi → avvolgi.
     if (depth === 3) coords = [coords];
     else if (depth !== 4) {

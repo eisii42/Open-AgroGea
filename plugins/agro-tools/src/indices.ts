@@ -43,7 +43,7 @@ export interface IndexStats {
   min: number;
   max: number;
   devStd: number;
-  pixelValidi: number;
+  validPixels: number;
 }
 
 /**
@@ -192,7 +192,7 @@ export function indexStatistics(values: Float32Array): IndexStats {
     if (v > max) max = v;
   }
   if (n === 0) {
-    return { media: Number.NaN, min: Number.NaN, max: Number.NaN, devStd: Number.NaN, pixelValidi: 0 };
+    return { media: Number.NaN, min: Number.NaN, max: Number.NaN, devStd: Number.NaN, validPixels: 0 };
   }
   const media = sum / n;
   return {
@@ -200,7 +200,7 @@ export function indexStatistics(values: Float32Array): IndexStats {
     min,
     max,
     devStd: Math.sqrt(Math.max(0, sumSq / n - media * media)),
-    pixelValidi: n,
+    validPixels: n,
   };
 }
 

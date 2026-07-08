@@ -44,7 +44,7 @@ export function registerControlPlane(next: ControlPlaneAdapter): void {
   adapter = next;
 }
 
-/** Adapter corrente (vuoto se nessuna edizione ne ha registrato uno). */
+/** Adapter current (vuoto se nessuna edizione ne ha registrato uno). */
 export function controlPlane(): ControlPlaneAdapter {
   return adapter;
 }

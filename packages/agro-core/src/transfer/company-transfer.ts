@@ -182,7 +182,7 @@ export function serializeCompanySnapshot(
   for (const obs of snapshot.scouting) {
     features.push({
       type: "Feature",
-      // Geometria sintetizzata dalle coordinate del rilievo (lat/lng colonne).
+      // Geometria sintetizzata dalle coordinate del rilievo (lat/lng columns).
       geometry: { type: "Point", coordinates: [obs.lng, obs.lat] },
       properties: { kind: "scouting", scouting: obs },
     });

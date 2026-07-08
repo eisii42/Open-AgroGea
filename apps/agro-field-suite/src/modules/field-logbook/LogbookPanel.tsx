@@ -36,7 +36,7 @@ const TIPO_COLOR: Record<string, string> = {
 /**
  * Quaderno di Campagna (Design.md §Feature popups): lista record dal DAL +
  * form di registrazione. Ogni insert finisce in PGlite e nell'outbox nella
- * stessa transazione; il badge "coda" sparisce quando il sync router conferma.
+ * stessa transazione; il badge "coda" sparisce quando il sync router confirm.
  *
  * La lista è filtrabile per intervallo di date e per plot (geometria).
  * Il form può aprirsi pre-mirato a un plot tramite la scorciatoia "QDC"
@@ -119,7 +119,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   }
 
   // "Ripeti operazione" (v17): riapre il form del tipo giusto precompilato dal
-  // record esistente; la data resta oggi e gli scarichi si riscelgono sui
+  // record esistente; la data resta oggi e gli issues si riscelgono sui
   // lots attuali del warehouse.
   function repeatOperation(op: TreatmentLog) {
     setFormDefaults({
@@ -149,7 +149,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     setDettaglio(null);
   }
 
-  // Cancellazione protetta: operation in attesa di conferma + notifica esito.
+  // Cancellazione protetta: operation in attesa di confirm + notifica esito.
   const [daEliminare, setDaEliminare] = useState<TreatmentLog | null>(
     null,
   );
@@ -180,10 +180,10 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   // su field libero, v17) crea scheda crop + campagna agraria in automatico.
   async function handleSubmit(
     values: TrattamentoFormValues,
-    scarichi?: IssueRequest[],
+    issues?: IssueRequest[],
     assegnazione?: CropAssignment | null,
   ) {
-    await recordTreatment(values, scarichi);
+    await recordTreatment(values, issues);
     if (assegnazione) {
       const crop = await saveCrop({
         common_name: assegnazione.species,
@@ -231,7 +231,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     return () => clearTimeout(t);
   }, [notifica]);
 
-  /** Etichetta sintetica dell'operazione, per il banner di conferma. */
+  /** Etichetta sintetica dell'operazione, per il banner di confirm. */
   function operationLabel(t: TreatmentLog): string {
     const data = new Date(t.executed_at).toLocaleDateString("it-IT");
     return `${t.product_name ?? t.operation_type} · ${data}`;
@@ -257,19 +257,19 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     });
   }, [treatments, filtroAppId, filtroDa, filtroA]);
 
-  const filtriAttivi = Boolean(filtroAppId || filtroDa || filtroA);
+  const activeFilters = Boolean(filtroAppId || filtroDa || filtroA);
 
   // Toggle "Mostra sulla mappa": proietta come simboli SOLO le operazioni
-  // attualmente visibili nel registro (rispetta i filtri). Mentre è attivo,
+  // attualmente visibili nel registro (rispetta i filters). Mentre è active,
   // il set di ID resta allineato alla lista filtrata.
-  const mappaAttiva = mapOperationIds !== null;
+  const activeMap = mapOperationIds !== null;
   useEffect(() => {
-    if (!mappaAttiva) return;
+    if (!activeMap) return;
     setMapOperationIds(filtered.map((t) => t.id));
-  }, [filtered, mappaAttiva, setMapOperationIds]);
+  }, [filtered, activeMap, setMapOperationIds]);
 
   const toggleMappa = () => {
-    if (mappaAttiva) setMapOperationIds(null);
+    if (activeMap) setMapOperationIds(null);
     else setMapOperationIds(filtered.map((t) => t.id));
   };
 
@@ -357,7 +357,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
               {notifica}
             </div>
           )}
-          {/* Barra filtri: data + plot (geometria). */}
+          {/* Barra filters: data + plot (geometria). */}
           <div className="flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -394,7 +394,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
                 ))}
               </Select>
             </div>
-            {filtriAttivi && (
+            {activeFilters && (
               <button
                 type="button"
                 onClick={() => {
@@ -415,13 +415,13 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
               onClick={toggleMappa}
               className={cn(
                 "flex items-center justify-center gap-2 rounded-[var(--r-2)] border px-3 py-2 text-sm font-medium transition-colors",
-                mappaAttiva
+                activeMap
                   ? "border-[var(--accent)] bg-[var(--accent-l)] text-[var(--accent)]"
                   : "border-[var(--line)] text-[var(--ink-2)] hover:bg-[var(--panel-2)]",
               )}
             >
-              {mappaAttiva ? <MapPinOff size={15} /> : <MapPin size={15} />}
-              {mappaAttiva
+              {activeMap ? <MapPinOff size={15} /> : <MapPin size={15} />}
+              {activeMap
                 ? t("quadernoPanel.map.hide", { count: filtered.length })
                 : t("quadernoPanel.map.show", { count: filtered.length })}
             </button>

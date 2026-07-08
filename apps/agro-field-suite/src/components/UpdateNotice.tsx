@@ -6,7 +6,7 @@ import { useAppUpdater } from "../hooks/useAppUpdater";
 
 /**
  * Banner discreto di aggiornamento (Tauri Updater). Compare in alto solo quando
- * c'è un aggiornamento disponibile o in corso; mostra versione e changelog, con
+ * c'è un aggiornamento available o in corso; mostra versione e changelog, con
  * azione esplicita "Aggiorna ora" (nessun download silenzioso) e avanzamento del
  * download. È un no-op fuori da Tauri desktop (l'hook non controlla nemmeno).
  */
@@ -63,7 +63,7 @@ export function UpdateNotice() {
               </p>
             )}
 
-            {/* Changelog espandibile (solo quando disponibile, non in corso). */}
+            {/* Changelog espandibile (solo quando available, non in corso). */}
             {state.phase === "available" && state.notes && (
               <div className="mt-1 text-xs text-[var(--ink-3)]">
                 <button

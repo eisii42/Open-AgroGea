@@ -40,7 +40,7 @@ export class WarehouseError extends Error {
  * lots con scadenza/stock, carico con aggiornamento CUMP e issue ATOMICO
  * agganciato alle attività del Quaderno. Ogni scrittura segue il percorso
  * transazionale dato+outbox; le operazioni multi-row (carico, issue,
- * storno) vivono in UN'UNICA transazione: o si conferma tutto, o niente.
+ * storno) vivono in UN'UNICA transazione: o si confirm tutto, o niente.
  */
 export class AgroDalWarehouse extends AgroDalLogbook {
   // -- products (anagrafica) --------------------------------------------------
@@ -144,7 +144,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
 
   /**
    * CARICO di un nuovo lot: inserisce il lot e update il CUMP del
-   * product (media ponderata sulla stock complessiva corrente) nella
+   * product (media ponderata sulla stock complessiva current) nella
    * STESSA transazione, con entrambe le voci di outbox. §5.3.
    */
   async receiveLot(
@@ -285,10 +285,10 @@ export class AgroDalWarehouse extends AgroDalLogbook {
       TreatmentLog,
       "id" | "tenant_id" | "created_at" | "updated_at" | "deleted_at"
     > & { id?: string },
-    scarichi: IssueRequest[],
-  ): Promise<{ treatment: TreatmentLog; scarichi: ActivityProduct[] }> {
-    if (scarichi.length === 0) {
-      return { treatment: await this.insertTreatment(input), scarichi: [] };
+    issues: IssueRequest[],
+  ): Promise<{ treatment: TreatmentLog; issues: ActivityProduct[] }> {
+    if (issues.length === 0) {
+      return { treatment: await this.insertTreatment(input), issues: [] };
     }
     const ts = nowIso();
     const treatment: TreatmentLog = {
@@ -311,7 +311,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
         treatment as unknown as Row & { id: string },
       );
 
-      for (const richiesta of scarichi) {
+      for (const richiesta of issues) {
         const lookup = await tx.query<ProductLot & { avg_unit_cost: number | string; product_name: string }>(
           `select l.*, p.avg_unit_cost, p.name as product_name
            from product_lots l join products p on p.id = l.product_id
@@ -332,17 +332,17 @@ export class AgroDalWarehouse extends AgroDalLogbook {
             `Il lot ${lot.lot_number ?? lot.id.slice(0, 8)} di "${lot.product_name}" è scaduto il ${lot.expires_at}: uso bloccato.`,
           );
         }
-        const disponibile = Number(lot.quantity_on_hand);
-        if (richiesta.quantity > disponibile) {
+        const available = Number(lot.quantity_on_hand);
+        if (richiesta.quantity > available) {
           throw new WarehouseError(
             "insufficient_stock",
-            `Giacenza insufficiente per il lot ${lot.lot_number ?? lot.id.slice(0, 8)} di "${lot.product_name}": disponibili ${disponibile}, richiesti ${richiesta.quantity}. Nessuno issue eseguito.`,
+            `Giacenza insufficiente per il lot ${lot.lot_number ?? lot.id.slice(0, 8)} di "${lot.product_name}": disponibili ${available}, richiesti ${richiesta.quantity}. Nessuno issue eseguito.`,
           );
         }
 
         // UPDATE della stock: il CHECK `quantity_on_hand >= 0` a schema è la
         // rete di sicurezza atomica anche in caso di scritture concorrenti.
-        // La row di outbox è COMPLETA (solo colonne di product_lots, senza i
+        // La row di outbox è COMPLETA (solo columns di product_lots, senza i
         // campi del join) come ogni altra mutazione sincronizzata.
         const updatedLot: ProductLot = {
           id: lot.id,
@@ -352,7 +352,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
           expires_at: lot.expires_at,
           initial_quantity: lot.initial_quantity,
           quantity_on_hand:
-            Math.round((disponibile - richiesta.quantity) * 1000) / 1000,
+            Math.round((available - richiesta.quantity) * 1000) / 1000,
           unit_cost: lot.unit_cost,
           created_at: lot.created_at,
           updated_at: ts,
@@ -392,14 +392,14 @@ export class AgroDalWarehouse extends AgroDalLogbook {
         issueRows.push(issue);
       }
     });
-    return { treatment, scarichi: issueRows };
+    return { treatment, issues: issueRows };
   }
 
   /**
    * Soft-delete di un'operazione del Quaderno con STORNO warehouse: tombstone
-   * dell'attività e dei suoi scarichi + reintegro delle giacenze dei lots,
+   * dell'attività e dei suoi issues + reintegro delle giacenze dei lots,
    * tutto in un'unica transazione (l'inventario resta coerente). Sostituisce
-   * {@link AgroDalLogbook.deleteTreatment} per le attività con scarichi.
+   * {@link AgroDalLogbook.deleteTreatment} per le attività con issues.
    */
   override async deleteTreatment(id: string): Promise<void> {
     const ts = nowIso();
@@ -413,12 +413,12 @@ export class AgroDalWarehouse extends AgroDalLogbook {
         updated_at: ts,
       } as Row & { id: string });
 
-      const scarichi = await tx.query<ActivityProduct>(
+      const issues = await tx.query<ActivityProduct>(
         `select * from activity_products
          where treatment_log_id = $1 and deleted_at is null`,
         [id],
       );
-      for (const issue of scarichi.rows) {
+      for (const issue of issues.rows) {
         await tx.query(
           `update product_lots
            set quantity_on_hand = quantity_on_hand + $2, updated_at = $3

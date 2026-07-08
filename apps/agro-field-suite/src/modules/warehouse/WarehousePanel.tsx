@@ -48,7 +48,7 @@ function persistExpiryDays(days: number) {
   try {
     globalThis.localStorage?.setItem(EXPIRY_KEY, String(days));
   } catch {
-    // storage non disponibile: la soglia resta di sessione.
+    // storage non available: la soglia resta di sessione.
   }
 }
 
@@ -125,7 +125,7 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
     persistExpiryDays(days);
   }
 
-  async function conErrore(op: () => Promise<unknown>) {
+  async function withError(op: () => Promise<unknown>) {
     setErrore(null);
     try {
       await op();
@@ -166,7 +166,7 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
           onSubmit={async (input, lottoIniziale) => {
             // Product + carico del lot iniziale (stock di partenza): il
             // carico update anche il CUMP dal costo unitario indicato.
-            await conErrore(async () => {
+            await withError(async () => {
               const record = await saveProduct(input);
               if (record) {
                 await receiveLot({
@@ -188,10 +188,10 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
           lots={lotsPerProduct.get(openProduct.id) ?? []}
           warningDays={warningDays}
           onBack={() => setProdottoApertoId(null)}
-          onCarica={(input) => conErrore(() => receiveLot(input))}
-          onDeleteLotto={(id) => conErrore(() => deleteLot(id))}
+          onCarica={(input) => withError(() => receiveLot(input))}
+          onDeleteLotto={(id) => withError(() => deleteLot(id))}
           onDeleteProdotto={async () => {
-            await conErrore(async () => {
+            await withError(async () => {
               await deleteProduct(openProduct.id);
               setProdottoApertoId(null);
             });

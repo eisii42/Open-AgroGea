@@ -89,7 +89,7 @@ export function waterStressVector(
 ): VettoreRischioDss {
   const rischio01 = waterRisk01(stato);
   const ky = cropKy(crop);
-  const perditaResa = yieldReductionFao66(stato.depletion, stato.raw, stato.awc, ky);
+  const yieldLoss = yieldReductionFao66(stato.depletion, stato.raw, stato.awc, ky);
   const stress = underWaterStress(stato);
   return {
     id: "stress-idrico",
@@ -98,7 +98,7 @@ export function waterStressVector(
     target: "Deficit idrico radicale (FAO 66)",
     rischio01,
     message: stress
-      ? `Stress idrico in atto (Dr ${stato.depletion.toFixed(0)}/${stato.raw.toFixed(0)} mm ≥ RAW). Riduzione potenziale di resa stimata ${(perditaResa * 100).toFixed(0)}% (Ky ${ky}).`
+      ? `Stress idrico in atto (Dr ${stato.depletion.toFixed(0)}/${stato.raw.toFixed(0)} mm ≥ RAW). Riduzione potenziale di resa stimata ${(yieldLoss * 100).toFixed(0)}% (Ky ${ky}).`
       : `Riserva idrica adeguata (Dr ${stato.depletion.toFixed(0)} mm < RAW ${stato.raw.toFixed(0)} mm).`,
   };
 }
@@ -118,7 +118,7 @@ export function vettoriPatologici(esiti: DssOutcome[]): VettoreRischioDss[] {
 export interface EsitoDssEngine {
   /** Esiti patologici grezzi (per la timeline/messaggi esistenti). */
   esiti: DssOutcome[];
-  /** Vettori normalizzati 0..1: patologici + idrico (se disponibile). */
+  /** Vettori normalizzati 0..1: patologici + idrico (se available). */
   vettori: VettoreRischioDss[];
   /** Rischio complessivo del field = massimo dei vettori (0..1). */
   rischioComplessivo01: number;

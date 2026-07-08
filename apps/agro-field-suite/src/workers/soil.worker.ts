@@ -61,7 +61,7 @@ export interface SeriesPoint {
   cloudCover: number | null;
   /** Media per index (chiave = index), NaN se nessun pixel valido. */
   medie: Partial<Record<VegetationIndex, number>>;
-  pixelValidi: number;
+  validPixels: number;
 }
 
 export interface OverlayRaster {
@@ -268,7 +268,7 @@ async function elaboraScena(
   }
 
   const medie: Partial<Record<VegetationIndex, number>> = {};
-  let pixelValidi = 0;
+  let validPixels = 0;
   let overlay: OverlayRaster | null = null;
   let vraCells: VraCells | null = null;
 
@@ -277,7 +277,7 @@ async function elaboraScena(
     const { masked } = clipRasterToPolygon(valori, ref, job.geometria);
     const stats = indexStatistics(masked);
     medie[index] = stats.media;
-    pixelValidi = Math.max(pixelValidi, stats.pixelValidi);
+    validPixels = Math.max(validPixels, stats.validPixels);
 
     if (conOverlay && index === job.indicePrimario) {
       overlay = {
@@ -300,7 +300,7 @@ async function elaboraScena(
       datetime: scena.datetime,
       cloudCover: scena.cloudCover,
       medie,
-      pixelValidi,
+      validPixels,
     },
     overlay,
     vraCells,
@@ -312,7 +312,7 @@ ctx.addEventListener("message", async (event: MessageEvent<SuoloJob>) => {
   if (job?.tipo !== "suolo") return;
   try {
     if (job.scene.length === 0) {
-      throw new Error("Nessuna scena disponibile per i filtri scelti.");
+      throw new Error("Nessuna scena available per i filters scelti.");
     }
     const series: SeriesPoint[] = [];
     let overlay: OverlayRaster | null = null;

@@ -47,7 +47,7 @@ export function columnsAndValues(row: Row): {
 
 /**
  * SQL di upsert per id: `insert … on conflict (id) do update` su tutte le
- * colonne tranne chiavi e `created_at`. Con `lww: true` l'update è condizionato
+ * columns tranne chiavi e `created_at`. Con `lww: true` l'update è condizionato
  * a `updated_at` non più recente in locale (Last-Write-Wins del pull remoto).
  */
 export function upsertSql(

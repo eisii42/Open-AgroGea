@@ -174,7 +174,7 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
     // company.updated_at copre sia il cambio company sia l'idratazione da pull.
   }, [activeCompanyId, company?.updated_at]);
 
-  const setCampo = (key: CampoChiave, value: string) =>
+  const setField = (key: CampoChiave, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
   const save = async () => {
@@ -237,7 +237,7 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
           {/* Banner laterale a sezioni */}
           <nav className="flex w-[88px] shrink-0 flex-col gap-1">
             {SEZIONI.map((s) => {
-              const attivo = s.id === sezioneId;
+              const active = s.id === sezioneId;
               return (
                 <button
                   key={s.id}
@@ -245,7 +245,7 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
                   onClick={() => setSezioneId(s.id)}
                   className={cn(
                     "flex flex-col items-center gap-1 rounded-[var(--r-2)] px-1.5 py-2 text-[11px] font-medium",
-                    attivo
+                    active
                       ? "bg-[var(--accent-l)] text-[var(--accent)]"
                       : "text-[var(--ink-3)] hover:bg-[var(--panel-2)]",
                   )}
@@ -268,7 +268,7 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
                   {c.tipo === "textarea" ? (
                     <textarea
                       value={form[c.key]}
-                      onChange={(e) => setCampo(c.key, e.target.value)}
+                      onChange={(e) => setField(c.key, e.target.value)}
                       rows={3}
                       placeholder={c.placeholder}
                       className="resize-none rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-1.5 text-sm"
@@ -276,7 +276,7 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
                   ) : (
                     <input
                       value={form[c.key]}
-                      onChange={(e) => setCampo(c.key, e.target.value)}
+                      onChange={(e) => setField(c.key, e.target.value)}
                       type={c.tipo ?? "text"}
                       placeholder={c.placeholder}
                       className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-1.5 text-sm"

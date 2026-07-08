@@ -81,7 +81,7 @@ export function buildPrintSvg(opts: PrintOptions): string {
   const mappa = opts.mappaDataUrl
     ? `<image x="${mapX}" y="${mapY}" width="${mapW}" height="${mapH}" preserveAspectRatio="xMidYMid slice" href="${opts.mappaDataUrl}"/>`
     : `<rect x="${mapX}" y="${mapY}" width="${mapW}" height="${mapH}" fill="#eef2f6"/>` +
-      `<text x="${mapX + mapW / 2}" y="${mapY + mapH / 2}" text-anchor="middle" font-size="14" fill="#90a0b0">Anteprima mappa non disponibile</text>`;
+      `<text x="${mapX + mapW / 2}" y="${mapY + mapH / 2}" text-anchor="middle" font-size="14" fill="#90a0b0">Anteprima mappa non available</text>`;
 
   // Pannello laterale: legenda, scala, nord, logo, note.
   const blocchi: string[] = [];
@@ -158,15 +158,15 @@ export function buildPrintSvg(opts: PrintOptions): string {
 export function spezza(testo: string, max: number): string[] {
   const parole = testo.split(/\s+/).filter(Boolean);
   const rows: string[] = [];
-  let corrente = "";
+  let current = "";
   for (const parola of parole) {
-    if (corrente.length + parola.length + 1 > max && corrente) {
-      rows.push(corrente);
-      corrente = parola;
+    if (current.length + parola.length + 1 > max && current) {
+      rows.push(current);
+      current = parola;
     } else {
-      corrente = corrente ? `${corrente} ${parola}` : parola;
+      current = current ? `${current} ${parola}` : parola;
     }
   }
-  if (corrente) rows.push(corrente);
+  if (current) rows.push(current);
   return rows;
 }

@@ -82,9 +82,9 @@ function rateoPerZona(ratei: number[], zona: number): number {
  */
 export function generateVraZones(
   cells: FeatureCollection<Polygon, { value?: number }>,
-  opzioni: OpzioniZoneVra,
+  options: OpzioniZoneVra,
 ): RisultatoZoneVra {
-  const unita = opzioni.unita ?? UNITA_LAVORAZIONE[opzioni.lavorazione];
+  const unita = options.unita ?? UNITA_LAVORAZIONE[options.lavorazione];
   const validi = cells.features.filter(
     (f): f is Feature<Polygon, { value: number }> =>
       typeof f.properties?.value === "number" &&
@@ -95,13 +95,13 @@ export function generateVraZones(
     return {
       fc: { type: "FeatureCollection", features: [] },
       zone: [],
-      lavorazione: opzioni.lavorazione,
+      lavorazione: options.lavorazione,
       unita,
     };
   }
 
   const valori = validi.map((f) => f.properties.value);
-  const { assignments, centroids } = kmeans1d(valori, opzioni.zone);
+  const { assignments, centroids } = kmeans1d(valori, options.zone);
 
   const conteggi = new Array<number>(centroids.length).fill(0);
   for (const zona of assignments) conteggi[zona] += 1;
@@ -110,7 +110,7 @@ export function generateVraZones(
     zona,
     valoreMedio: Math.round(valoreMedio * 1000) / 1000,
     nCelle: conteggi[zona],
-    rateo: rateoPerZona(opzioni.ratei, zona),
+    rateo: rateoPerZona(options.ratei, zona),
   }));
 
   const features = validi.map((feature, i) => {
@@ -121,7 +121,7 @@ export function generateVraZones(
         ...feature.properties,
         zona,
         rateo: zone[zona].rateo,
-        lavorazione: opzioni.lavorazione,
+        lavorazione: options.lavorazione,
         unita,
       },
     } satisfies Feature<Polygon>;
@@ -130,7 +130,7 @@ export function generateVraZones(
   return {
     fc: { type: "FeatureCollection", features },
     zone,
-    lavorazione: opzioni.lavorazione,
+    lavorazione: options.lavorazione,
     unita,
   };
 }

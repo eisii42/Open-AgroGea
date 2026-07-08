@@ -34,7 +34,7 @@ describe("fractionsFromTexture — classi multilingue e fallback", () => {
     assert.ok(argilloso!.argilla > argilloso!.sabbia);
   });
 
-  it("normalizza separatori e accenti (franco-sabbioso)", () => {
+  it("normalizza separators e accenti (franco-sabbioso)", () => {
     const a = fractionsFromTexture("Franco-Sabbioso");
     const b = fractionsFromTexture("franco sabbioso");
     assert.deepEqual(a, b);
@@ -79,7 +79,7 @@ describe("saxtonRawls — sanità fisica θFC/θPWP", () => {
     }
   });
 
-  it("l'argilla trattiene più acqua disponibile/residua della sabbia", () => {
+  it("l'argilla trattiene più acqua available/residua della sabbia", () => {
     const sabbia = saxtonRawls(fractionsFromTexture("sabbioso")!);
     const argilla = saxtonRawls(fractionsFromTexture("argilloso")!);
     // l'argilla ha PWP nettamente più alto della sabbia (acqua più legata)

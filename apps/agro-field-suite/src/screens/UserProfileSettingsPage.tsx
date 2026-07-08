@@ -41,7 +41,7 @@ import { STANDALONE } from "../standalone";
 
 /**
  * Moduli proprietari/cloud nascosti dai toggle nelle build standalone/OSS.
- * L'export SIAN resta disponibile anche nell'edizione open (CSV puro da PGlite
+ * L'export SIAN resta available anche nell'edizione open (CSV puro da PGlite
  * locale): qui solo GeoCompliance (due diligence territoriale, module cloud).
  */
 const CLOUD_MODULE_IDS: ReadonlySet<DashboardModuleId> = new Set<DashboardModuleId>([

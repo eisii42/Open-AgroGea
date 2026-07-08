@@ -93,7 +93,7 @@ const CROP_KPI_IDS: Record<CropCategory, string[]> = {
 
 /**
  * Nome leggibile di un modello DSS dal `model_name` `"<moduloId>_<dssId>"`:
- * rimuove il prefisso del module e normalizza separatori (es. `vite_peronospora`
+ * rimuove il prefisso del module e normalizza separators (es. `vite_peronospora`
  * → "Peronospora", `olivo_occhio-pavone` → "Occhio pavone").
  */
 function prettyModelName(modelName: string): string {
@@ -354,7 +354,7 @@ function dominantCategory(
 }
 
 /**
- * Baseline NDVI storica dell'appezzamento per la settimana fenologica corrente
+ * Baseline NDVI storica dell'appezzamento per la settimana fenologica current
  * (media degli ultimi anni), se persistita in `metadata.ndvi_baseline`. Hook
  * tipizzato in attesa di uno storico NDVI per-settimana (pipeline STAC): finché
  * assente, ritorna null e l'anomalia ricade sulla baseline spaziale. `null` se
@@ -439,7 +439,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
 
   // -- Anomalia di vigore ΔNDVI (Modulo 3.1) --------------------------------
   // ΔNDVI = NDVI_current − NDVI_baseline. La baseline preferita è lo STORICO
-  // dello stesso plot per la settimana fenologica corrente (ultimi 5
+  // dello stesso plot per la settimana fenologica current (ultimi 5
   // anni), letto da `metadata.ndvi_baseline` se presente; in sua assenza si usa
   // la baseline SPAZIALE (media dell'annata sull'insieme peer), così l'anomalia
   // resta calcolabile finché non esiste uno storico NDVI persistito.
@@ -797,7 +797,7 @@ function aggregateByDate(
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-/** Ultimo value con data ≤ oggi (stato corrente), ignorando i giorni di previsione. */
+/** Ultimo value con data ≤ oggi (stato current), ignorando i giorni di previsione. */
 function valueAsOfToday(series: DatedValue[]): number | null {
   const today = new Date().toISOString().slice(0, 10);
   let v: number | null = null;

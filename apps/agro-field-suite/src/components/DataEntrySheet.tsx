@@ -81,7 +81,7 @@ const SAVE_NO_TENANT_MSG =
   "Nessuna company attiva: impossibile salvare nel database locale.";
 
 /** Estrae un messaggio leggibile da un errore di salvataggio. */
-function messaggioErrore(error: unknown, t: TFunction): string {
+function errorMessage(error: unknown, t: TFunction): string {
   if (error instanceof Error && error.message) return error.message;
   return t("dataEntrySheet.saveFailed");
 }
@@ -126,7 +126,7 @@ function AppezzamentoForm({
     } catch (e) {
       // Non si chiude la scheda: l'utente vede il motivo e può ritentare senza
       // perdere la geometria disegnata.
-      setErrore(messaggioErrore(e, t));
+      setErrore(errorMessage(e, t));
     } finally {
       setSaving(false);
     }
@@ -233,7 +233,7 @@ function AssetForm({
         length_m: lunghezza,
       });
     } catch (e) {
-      setErrore(messaggioErrore(e, t));
+      setErrore(errorMessage(e, t));
     } finally {
       setSaving(false);
     }

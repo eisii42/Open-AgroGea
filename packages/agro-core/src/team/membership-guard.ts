@@ -71,7 +71,7 @@ export interface InviteRequest {
   plan: string | null | undefined;
   companyId: string;
   role: TeamRole;
-  /** Stato corrente dei membri (di tutte le companies: viene filtrato per company). */
+  /** Stato current dei membri (di tutte le companies: viene filtrato per company). */
   memberships: TenantMembership[];
 }
 
@@ -172,7 +172,7 @@ export function seatUsageForCompany(
 }
 
 // ---------------------------------------------------------------------------
-// Read-only / ruolo dell'utente corrente
+// Read-only / ruolo dell'utente current
 // ---------------------------------------------------------------------------
 
 /** Ruolo dell'utente (per email) in una specifica company, o null se esterno. */

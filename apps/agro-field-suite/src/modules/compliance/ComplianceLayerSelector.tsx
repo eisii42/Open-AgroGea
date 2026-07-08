@@ -35,17 +35,17 @@ export function ComplianceLayerSelector() {
     [layers],
   );
 
-  const layerScelto = layerEsterni.find((l) => l.id === layerId) ?? null;
-  const geojson = (layerScelto?.geojson as FeatureCollection | undefined) ?? null;
+  const chosenLayer = layerEsterni.find((l) => l.id === layerId) ?? null;
+  const geojson = (chosenLayer?.geojson as FeatureCollection | undefined) ?? null;
 
   const analisi = useComplianceLayerAnalysis(plots, geojson);
 
   /** Classifica il layer selezionato come vincolo `tipo` (tag app-wide). */
   function classifica(nextTipo: TipoVincolo) {
     setTipo(nextTipo);
-    if (layerScelto) {
-      updateLayer(layerScelto.id, {
-        metadata: { ...layerScelto.metadata, compliance: nextTipo },
+    if (chosenLayer) {
+      updateLayer(chosenLayer.id, {
+        metadata: { ...chosenLayer.metadata, compliance: nextTipo },
       });
     }
   }
@@ -54,11 +54,11 @@ export function ComplianceLayerSelector() {
     setLayerId(id);
     const l = layerEsterni.find((x) => x.id === id);
     if (!l) return;
-    // Eredita una classificazione già assegnata, altrimenti applica quella corrente.
-    const corrente = l.metadata?.compliance;
+    // Eredita una classificazione già assegnata, altrimenti applica quella current.
+    const current = l.metadata?.compliance;
     const nextTipo =
-      typeof corrente === "string" && (TIPI as string[]).includes(corrente)
-        ? (corrente as TipoVincolo)
+      typeof current === "string" && (TIPI as string[]).includes(current)
+        ? (current as TipoVincolo)
         : tipo;
     setTipo(nextTipo);
     updateLayer(l.id, {
@@ -120,7 +120,7 @@ export function ComplianceLayerSelector() {
             <select
               id="gc-tipo"
               value={tipo}
-              disabled={!layerScelto}
+              disabled={!chosenLayer}
               onChange={(e) => classifica(e.target.value as TipoVincolo)}
               className="w-full rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-2 text-sm disabled:opacity-50"
             >
@@ -133,7 +133,7 @@ export function ComplianceLayerSelector() {
           </div>
 
           {/* Esito analisi spaziale → badge di allerta. */}
-          {layerScelto && (
+          {chosenLayer && (
             <div className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2.5">
               {analisi.loading ? (
                 <p className="flex items-center gap-2 text-xs text-[var(--ink-3)]">

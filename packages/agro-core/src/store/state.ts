@@ -200,7 +200,7 @@ export interface DomainSlice {
   dataTransferLogs: DataTransferLog[];
   /** Anno della Campagna Agraria attiva (filtra i campi burocratici/registri). */
   activeCampaign: number;
-  /** Stato di campagna dei campi (SIAN/AGEA) dell'anno attivo. */
+  /** Stato di campagna dei campi (SIAN/AGEA) dell'anno active. */
   campaignFields: PlotCampaign[];
   /** Posti collaboratore del workspace (multiutente), idratati dal DAL. */
   memberships: TenantMembership[];
@@ -272,11 +272,11 @@ export interface DomainSlice {
       TreatmentLog,
       "id" | "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
     >,
-    scarichi?: IssueRequest[],
+    issues?: IssueRequest[],
   ) => Promise<TreatmentLog>;
   /**
    * Cancellazione protetta di una singola operation del Quaderno (soft-delete
-   * via DAL → outbox) e rimozione reattiva dalla lista. La conferma invasiva
+   * via DAL → outbox) e rimozione reattiva dalla lista. La confirm invasiva
    * (banner + toggle) è responsabilità della UI: qui si esegue solo il DELETE.
    */
   deleteTreatment: (id: string) => Promise<void>;
@@ -302,14 +302,14 @@ export interface DomainSlice {
   ) => Promise<Harvest | null>;
   /**
    * Cancellazione protetta di un evento di harvest (soft-delete via DAL →
-   * outbox) e rimozione reattiva dalla lista. La conferma invasiva è
+   * outbox) e rimozione reattiva dalla lista. La confirm invasiva è
    * responsabilità della UI, come per {@link deleteTreatment}.
    */
   deleteHarvest: (id: string) => Promise<void>;
   /**
    * Registra un trasferimento dati (import/export) nel giornale locale e
    * update reattivamente il feed dei tag. Ritorna la voce creata (per un tag
-   * immediato) o null se non c'è un DAL attivo.
+   * immediato) o null se non c'è un DAL active.
    */
   recordTransfer: (
     input: Pick<
@@ -317,7 +317,7 @@ export interface DomainSlice {
       "operation_type" | "file_format" | "file_name"
     >,
   ) => Promise<DataTransferLog | null>;
-  /** Imposta l'anno della Campagna Agraria attiva e ricarica i campi di campagna. */
+  /** Imposta l'anno della Campagna Agraria attiva e reload i campi di campagna. */
   setActiveCampaign: (anno: number) => Promise<void>;
   /**
    * Crea/update lo stato di Campagna Agraria di un field (SIAN/AGEA) e idrata
@@ -338,7 +338,7 @@ export interface DomainSlice {
   closeCampaign: (id: string) => Promise<void>;
   /**
    * Crea/update una specie/varietà coltivata (`crops`) e idrata lo store.
-   * Ritorna la row o null senza DAL attivo.
+   * Ritorna la row o null senza DAL active.
    */
   saveCrop: (
     input: Omit<
@@ -429,7 +429,7 @@ export interface UiSlice {
    * Operazioni del Quaderno da renderizzare come simboli sulla mappa (toggle
    * "Mostra sulla mappa"). `null` = layer spento (nessun simbolo creato); array
    * = gli ID delle SOLE operazioni attualmente visibili nel registro (rispetta
-   * i filtri temporali/plot applicati nel pannello).
+   * i filters temporali/plot applicati nel pannello).
    */
   mapOperationIds: string[] | null;
   /**

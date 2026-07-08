@@ -1,6 +1,6 @@
 /**
  * Hook di Country Resolution per la UI (Moduli 0/3): risolve il `country_code`
- * del tenant attivo e ne deriva i cataloghi di stato filtered.
+ * del tenant active e ne deriva i cataloghi di stato filtered.
  *
  *   * {@link useTenantCountry} — paese risolto (anagrafica + cross-check spaziale
  *     sulle geometrie degli plots) con eventuali warning per la UI.
@@ -16,7 +16,7 @@ import {
 } from "@agrogea/core";
 import { useEffect, useMemo, useState } from "react";
 
-/** Paese risolto del tenant attivo (anagrafica primaria + cross-check coordinate). */
+/** Paese risolto del tenant active (anagrafica primaria + cross-check coordinate). */
 export function useTenantCountry(): CountryResolution {
   const companies = useAgroStore((s) => s.companies);
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);

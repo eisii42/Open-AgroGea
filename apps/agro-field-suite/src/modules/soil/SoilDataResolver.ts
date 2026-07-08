@@ -228,20 +228,20 @@ export function aggregaTessitura(
  */
 export function parametersFromManualSoil(
   plot: Plot,
-  opzioni: { profonditaRadiciM?: number; depletionFraction?: number } = {},
+  options: { profonditaRadiciM?: number; depletionFraction?: number } = {},
 ): SoilParameters | null {
   const meta = (plot.metadata ?? {}) as Record<string, unknown>;
   const raw = meta[METADATA_SUOLO_KEY];
   if (!raw || typeof raw !== "object") return null;
   const s = raw as Record<string, unknown>;
 
-  const profondita =
+  const depth =
     number(s.profondita_radici) ??
-    opzioni.profonditaRadiciM ??
+    options.profonditaRadiciM ??
     SUOLO_FRANCO_DEFAULT.rootDepth;
   const depletion =
     number(s.frazione_deplezione) ??
-    opzioni.depletionFraction ??
+    options.depletionFraction ??
     SUOLO_FRANCO_DEFAULT.depletionFraction;
 
   // Costanti idrauliche dirette (utente esperto).
@@ -251,17 +251,17 @@ export function parametersFromManualSoil(
     return {
       fieldCapacity: cc,
       wiltingPoint: pa,
-      rootDepth: profondita,
+      rootDepth: depth,
       depletionFraction: depletion,
     };
   }
 
-  // Tessitura/percentuali → Saxton-Rawls (con SO se disponibile).
+  // Tessitura/percentuali → Saxton-Rawls (con SO se available).
   const frazioni = frazioniDaProprieta(s);
   if (!frazioni) return null;
   return saxtonRawlsSoilParameters(frazioni, {
     sostanzaOrganicaPct: sostanzaOrganicaDaProprieta(s) ?? undefined,
-    profonditaRadiciM: profondita,
+    profonditaRadiciM: depth,
     depletionFraction: depletion,
   });
 }
@@ -338,17 +338,17 @@ export class SoilDataResolver {
   async risolvi(
     plot: Plot,
     soilSamples: SoilSample[],
-    opzioni: ResolutionOptions = {},
+    options: ResolutionOptions = {},
   ): Promise<ResolvedSoilParameters> {
     const opzSaxton = {
-      profonditaRadiciM: opzioni.profonditaRadiciM,
-      depletionFraction: opzioni.depletionFraction,
+      profonditaRadiciM: options.profonditaRadiciM,
+      depletionFraction: options.depletionFraction,
     };
 
     // TIER 1 — Mappa custom (EC_a/tessitura).
-    if (opzioni.mappaCustom && opzioni.mappaCustom.features.length > 0) {
+    if (options.mappaCustom && options.mappaCustom.features.length > 0) {
       try {
-        const agg = await this.daMappaCustom(plot, opzioni.mappaCustom);
+        const agg = await this.daMappaCustom(plot, options.mappaCustom);
         if (agg) {
           return {
             parametri: saxtonRawlsSoilParameters(agg.frazioni, {
@@ -371,7 +371,7 @@ export class SoilDataResolver {
       const agg = await this.daCampionamenti(
         plot,
         soilSamples,
-        opzioni.tolleranzaVicinanzaDeg ?? TOLLERANZA_VICINANZA_DEG,
+        options.tolleranzaVicinanzaDeg ?? TOLLERANZA_VICINANZA_DEG,
       );
       if (agg) {
         return {
@@ -386,7 +386,7 @@ export class SoilDataResolver {
         };
       }
     } catch {
-      // motore spaziale non disponibile: si ripiega su metadata/default.
+      // motore spaziale non available: si ripiega su metadata/default.
     }
 
     // TIER 3 — Composizione inserita manualmente nella scheda plot.
@@ -448,7 +448,7 @@ export class SoilDataResolver {
       predicate: "intersects",
     });
     const voci = intersecate.features
-      .map((f) => mappaFeatureAVoce(f))
+      .map((f) => featureToEntry(f))
       .filter((v): v is NonNullable<typeof v> => v != null);
     return aggregaTessitura(voci);
   }
@@ -497,7 +497,7 @@ export class SoilDataResolver {
 }
 
 /** Mappa una feature dello strato custom in una voce (frazioni + SO) o null. */
-function mappaFeatureAVoce(
+function featureToEntry(
   feature: Feature,
 ): { frazioni: TextureFractions; sostanzaOrganica: number | null } | null {
   const props = (feature.properties ?? {}) as Record<string, unknown>;

@@ -10,8 +10,8 @@ import type {
  * Esportazione configurabile del Quaderno di Campagna in CSV (Modulo QDC).
  *
  * Tracciato ispirato ai campi del registro treatments SIAN, ma **interamente
- * componibile**: l'utente sceglie quali colonne includere, in che ordine, con
- * quale separatore, e applica filtri temporali e spaziali. Questo lascia spazio
+ * componibile**: l'utente sceglie quali columns includere, in che ordine, con
+ * quale separator, e applica filters temporali e spaziali. Questo lascia spazio
  * a cambiamenti normativi o richieste particolari senza toccare il codice.
  * NON è il tracciato record ufficiale completo del SIAN. Tutto in locale.
  *
@@ -20,11 +20,11 @@ import type {
 
 export type SeparatoreCsv = ";" | "," | "\t";
 
-function csvCell(value: unknown, separatore: SeparatoreCsv): string {
+function csvCell(value: unknown, separator: SeparatoreCsv): string {
   if (value == null) return "";
   const s = String(value);
-  // Quoting RFC-4180: virgolette, newline o il separatore in uso forzano il quote.
-  const needsQuote = s.includes('"') || s.includes("\n") || s.includes(separatore);
+  // Quoting RFC-4180: virgolette, newline o il separator in uso forzano il quote.
+  const needsQuote = s.includes('"') || s.includes("\n") || s.includes(separator);
   return needsQuote ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
@@ -33,7 +33,7 @@ function csvCell(value: unknown, separatore: SeparatoreCsv): string {
  * (italiano, usata dai test `node --test` e come fallback), estrattore.
  * La UI (SianExportDialog) risolve l'etichetta effettiva via i18n
  * (`sianExportDialog.columns.<id>`) e passa un `resolveLabel` a
- * {@link buildSianCsv}/{@link esportaSianCsv} così l'intestazione del CSV
+ * {@link buildSianCsv}/{@link exportSianCsv} così l'intestazione del CSV
  * segue la lingua attiva invece di restare fissa in italiano.
  */
 /**
@@ -80,7 +80,7 @@ function operationTypeLabel(
 }
 
 /**
- * Catalogo COMPLETO delle colonne disponibili. Aggiungere una voce qui la rende
+ * Catalogo COMPLETO delle columns disponibili. Aggiungere una voce qui la rende
  * subito selezionabile nel dialog di export (estendibilità per nuovi obblighi).
  */
 export const COLONNE_SIAN: SianColumn[] = [
@@ -185,7 +185,7 @@ export const COLONNE_SIAN: SianColumn[] = [
     label: "Carenza (gg)",
     value: (t) => t.safety_period_days ?? "",
   },
-  // -- colonne del Modulo Harvest (rows con tipo_operazione = harvest) --
+  // -- columns del Modulo Harvest (rows con tipo_operazione = harvest) --
   {
     id: "raccolta_kg",
     label: "Quantità harvest (kg)",
@@ -206,7 +206,7 @@ export const COLONNE_SIAN: SianColumn[] = [
 ];
 
 /**
- * Selezione di colonne predefinita: tracciato SIAN/PAN con i riferimenti
+ * Selezione di columns predefinita: tracciato SIAN/PAN con i riferimenti
  * ministeriali (id isola/plot + codice crop) sempre inclusi.
  */
 export const COLONNE_SIAN_DEFAULT: string[] = [
@@ -256,42 +256,42 @@ export interface SianFiltri {
 
 /** Configurazione strutturale del CSV. */
 export interface SianExportConfig {
-  /** Id colonne selezionate, nell'ordine desiderato. */
-  colonne: string[];
-  separatore: SeparatoreCsv;
+  /** Id columns selezionate, nell'ordine desiderato. */
+  columns: string[];
+  separator: SeparatoreCsv;
   includiIntestazioni: boolean;
   /** Premette il BOM UTF-8 (apertura corretta in Excel). */
   bom: boolean;
 }
 
 export const CONFIG_SIAN_DEFAULT: SianExportConfig = {
-  colonne: COLONNE_SIAN_DEFAULT,
-  separatore: ";",
+  columns: COLONNE_SIAN_DEFAULT,
+  separator: ";",
   includiIntestazioni: true,
   bom: true,
 };
 
 /**
- * Applica i filtri temporali e spaziali al registro. Le operazioni "intera
+ * Applica i filters temporali e spaziali al registro. Le operazioni "intera
  * azienda" (senza plot) sono escluse quando si filtra per plot
  * o crop, perché non hanno un riferimento spaziale da confrontare.
  */
 export function filterSianTreatments(
   treatments: TreatmentLog[],
   plots: Plot[],
-  filtri: SianFiltri,
+  filters: SianFiltri,
 ): TreatmentLog[] {
-  const daTs = filtri.dal ? new Date(`${filtri.dal}T00:00:00`).getTime() : null;
-  const aTs = filtri.al ? new Date(`${filtri.al}T23:59:59.999`).getTime() : null;
+  const daTs = filters.dal ? new Date(`${filters.dal}T00:00:00`).getTime() : null;
+  const aTs = filters.al ? new Date(`${filters.al}T23:59:59.999`).getTime() : null;
   const appSet =
-    filtri.appezzamentoIds && filtri.appezzamentoIds.length > 0
-      ? new Set(filtri.appezzamentoIds)
+    filters.appezzamentoIds && filters.appezzamentoIds.length > 0
+      ? new Set(filters.appezzamentoIds)
       : null;
   const tipoSet =
-    filtri.tipiOperazione && filtri.tipiOperazione.length > 0
-      ? new Set<string>(filtri.tipiOperazione)
+    filters.tipiOperazione && filters.tipiOperazione.length > 0
+      ? new Set<string>(filters.tipiOperazione)
       : null;
-  const includiSenza = filtri.includiSenzaAppezzamento ?? true;
+  const includiSenza = filters.includiSenzaAppezzamento ?? true;
 
   return treatments.filter((t) => {
     const ts = new Date(t.executed_at).getTime();
@@ -347,7 +347,7 @@ function resolveField(
  * Genera il testo CSV dal registro (già filtrato) secondo la config. La
  * campagna agraria si risolve via `plot_campaign_id` con FALLBACK per
  * plot+anno (vedi {@link resolveField}): i codici ministeriali seguono
- * lo stato di campagna corrente, non una fotografia al momento dell'operazione.
+ * lo stato di campagna current, non una fotografia al momento dell'operazione.
  */
 export function buildSianCsv(
   treatments: TreatmentLog[],
@@ -370,8 +370,8 @@ export function buildSianCsv(
     list.push(c);
     perPlotAnno.set(key, list);
   }
-  const cols = resolveColumns(config.colonne);
-  const sep = config.separatore;
+  const cols = resolveColumns(config.columns);
+  const sep = config.separator;
   const rows = treatments.map((t) => {
     const app = t.plot_id ? perId.get(t.plot_id) : undefined;
     const field = resolveField(t, perCampo, perPlotAnno);
@@ -459,10 +459,10 @@ export function downloadSianCsv(
 }
 
 /**
- * Esporta il CSV con la config corrente (filtri già applicati a monte). Comodità
+ * Esporta il CSV con la config current (filters già applicati a monte). Comodità
  * usata dal dialog di export. Ritorna il name del file scaricato.
  */
-export function esportaSianCsv(
+export function exportSianCsv(
   treatments: TreatmentLog[],
   plots: Plot[],
   nomeAzienda = "azienda",

@@ -192,7 +192,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
     return Math.round(ms / (24 * 3600 * 1000));
   }, [inizioCustom, fineCustom]);
 
-  const rangeNonValido =
+  const invalidRange =
     strategiaId === "custom" &&
     (giorniRange < 0 || giorniRange > MAX_GIORNI_PERSONALIZZATO);
 
@@ -228,11 +228,11 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
   }, [strategiaId, inizioCustom, fineCustom]);
 
   const canCompute =
-    indiciSel.size > 0 && apzSel.size > 0 && !inCorso && !rangeNonValido;
+    indiciSel.size > 0 && apzSel.size > 0 && !inCorso && !invalidRange;
 
   const avvia = () => {
     reset();
-    const opzioni: SoilOptions = {
+    const options: SoilOptions = {
       indici: [...indiciSel],
       indicePrimario: indiciSel.has(indicePrimario)
         ? indicePrimario
@@ -241,7 +241,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
       strategia,
     };
     const target = plots.filter((a) => apzSel.has(a.id));
-    void compute(target, opzioni);
+    void compute(target, options);
   };
 
   const chart =
@@ -419,7 +419,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
                   />
                 </label>
               </div>
-              {rangeNonValido ? (
+              {invalidRange ? (
                 <p className="text-xs text-[var(--danger)]">
                   {giorniRange < 0
                     ? t("suoloPanel.period.endBeforeStart")

@@ -62,7 +62,7 @@ export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
 
       {noData ? (
         <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] p-2 text-xs text-[var(--ink-3)]">
-          {message ?? "Nessun model disponibile per questo plot."}
+          {message ?? "Nessun model available per questo plot."}
         </p>
       ) : (
         <>

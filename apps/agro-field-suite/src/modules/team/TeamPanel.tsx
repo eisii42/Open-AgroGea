@@ -163,7 +163,7 @@ function InviteForm({
     [seats],
   );
 
-  // Se il ruolo selezionato non è più disponibile (cambio piano/company), si
+  // Se il ruolo selezionato non è più available (cambio piano/company), si
   // ripiega sul primo invitabile.
   useEffect(() => {
     if (availableRoles.length > 0 && !availableRoles.includes(role)) {

@@ -72,7 +72,7 @@ export function HelpMenu({
   };
 
   // Controllo aggiornamenti: spinner inline nel menu + notifica di sistema con
-  // l'esito (aggiornato / nuova versione disponibile). Il dropdown resta aperto.
+  // l'esito (aggiornato / nuova versione available). Il dropdown resta aperto.
   const handleCheckUpdates = async () => {
     if (checking) return;
     setChecking(true);

@@ -76,7 +76,7 @@ export function WeatherCard() {
         setPrevisione(data);
         setStato("idle");
       } catch {
-        // Offline o fetch fallito: si conserva l'ultima previsione disponibile.
+        // Offline o fetch fallito: si conserva l'ultima previsione available.
         setStato("errore");
       }
     },
@@ -119,9 +119,9 @@ export function WeatherCard() {
   // Senza coordinate non c'è nulla da localizzare: scheda nascosta.
   if (!activeCompanyId || !coordinate) return null;
 
-  const corrente = previsione?.corrente;
-  const infoCorrente = weatherCodeInfo(corrente?.weatherCode);
-  const IconaCorrente = infoCorrente.Icon;
+  const current = previsione?.current;
+  const currentInfo = weatherCodeInfo(current?.weatherCode);
+  const IconaCorrente = currentInfo.Icon;
 
   return (
     <div className="relative" ref={cardRef}>
@@ -134,7 +134,7 @@ export function WeatherCard() {
       >
         <IconaCorrente size={17} className="shrink-0 text-[var(--accent)]" />
         <span className="agro-num text-sm font-medium tabular-nums">
-          {stato === "loading" && !previsione ? "…" : gradi(corrente?.temperatura)}
+          {stato === "loading" && !previsione ? "…" : gradi(current?.temperatura)}
         </span>
       </button>
 
@@ -143,7 +143,7 @@ export function WeatherCard() {
           {/* Intestazione: stato + update */}
           <div className="mb-2 flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
-              {infoCorrente.label}
+              {currentInfo.label}
             </p>
             <button
               type="button"
@@ -169,26 +169,26 @@ export function WeatherCard() {
                 <IconaCorrente size={40} className="shrink-0 text-[var(--accent)]" />
                 <div className="min-w-0 flex-1">
                   <p className="agro-num text-[28px] font-semibold leading-none tabular-nums">
-                    {gradi(corrente?.temperatura)}
+                    {gradi(current?.temperatura)}
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-[var(--ink-3)]">
                     <span className="flex items-center gap-1">
                       <Droplets size={12} />
-                      {corrente?.umidita == null
+                      {current?.umidita == null
                         ? "—"
-                        : `${Math.round(corrente.umidita)}%`}
+                        : `${Math.round(current.umidita)}%`}
                     </span>
                     <span className="flex items-center gap-1">
                       <Wind size={12} />
-                      {corrente?.vento == null
+                      {current?.vento == null
                         ? "—"
-                        : `${Math.round(corrente.vento)} km/h`}
+                        : `${Math.round(current.vento)} km/h`}
                     </span>
                     <span className="flex items-center gap-1">
                       <Droplets size={12} className="text-[var(--accent)]" />
-                      {corrente?.pioggia == null
+                      {current?.pioggia == null
                         ? "—"
-                        : `${corrente.pioggia.toFixed(1)} mm`}
+                        : `${current.pioggia.toFixed(1)} mm`}
                     </span>
                   </div>
                 </div>

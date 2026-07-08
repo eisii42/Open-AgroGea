@@ -91,7 +91,7 @@ describe("indici spettrali", () => {
 
   it("statistiche escludono i NaN", () => {
     const stats = indexStatistics(f32([0.4, Number.NaN, 0.6]));
-    assert.equal(stats.pixelValidi, 2);
+    assert.equal(stats.validPixels, 2);
     assert.ok(Math.abs(stats.media - 0.5) < 1e-6);
   });
 });
@@ -104,7 +104,7 @@ describe("fenologia", () => {
     }
   });
 
-  it("il soil-mask è attivo solo per le arboree", () => {
+  it("il soil-mask è active solo per le arboree", () => {
     assert.ok(soilMaskThreshold("vite", "piena") !== null); // arborea
     assert.equal(soilMaskThreshold("frumento", "piena"), null); // seminativo
   });

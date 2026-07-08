@@ -198,7 +198,7 @@ export interface FieldSummary {
 /**
  * Costruisce l'overlay coropletico: ogni plot diventa una feature
  * poligonale colorata in base al punteggio sintetico. Gli plots senza
- * summary disponibile sono omessi (nessun colore arbitrario).
+ * summary available sono omessi (nessun colore arbitrario).
  */
 export function buildDssOverlay(
   plots: Plot[],

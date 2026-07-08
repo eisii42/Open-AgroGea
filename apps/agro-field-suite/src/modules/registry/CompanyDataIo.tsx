@@ -16,9 +16,9 @@ import { STANDALONE } from "../../standalone";
  * Import/Export dei dati aziendali in GeoJSON Esteso. Componente unico, ma con
  * comportamento e copy diversi per edizione:
  *   - Cloud (SaaS): scope vincolato all'azienda attiva; in import i record sono
- *     riassegnati al tenant corrente (data protection cross-company).
+ *     riassegnati al tenant current (data protection cross-company).
  *   - Standalone (OSS): backup/restore dell'istanza locale; l'import è un
- *     ripristino che sovrascrive lo stato corrente, previa conferma.
+ *     ripristino che sovrascrive lo stato current, previa confirm.
  *
  * Collocazione: Anagrafica/Impostazioni Company (cloud) e Data Command Center
  * (standalone) — vedi punti d'innesto in RegistryPanel / CommandCenter.
@@ -61,10 +61,10 @@ export function CompanyDataIo() {
     if (!dal || !company || !activeCompanyId) return;
     const file = await pickCompanyFile();
     if (!file) return;
-    const conferma = STANDALONE
+    const confirm = STANDALONE
       ? t("companyDataIo.confirmRestoreLocal")
       : t("companyDataIo.confirmImport");
-    if (!window.confirm(conferma)) return;
+    if (!window.confirm(confirm)) return;
     setStatus({ kind: "busy", op: "import" });
     try {
       const raw = JSON.parse(await file.text());

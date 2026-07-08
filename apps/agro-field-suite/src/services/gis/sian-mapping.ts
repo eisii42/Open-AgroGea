@@ -3,14 +3,14 @@
  * (SIAN/AGEA) sui record di `campi_campagna`. Nessuna dipendenza da DuckDB/DOM:
  * solo decodifica di attributi e geometrie, testabile sotto `node --test`.
  *
- * Gli shapefile ministeriali non hanno uno schema di colonne unico (variano per
+ * Gli shapefile ministeriali non hanno uno schema di columns unico (variano per
  * Regione/portale CAA), quindi la decodifica avviene per ALIAS robusti e
  * case-insensitive, evitando input testuali liberi: si estraggono solo i codici
  * rigidi, l'allineamento con i controlli AGEA non va corrotto.
  */
 import type { Geometry } from "geojson";
 
-/** Attributi grezzi di una feature dello shapefile (colonne .dbf). */
+/** Attributi grezzi di una feature dello shapefile (columns .dbf). */
 export type SianProperties = Record<string, unknown>;
 
 /** Esito della decodifica di una feature ministeriale. */
@@ -90,7 +90,7 @@ function asCode(value: unknown): string | null {
 
 /**
  * Converte un number possibilmente in formato italiano (virgola decimale,
- * separatori di migliaia) in number. Ritorna null se non interpretabile.
+ * separators di migliaia) in number. Ritorna null se non interpretabile.
  */
 export function italianNumber(value: unknown): number | null {
   if (value == null) return null;
@@ -151,7 +151,7 @@ export function mapSianFeature(
 }
 
 /**
- * Parser CSV minimale per i file di interscambio CAA (separatore `;` o `,`,
+ * Parser CSV minimale per i file di interscambio CAA (separator `;` o `,`,
  * virgolette RFC-4180). Puro: niente DOM. Ritorna una row di properties per
  * record, pronta per {@link mapSianFeature}.
  */

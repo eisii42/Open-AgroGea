@@ -74,7 +74,7 @@ describe("buildPrintSvg", () => {
       mostraNord: false,
       mostraLogo: false,
     });
-    assert.match(out, /Anteprima mappa non disponibile/);
+    assert.match(out, /Anteprima mappa non available/);
     assert.match(out, /Nessun layer visibile/);
   });
 

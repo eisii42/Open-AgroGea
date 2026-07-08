@@ -91,7 +91,7 @@ export function ModuleSidebar({
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const readOnly = useReadOnly(activeCompanyId);
 
-  // Dialog di configurazione dell'export SIAN (filtri + struttura CSV).
+  // Dialog di configurazione dell'export SIAN (filters + struttura CSV).
   const [sianOpen, setSianOpen] = useState(false);
 
   // Badge alert Magazzino (v17): lots con stock scaduti o in scadenza.

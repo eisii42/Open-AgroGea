@@ -66,7 +66,7 @@ describe("schema v12 / installazione nuova", () => {
     }
   });
 
-  it("plots_registry: area unica area_ha, niente colonne colturali", async () => {
+  it("plots_registry: area unica area_ha, niente columns colturali", async () => {
     const db = new PGlite();
     await db.exec(AGRO_LOCAL_SCHEMA_SQL);
     const cols = await columnNames(db, "plots_registry");

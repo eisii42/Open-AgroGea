@@ -120,7 +120,7 @@ describe("flattenOperations", () => {
 });
 
 describe("Adapter EU (base internazionale)", () => {
-  it("CSV con separatore virgola, header ISO e date YYYY-MM-DD", () => {
+  it("CSV con separator virgola, header ISO e date YYYY-MM-DD", () => {
     const csv = buildBaseCsv(input);
     const [header, row] = csv.split("\n");
     assert.ok(header.startsWith("operation_date,plot_name,"));
@@ -146,11 +146,11 @@ describe("Adapter ES (SIEX/Cuaderno Digital)", () => {
 });
 
 describe("Adapter IT (SIAN/PAN)", () => {
-  it("delega a sianExport: CSV con separatore punto e virgola e BOM", () => {
+  it("delega a sianExport: CSV con separator punto e virgola e BOM", () => {
     const it = makeItExporter();
     assert.equal(it.bom, true);
     const csv = it.build(input);
-    assert.ok(csv.includes(";"), "atteso separatore ;");
+    assert.ok(csv.includes(";"), "atteso separator ;");
     assert.ok(csv.includes("IS-12"), "atteso codice Isola SIAN");
     assert.equal(it.fileName("Tenuta Demo"), `quaderno-sian-tenuta-demo-${new Date().toISOString().slice(0, 10)}.csv`);
   });

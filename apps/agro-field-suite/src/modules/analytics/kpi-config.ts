@@ -73,7 +73,7 @@ export function loadKpiParams(): KpiParams {
     const raw = globalThis.localStorage?.getItem(STORAGE_KEY);
     if (raw) return mergeKpiParams(JSON.parse(raw) as Record<string, unknown>);
   } catch {
-    /* localStorage non disponibile o JSON corrotto: si ricade sui default */
+    /* localStorage non available o JSON corrotto: si ricade sui default */
   }
   return { ...DEFAULT_KPI_PARAMS };
 }

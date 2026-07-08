@@ -22,7 +22,7 @@ import type { TFunction } from "i18next";
 import {
   COLONNE_SIAN,
   COLONNE_SIAN_DEFAULT,
-  esportaSianCsv,
+  exportSianCsv,
   filterSianTreatments,
   harvestsToOperations,
   type SeparatoreCsv,
@@ -32,10 +32,10 @@ import {
 } from "../../lib/sianExport";
 
 /**
- * Dialog di configurazione dell'export SIAN (CSV). Espone TUTTI i filtri
- * (temporali e spaziali) e la struttura del tracciato (colonne sortedList,
- * separatore, intestazioni, BOM), così l'export è adattabile a cambiamenti
- * normativi o richieste particolari senza modifiche al codice. Al conferma:
+ * Dialog di configurazione dell'export SIAN (CSV). Espone TUTTI i filters
+ * (temporali e spaziali) e la struttura del tracciato (columns sortedList,
+ * separator, intestazioni, BOM), così l'export è adattabile a cambiamenti
+ * normativi o richieste particolari senza modifiche al codice. Al confirm:
  * filtra → costruisce → download → registra il tag di export nel giornale.
  */
 
@@ -66,7 +66,7 @@ function columnLabel(t: TFunction, col: SianColumn): string {
   return t(`sianExportDialog.columns.${col.id}`, col.label);
 }
 
-function separatori(t: TFunction): { value: SeparatoreCsv; label: string }[] {
+function separators(t: TFunction): { value: SeparatoreCsv; label: string }[] {
   return [
     { value: ";", label: t("sianExportDialog.separator.semicolon") },
     { value: ",", label: t("sianExportDialog.separator.comma") },
@@ -94,7 +94,7 @@ export function SianExportDialog({
 
   const company = companies.find((a) => a.id === activeCompanyId);
 
-  // Campagne di TUTTI gli anni (lo store ne tiene solo l'anno attivo): servono a
+  // Campagne di TUTTI gli anni (lo store ne tiene solo l'anno active): servono a
   // risolvere i codici SIAN delle operazioni di annate diverse. Caricate
   // all'apertura del dialog; fallback allo store finché non arrivano.
   const [campiTutti, setCampiTutti] = useState<PlotCampaign[]>([]);
@@ -118,18 +118,18 @@ export function SianExportDialog({
     [treatments, harvests],
   );
 
-  // -- filtri temporali --
+  // -- filters temporali --
   const [dal, setDal] = useState("");
   const [al, setAl] = useState("");
-  // -- filtri spaziali --
+  // -- filters spaziali --
   const [appIds, setAppIds] = useState<string[]>([]);
   const [cropNames, setCropNames] = useState<string[]>([]);
   const [includiSenzaApp, setIncludiSenzaApp] = useState(true);
   // -- filtro operazioni --
   const [tipi, setTipi] = useState<OperationType[]>([]);
   // -- struttura CSV --
-  const [colonne, setColonne] = useState<string[]>(COLONNE_SIAN_DEFAULT);
-  const [separatore, setSeparatore] = useState<SeparatoreCsv>(";");
+  const [columns, setColonne] = useState<string[]>(COLONNE_SIAN_DEFAULT);
+  const [separator, setSeparatore] = useState<SeparatoreCsv>(";");
   const [intestazioni, setIntestazioni] = useState(true);
   const [bom, setBom] = useState(true);
 
@@ -142,7 +142,7 @@ export function SianExportDialog({
     return [...set];
   }, [plots, campaignFields, crops]);
 
-  const filtri: SianFiltri = useMemo(
+  const filters: SianFiltri = useMemo(
     () => ({
       dal: dal || null,
       al: al || null,
@@ -155,12 +155,12 @@ export function SianExportDialog({
   );
 
   const filteredRows = useMemo(
-    () => filterSianTreatments(operazioni, plots, filtri),
-    [operazioni, plots, filtri],
+    () => filterSianTreatments(operazioni, plots, filters),
+    [operazioni, plots, filters],
   );
 
   const unselectedColumns = COLONNE_SIAN.filter(
-    (c) => !colonne.includes(c.id),
+    (c) => !columns.includes(c.id),
   );
 
   function toggleInArray<T>(
@@ -171,22 +171,22 @@ export function SianExportDialog({
     set(arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value]);
   }
 
-  function spostaColonna(index: number, delta: number): void {
-    const next = [...colonne];
+  function moveColumn(index: number, delta: number): void {
+    const next = [...columns];
     const target = index + delta;
     if (target < 0 || target >= next.length) return;
     [next[index], next[target]] = [next[target], next[index]];
     setColonne(next);
   }
 
-  function esporta() {
+  function runExport() {
     const config: SianExportConfig = {
-      colonne,
-      separatore,
+      columns,
+      separator,
       includiIntestazioni: intestazioni,
       bom,
     };
-    const fileName = esportaSianCsv(
+    const fileName = exportSianCsv(
       filteredRows,
       plots,
       company?.business_name,
@@ -204,7 +204,7 @@ export function SianExportDialog({
     onClose();
   }
 
-  const labelColonna = (id: string) => {
+  const getColumnLabel = (id: string) => {
     const col = COLONNE_SIAN.find((c) => c.id === id);
     return col ? columnLabel(t, col) : id;
   };
@@ -221,7 +221,7 @@ export function SianExportDialog({
             {t("sianExportDialog.previewIntro")}{" "}
             <strong>{filteredRows.length}</strong>{" "}
             {t("sianExportDialog.previewOperations")} ·{" "}
-            <strong>{colonne.length}</strong> {t("sianExportDialog.previewColumns")}.
+            <strong>{columns.length}</strong> {t("sianExportDialog.previewColumns")}.
           </DialogDescription>
         </DialogHeader>
 
@@ -342,7 +342,7 @@ export function SianExportDialog({
             </p>
           </section>
 
-          {/* ---- Struttura colonne ---- */}
+          {/* ---- Struttura columns ---- */}
           <section className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
@@ -356,12 +356,12 @@ export function SianExportDialog({
             </div>
 
             <ul className="flex flex-col gap-1 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2">
-              {colonne.length === 0 ? (
+              {columns.length === 0 ? (
                 <li className="px-1 py-2 text-xs text-[var(--ink-4)]">
                   {t("sianExportDialog.noColumnSelected")}
                 </li>
               ) : (
-                colonne.map((id, i) => (
+                columns.map((id, i) => (
                   <li
                     key={id}
                     className="flex items-center gap-2 rounded-[var(--r-1)] bg-[var(--panel)] px-2 py-1 text-sm"
@@ -369,12 +369,12 @@ export function SianExportDialog({
                     <span className="w-5 text-right text-[11px] text-[var(--ink-4)]">
                       {i + 1}
                     </span>
-                    <span className="flex-1 truncate">{labelColonna(id)}</span>
+                    <span className="flex-1 truncate">{getColumnLabel(id)}</span>
                     <button
                       type="button"
                       title={t("sianExportDialog.moveUp")}
                       disabled={i === 0}
-                      onClick={() => spostaColonna(i, -1)}
+                      onClick={() => moveColumn(i, -1)}
                       className="text-[var(--ink-3)] disabled:opacity-30"
                     >
                       <ArrowUp size={14} />
@@ -382,8 +382,8 @@ export function SianExportDialog({
                     <button
                       type="button"
                       title={t("sianExportDialog.moveDown")}
-                      disabled={i === colonne.length - 1}
-                      onClick={() => spostaColonna(i, 1)}
+                      disabled={i === columns.length - 1}
+                      onClick={() => moveColumn(i, 1)}
                       className="text-[var(--ink-3)] disabled:opacity-30"
                     >
                       <ArrowDown size={14} />
@@ -391,7 +391,7 @@ export function SianExportDialog({
                     <button
                       type="button"
                       title={t("sianExportDialog.remove")}
-                      onClick={() => setColonne(colonne.filter((c) => c !== id))}
+                      onClick={() => setColonne(columns.filter((c) => c !== id))}
                       className="text-[var(--danger)]"
                     >
                       <X size={14} />
@@ -408,7 +408,7 @@ export function SianExportDialog({
                   id="sian-add-col"
                   value=""
                   onChange={(e) => {
-                    if (e.target.value) setColonne([...colonne, e.target.value]);
+                    if (e.target.value) setColonne([...columns, e.target.value]);
                   }}
                 >
                   <option value="">{t("sianExportDialog.chooseField")}</option>
@@ -431,10 +431,10 @@ export function SianExportDialog({
               <Label htmlFor="sian-sep">{t("sianExportDialog.separatorLabel")}</Label>
               <Select
                 id="sian-sep"
-                value={separatore}
+                value={separator}
                 onChange={(e) => setSeparatore(e.target.value as SeparatoreCsv)}
               >
-                {separatori(t).map((s) => (
+                {separators(t).map((s) => (
                   <option key={s.value} value={s.value}>
                     {s.label}
                   </option>
@@ -459,8 +459,8 @@ export function SianExportDialog({
             </Button>
             <Button
               className="flex-1"
-              disabled={colonne.length === 0 || filteredRows.length === 0}
-              onClick={esporta}
+              disabled={columns.length === 0 || filteredRows.length === 0}
+              onClick={runExport}
             >
               {t("sianExportDialog.exportCsv", { count: filteredRows.length })}
             </Button>

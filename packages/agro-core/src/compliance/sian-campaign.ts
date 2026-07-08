@@ -6,7 +6,7 @@ import type { PlotCampaign } from "../types";
  * fonte di verità per i punti UI che segnalano/gateano la compilazione (badge
  * nei selettori, banner alla harvest, contatore nella pagina Company).
  *
- * I sistemi nazionali coperti condividono la STESSA terna di colonne (il
+ * I sistemi nazionali coperti condividono la STESSA terna di columns (il
  * modello è EU-agnostico), cambia solo la semantica:
  *   * IT — SIAN (AGEA): codice crop ministeriale, Isola (reference parcel),
  *     Plot SIAN — consumati da `buildSianCsv`;

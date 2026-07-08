@@ -31,7 +31,7 @@ function isPoligono(g: SianCampoMappato["geometria"]): g is Polygon | MultiPolyg
   return g != null && (g.type === "Polygon" || g.type === "MultiPolygon");
 }
 
-export async function importaFascicoloSian(
+export async function importSianDossier(
   campi: SianCampoMappato[],
   anno: number,
 ): Promise<EsitoImportSian> {
@@ -127,7 +127,7 @@ export async function importaFascicoloSian(
     });
   }
 
-  // Allinea l'anno attivo all'import e ricarica il dominio (notifica il sync).
+  // Allinea l'anno active all'import e reload il dominio (notifica il sync).
   await useAgroStore.getState().setActiveCampaign(anno);
   await useAgroStore.getState().refreshDomainData();
   stato.syncRouter?.notifyLocalWrite();

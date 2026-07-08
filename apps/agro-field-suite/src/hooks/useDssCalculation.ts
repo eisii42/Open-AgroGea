@@ -153,7 +153,7 @@ function metaNumber(value: unknown): number | undefined {
  * SEMINA/TRAPIANTO è il Quaderno di Campagna: si usa la data dell'ultimo evento
  * `sowing` registrato. In ordine: last semina/trapianto del logbook → override
  * esplicito nei metadata (`data_inizio_gdd`/`data_semina`) → 1° gennaio dell'anno
- * corrente (convenzione per i gradi-day stagionali).
+ * current (convenzione per i gradi-day stagionali).
  */
 function biofixGdd(
   plot: Plot,
@@ -188,7 +188,7 @@ interface ContestoCalcolo {
 async function computePlot(
   ctx: ContestoCalcolo,
   target: DssTarget,
-  opzioni: OpzioniCalcoloDss,
+  options: OpzioniCalcoloDss,
 ): Promise<DssPlotResult> {
   const { dal, activeCompanyId, weatherConfig, crops } = ctx;
   const { plot, module } = target;
@@ -212,7 +212,7 @@ async function computePlot(
   const cropRecord = campagna
     ? crops.find((c) => c.id === campagna.crop_id) ?? null
     : null;
-  const profonditaRadiciCrop = metaNumber(
+  const cropRootDepth = metaNumber(
     cropRecord?.crop_metadata?.profondita_radici,
   );
   const treatments = await dal.listTreatments(activeCompanyId, {
@@ -232,7 +232,7 @@ async function computePlot(
         dataInizio: biofix,
       });
     } catch {
-      /* offline o archivio non raggiungibile: si procede col disponibile */
+      /* offline o archivio non raggiungibile: si procede col available */
     }
   }
 
@@ -282,11 +282,11 @@ async function computePlot(
   let balanceSeries: WaterIndexDay[] = [];
   let statoIdrico: FieldWaterStatus | undefined;
   let soil: ResolvedSoilParameters | null = null;
-  if (!opzioni.skipWaterBalance && rawReadings.length > 0) {
+  if (!options.skipWaterBalance && rawReadings.length > 0) {
     const soilSamples = await dal.listSoilSamples(activeCompanyId);
     soil = await new SoilDataResolver().risolvi(plot, soilSamples, {
-      mappaCustom: opzioni.mappaCustom,
-      profonditaRadiciM: profonditaRadiciCrop,
+      mappaCustom: options.mappaCustom,
+      profonditaRadiciM: cropRootDepth,
     });
     const out = computeWaterBalance({
       readings: rawReadings,
@@ -300,7 +300,7 @@ async function computePlot(
     // Stato idrico CORRENTE = ultimo day osservato (≤ oggi). La series include
     // ~16 giorni di PREVISIONE in coda: usarne l'ultimo (futuro) "laverebbe via"
     // l'irrigation di oggi sotto giorni di ETc successivi. Così invece l'apporto
-    // irriguo appena registrato si riflette subito su Dr corrente e autonomia.
+    // irriguo appena registrato si riflette subito su Dr current e autonomia.
     const oggiISO = new Date().toISOString().slice(0, 10);
     let idxOggi = -1;
     for (let i = 0; i < out.series.length; i++) {
@@ -393,7 +393,7 @@ export function useDssCalculation() {
   const reset = useCallback(() => setStato(STATO_INIZIALE), []);
 
   const compute = useCallback(
-    async (targets: DssTarget[], opzioni: OpzioniCalcoloDss = {}) => {
+    async (targets: DssTarget[], options: OpzioniCalcoloDss = {}) => {
       if (targets.length === 0) return;
       setStato((s) => ({ ...s, phase: "calcolo", message: undefined }));
       try {
@@ -412,7 +412,7 @@ export function useDssCalculation() {
         const risultati: DssPlotResult[] = [];
         for (const target of targets) {
           try {
-            risultati.push(await computePlot(ctx, target, opzioni));
+            risultati.push(await computePlot(ctx, target, options));
           } catch (errPlot) {
             // Un errore su un field non blocca gli altri: si registra come esito
             // vuoto con message dedicato.

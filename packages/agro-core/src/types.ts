@@ -42,7 +42,7 @@ export type StorageConfig =
       kind: "local";
     };
 
-/** Claims di licenza del workspace attivo. */
+/** Claims di licenza del workspace active. */
 export interface TenantClaims {
   tenantId: string;
   licenseActive: boolean;
@@ -411,9 +411,9 @@ export interface SoilWaterIndex {
   deep_percolation_mm: number;
   /** Deplezione radicale Dr,t (mm). */
   depletion_mm: number;
-  /** Acqua facilmente disponibile RAW (mm). */
+  /** Acqua facilmente available RAW (mm). */
   raw_mm: number;
-  /** Acqua disponibile totale AWC (mm). */
+  /** Acqua available totale AWC (mm). */
   awc_mm: number;
   /** true se Dr,t ≥ RAW. */
   water_stress: boolean;
@@ -541,7 +541,7 @@ export interface CatalogEntry {
 }
 
 // ---------------------------------------------------------------------------
-// Magazzino (0.2.0): anagrafica products, lots, scarichi per attività
+// Magazzino (0.2.0): anagrafica products, lots, issues per attività
 // ---------------------------------------------------------------------------
 
 /**
@@ -586,7 +586,7 @@ export interface Product {
   /** Fornitore abituale (tracciabilità e riordini). */
   supplier: string | null;
   /**
-   * CUMP corrente (Costo Unitario Medio Ponderato): media ponderata mobile
+   * CUMP current (Costo Unitario Medio Ponderato): media ponderata mobile
    * sulle giacenze, aggiornata in transazione a ogni carico lot.
    */
   avg_unit_cost: number;
@@ -616,7 +616,7 @@ export interface ProductLot {
   expires_at: string | null;
   /** Quantità caricata all'origine (nell'unità del product). */
   initial_quantity: number;
-  /** Giacenza corrente; il CHECK `>= 0` a DB è la guardia atomica dello issue. */
+  /** Giacenza current; il CHECK `>= 0` a DB è la guardia atomica dello issue. */
   quantity_on_hand: number;
   /** Costo unitario di carico (input del CUMP). */
   unit_cost: number;
@@ -665,7 +665,7 @@ export interface FieldProductCost {
 /** Ruolo di un membro all'interno di una singola company. */
 export type MemberRole = "OWNER" | "MANAGER" | "VIEWER";
 
-/** Stato del posto: un invito pendente occupa il posto quanto un membro attivo. */
+/** Stato del posto: un invito pendente occupa il posto quanto un membro active. */
 export type MembershipStatus = "active" | "invited" | "revoked";
 
 /**
@@ -804,7 +804,7 @@ export type PlotsFeatureCollection = FeatureCollection<
     /**
      * CropType associata nella Campagna Agraria attiva (`plots_campaign` →
      * `crops`), pronta per il tooltip hover. `null` se l'appezzamento non ha una
-     * crop associata per l'annata corrente.
+     * crop associata per l'annata current.
      */
     crop: string | null;
     /**
@@ -815,7 +815,7 @@ export type PlotsFeatureCollection = FeatureCollection<
     /**
      * Colore di riempimento per-feature (simplestyle-spec `fill`): grigio neutro
      * se l'appezzamento non ha crop, colore ad hoc della specie altrimenti.
-     * Onorato dal renderer quando `simpleStyleEnabled` è attivo sul layer.
+     * Onorato dal renderer quando `simpleStyleEnabled` è active sul layer.
      */
     fill: string;
     /** Colore del bordo per-feature (simplestyle-spec `stroke`). */

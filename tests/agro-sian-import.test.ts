@@ -23,7 +23,7 @@ const QUADRATO: Polygon = {
 };
 
 describe("numeroItaliano", () => {
-  it("interpreta la virgola decimale e i separatori di migliaia", () => {
+  it("interpreta la virgola decimale e i separators di migliaia", () => {
     assert.equal(italianNumber("1.234,56"), 1234.56);
     assert.equal(italianNumber("12,5"), 12.5);
     assert.equal(italianNumber("10"), 10);
@@ -101,7 +101,7 @@ describe("matchExistingPlot", () => {
 });
 
 describe("parseCsvRows", () => {
-  it("parsa un CSV CAA con header e separatore ;", () => {
+  it("parsa un CSV CAA con header e separator ;", () => {
     const csv = "COD_APP;COD_PROD;SUP_HA\n7;060;2,5\n8;061;1,0";
     const rows = parseCsvRows(csv);
     assert.equal(rows.length, 2);
@@ -113,7 +113,7 @@ describe("parseCsvRows", () => {
     assert.equal(mapped.superficie_ha, 2.5);
   });
 
-  it("gestisce celle quotate con il separatore all'interno", () => {
+  it("gestisce celle quotate con il separator all'interno", () => {
     const csv = 'NOME;NOTE\n"Campo A";"nota; con; separatore"';
     const rows = parseCsvRows(csv);
     assert.deepEqual(rows[0], { NOME: "Campo A", NOTE: "nota; con; separatore" });

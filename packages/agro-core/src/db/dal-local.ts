@@ -138,24 +138,24 @@ export class AgroDalLocal extends AgroDalWarehouse {
       Partial<Omit<CompanyWeatherConfig, "company_id" | "tenant_id" | "created_at" | "updated_at">>,
   ): Promise<CompanyWeatherConfig> {
     const ts = nowIso();
-    const corrente = await this.getConfigMeteo(input.company_id);
+    const current = await this.getConfigMeteo(input.company_id);
     const row: CompanyWeatherConfig = {
       company_id: input.company_id,
       tenant_id: this.tenantId,
-      data_source: input.data_source ?? corrente?.data_source ?? "public_api",
-      api_provider: input.api_provider ?? corrente?.api_provider ?? "open-meteo",
-      station_model: input.station_model ?? corrente?.station_model ?? null,
-      station_api_key: input.station_api_key ?? corrente?.station_api_key ?? null,
+      data_source: input.data_source ?? current?.data_source ?? "public_api",
+      api_provider: input.api_provider ?? current?.api_provider ?? "open-meteo",
+      station_model: input.station_model ?? current?.station_model ?? null,
+      station_api_key: input.station_api_key ?? current?.station_api_key ?? null,
       station_device_id:
-        input.station_device_id ?? corrente?.station_device_id ?? null,
+        input.station_device_id ?? current?.station_device_id ?? null,
       visible_variables:
         input.visible_variables ??
-        corrente?.visible_variables ?? ["temperature", "humidity", "rain"],
+        current?.visible_variables ?? ["temperature", "humidity", "rain"],
       last_weather_pull_at:
         input.last_weather_pull_at !== undefined
           ? input.last_weather_pull_at
-          : corrente?.last_weather_pull_at ?? null,
-      created_at: corrente?.created_at ?? ts,
+          : current?.last_weather_pull_at ?? null,
+      created_at: current?.created_at ?? ts,
       updated_at: ts,
     };
     await this.db.query(
@@ -193,8 +193,8 @@ export class AgroDalLocal extends AgroDalWarehouse {
 
   /** Aggiorna SOLO il lucchetto orario dopo un pull meteo riuscito. */
   async touchWeatherPull(companyId: string, quando: string): Promise<void> {
-    const corrente = await this.getConfigMeteo(companyId);
-    if (!corrente) {
+    const current = await this.getConfigMeteo(companyId);
+    if (!current) {
       await this.upsertConfigMeteo({
         company_id: companyId,
         last_weather_pull_at: quando,

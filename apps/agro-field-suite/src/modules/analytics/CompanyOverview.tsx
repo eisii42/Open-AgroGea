@@ -39,17 +39,17 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
   const [costiCampo, setCostiCampo] = useState<FieldProductCost[]>([]);
   useEffect(() => {
     if (!dal || !activeCompanyId) return;
-    let attivo = true;
+    let active = true;
     void dal
       .productCostsPerField(activeCompanyId, {
         dal: `${campaignYear}-01-01T00:00:00.000Z`,
         al: `${campaignYear}-12-31T23:59:59.999Z`,
       })
       .then((rows) => {
-        if (attivo) setCostiCampo(rows);
+        if (active) setCostiCampo(rows);
       });
     return () => {
-      attivo = false;
+      active = false;
     };
     // `lots` come dipendenza: ogni issue/storno cambia i costi imputati.
   }, [dal, activeCompanyId, campaignYear, lots]);
@@ -91,7 +91,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
     return map;
   }, [lots]);
 
-  // Valore delle giacenze valorizzate al CUMP corrente di ciascun product.
+  // Valore delle giacenze valorizzate al CUMP current di ciascun product.
   const stockValue = useMemo(
     () =>
       products.reduce(

@@ -48,7 +48,7 @@ export function AppHeader({
 }: {
   /**
    * Apre la Command Palette globale (gestita dalla FieldDashboard). Assente nel
-   * Data Command Center, dove la palette mappa-centrica non è disponibile.
+   * Data Command Center, dove la palette mappa-centrica non è available.
    */
   onOpenCommandPalette?: () => void;
 }) {
@@ -183,7 +183,7 @@ export function AppHeader({
           </button>
         )}
 
-        {/* Selettore tema: su mobile solo l'icona del tema attivo (tap = ciclo
+        {/* Selettore tema: su mobile solo l'icona del tema active (tap = ciclo
             tra i 3 temi) per non affollare l'header; da sm in su tutti e 3. */}
         <div className="hidden items-center gap-0.5 rounded-[var(--r-2)] bg-[var(--panel-2)] p-0.5 sm:flex">
           {THEME_OPTIONS.map(({ id, labelKey, Icon }) => (

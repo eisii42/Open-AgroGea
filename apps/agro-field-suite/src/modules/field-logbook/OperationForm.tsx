@@ -36,7 +36,7 @@ import i18n from "../../i18n";
  * Form UNICO e ADATTIVO del Quaderno di Campagna: a partire dal tipo operation
  * scelto, mostra SOLO i campi pertinenti (es. la lavorazione non chiede il
  * patentino; il rilievo solo data/operatore/note). I tipi "di registro" scrivono
- * nella stessa tabella `treatment_logs` (colonne nullable): nessuna modifica di
+ * nella stessa tabella `treatment_logs` (columns nullable): nessuna modifica di
  * schema. Il soilSample di SUOLO è un caso speciale: scrive sulla tabella
  * dedicata `soil_samples` (via `onSubmitSoil`), con posizione = centroid del
  * field.
@@ -206,7 +206,7 @@ export interface CropAssignment {
   varietyName: string | null;
   /** Categoria DSS del field ("seminativo" | "orticoltura"). */
   cropCategory: string;
-  /** Densità di semina derivata dalla dose (kg/ha), se disponibile. */
+  /** Densità di semina derivata dalla dose (kg/ha), se available. */
   densitaSemina: number | null;
   declaredAreaHa: number;
 }
@@ -233,7 +233,7 @@ function persistOperatorMemory(memory: OperatorMemory) {
   try {
     globalThis.localStorage?.setItem(OPERATOR_KEY, JSON.stringify(memory));
   } catch {
-    // storage non disponibile: la memoria resta di sessione.
+    // storage non available: la memoria resta di sessione.
   }
 }
 
@@ -264,7 +264,7 @@ export interface OperazioneFormProps {
    */
   onSubmit: (
     values: TrattamentoFormValues,
-    scarichi?: IssueRequest[],
+    issues?: IssueRequest[],
     assegnazione?: CropAssignment | null,
   ) => Promise<void> | void;
   /** Salvataggio del soilSample di soil (tabella dedicata). */
@@ -272,7 +272,7 @@ export interface OperazioneFormProps {
   onCancel?: () => void;
   /**
    * Valori iniziali per "Ripeti operazione": precompila i campi dal record
-   * esistente (la data resta oggi, gli scarichi si riscelgono sui lots attuali).
+   * esistente (la data resta oggi, gli issues si riscelgono sui lots attuali).
    */
   defaults?: Partial<TrattamentoFormValues>;
 }
@@ -366,7 +366,7 @@ export function OperationForm({
   const [note, setNote] = useState("");
   // Campionamento: matrice + analisi del soil.
   const [matrice, setMatrice] = useState<"suolo" | "altro">("suolo");
-  const [profondita, setProfondita] = useState("");
+  const [depth, setProfondita] = useState("");
   const [ph, setPh] = useState("");
   const [azoto, setAzoto] = useState("");
   const [fosforo, setFosforo] = useState("");
@@ -383,11 +383,11 @@ export function OperationForm({
     () => plots.find((a) => a.id === plotId) ?? null,
     [plots, plotId],
   );
-  const campoSel = useMemo(
+  const selectedField = useMemo(
     () => campaignFields?.find((c) => c.campoCampagnaId === campoCampagnaId) ?? null,
     [campaignFields, campoCampagnaId],
   );
-  const area = campoSel?.superficieHa ?? plot?.area_ha ?? null;
+  const area = selectedField?.superficieHa ?? plot?.area_ha ?? null;
   const isSampling = operationType === "sampling";
   const soilMode = isSampling && matrice === "suolo";
 
@@ -503,7 +503,7 @@ export function OperationForm({
     );
 
   /** Riga compilata per intero e coerente: quantità > 0 e ≤ stock, lot non scaduto. */
-  const rowValida = (row: ScaricoRow): boolean => {
+  const validRow = (row: ScaricoRow): boolean => {
     const qty = Number.parseFloat(row.quantity);
     const lot = lottoById.get(row.lotId);
     return Boolean(
@@ -515,17 +515,17 @@ export function OperationForm({
         expiryStatus(lot.expires_at) !== "expired",
     );
   };
-  const scarichiValidi: IssueRequest[] = scarichiRows
-    .filter(rowValida)
+  const validIssues: IssueRequest[] = scarichiRows
+    .filter(validRow)
     .map((row) => ({
       product_lot_id: row.lotId,
       quantity: Number.parseFloat(row.quantity),
     }));
-  // Una row toccata ma non valida blocca il submit (niente scarichi "a metà").
-  const scarichiIncompleti = scarichiRows.some(
+  // Una row toccata ma non valida blocca il submit (niente issues "a metà").
+  const incompleteIssues = scarichiRows.some(
     (row) =>
       (row.productId || row.lotId || row.quantity.trim() !== "") &&
-      !rowValida(row),
+      !validRow(row),
   );
 
   // Auto-fill (v17): con UNA row di issue non modificata a mano, la quantità
@@ -581,7 +581,7 @@ export function OperationForm({
         }
       : null;
 
-  const canSubmit = !saving && !mancano && !soilWithoutField && !scarichiIncompleti;
+  const canSubmit = !saving && !mancano && !soilWithoutField && !incompleteIssues;
 
   function selectCampaign(value: string) {
     setCampoCampagnaId(value);
@@ -641,21 +641,21 @@ export function OperationForm({
     if (index === 0 && patch.productId) {
       const p = categoryProducts.find((x) => x.id === patch.productId);
       if (p) {
-        setProdotto((corrente) => corrente || p.name);
+        setProdotto((current) => current || p.name);
         if (p.registration_number) {
-          setNumeroRegistrazione((corrente) => corrente || p.registration_number || "");
+          setNumeroRegistrazione((current) => current || p.registration_number || "");
         }
         if (p.active_substance) {
-          setSostanzaAttiva((corrente) => corrente || p.active_substance || "");
+          setSostanzaAttiva((current) => current || p.active_substance || "");
         }
         const meta = (p.metadata ?? {}) as Record<string, unknown>;
         const carenzaDef = meta["safety_period_days"];
         if (f.safety && (typeof carenzaDef === "number" || typeof carenzaDef === "string")) {
-          setCarenza((corrente) => corrente || String(carenzaDef));
+          setCarenza((current) => current || String(carenzaDef));
         }
         const rientroDef = meta["reentry_interval_h"];
         if (f.reentry && (typeof rientroDef === "number" || typeof rientroDef === "string")) {
-          setRientro((corrente) => corrente || String(rientroDef));
+          setRientro((current) => current || String(rientroDef));
         }
       }
     }
@@ -705,7 +705,7 @@ export function OperationForm({
           plot_id: plot.id,
           sampled_at: new Date(`${data}T12:00:00`).toISOString(),
           sampling_position: position,
-          depth_cm: profondita ? Number.parseInt(profondita, 10) : null,
+          depth_cm: depth ? Number.parseInt(depth, 10) : null,
           nitrogen: num(azoto),
           phosphorus: num(fosforo),
           potassium: num(potassio),
@@ -753,7 +753,7 @@ export function OperationForm({
         executed_at: new Date(`${data}T12:00:00`).toISOString(),
         weather_conditions: null,
         note: note.trim() || null,
-      }, scarichiValidi, assegnazione);
+      }, validIssues, assegnazione);
       // Memoria operatore (v17): l'ultimo operatore usato precompila i form.
       if (operatore.trim() || operatoreCf.trim() || numPatentino.trim()) {
         persistOperatorMemory({
@@ -859,7 +859,7 @@ export function OperationForm({
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="soil-prof">{t("operazioneForm.depthCm")}</Label>
-              <Input id="soil-prof" type="number" inputMode="numeric" min="0" value={profondita} onChange={(e) => setProfondita(e.target.value)} className="agro-num" />
+              <Input id="soil-prof" type="number" inputMode="numeric" min="0" value={depth} onChange={(e) => setProfondita(e.target.value)} className="agro-num" />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="soil-ph">{t("detailEditSheet.ph")}</Label>
@@ -951,7 +951,7 @@ export function OperationForm({
               (l) => l.product_id === row.productId,
             );
             const lottoSel = lottoById.get(row.lotId) ?? null;
-            const disponibile = lottoSel ? Number(lottoSel.quantity_on_hand) : null;
+            const available = lottoSel ? Number(lottoSel.quantity_on_hand) : null;
             return (
               <div
                 key={`scarico-${index}`}
@@ -1040,7 +1040,7 @@ export function OperationForm({
                       inputMode="decimal"
                       min="0"
                       step="any"
-                      max={disponibile ?? undefined}
+                      max={available ?? undefined}
                       value={row.quantity}
                       onChange={(e) =>
                         updateIssue(index, { quantity: e.target.value })
@@ -1048,10 +1048,10 @@ export function OperationForm({
                       className="agro-num"
                     />
                   </div>
-                  {disponibile != null && (
+                  {available != null && (
                     <p className="pb-2 text-[11px] text-[var(--ink-3)]">
                       {t("operazioneForm.warehouseAvailable", {
-                        qty: disponibile,
+                        qty: available,
                         unit: selectedProduct?.unit ?? "",
                       })}
                     </p>
@@ -1072,7 +1072,7 @@ export function OperationForm({
                   const qty = Number.parseFloat(row.quantity);
                   if (!Number.isFinite(qty) || qty <= 0) return null;
                   const unit = selectedProduct?.unit ?? "";
-                  const doseEffettiva =
+                  const effectiveDose =
                     area && area > 0 ? qty / area : null;
                   const scostamento =
                     totalePrevisto != null &&
@@ -1080,20 +1080,20 @@ export function OperationForm({
                     selectedProduct?.unit === baseDose &&
                     Math.abs(qty - totalePrevisto) / totalePrevisto > 0.05;
                   const exceedsLot =
-                    disponibile != null && qty > disponibile;
+                    available != null && qty > available;
                   const copribile =
                     exceedsLot &&
                     lottiUtilizzabili(row.productId).reduce(
                       (s, l) => s + Number(l.quantity_on_hand),
                       0,
                     ) >= qty;
-                  if (!doseEffettiva && !scostamento && !exceedsLot) return null;
+                  if (!effectiveDose && !scostamento && !exceedsLot) return null;
                   return (
                     <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                      {doseEffettiva != null && f.dose && (
+                      {effectiveDose != null && f.dose && (
                         <span className="rounded-full bg-[var(--panel-2)] px-2 py-0.5 text-[var(--ink-3)]">
                           {t("operazioneForm.warehouseEffectiveDose", {
-                            dose: (Math.round(doseEffettiva * 100) / 100).toLocaleString("it-IT"),
+                            dose: (Math.round(effectiveDose * 100) / 100).toLocaleString("it-IT"),
                             unit: `${unit}/ha`,
                           })}
                         </span>

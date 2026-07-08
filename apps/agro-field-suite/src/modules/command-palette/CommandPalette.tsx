@@ -59,7 +59,7 @@ export function CommandPalette({
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const comandi = useMemo<Comando[]>(() => {
-    const apriPannello = (panel: Parameters<typeof togglePanel>[0]) => () => {
+    const openPanel = (panel: Parameters<typeof togglePanel>[0]) => () => {
       if (!openPanels.includes(panel)) togglePanel(panel);
       onClose();
     };
@@ -75,7 +75,7 @@ export function CommandPalette({
         title: t("commandPalette.actions.ndvi"),
         categoria: "azione",
         paroleChiave: ["analisi", "suolo", "satellite", "sentinel"],
-        esegui: apriPannello("ndvi"),
+        esegui: openPanel("ndvi"),
         flag: "panelNdvi",
       },
       {
@@ -83,7 +83,7 @@ export function CommandPalette({
         title: t("commandPalette.actions.vra"),
         categoria: "azione",
         paroleChiave: ["prescrizione", "isobus", "concimazione"],
-        esegui: apriPannello("vra"),
+        esegui: openPanel("vra"),
         flag: "panelVra",
       },
       {
@@ -91,7 +91,7 @@ export function CommandPalette({
         title: t("commandPalette.actions.newTreatment"),
         categoria: "azione",
         paroleChiave: ["quaderno", "registro", "operazione"],
-        esegui: apriPannello("quaderno"),
+        esegui: openPanel("quaderno"),
         flag: "panelQuaderno",
       },
       {
@@ -99,7 +99,7 @@ export function CommandPalette({
         title: t("commandPalette.actions.cropSheet"),
         categoria: "azione",
         paroleChiave: ["fenologia", "modelli"],
-        esegui: apriPannello("coltura"),
+        esegui: openPanel("coltura"),
         flag: "panelColtura",
       },
       {
@@ -128,7 +128,7 @@ export function CommandPalette({
         title: t("commandPalette.actions.editGeometries"),
         categoria: "azione",
         paroleChiave: ["registro", "gestione"],
-        esegui: apriPannello("registro"),
+        esegui: openPanel("registro"),
         flag: "panelRegistro",
       },
       {
@@ -136,7 +136,7 @@ export function CommandPalette({
         title: t("commandPalette.actions.printMap"),
         categoria: "azione",
         paroleChiave: ["print", "composer", "pdf", "pac", "psr"],
-        esegui: apriPannello("stampa"),
+        esegui: openPanel("stampa"),
         flag: "panelStampa",
       },
       {
@@ -144,7 +144,7 @@ export function CommandPalette({
         title: t("commandPalette.actions.companySettings"),
         categoria: "azione",
         paroleChiave: ["meteo", "config"],
-        esegui: apriPannello("impostazioni"),
+        esegui: openPanel("impostazioni"),
         flag: "panelMeteo",
       },
       {
@@ -152,7 +152,7 @@ export function CommandPalette({
         title: t("commandPalette.actions.profileSettings"),
         categoria: "azione",
         paroleChiave: ["profile", "preferenze", "lingua", "unità", "moduli", "account"],
-        esegui: apriPannello("profile"),
+        esegui: openPanel("profile"),
       },
       // Switch di vista: la freccia → è la scorciatoia globale registrata in
       // App.tsx (← riporta alla mappa). La palette vive nella vista mappa,

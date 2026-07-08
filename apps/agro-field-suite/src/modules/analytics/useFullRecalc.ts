@@ -23,7 +23,7 @@ export interface FullRecalcState {
   total: number;
   /** Appezzamenti completati. */
   done: number;
-  /** Etichetta della fase corrente (field + cosa si sta calcolando). */
+  /** Etichetta della fase current (field + cosa si sta calcolando). */
   label: string;
   /** Numero di errori non bloccanti incontrati. */
   errors: number;

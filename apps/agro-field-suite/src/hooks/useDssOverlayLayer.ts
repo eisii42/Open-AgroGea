@@ -39,7 +39,7 @@ export interface DssOverlayParams {
   /** CropType prevalente, per la calibrazione della rampa/legenda. */
   crop: CropType;
   /** true per mostrare l'overlay; false lo rimuove dalla mappa. */
-  attivo: boolean;
+  active: boolean;
   /** Epoch dello stile mappa: forza la re-iniezione dopo un cambio basemap. */
   styleEpoch?: number;
 }
@@ -52,10 +52,10 @@ function removeLayer(): void {
 }
 
 export function useDssOverlayLayer(params: DssOverlayParams): void {
-  const { plots, summaryPerField, crop, attivo, styleEpoch = 0 } = params;
+  const { plots, summaryPerField, crop, active, styleEpoch = 0 } = params;
 
   useEffect(() => {
-    if (!attivo || summaryPerField.size === 0) {
+    if (!active || summaryPerField.size === 0) {
       removeLayer();
       return;
     }
@@ -94,5 +94,5 @@ export function useDssOverlayLayer(params: DssOverlayParams): void {
       sourcePath: `agrogea://${DSS_OVERLAY_LAYER_ID}`,
     };
     store.addLayer(layer);
-  }, [plots, summaryPerField, crop, attivo, styleEpoch]);
+  }, [plots, summaryPerField, crop, active, styleEpoch]);
 }

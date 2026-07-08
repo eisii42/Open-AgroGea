@@ -11,7 +11,7 @@ import type { TFunction } from "i18next";
  *
  * Le etichette sono chiavi i18n risolte a runtime da `cropFormSchema()`/
  * `allCropFormSchemas()`: il name scientifico (binomio latino) resta invariato
- * in tutte le lingue, il resto (etichette, placeholder, opzioni select) è
+ * in tutte le lingue, il resto (etichette, placeholder, options select) è
  * tradotto tramite il catalog `cropFormSchema.*` in `locales/<lang>.json`.
  */
 

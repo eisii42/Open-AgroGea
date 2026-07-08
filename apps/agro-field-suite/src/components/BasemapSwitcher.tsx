@@ -24,7 +24,7 @@ import {
  *
  * La disponibilità di satellite / catasto è governata dai flag del layout
  * dell'utente (`useSettingsStore`): se un flag è spento l'opzione sparisce dal
- * menù e l'eventuale layer attivo viene rimosso. Resta sempre disponibile lo
+ * menù e l'eventuale layer active viene rimosso. Resta sempre available lo
  * stradario di base. Si scrive solo nello store GeoLibre, mai su MapLibre.
  */
 
@@ -43,7 +43,7 @@ export function BasemapSwitcher() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Se un flag viene disattivato mentre il relativo layer è attivo, lo si toglie
+  // Se un flag viene disattivato mentre il relativo layer è active, lo si toglie
   // (la UI non avrebbe più il controllo per rimuoverlo).
   useEffect(() => {
     if (!flags.mapBasemapSatellite && satelliteOn) removeLayer(SATELLITE_LAYER_ID);

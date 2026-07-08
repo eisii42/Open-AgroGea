@@ -57,10 +57,10 @@ function getTableOptions(t: TFunction): { layerId: string; label: string }[] {
 
 /**
  * Host field della tabella attributi condivisa (`@geolibre/attribute-table`).
- * Sceglie le opzioni specifiche di AgroGea:
+ * Sceglie le options specifiche di AgroGea:
  *  - selettore esplicito tra le 3 tabelle ammesse (non auto-attivazione per layer);
- *  - schema bloccato: niente add/rename/move/delete colonne né dati — solo
- *    nascondere colonne o modificare celle; il calcolatore deriva solo NUOVI campi;
+ *  - schema bloccato: niente add/rename/move/delete columns né dati — solo
+ *    nascondere columns o modificare celle; il calcolatore deriva solo NUOVI campi;
  *  - niente pulsante Dashboard (non c'è una dashboard host in field-suite);
  *  - "#" e "id" nascosti di default;
  *  - export leggero solo testuale (GeoJSON/CSV) e `deferResize` nella webview Tauri;
@@ -80,7 +80,7 @@ export function FieldAttributeTable({
   const tableOptions = getTableOptions(t);
 
   // All'apertura (o se la selezione non è una delle tabelle ammesse) select la
-  // prima tabella disponibile, così la vista parte popolata invece che vuota.
+  // prima tabella available, così la vista parte popolata invece che vuota.
   useEffect(() => {
     const ids = tableOptions.map((o) => o.layerId);
     if (selectedLayerId && ids.includes(selectedLayerId)) return;

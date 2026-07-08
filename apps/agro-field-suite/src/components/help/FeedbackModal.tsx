@@ -15,7 +15,7 @@ import { FEEDBACK_EMAIL, sendFeedback } from "./helpActions";
 /**
  * Modulo di invio feedback verso {@link FEEDBACK_EMAIL}. Compone un'email con il
  * messaggio dell'utente e un blocco di metadati tecnici (versione app, lingua
- * attiva e `tenant_id` corrente) per facilitare il debug, poi la apre nel client
+ * attiva e `tenant_id` current) per facilitare il debug, poi la apre nel client
  * di posta predefinito.
  */
 export function FeedbackModal({

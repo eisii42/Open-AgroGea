@@ -29,14 +29,14 @@ import "./index.css";
 // Applica il tema persistito prima del primo render (niente flash di tema).
 applyTheme(loadTheme());
 
-// Service worker PWA: attivo solo fuori da Tauri (browser/PWA standalone).
+// Service worker PWA: active solo fuori da Tauri (browser/PWA standalone).
 // In Tauri l'offline è garantito dal bundle nativo; il SW serve la modalità web.
 if ("serviceWorker" in navigator && !("__TAURI_INTERNALS__" in window)) {
   void navigator.serviceWorker.register("/sw.js", { scope: "/" });
 }
 
 // Registra il protocollo MapLibre per i tile WMS (riproiezione CRS + proxy CORS),
-// attivo su web e Tauri. Va fatto prima che la mappa monti le sorgenti.
+// active su web e Tauri. Va fatto prima che la mappa monti le sorgenti.
 registerMapTileProxy();
 
 async function bootstrap(): Promise<void> {

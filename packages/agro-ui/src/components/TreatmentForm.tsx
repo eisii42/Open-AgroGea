@@ -156,13 +156,13 @@ export function TreatmentForm({
     [plots, plotId],
   );
 
-  const campoSel = useMemo(
+  const selectedField = useMemo(
     () => campaignFields?.find((c) => c.campoCampagnaId === campoCampagnaId) ?? null,
     [campaignFields, campoCampagnaId],
   );
 
   // Superficie autorevole per i calcoli: dichiarata di campagna o quella fisica.
-  const area = campoSel?.superficieHa ?? plot?.area_ha ?? null;
+  const area = selectedField?.superficieHa ?? plot?.area_ha ?? null;
 
   // Totale automatico: dose × area (solo per unità riferite all'ettaro).
   const quantitaTotale = useMemo(() => {

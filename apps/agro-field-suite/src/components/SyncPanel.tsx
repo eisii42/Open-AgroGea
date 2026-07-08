@@ -47,7 +47,7 @@ export function SyncPanel({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
-  const ricarica = useCallback(async () => {
+  const reload = useCallback(async () => {
     setLoading(true);
     try {
       setCoda(await loadSyncQueue());
@@ -58,14 +58,14 @@ export function SyncPanel({ onClose }: { onClose: () => void }) {
 
   // Ricarica all'apertura e a ogni cambio del conteggio in coda.
   useEffect(() => {
-    void ricarica();
-  }, [ricarica, sync.pendingCount]);
+    void reload();
+  }, [reload, sync.pendingCount]);
 
   const remove = async (id: string) => {
     setBusy(true);
     try {
       await deleteQueuedMutation(id);
-      await ricarica();
+      await reload();
     } finally {
       setBusy(false);
     }
@@ -75,7 +75,7 @@ export function SyncPanel({ onClose }: { onClose: () => void }) {
     setBusy(true);
     try {
       await clearSyncQueue();
-      await ricarica();
+      await reload();
     } finally {
       setBusy(false);
     }

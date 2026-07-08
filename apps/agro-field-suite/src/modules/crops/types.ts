@@ -52,7 +52,7 @@ export interface DssContext {
   shootLengthCm?: number;
   /**
    * Biofix dell'accumulo termico (ISO date): i gradi-day si sommano SOLO dai
-   * giorni ≥ questa data, non dall'inizio della finestra meteo disponibile.
+   * giorni ≥ questa data, non dall'inizio della finestra meteo available.
    * Ancora l'accumulo a un riferimento agronomico (1° gennaio, semina, ripresa
    * vegetativa) e lo rende indipendente da quanta storia è stata scaricata.
    */

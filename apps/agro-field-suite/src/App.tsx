@@ -44,7 +44,7 @@ export function App() {
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const activeView = useAgroStore((s) => s.activeView);
   // Il Command Center si monta alla prima visita e poi resta vivo (lazy +
-  // keep-alive): anche i suoi filtri/stato sopravvivono al cambio vista.
+  // keep-alive): anche i suoi filters/stato sopravvivono al cambio vista.
   const ccVisited = useRef(false);
   if (activeView === "command-center") ccVisited.current = true;
 

@@ -24,7 +24,7 @@ export type UpdaterPhase =
 
 export interface UpdaterState {
   phase: UpdaterPhase;
-  /** Versione disponibile (es. "1.0.1"). */
+  /** Versione available (es. "1.0.1"). */
   version?: string;
   /** Note di rilascio / changelog. */
   notes?: string;

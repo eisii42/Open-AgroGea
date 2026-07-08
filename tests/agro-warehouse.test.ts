@@ -186,7 +186,7 @@ describe("schema v16 / migrazione additiva", () => {
     }
 
     // Estensione anagrafica (sostanza attiva, fornitore) + categoria residuale
-    // 'other': colonne presenti e CHECK aggiornato anche su istanze ri-migrate.
+    // 'other': columns presenti e CHECK aggiornato anche su istanze ri-migrate.
     const cols = await db.query<{ column_name: string }>(
       `select column_name from information_schema.columns where table_name='products'`,
     );
@@ -312,7 +312,7 @@ describe("DAL warehouse / issue atomico (§5.2)", () => {
 
   it("scarica la stock e congela il costo CUMP nella giunzione", async () => {
     const { dal, companyId, plotId, lot } = await setup();
-    const { treatment, scarichi } = await dal.insertTreatmentWithIssues(
+    const { treatment, issues } = await dal.insertTreatmentWithIssues(
       { ...TRATTAMENTO_BASE, company_id: companyId, plot_id: plotId },
       [{ product_lot_id: lot.id, quantity: 4 }],
     );
@@ -320,9 +320,9 @@ describe("DAL warehouse / issue atomico (§5.2)", () => {
     const lots = await dal.listLotti(companyId);
     assert.equal(Number(lots[0].quantity_on_hand), 6);
 
-    assert.equal(scarichi.length, 1);
-    assert.equal(scarichi[0].unit_cost, 8); // CUMP al momento dello issue
-    assert.equal(scarichi[0].total_cost, 32); // 4 × 8
+    assert.equal(issues.length, 1);
+    assert.equal(issues[0].unit_cost, 8); // CUMP al momento dello issue
+    assert.equal(issues[0].total_cost, 32); // 4 × 8
 
     const registrati = await dal.listScarichiAttivita(treatment.id);
     assert.equal(registrati.length, 1);
@@ -342,13 +342,13 @@ describe("DAL warehouse / issue atomico (§5.2)", () => {
         e instanceof WarehouseError && e.code === "insufficient_stock",
     );
 
-    // NIENTE è stato scritto: attività, scarichi, stock e outbox invariati.
+    // NIENTE è stato scritto: attività, issues, stock e outbox invariati.
     const treatments = await dal.listTreatments(companyId);
     assert.equal(treatments.length, 0);
     const lots = await dal.listLotti(companyId);
     assert.equal(Number(lots[0].quantity_on_hand), 10);
-    const scarichi = await dal.rawQuery(`select * from activity_products`);
-    assert.equal(scarichi.rows.length, 0);
+    const issues = await dal.rawQuery(`select * from activity_products`);
+    assert.equal(issues.rows.length, 0);
     assert.equal(await dal.countPendingMutations(), outboxPrima);
   });
 
@@ -400,7 +400,7 @@ describe("DAL warehouse / issue atomico (§5.2)", () => {
     );
   });
 
-  it("l'eliminazione dell'attività storna gli scarichi e reintegra la giacenza", async () => {
+  it("l'eliminazione dell'attività storna gli issues e reintegra la giacenza", async () => {
     const { dal, companyId, plotId, lot } = await setup();
     const { treatment } = await dal.insertTreatmentWithIssues(
       { ...TRATTAMENTO_BASE, company_id: companyId, plot_id: plotId },
@@ -411,8 +411,8 @@ describe("DAL warehouse / issue atomico (§5.2)", () => {
 
     const lots = await dal.listLotti(companyId);
     assert.equal(Number(lots[0].quantity_on_hand), 10); // reintegrata
-    const scarichi = await dal.listScarichiAttivita(treatment.id);
-    assert.equal(scarichi.length, 0); // tombstone
+    const issues = await dal.listScarichiAttivita(treatment.id);
+    assert.equal(issues.length, 0); // tombstone
     const treatments = await dal.listTreatments(companyId);
     assert.equal(treatments.length, 0);
   });

@@ -51,7 +51,7 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const plots = useAgroStore((s) => s.plots);
   const selectedId = useAgroStore((s) => s.selectedPlotId);
-  const { stato, generate, esporta, reset } = useVraGenerator();
+  const { stato, generate, runExport, reset } = useVraGenerator();
 
   const [plotId, setApzId] = useState(selectedId ?? "");
   const [indice, setIndice] = useState<VegetationIndex>("ndvi");
@@ -267,19 +267,19 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
             <div className="mt-1 grid grid-cols-3 gap-2">
               <Button
                 className="min-h-[var(--touch-min)]"
-                onClick={() => esporta("isoxml", plot?.user_plot_name ?? "vra")}
+                onClick={() => runExport("isoxml", plot?.user_plot_name ?? "vra")}
               >
                 ISO-XML
               </Button>
               <Button
                 className="min-h-[var(--touch-min)]"
-                onClick={() => esporta("shapefile", plot?.user_plot_name ?? "vra")}
+                onClick={() => runExport("shapefile", plot?.user_plot_name ?? "vra")}
               >
                 Shapefile
               </Button>
               <Button
                 className={cn("min-h-[var(--touch-min)]")}
-                onClick={() => esporta("geojson", plot?.user_plot_name ?? "vra")}
+                onClick={() => runExport("geojson", plot?.user_plot_name ?? "vra")}
               >
                 GeoJSON
               </Button>

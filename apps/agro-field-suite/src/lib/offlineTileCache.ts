@@ -99,7 +99,7 @@ export async function downloadAreaTiles(
 ): Promise<void> {
   if (!("caches" in window)) {
     throw new Error(
-      "Cache API non disponibile. Usa la build nativa Tauri per il caching offline.",
+      "Cache API non available. Usa la build nativa Tauri per il caching offline.",
     );
   }
 

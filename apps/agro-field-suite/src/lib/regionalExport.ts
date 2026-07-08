@@ -120,7 +120,7 @@ const BASE_COLUMNS: (keyof NeutralOperation)[] = [
   "phi_days",
 ];
 
-/** EU — CSV internazionale: separatore `,`, UTF-8 pulito, date ISO. */
+/** EU — CSV internazionale: separator `,`, UTF-8 pulito, date ISO. */
 export function buildBaseCsv(input: RegionalExportInput): string {
   const rows = flattenOperations(input);
   const header = BASE_COLUMNS.join(",");
@@ -236,7 +236,7 @@ export const baseExporter: RegionalExporter = {
 
 /**
  * Istanzia l'esportatore corretto in base alla geolocalizzazione del tenant.
- * FR usa il base internazionale finché non è disponibile un adapter TelePAC
+ * FR usa il base internazionale finché non è available un adapter TelePAC
  * dedicato in export (l'import FR è già coperto da AbstractGisParser).
  */
 export function getRegionalExporter(countryCode: CountryCode): RegionalExporter {

@@ -16,7 +16,7 @@ import { allCropFormSchemas, cropFormSchema } from "./cropFormSchema";
  *     con i campi di filiera specifici (clone, sesto, portainnesto, ciclo…);
  *   * scrive su DUE tabelle normalizzate — la specie/varietà in `crops`
  *     (campi di filiera in `crop_metadata`) e lo stato annuale in `plots_campaign`;
- *   * in MODIFICA ricarica i valori dell'annata; se l'annata è VUOTA ma esiste un
+ *   * in MODIFICA reload i valori dell'annata; se l'annata è VUOTA ma esiste un
  *     anno precedente per lo stesso plot, precompila con quei dati
  *     (perenni: vite/olivo/frutteto) creando però rows nuove al salvataggio.
  *
@@ -108,7 +108,7 @@ export function CropDataForm({
   const [agriParcel, setAgriParcel] = useState("");
   const [cropCode, setCropCode] = useState("");
   const [varietyCode, setVarietyCode] = useState("");
-  // Id da riusare in MODIFICA (annata corrente già presente); undefined = nuovo.
+  // Id da riusare in MODIFICA (annata current già presente); undefined = nuovo.
   const [editCampaignId, setEditCampaignId] = useState<string | undefined>();
   const [editCropId, setEditCropId] = useState<string | undefined>();
   // Annata da cui i valori sono stati copiati (precompilazione perenni).
@@ -205,8 +205,8 @@ export function CropDataForm({
     setMeta((m) => ({ ...m, [key]: value }));
 
   const areaNum = declaredArea.trim() === "" ? null : Number(declaredArea);
-  const areaValida = areaNum != null && Number.isFinite(areaNum);
-  const canSave = Boolean(category && commonName.trim() && areaValida) && !saving;
+  const validArea = areaNum != null && Number.isFinite(areaNum);
+  const canSave = Boolean(category && commonName.trim() && validArea) && !saving;
 
   async function save() {
     if (!canSave) return;
@@ -244,7 +244,7 @@ export function CropDataForm({
       if (!camp) throw new Error(t("cropDataForm.noActiveCompany"));
 
       setEsito("ok");
-      setReloadKey((k) => k + 1); // ricarica le campagne del plot (nuova annata)
+      setReloadKey((k) => k + 1); // reload le campagne del plot (nuova annata)
       onSaved?.();
     } catch (e) {
       setEsito("errore");
@@ -295,7 +295,7 @@ export function CropDataForm({
         </p>
       )}
 
-      {/* Quick-pick specie dal catalog nazionale (se disponibile) */}
+      {/* Quick-pick specie dal catalog nazionale (se available) */}
       {cropCatalog.length > 0 && (
         <div>
           <Label htmlFor="crop-catalog">
@@ -469,7 +469,7 @@ export function CropDataForm({
                   value={declaredArea}
                   onChange={(e) => setDeclaredArea(e.target.value)}
                   className="agro-num"
-                  aria-invalid={!areaValida || undefined}
+                  aria-invalid={!validArea || undefined}
                 />
               </div>
               <div>

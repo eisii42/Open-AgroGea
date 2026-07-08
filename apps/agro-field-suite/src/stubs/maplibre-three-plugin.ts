@@ -1,7 +1,7 @@
 /**
  * Stub di `@dvt3d/maplibre-three-plugin` per l'app di field.
  *
- * Il barrel `@geolibre/plugins` ri-esporta `maplibre-components.ts`, che
+ * Il barrel `@geolibre/plugins` ri-runExport `maplibre-components.ts`, che
  * importa `maplibre-gl-components` → `@dvt3d/maplibre-three-plugin` → three.js
  * con i suoi addon (EffectComposer ecc.). La Modalità Campo NON usa alcun
  * control 3D: importarne i pochi plugin che servono trascina comunque l'intero
@@ -14,7 +14,7 @@
 
 function unsupported(name: string): never {
   throw new Error(
-    `[agro-field-suite] "${name}" (maplibre-three-plugin) non è disponibile in Modalità Campo.`,
+    `[agro-field-suite] "${name}" (maplibre-three-plugin) non è available in Modalità Campo.`,
   );
 }
 

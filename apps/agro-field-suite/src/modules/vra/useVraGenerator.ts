@@ -128,19 +128,19 @@ export function useVraGenerator() {
   );
 
   const generate = useCallback(
-    async (plot: Plot, opzioni: OpzioniGeneraVra) => {
+    async (plot: Plot, options: OpzioniGeneraVra) => {
       try {
         setStato({ fase: "lavorazione", label: "Ricerca scena satellitare…" });
         const bbox = boundingBox(plot.geometry);
         const scene = await searchSceneSeries(bbox, {
-          indici: [opzioni.indice],
-          cloudCoverMax: opzioni.cloudCoverMax ?? 20,
+          indici: [options.indice],
+          cloudCoverMax: options.cloudCoverMax ?? 20,
           giorniIndietro: 120,
         });
         if (scene.length === 0) {
           setStato({
             fase: "errore",
-            message: "Nessuna scena utile per i filtri scelti.",
+            message: "Nessuna scena utile per i filters scelti.",
           });
           return;
         }
@@ -149,11 +149,11 @@ export function useVraGenerator() {
         const cells = await runJob({
           tipo: "suolo",
           scene: [scene[0]],
-          indici: [opzioni.indice],
-          indicePrimario: opzioni.indice,
+          indici: [options.indice],
+          indicePrimario: options.indice,
           geometria: plot.geometry,
           bbox,
-          vra: { step: opzioni.step },
+          vra: { step: options.step },
         });
         if (!cells || cells.features.length === 0) {
           setStato({
@@ -164,9 +164,9 @@ export function useVraGenerator() {
         }
 
         const risultato = generateVraZones(cells, {
-          zone: opzioni.zone,
-          lavorazione: opzioni.lavorazione,
-          ratei: opzioni.ratei,
+          zone: options.zone,
+          lavorazione: options.lavorazione,
+          ratei: options.ratei,
         });
         iniettaVraLayer(plot.id, risultato);
         setStato({ fase: "completato", risultato });
@@ -180,7 +180,7 @@ export function useVraGenerator() {
     [runJob],
   );
 
-  const esporta = useCallback(
+  const runExport = useCallback(
     (formato: "geojson" | "isoxml" | "shapefile", nomeBase: string) => {
       if (stato.fase !== "completato") return;
       const base = nomeBase.replace(/[^\p{L}\p{N}_-]+/gu, "_") || "vra";
@@ -216,5 +216,5 @@ export function useVraGenerator() {
 
   const reset = useCallback(() => setStato({ fase: "idle" }), []);
 
-  return { stato, generate, esporta, reset };
+  return { stato, generate, runExport, reset };
 }

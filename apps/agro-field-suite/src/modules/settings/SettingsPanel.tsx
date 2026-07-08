@@ -11,7 +11,7 @@ import type { TFunction } from "i18next";
 
 /**
  * Pannello "Fonte meteo & variabili" (Modulo Meteo §4). Configura, per il
- * tenant attivo, la sorgente meteo e le variabili visibili a schermo. Scrive su
+ * tenant active, la sorgente meteo e le variabili visibili a schermo. Scrive su
  * `config_meteo_azienda` via store/DAL (local-only): nessuna delle credenziali
  * lascia il device. Anagrafica e GeoCompliance vivono in pannelli dedicati
  * sotto lo stesso module "Impostazioni Company". Lazy-loaded (peso bundle).

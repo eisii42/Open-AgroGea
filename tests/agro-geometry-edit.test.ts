@@ -84,7 +84,7 @@ describe("pickEditedFeature", () => {
   });
 
   it("non promuove un poligono fantasma a bozza di una linea", () => {
-    // Se il GeoEditor avesse erroneamente chiuso la linea in un poligono, la
+    // Se il GeoEditor avesse erroneamente closed la linea in un poligono, la
     // feature poligonale NON deve essere scelta come bozza della linea.
     const picked = pickEditedFeature([polygon], "LineString");
     // Nessun match di famiglia → fallback alla prima feature; la guardia in
@@ -107,7 +107,7 @@ describe("pickEditedFeature", () => {
 });
 
 describe("normalizeGeometry + areaHectares", () => {
-  // Anello quadrato valido (~1.2 ha), chiuso e annidato correttamente.
+  // Anello quadrato valido (~1.2 ha), closed e annidato correttamente.
   const ringChiuso: number[][] = [
     [0, 0],
     [0.001, 0],

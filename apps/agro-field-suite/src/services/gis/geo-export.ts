@@ -59,7 +59,7 @@ function csvCell(value: unknown): string {
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
-/** Cella CSV quotata in base al separatore effettivo (`,` o `;`). */
+/** Cella CSV quotata in base al separator effettivo (`,` o `;`). */
 function csvCellSep(value: unknown, sep: string): string {
   const text =
     value == null
@@ -77,11 +77,11 @@ export function geojsonToCsv(fc: FeatureCollection): string {
   for (const f of fc.features) {
     for (const k of Object.keys(f.properties ?? {})) chiavi.add(k);
   }
-  const colonne = [...chiavi];
-  const intestazione = ["feature_id", ...colonne];
+  const columns = [...chiavi];
+  const intestazione = ["feature_id", ...columns];
   const rows = fc.features.map((f, i) => {
     const props = f.properties ?? {};
-    return [String(f.id ?? i), ...colonne.map((c) => props[c])]
+    return [String(f.id ?? i), ...columns.map((c) => props[c])]
       .map(csvCell)
       .join(",");
   });
@@ -93,30 +93,30 @@ export const BOM_UTF8 = "﻿";
 
 export interface OpzioniCsvLocalizzato {
   /** Separatore di field (default `;`, atteso dai locale europei). */
-  separatore?: string;
+  separator?: string;
   /** Antepone il BOM UTF-8 (default true). */
   bom?: boolean;
 }
 
 /**
- * Variante LOCALIZZATA del CSV per Excel europeo: separatore `;` e BOM UTF-8 di
+ * Variante LOCALIZZATA del CSV per Excel europeo: separator `;` e BOM UTF-8 di
  * default, così accenti e celle restano corretti senza import wizard. Non
  * sostituisce {@link geojsonToCsv} (CSV standard a virgola per l'interscambio).
  */
 export function geojsonToCsvLocalizzato(
   fc: FeatureCollection,
-  opzioni: OpzioniCsvLocalizzato = {},
+  options: OpzioniCsvLocalizzato = {},
 ): string {
-  const sep = opzioni.separatore ?? ";";
+  const sep = options.separator ?? ";";
   const chiavi = new Set<string>();
   for (const f of fc.features) {
     for (const k of Object.keys(f.properties ?? {})) chiavi.add(k);
   }
-  const colonne = [...chiavi];
-  const intestazione = ["feature_id", ...colonne];
+  const columns = [...chiavi];
+  const intestazione = ["feature_id", ...columns];
   const rows = fc.features.map((f, i) => {
     const props = f.properties ?? {};
-    return [String(f.id ?? i), ...colonne.map((c) => props[c])]
+    return [String(f.id ?? i), ...columns.map((c) => props[c])]
       .map((v) => csvCellSep(v, sep))
       .join(sep);
   });
@@ -124,7 +124,7 @@ export function geojsonToCsvLocalizzato(
     intestazione.map((v) => csvCellSep(v, sep)).join(sep),
     ...rows,
   ].join("\r\n");
-  return (opzioni.bom ?? true ? BOM_UTF8 : "") + corpo;
+  return (options.bom ?? true ? BOM_UTF8 : "") + corpo;
 }
 
 // ---------------------------------------------------------------------------

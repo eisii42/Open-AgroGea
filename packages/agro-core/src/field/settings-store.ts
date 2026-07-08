@@ -21,7 +21,7 @@ import {
  *   1. ogni mutazione scrive SUBITO in localStorage (istantaneo, offline-safe);
  *   2. una push DEBOUNCED sincronizza il control plane
  *      (`profili_utenti.dashboard_layout_config` / `preferenze`) appena la rete
- *      è disponibile, così le preferenze seguono l'utente cross-device.
+ *      è available, così le preferenze seguono l'utente cross-device.
  *
  * È deliberatamente separato da {@link useAgroStore}: lo stato di dominio
  * (per-tenant, da PGlite) e le preferenze d'utente (per-account, da localStorage

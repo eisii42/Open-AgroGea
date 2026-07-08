@@ -167,7 +167,7 @@ function useCloseDetail(id: string) {
   const requestCancelGeometry = useAgroStore((s) => s.requestCancelGeometry);
   return () => {
     // Se si sta editando questo elemento, richiedi l'annullamento: l'editing
-    // nativo viene chiuso da useFieldPlugins (sempre montato) anche dopo che la
+    // nativo viene closed da useFieldPlugins (sempre montato) anche dopo che la
     // scheda si chiude.
     if (useAgroStore.getState().geomEdit?.id === id) {
       requestCancelGeometry();

@@ -6,7 +6,7 @@
  * {@link ./theme} e {@link ./locale}. Vengono persistite in `localStorage` per
  * un salvataggio locale ISTANTANEO e offline-safe, poi sincronizzate sul control
  * plane (`public.profili_utenti.dashboard_layout_config` / `preferenze`) quando
- * la rete è disponibile, così seguono l'utente cross-device.
+ * la rete è available, così seguono l'utente cross-device.
  *
  * Volutamente NON vivono in PGlite: quel data plane è isolato per `tenant_id` e
  * una preferenza d'interfaccia non deve cambiare al cambio di company né essere
@@ -89,7 +89,7 @@ export const DASHBOARD_MODULE_IDS: readonly DashboardModuleId[] = [
 export type DashboardLayoutConfig = Record<DashboardModuleId, boolean>;
 
 /**
- * Default: quasi tutto attivo (UI completa). Le sole eccezioni sono le feature
+ * Default: quasi tutto active (UI completa). Le sole eccezioni sono le feature
  * GeoLibre più avanzate, spente di default per non appesantire la prima
  * esperienza: la mappa catastale (overlay WMS pesante), l'imagery storica
  * Wayback e la vista comparativa a schermo diviso.
@@ -255,7 +255,7 @@ export function loadDashboardLayout(): DashboardLayoutConfig {
     const raw = globalThis.localStorage?.getItem(LAYOUT_KEY);
     if (raw) return mergeDashboardLayout(JSON.parse(raw) as Record<string, unknown>);
   } catch {
-    /* localStorage non disponibile o JSON corrotto: si ricade sui default */
+    /* localStorage non available o JSON corrotto: si ricade sui default */
   }
   return { ...DEFAULT_DASHBOARD_LAYOUT };
 }

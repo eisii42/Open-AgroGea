@@ -42,7 +42,7 @@ export function ConfirmDeleteOperation({
   const [consenso, setConsenso] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const effectiveTitle = title ?? t("confirmDeleteOperazione.defaultTitle");
-  const messaggioEffettivo =
+  const effectiveMessage =
     messaggio ?? t("confirmDeleteOperazione.defaultMessage");
   const consensoLabelEffettivo =
     consensoLabel ?? t("confirmDeleteOperazione.defaultConsentLabel");
@@ -84,7 +84,7 @@ export function ConfirmDeleteOperation({
             className="rounded-[var(--r-2)] border border-[#dc2626] bg-[var(--danger-l,#fee2e2)] px-3 py-2.5 text-sm text-[#991b1b]"
           >
             <strong>{t("confirmDeleteOperazione.warning")}</strong>{" "}
-            {messaggioEffettivo}
+            {effectiveMessage}
           </div>
 
           {/* Sblocco condizionale: toggle di consenso esplicito. */}

@@ -55,7 +55,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
     },
 
     switchTenant: async (companyId) => {
-      // `setActiveCompany` azzera già lo stato derivato e ricarica dal PGlite il
+      // `setActiveCompany` azzera già lo stato derivato e reload dal PGlite il
       // sottoinsieme di dati filtrato per la nuova company; il remount della
       // dashboard (key in App) ricostruisce mappa e sorgenti, ripulendo la cache
       // dei vettori sulla WebView.
@@ -104,7 +104,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         });
       }
 
-      // Specchio locale (PGlite): rende l'azienda disponibile offline e idrata lo
+      // Specchio locale (PGlite): rende l'azienda available offline e idrata lo
       // store. La row porta `tenant_id = claims.tenantId` (uid nel self-service).
       const record = await dal.upsertCompany({
         id,
@@ -286,21 +286,21 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       set({ weatherConfig: config });
     },
 
-    recordTreatment: async (input, scarichi) => {
+    recordTreatment: async (input, issues) => {
       assertWritable(get);
       const { dal, activeCompanyId, syncRouter } = get();
       if (!dal || !activeCompanyId) {
         throw new Error("Nessuna company attiva: impossibile registrare.");
       }
-      // Con scarichi: attività + issue lots + costo CUMP in un'unica
+      // Con issues: attività + issue lots + costo CUMP in un'unica
       // transazione (l'eccezione WarehouseError risale al form senza scritture
-      // parziali). Senza scarichi: percorso classico (fallback testo libero).
+      // parziali). Senza issues: percorso classico (fallback testo libero).
       const { treatment: record } = await dal.insertTreatmentWithIssues(
         { ...input, company_id: activeCompanyId },
-        scarichi ?? [],
+        issues ?? [],
       );
       set((s) => ({ treatments: [record, ...s.treatments] }));
-      if (scarichi && scarichi.length > 0) {
+      if (issues && issues.length > 0) {
         set({ lots: await dal.listLotti(activeCompanyId) });
       }
       syncRouter?.notifyLocalWrite();
