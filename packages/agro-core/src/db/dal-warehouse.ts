@@ -182,9 +182,9 @@ export class AgroDalWarehouse extends AgroDalLogbook {
          where product_id = $1 and deleted_at is null`,
         [input.product_id],
       );
-      const giacenzaEsistente = Number(stock.rows[0]?.q ?? 0);
+      const existingStock = Number(stock.rows[0]?.q ?? 0);
       const newCump = cumpAfterInbound(
-        giacenzaEsistente,
+        existingStock,
         Number(product.avg_unit_cost),
         input.initial_quantity,
         input.unit_cost,

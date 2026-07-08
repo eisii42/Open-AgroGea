@@ -29,7 +29,7 @@ const ROLE_META: Record<TeamRole, { label: string; plural: string; Icon: typeof 
  * Modulo 4 — Pannello gestione team del Data Command Center. Mostra i badge
  * contatori dei posti per l'azienda selezionata (es. Enterprise: `Owners 1/2`,
  * `Viewers 0/3`) e un form d'invito il cui ruolo/pulsante si disabilita quando
- * la quota specifica è saturata. In sola lettura (VIEWER) l'intero pannello è
+ * la quota specifica è saturata. In sola reading (VIEWER) l'intero pannello è
  * inerte.
  */
 export function TeamPanel({ readOnly = false }: { readOnly?: boolean }) {
@@ -66,7 +66,7 @@ export function TeamPanel({ readOnly = false }: { readOnly?: boolean }) {
         ))}
       </div>
 
-      {/* Form d'invito (role-gated). In sola lettura l'intero blocco sparisce. */}
+      {/* Form d'invito (role-gated). In sola reading l'intero blocco sparisce. */}
       {readOnly ? (
         <p className="mt-4 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2 text-xs text-[var(--ink-3)]">
           {t("teamPanel.readOnlyNotice")}

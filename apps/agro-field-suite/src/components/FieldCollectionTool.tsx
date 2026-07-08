@@ -4,7 +4,7 @@
  * Punti di observation geotaggati (focolai di infezione, trappole,
  * anomalie colturali) salvati in `scouting_observations` (PGlite + outbox).
  * Le foto passano dall'adapter dell'edizione (`uploadScoutingPhoto`), che le
- * carica su uno storage remoto e ritorna l'URL; senza adapter (standalone)
+ * load su uno storage remoto e ritorna l'URL; senza adapter (standalone)
  * il field foto è nascosto e l'osservazione si save senza immagine.
  */
 import { controlPlane, type ScoutingObservation, useAgroStore } from "@agrogea/core";

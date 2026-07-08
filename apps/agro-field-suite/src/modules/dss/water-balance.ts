@@ -19,7 +19,7 @@ import {
  *   * `cropEt` = ET0·Kc, con Kc per phase fenologica dalla `crops`;
  *   * `waterBalanceFao66` → depletion radicale Dr,t con DP esplicito.
  *
- * Tutto in locale, su dati PGlite. È puro (stringhe/array/oggetti): la lettura
+ * Tutto in locale, su dati PGlite. È puro (stringhe/array/oggetti): la reading
  * del DAL e la persistenza in `soil_water_indices` vivono nel hook chiamante,
  * così questo file resta testabile sotto `node --test`.
  */
@@ -36,7 +36,7 @@ export interface ApportoIrriguo {
 
 export interface WaterBalanceParams {
   /** Letture meteo orarie/giornaliere dell'azienda (`weather_readings`). */
-  letture: WeatherReading[];
+  readings: WeatherReading[];
   /** Apporti irrigui giornalieri (mm), dai log gestionali. */
   irrigazioni?: ApportoIrriguo[];
   crop: CropType;
@@ -129,12 +129,12 @@ function media(valori: number[], fallback: number): number {
 }
 
 /**
- * Aggrega le letture (orarie) in record giornalieri per Penman-Monteith. I
+ * Aggrega le readings (orarie) in record giornalieri per Penman-Monteith. I
  * canali assenti ricadono su default agronomici editabili (RH 50/90 %, vento
  * 2 m/s, radiation 0) così ET0 non riceve mai NaN. Ordina per data crescente.
  */
 export function agrometeoSeriesFromReadings(
-  letture: WeatherReading[],
+  readings: WeatherReading[],
   altitude = 0,
 ): { meteo: WeatherDataDay[]; rain: number[]; date: string[] } {
   const perGiorno = new Map<
@@ -148,7 +148,7 @@ export function agrometeoSeriesFromReadings(
     }
   >();
 
-  for (const l of letture) {
+  for (const l of readings) {
     const data = giornoDi(l.measured_at);
     let agg = perGiorno.get(data);
     if (!agg) {
@@ -201,7 +201,7 @@ export function agrometeoSeriesFromReadings(
 }
 
 /** Proietta gli apporti irrigui sulla griglia giornaliera `date`. */
-function irrigazionePerGiorno(
+function irrigationPerDay(
   date: string[],
   irrigazioni: ApportoIrriguo[],
 ): number[] {
@@ -222,13 +222,13 @@ export function computeWaterBalance(
 ): WaterBalanceOutput {
   const kc = getPhaseCalibration(params.crop, params.phase).kc;
   const { meteo, rain, date } = agrometeoSeriesFromReadings(
-    params.letture,
+    params.readings,
     params.altitude ?? 0,
   );
 
   const et0Serie = meteo.map((m) => et0PenmanMonteith(m));
   const etcSeries = et0Serie.map((et0) => cropEt(et0, kc));
-  const irrSeries = irrigazionePerGiorno(date, params.irrigazioni ?? []);
+  const irrSeries = irrigationPerDay(date, params.irrigazioni ?? []);
 
   const { series, autonomyDays }: {
     series: WaterBalanceDay[];

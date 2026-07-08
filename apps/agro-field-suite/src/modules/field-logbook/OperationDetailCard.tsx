@@ -1,6 +1,6 @@
 /**
  * Scheda dettaglio di un'operazione del Quaderno di Campagna: modale centrale
- * in sola lettura con TUTTE le informazioni registrate (anagrafica treatment,
+ * in sola reading con TUTTE le informazioni registrate (anagrafica treatment,
  * dosi, operatore, sicurezza, note). Si apre al tap/click su una voce della
  * lista del Quaderno.
  */

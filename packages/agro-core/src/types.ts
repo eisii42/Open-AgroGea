@@ -394,7 +394,7 @@ export interface DssResult {
 
 /**
  * Riga giornaliera del bilancio idrico FAO 56/66 (`soil_water_indices`).
- * LOCAL-ONLY: ricomputabile dalle letture meteo e dai log irrigui.
+ * LOCAL-ONLY: ricomputabile dalle readings meteo e dai log irrigui.
  */
 export interface SoilWaterIndex {
   id: string;
@@ -515,7 +515,7 @@ export interface DataTransferLog {
 // Cataloghi di stato multiregionali (Modulo 3)
 // ---------------------------------------------------------------------------
 
-/** Tipo di voce di catalogo ministeriale. */
+/** Tipo di voce di catalog ministeriale. */
 export type CatalogType = "crop" | "phytosanitary" | "fertilizer" | "variety";
 
 /**

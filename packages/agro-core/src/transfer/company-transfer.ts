@@ -4,8 +4,8 @@
  *
  * Modulo PURO: nessuna dipendenza da DB, store o rete. Trasforma uno
  * snapshot in-memory dei dati aziendali in un documento GeoJSON valido e
- * viceversa. L'I/O su PGlite (lettura rows, upsert transazionale dato+outbox)
- * resta responsabilità del DAL; il salvataggio/lettura del file fisico resta
+ * viceversa. L'I/O su PGlite (reading rows, upsert transazionale dato+outbox)
+ * resta responsabilità del DAL; il salvataggio/reading del file fisico resta
  * dell'orchestratore app-side.
  *
  * Formato: un `FeatureCollection` dove
@@ -64,7 +64,7 @@ export interface PlotBundle extends AgronomicLogs {
 
 /**
  * Istantanea completa dei dati di un'azienda: input dell'export, output del
- * parse. `crops` è il catalogo (a livello tenant) delle colture referenziate
+ * parse. `crops` è il catalog (a livello tenant) delle crops referenziate
  * dalle campagne dell'azienda. `unassigned` raccoglie i log non legati ad alcun
  * plot (`plot_id` null), per non perderli nel backup.
  */
@@ -84,7 +84,7 @@ export interface CompanyTransferMeta {
   exportedAt: string;
   /** Anagrafica statica dell'azienda (dati alla radice). */
   company: Company;
-  /** Catalogo colture referenziate (livello tenant). */
+  /** Catalogo crops referenziate (livello tenant). */
   crops: Crop[];
   /** Log non associati ad alcun plot. */
   unassigned: AgronomicLogs;

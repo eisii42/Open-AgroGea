@@ -48,7 +48,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   const plots = useAgroStore((s) => s.plots);
   const campaignFields = useAgroStore((s) => s.campaignFields);
   const valutaCompliance = useGeoCompliance();
-  // Cataloghi di stato filtrati per il country_code risolto del tenant (Modulo 3):
+  // Cataloghi di stato filtered per il country_code risolto del tenant (Modulo 3):
   // i dropdown Product/Concime mostrano solo le voci del registro nazionale.
   const { voci: fitosanitari, countryCode } = useCountryCatalog("phytosanitary");
   const { voci: concimi } = useCountryCatalog("fertilizer");
@@ -97,12 +97,12 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
           // Badge compliance: dichiarativi incompleti per il sistema del paese
           // (IT → SIAN, ES → SIEX), visibile a ogni selezione del field.
           const sistema = declarativeSystem(countryCode);
-          const dichiarativiKo =
+          const declarativeMissing =
             sistema != null && missingDeclarative(countryCode, c).length > 0;
           return {
             campoCampagnaId: c.id,
             plotId: c.plot_id,
-            name: dichiarativiKo ? `${base} · ${sistema} ✗` : base,
+            name: declarativeMissing ? `${base} · ${sistema} ✗` : base,
             codiceColturaSian: c.crop_external_code,
             superficieHa: c.declared_area_ha,
           };
@@ -154,7 +154,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     null,
   );
   const [notifica, setNotifica] = useState<string | null>(null);
-  // Operazione aperta in scheda dettaglio (modale centrale di sola lettura).
+  // Operazione aperta in scheda dettaglio (modale centrale di sola reading).
   const [dettaglio, setDettaglio] = useState<TreatmentLog | null>(null);
 
   // Filtri lista.
@@ -237,7 +237,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     return `${t.product_name ?? t.operation_type} · ${data}`;
   }
 
-  async function confermaEliminazione() {
+  async function confirmDeletion() {
     if (!daEliminare) return;
     const label = operationLabel(daEliminare);
     await deleteTreatment(daEliminare.id);
@@ -245,7 +245,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     setNotifica(t("quadernoPanel.notification.removed", { label: label }));
   }
 
-  const filtrati = useMemo(() => {
+  const filtered = useMemo(() => {
     const daTs = filtroDa ? new Date(filtroDa).setHours(0, 0, 0, 0) : null;
     const aTs = filtroA ? new Date(filtroA).setHours(23, 59, 59, 999) : null;
     return treatments.filter((t) => {
@@ -265,12 +265,12 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   const mappaAttiva = mapOperationIds !== null;
   useEffect(() => {
     if (!mappaAttiva) return;
-    setMapOperationIds(filtrati.map((t) => t.id));
-  }, [filtrati, mappaAttiva, setMapOperationIds]);
+    setMapOperationIds(filtered.map((t) => t.id));
+  }, [filtered, mappaAttiva, setMapOperationIds]);
 
   const toggleMappa = () => {
     if (mappaAttiva) setMapOperationIds(null);
-    else setMapOperationIds(filtrati.map((t) => t.id));
+    else setMapOperationIds(filtered.map((t) => t.id));
   };
 
   return (
@@ -409,7 +409,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
             )}
           </div>
 
-          {filtrati.length > 0 && (
+          {filtered.length > 0 && (
             <button
               type="button"
               onClick={toggleMappa}
@@ -422,12 +422,12 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
             >
               {mappaAttiva ? <MapPinOff size={15} /> : <MapPin size={15} />}
               {mappaAttiva
-                ? t("quadernoPanel.map.hide", { count: filtrati.length })
-                : t("quadernoPanel.map.show", { count: filtrati.length })}
+                ? t("quadernoPanel.map.hide", { count: filtered.length })
+                : t("quadernoPanel.map.show", { count: filtered.length })}
             </button>
           )}
 
-          {filtrati.length === 0 ? (
+          {filtered.length === 0 ? (
             <p className="py-8 text-center text-sm text-[var(--ink-3)]">
               {treatments.length === 0
                 ? t("quadernoPanel.empty.noRecords")
@@ -435,7 +435,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
             </p>
           ) : (
             <ul className="flex flex-col gap-2">
-              {filtrati.map((treatment) => {
+              {filtered.map((treatment) => {
                 const plot = plots.find(
                   (a) => a.id === treatment.plot_id,
                 );
@@ -518,7 +518,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
       <ConfirmDeleteOperation
         open={daEliminare != null}
         label={daEliminare ? operationLabel(daEliminare) : ""}
-        onConfirm={confermaEliminazione}
+        onConfirm={confirmDeletion}
         onClose={() => setDaEliminare(null)}
       />
 

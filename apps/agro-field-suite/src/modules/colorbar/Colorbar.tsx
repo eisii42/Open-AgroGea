@@ -35,7 +35,7 @@ export function Colorbar() {
   }, [layers]);
 
   // Idem per il rischio DSS: una legenda per crop distinta.
-  const colture = useMemo(() => {
+  const crops = useMemo(() => {
     const set = new Set<CropType>();
     for (const l of layers) {
       if (
@@ -49,11 +49,11 @@ export function Colorbar() {
     return [...set];
   }, [layers]);
 
-  if (indici.length === 0 && colture.length === 0) return null;
+  if (indici.length === 0 && crops.length === 0) return null;
 
   return (
     <div className="pointer-events-none absolute bottom-10 right-3 z-30 flex flex-col gap-2">
-      {colture.map((crop) => (
+      {crops.map((crop) => (
         <DssLegendCard key={crop} crop={crop} />
       ))}
       {indici.map((indice) => (

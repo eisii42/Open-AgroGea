@@ -53,7 +53,7 @@ export function declarativeSystem(
 /**
  * Elenca i campi dichiarativi non compilati della campagna (vuoto = compliant
  * o paese senza sistema gateato). `variety_external_code` resta facoltativo
- * (non tutte le colture lo hanno).
+ * (non tutte le crops lo hanno).
  */
 export function missingDeclarative(
   countryCode: string | null | undefined,

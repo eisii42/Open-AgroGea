@@ -1,10 +1,10 @@
 /**
  * Hook di Country Resolution per la UI (Moduli 0/3): risolve il `country_code`
- * del tenant attivo e ne deriva i cataloghi di stato filtrati.
+ * del tenant attivo e ne deriva i cataloghi di stato filtered.
  *
  *   * {@link useTenantCountry} — paese risolto (anagrafica + cross-check spaziale
  *     sulle geometrie degli plots) con eventuali warning per la UI.
- *   * {@link useCountryCatalog} — voci di catalogo (crop/fitosanitario/concime/
+ *   * {@link useCountryCatalog} — voci di catalog (crop/fitosanitario/concime/
  *     varietà) del solo paese del tenant, per i dropdown dei form dinamici.
  */
 import {
@@ -32,7 +32,7 @@ export function useTenantCountry(): CountryResolution {
 }
 
 /**
- * Voci di catalogo del tipo dato, filtrate per il `country_code` risolto. I
+ * Voci di catalog del tipo dato, filtrate per il `country_code` risolto. I
  * dropdown "CropType"/"Product" caricano così solo le voci registrate nel paese
  * del tenant (es. fitofarmaci MAPA in Spagna). Ritorna anche il paese usato e lo
  * stato di caricamento per la UI.

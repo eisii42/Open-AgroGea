@@ -5,7 +5,7 @@ import {
 } from "../shared/balance";
 
 /** Bilancio idrico dell'orticoltura: Kc per phase della specie "pomodoro" (FAO-56). */
-export function bilancioOrticoltura(
+export function balanceVegetables(
   phase: PhenologicalPhase,
   meteo: WeatherDataDay[],
   pioggiaSerie: number[],

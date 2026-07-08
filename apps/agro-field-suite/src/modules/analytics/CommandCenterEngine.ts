@@ -17,7 +17,7 @@ import type { KpiParams } from "./kpi-config";
  *
  * CROSS-REFERENCING (cuore del Command Center) senza duplicare logica:
  *   - Meteo + Suolo → trend ETc e stress idrico (compone l'output FAO 56/66 già
- *     persistito in `soil_water_indices` con le letture `weather_readings`);
+ *     persistito in `soil_water_indices` con le readings `weather_readings`);
  *   - Operazioni + NDVI → efficienza degli input (operazioni fitosanitarie del
  *     Quaderno vs vigore vegetativo medio cache STAC);
  *   - Storico → confronto della campagna attiva vs annate precedenti dello
@@ -258,7 +258,7 @@ interface DailyTemp {
   max: number;
 }
 
-/** Aggrega le letture orarie in min/max giornalieri per l'anno dato. */
+/** Aggrega le readings orarie in min/max giornalieri per l'anno dato. */
 function dailyTemps(weather: WeatherReading[], year: number): DailyTemp[] {
   const byDay = new Map<string, { min: number; max: number }>();
   for (const r of weather) {
@@ -708,7 +708,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
 
   // -- Rischio fitopatologico (DSS, coerente con la crop — Modulo 1.2) ---
   // SOLO i modelli pertinenti alla famiglia botanica selezionata: niente
-  // fallback a malattie di altre colture (es. olivo_occhio-pavone su seminativo).
+  // fallback a malattie di altre crops (es. olivo_occhio-pavone su seminativo).
   const pool = dssRisultati.filter(
     (d) =>
       d.plot_id != null &&

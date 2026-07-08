@@ -275,7 +275,7 @@ export function FieldDashboard() {
         {/* Legenda a gradiente degli indici: compare con gli overlay attivi. */}
         <Colorbar />
 
-        {/* Legenda colture: colore/icona per specie negli plots attivi. */}
+        {/* Legenda crops: colore/icona per specie negli plots attivi. */}
         {!platform.isMobile && (
           <CropLegend mapControllerRef={mapControllerRef} />
         )}

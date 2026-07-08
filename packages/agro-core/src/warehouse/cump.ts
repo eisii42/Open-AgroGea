@@ -18,13 +18,13 @@ export const EXPIRY_WARNING_DAYS_DEFAULT = 30;
  * Arrotondato a 4 decimali (precisione della colonna `avg_unit_cost`).
  */
 export function cumpAfterInbound(
-  giacenzaEsistente: number,
+  existingStock: number,
   cumpCorrente: number,
   quantitaCaricata: number,
   costoCarico: number,
 ): number {
   if (!(quantitaCaricata > 0)) return cumpCorrente;
-  const base = giacenzaEsistente > 0 ? giacenzaEsistente : 0;
+  const base = existingStock > 0 ? existingStock : 0;
   const totale = base + quantitaCaricata;
   const cump = (base * cumpCorrente + quantitaCaricata * costoCarico) / totale;
   return Math.round(cump * 10000) / 10000;

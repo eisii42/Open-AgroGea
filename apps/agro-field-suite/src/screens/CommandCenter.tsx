@@ -64,7 +64,7 @@ export function CommandCenter() {
   const activeCampaign = useAgroStore((s) => s.activeCampaign);
   const recordTransfer = useAgroStore((s) => s.recordTransfer);
 
-  // Sola lettura (Modulo 4): un VIEWER non può lanciare i ricalcoli che mutano
+  // Sola reading (Modulo 4): un VIEWER non può lanciare i ricalcoli che mutano
   // il database (DSS, indici, bilancio idrico). L'export resta consentito.
   const readOnly = useReadOnly(activeCompanyId);
 

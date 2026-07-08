@@ -51,7 +51,7 @@ export async function importaFascicoloSian(
 
   const esito: EsitoImportSian = { creati: 0, aggiornati: 0, saltati: 0 };
 
-  // Cache delle colture (crops) create durante l'import: una specie per chiave
+  // Cache delle crops (crops) create durante l'import: una specie per chiave
   // naturale (codice crop + codice varietà ministeriali), così rows diverse
   // della stessa crop condividono la stessa entità normalizzata.
   const cropPerChiave = new Map<string, string>();

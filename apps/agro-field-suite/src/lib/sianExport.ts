@@ -247,7 +247,7 @@ export interface SianFiltri {
   /** Appezzamenti ammessi (vuoto = tutti). Filtro SPAZIALE per geometria. */
   appezzamentoIds?: string[];
   /** Colture ammesse (vuoto = tutte). */
-  colture?: string[];
+  crops?: string[];
   /** Tipi di operation ammessi (vuoto = tutti). */
   tipiOperazione?: OperationType[];
   /** Includi le operazioni "intera azienda" (senza plot). Default true. */

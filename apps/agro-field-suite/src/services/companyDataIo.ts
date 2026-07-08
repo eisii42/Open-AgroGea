@@ -12,7 +12,7 @@
  *
  * File I/O via Blob + `<a download>` / `<input type=file>`: identico su web/PWA
  * e webview Tauri (stesso pattern di regionalExport/sianExport), nessun plugin
- * nativo richiesto. Filtri estensione: .geojson / .json.
+ * nativo richiesto. Filtri extension: .geojson / .json.
  */
 
 import {
@@ -74,7 +74,7 @@ export async function buildCompanySnapshot(
     dal.listAssets(id),
     dal.listOsservazioniScouting(id, { limit: FULL }),
     // plots_campaign e crops sono a livello tenant: si filtrano sugli
-    // plots/colture di QUESTA company.
+    // plots/crops di QUESTA company.
     dal.listCampiCampagna(),
     dal.listCrops(),
   ]);
@@ -86,7 +86,7 @@ export async function buildCompanySnapshot(
   const plotIds = new Set(plots.map((p) => p.id));
   const campaigns = allCampaigns.filter((cc) => plotIds.has(cc.plot_id));
   const c = groupByPlot(campaigns);
-  // Colture referenziate da quelle campagne (catalogo tenant, filtrato).
+  // Colture referenziate da quelle campagne (catalog tenant, filtrato).
   const cropIds = new Set(campaigns.map((cc) => cc.crop_id));
   const crops = allCrops.filter((cr) => cropIds.has(cr.id));
   return {

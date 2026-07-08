@@ -4,7 +4,7 @@ import { ComplianceLayerSelector } from "./ComplianceLayerSelector";
 
 /**
  * Pannello "GeoCompliance" (scheda dedicata sotto Impostazioni Company).
- * Riprogettato (FEATURE 3): non carica più file (compito dell'Add Data globale
+ * Riprogettato (FEATURE 3): non load più file (compito dell'Add Data globale
  * nella barra). Qui si SELEZIONA un layer esterno già caricato e lo si classifica
  * come vincolo (ZVN, SIC/ZPS, EUDR): il layer viene marcato `metadata.compliance`
  * — così gli alert e il tetto azoto lo raccolgono automaticamente — e il motore

@@ -31,7 +31,7 @@ function isPoligono(g: Geometry | null): g is Polygon | MultiPolygon {
 }
 
 /** Estensione (minuscola, senza punto) del name file. */
-function estensione(name: string): string {
+function extension(name: string): string {
   const m = /\.([^.\\/]+)$/.exec(name.trim().toLowerCase());
   return m ? m[1] : "";
 }
@@ -56,7 +56,7 @@ export class SianImportParser {
    * pronti per l'inserimento create-or-populate in PGlite.
    */
   static async parse(file: File): Promise<SianImportParseResult> {
-    const ext = estensione(file.name);
+    const ext = extension(file.name);
 
     if (ext === "csv" || ext === "tsv") {
       const campi = parseCsvRows(await file.text()).map((props) =>

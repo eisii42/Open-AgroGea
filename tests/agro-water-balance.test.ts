@@ -107,7 +107,7 @@ describe("et0PenmanMonteith — sanità fisica", () => {
 
 // -- Adattatori dell'orchestratore -----------------------------------------
 
-function lettura(
+function reading(
   data: string,
   over: Partial<WeatherReading> = {},
 ): WeatherReading {
@@ -166,13 +166,13 @@ describe("irrigationInputMm / irrigationInputsFromTreatments", () => {
 
 describe("computeWaterBalance — composizione end-to-end", () => {
   it("produce una riga per day con ETc = ET0·Kc e bilancio coerente", () => {
-    const letture = [
-      lettura("2026-06-01", { rain_mm: 0 }),
-      lettura("2026-06-02", { rain_mm: 5 }),
-      lettura("2026-06-03", { rain_mm: 0 }),
+    const readings = [
+      reading("2026-06-01", { rain_mm: 0 }),
+      reading("2026-06-02", { rain_mm: 5 }),
+      reading("2026-06-03", { rain_mm: 0 }),
     ];
     const out = computeWaterBalance({
-      letture,
+      readings,
       irrigazioni: [{ data: "2026-06-03", mm: 4 }],
       crop: "vite",
       phase: "piena",

@@ -29,7 +29,7 @@ const VUOTO: ComplianceAnalysisResult = {
 };
 
 /** FeatureCollection degli plots con `id` in properties (per il join). */
-function appezzamentiFeatureCollection(
+function plotsFeatureCollection(
   plots: Plot[],
 ): FeatureCollection {
   return {
@@ -64,7 +64,7 @@ export function useComplianceLayerAnalysis(
         const engine = SpatialAnalysisEngine.instance();
         await engine.registerGeoJson(
           "compliance_appezzamenti",
-          appezzamentiFeatureCollection(plots),
+          plotsFeatureCollection(plots),
         );
         await engine.registerGeoJson("compliance_layer", layerGeojson);
         const res = await engine.selectByLocation({

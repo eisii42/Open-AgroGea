@@ -106,7 +106,7 @@ describe("geojsonToCsv", () => {
 });
 
 describe("serializzaVettoriale (dispatcher)", () => {
-  it("mappa estensione/mime per ogni formato", () => {
+  it("mappa extension/mime per ogni formato", () => {
     assert.equal(serializzaVettoriale(PUNTO, "geojson", "x").filename, "x.geojson");
     assert.equal(serializzaVettoriale(PUNTO, "kml", "x").filename, "x.kml");
     assert.equal(serializzaVettoriale(PUNTO, "gpx", "x").filename, "x.gpx");

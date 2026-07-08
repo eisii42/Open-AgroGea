@@ -221,7 +221,7 @@ export function TreatmentForm({
     setAppezzamentoId(opt?.plotId ?? "");
   }
 
-  // Selezione dal catalogo nazionale: auto-compila sostanza attiva e n. registrazione.
+  // Selezione dal catalog nazionale: auto-compila sostanza attiva e n. registrazione.
   function selectProduct(codice: string) {
     setProdottoCodice(codice);
     const voce = prodottiCatalogo?.find((p) => p.code === codice);

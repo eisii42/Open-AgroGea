@@ -4,7 +4,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { AGRO_LOCAL_SCHEMA_SQL } from "../packages/agro-core/src/db/schema";
 
 /**
- * Schema locale v12 (clean rewrite EN + normalizzazione colture). Verifica che
+ * Schema locale v12 (clean rewrite EN + normalizzazione crops). Verifica che
  * lo schema inglese si applichi pulito e idempotente su un'installazione nuova,
  * che le entità di dominio abbiano la nomenclatura EU-agnostica, che la crop
  * sia normalizzata in `crops` (FK da `plots_campaign`) e che la superficie sia

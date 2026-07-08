@@ -317,7 +317,7 @@ function DayDetail({
 }) {
   const { t, i18n } = useTranslation();
   const [openKey, setOpenKey] = useState<string | null>(null);
-  const dataLeggibile = new Date(`${day}T00:00:00Z`).toLocaleDateString(i18n.language, {
+  const readableDate = new Date(`${day}T00:00:00Z`).toLocaleDateString(i18n.language, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -334,7 +334,7 @@ function DayDetail({
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
-          <h3 className="text-sm font-semibold capitalize">{dataLeggibile}</h3>
+          <h3 className="text-sm font-semibold capitalize">{readableDate}</h3>
           <button
             type="button"
             onClick={onClose}

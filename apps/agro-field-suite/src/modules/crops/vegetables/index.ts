@@ -1,8 +1,8 @@
 import type { CropModule } from "../types";
-import { dssOrticoltura } from "./dss";
+import { dssVegetables } from "./dss";
 
-export { bilancioOrticoltura } from "./balance";
-export { dssOrticoltura } from "./dss";
+export { balanceVegetables } from "./balance";
+export { dssVegetables } from "./dss";
 
 /** Modulo crop Orticoltura: tracker fenologico, specie di riferimento "pomodoro". */
 export const vegetablesModule: CropModule = {
@@ -10,6 +10,6 @@ export const vegetablesModule: CropModule = {
   label: "Orticoltura",
   categories: ["orticoltura"],
   mainSpecies: "pomodoro",
-  dss: dssOrticoltura,
+  dss: dssVegetables,
   seasonalAccumulation: true,
 };

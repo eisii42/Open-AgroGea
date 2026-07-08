@@ -8,7 +8,7 @@ import {
 
 /**
  * Guard centralizzato RBAC: un utente con ruolo VIEWER per l'azienda attiva è in
- * sola lettura e NON deve poter mutare il dominio dallo store (specchio client
+ * sola reading e NON deve poter mutare il dominio dallo store (specchio client
  * del layer RLS). Si testa sia la funzione pura `isViewerReadOnly` sia il blocco
  * effettivo di una mutazione dello store.
  */
@@ -113,7 +113,7 @@ describe("store — guard centralizzato sulle mutazioni", () => {
     });
     await assert.rejects(
       () => useAgroStore.getState().updateCompany({ business_name: "Hack" }),
-      /sola lettura/i,
+      /sola reading/i,
     );
   });
 
@@ -128,7 +128,7 @@ describe("store — guard centralizzato sulle mutazioni", () => {
     // l'importante è che NON sia il blocco read-only.
     await assert.rejects(
       () => useAgroStore.getState().updateCompany({ business_name: "Ok" }),
-      (e: unknown) => e instanceof Error && !/sola lettura/i.test(e.message),
+      (e: unknown) => e instanceof Error && !/sola reading/i.test(e.message),
     );
   });
 });

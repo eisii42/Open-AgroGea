@@ -97,7 +97,7 @@ export class SpatialAnalysisEngine {
     return this.dbPromise;
   }
 
-  /** Installa e carica l'estensione spatial una volta sola per istanza DB. */
+  /** Installa e load l'estensione spatial una volta sola per istanza DB. */
   private async ensureSpatial(
     connection: duckdb.AsyncDuckDBConnection,
   ): Promise<void> {

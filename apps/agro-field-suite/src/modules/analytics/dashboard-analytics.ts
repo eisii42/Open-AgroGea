@@ -13,7 +13,7 @@ import {
  * (plots, operazioni, harvests, bilancio idrico, meteo, DSS), una
  * DIMENSIONE su cui raggruppare e una FUNZIONE (conteggio/somma/media/min/max)
  * applicata a una MISURA. Il risultato è una {@link ChartData} pronta per il
- * renderer. Tutto puro e in-memory sui dati già filtrati.
+ * renderer. Tutto puro e in-memory sui dati già filtered.
  */
 
 export type Aggregation = "count" | "sum" | "avg" | "min" | "max" | "ratio";

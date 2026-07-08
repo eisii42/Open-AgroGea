@@ -8,7 +8,7 @@ import { ETICHETTE_VINCOLO, type TipoVincolo } from "./geo-compliance";
 import { useComplianceLayerAnalysis } from "./useComplianceLayerAnalysis";
 
 /**
- * Workflow Geo-compliance riprogettato (FEATURE 3): non carica più file (compito
+ * Workflow Geo-compliance riprogettato (FEATURE 3): non load più file (compito
  * dell'Add Data globale). Espone un SELETTORE dei layer esterni attivi nel Layer
  * Store; alla scelta di un layer e del tipo di vincolo che rappresenta, marca il
  * layer (`metadata.compliance`) — così i badge per-plot reagiscono in

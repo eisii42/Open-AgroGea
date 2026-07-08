@@ -11,7 +11,7 @@ import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   type ComandoBase,
-  filtraComandi,
+  filterCommands,
 } from "./command-match";
 import type { UndoRedoApi } from "../../hooks/useGeometryUndoRedo";
 
@@ -234,7 +234,7 @@ export function CommandPalette({
   ]);
 
   const risultati = useMemo(
-    () => filtraComandi(comandi, query),
+    () => filterCommands(comandi, query),
     [comandi, query],
   );
 

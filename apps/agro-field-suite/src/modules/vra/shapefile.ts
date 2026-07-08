@@ -153,7 +153,7 @@ function buildShpShx(records: Record[]): { shp: Uint8Array; shx: Uint8Array } {
   return { shp: new Uint8Array(shp), shx: new Uint8Array(shx) };
 }
 
-function formattaValore(value: unknown, field: CampoDbf): string {
+function formatValue(value: unknown, field: CampoDbf): string {
   if (field.tipo === "N") {
     const n = typeof value === "number" ? value : Number(value);
     const testo = Number.isFinite(n) ? n.toFixed(field.decimali) : "";
@@ -196,7 +196,7 @@ function buildDbf(features: Feature[], schema: CampoDbf[]): Uint8Array {
       writeAscii(
         dv,
         off,
-        formattaValore(f.properties?.[field.chiave], field),
+        formatValue(f.properties?.[field.chiave], field),
         field.lunghezza,
       );
       off += field.lunghezza;

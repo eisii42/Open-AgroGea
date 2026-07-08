@@ -185,7 +185,7 @@ export interface DomainSlice {
   companies: Company[];
   activeCompanyId: string | null;
   plots: Plot[];
-  /** Specie/varietà coltivate del workspace (catalogo `crops`). */
+  /** Specie/varietà coltivate del workspace (catalog `crops`). */
   crops: Crop[];
   treatments: TreatmentLog[];
   /** Infrastrutture (CAD-GIS): layer "infrastrutture". */

@@ -26,7 +26,7 @@ export function usePlotsLayer(
   styleEpoch = 0,
 ): void {
   const plots = useAgroStore((s) => s.plots);
-  // CropType associata (Campagna attiva) e catalogo crops: alimentano la
+  // CropType associata (Campagna attiva) e catalog crops: alimentano la
   // property `crop` del tooltip hover. Cambiano con annata/registro campagna.
   const campaignFields = useAgroStore((s) => s.campaignFields);
   const crops = useAgroStore((s) => s.crops);

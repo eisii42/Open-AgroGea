@@ -55,10 +55,10 @@ function AppezzamentoBody({ props }: { props: Record<string, unknown> }) {
   const areaUnit = useSettingsStore((s) => s.units.area);
   const name = str(props.user_plot_name) ?? t("mapTooltip.plot");
   const crop = str(props.crop);
-  const colturaKind = str(props.crop_kind);
+  const cropKind = str(props.crop_kind);
   const area = num(props.area_ha);
   const ndvi = num(props.last_ndvi_mean);
-  const { color: cropClr, icon: cropIconKey } = cropStyle(colturaKind);
+  const { color: cropClr, icon: cropIconKey } = cropStyle(cropKind);
   const CropIcon = cropIcon(cropIconKey);
   return (
     <div className="flex flex-col gap-1">

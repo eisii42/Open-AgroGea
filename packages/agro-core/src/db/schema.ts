@@ -375,7 +375,7 @@ create table if not exists weather_config (
 );
 
 -- dss_results — cache degli indici di rischio calcolati dai DSS. LOCAL-ONLY:
--- interamente ricomputabile dalle letture meteo, non si sincronizza.
+-- interamente ricomputabile dalle readings meteo, non si sincronizza.
 create table if not exists dss_results (
   id           uuid primary key default gen_random_uuid(),
   plot_id      uuid references plots_registry (id) on delete cascade,
@@ -390,7 +390,7 @@ create index if not exists dss_results_plot_idx
   on dss_results (plot_id, calculated_at desc);
 
 -- soil_water_indices — output giornaliero del bilancio idrico FAO 56/66 per
--- campagna del field. LOCAL-ONLY: interamente ricomputabile dalle letture meteo
+-- campagna del field. LOCAL-ONLY: interamente ricomputabile dalle readings meteo
 -- e dai log irrigui, non si sincronizza (come dss_results).
 create table if not exists soil_water_indices (
   id                  uuid primary key default gen_random_uuid(),
@@ -492,7 +492,7 @@ create index if not exists tenant_memberships_company_idx
   on tenant_memberships (company_id, role);
 
 -- product_catalogs — cataloghi di stato MULTIREGIONALI (Modulo 3). Reference data
--- LOCAL-ONLY: cataloghi ministeriali per paese filtrati a runtime dal country_code.
+-- LOCAL-ONLY: cataloghi ministeriali per paese filtered a runtime dal country_code.
 create table if not exists product_catalogs (
   id                  uuid primary key default gen_random_uuid(),
   country_code        varchar(2) not null,

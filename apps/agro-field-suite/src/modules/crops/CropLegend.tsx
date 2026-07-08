@@ -1,5 +1,5 @@
 /**
- * Legenda colture: mostra, per gli plots dell'azienda attiva, l'elenco
+ * Legenda crops: mostra, per gli plots dell'azienda attiva, l'elenco
  * delle specie presenti con il rispettivo colore ad hoc e icona, più la voce
  * neutra "Senza coltura" se almeno un plot non ha crop nell'annata.
  *

@@ -208,7 +208,7 @@ interface WeatherDay {
   rain: number;
 }
 
-/** Aggregazione giornaliera delle letture meteo (orarie → giorno), ordinata. */
+/** Aggregazione giornaliera delle readings meteo (orarie → giorno), ordinata. */
 function weatherDaily(d: DashboardData): [string, WeatherDay][] {
   const m = new Map<string, WeatherDay>();
   for (const w of d.weather) {
@@ -463,7 +463,7 @@ function inRange(v: string | Date, range: TemporalRange): boolean {
 
 /**
  * Restringe il bundle al periodo dato per CAMPO DATA di ogni entità (operazioni,
- * harvests, indici idrici, meteo, DSS). Anagrafiche/colture/campagne restano (sono
+ * harvests, indici idrici, meteo, DSS). Anagrafiche/crops/campagne restano (sono
  * metadati, non eventi datati). `from`/`to` entrambi null = nessun filtro.
  */
 export function filterByRange(

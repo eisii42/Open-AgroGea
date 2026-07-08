@@ -1,5 +1,5 @@
 /**
- * Scheda dettaglio di una harvest: modale centrale in sola lettura con TUTTE le
+ * Scheda dettaglio di una harvest: modale centrale in sola reading con TUTTE le
  * informazioni registrate (cultivar, destinazione, quantità, lot, note).
  * Speculare a {@link OperationDetailCard} del Quaderno; si apre al tap/click
  * su una voce della lista del registro harvests.

@@ -5,7 +5,7 @@ import type { AnalyticsResult, KpiResult } from "./CommandCenterEngine";
 /**
  * "Download Executive Report" del Command Center (Modulo 5). Genera un CSV
  * localizzato europeo (separatore `;`, codifica UTF-8-sig col BOM) con la summary
- * di TUTTI i KPI e dei log filtrati per la vista corrente. Serializzatore PURO
+ * di TUTTI i KPI e dei log filtered per la vista corrente. Serializzatore PURO
  * (solo stringhe): nessuna dipendenza pesante, coerente con la filiera di export
  * esistente (`geo-export`).
  */

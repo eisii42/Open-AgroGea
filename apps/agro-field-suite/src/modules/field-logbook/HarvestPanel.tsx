@@ -63,7 +63,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
 
   const [daEliminare, setDaEliminare] = useState<Harvest | null>(null);
   const [notifica, setNotifica] = useState<string | null>(null);
-  // Harvest aperta in scheda dettaglio (modale centrale di sola lettura).
+  // Harvest aperta in scheda dettaglio (modale centrale di sola reading).
   const [dettaglio, setDettaglio] = useState<Harvest | null>(null);
 
   const [showForm, setShowForm] = useState(false);
@@ -177,7 +177,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
     return `${r.cultivar ?? t("raccoltaPanel.harvestFallbackLabel")} · ${data}`;
   }
 
-  async function confermaEliminazione() {
+  async function confirmDeletion() {
     if (!daEliminare) return;
     const label = harvestLabel(daEliminare);
     await deleteHarvest(daEliminare.id);
@@ -481,7 +481,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
         title={t("raccoltaPanel.deleteHarvest")}
         messaggio={t("raccoltaPanel.deleteConfirmMessage")}
         consensoLabel={t("raccoltaPanel.deleteConfirmConsent")}
-        onConfirm={confermaEliminazione}
+        onConfirm={confirmDeletion}
         onClose={() => setDaEliminare(null)}
       />
 

@@ -82,7 +82,7 @@ export interface OperazioneSpec {
 
 /**
  * Registro dei tipi operation e dei campi pertinenti a ciascuno. `label` e
- * `descr` sono getter che risolvono la traduzione al momento della lettura
+ * `descr` sono getter che risolvono la traduzione al momento della reading
  * (tramite l'istanza `i18n` condivisa, non un hook React): così i consumer
  * esterni che leggono `OPERAZIONI` come semplice array di dati (es.
  * `LogbookPanel`) vedono comunque il testo nella lingua attiva a ogni
@@ -296,13 +296,13 @@ export function OperationForm({
   const spec = operazioneSpec(operationType);
   const f = spec.fields;
   const usesCampaign = (campaignFields?.length ?? 0) > 0;
-  const catalogo =
+  const catalog =
     f.product === "phyto"
       ? prodottiCatalogo
       : f.product === "fertilizer"
         ? concimiCatalogo
         : undefined;
-  const usaCatalogo = (catalogo?.length ?? 0) > 0;
+  const usaCatalogo = (catalog?.length ?? 0) > 0;
 
   // Precompilazioni: plot dal contesto (o dal record da ripetere),
   // ultimo operatore usato sul device, e — con `defaults` — i campi del record
@@ -465,15 +465,15 @@ export function OperationForm({
   const soilWithoutField = soilMode && !plot;
 
   // -- Magazzino (0.2.0): categoria pertinente e validazione rows issue ----
-  const categoriaMagazzino = categoryForOperation(operationType);
+  const warehouseCategory = categoryForOperation(operationType);
   const prodottiCategoria = useMemo(
     () =>
-      categoriaMagazzino
+      warehouseCategory
         ? (prodottiMagazzino ?? []).filter(
-            (p) => p.category === categoriaMagazzino,
+            (p) => p.category === warehouseCategory,
           )
         : [],
-    [prodottiMagazzino, categoriaMagazzino],
+    [prodottiMagazzino, warehouseCategory],
   );
   const usaMagazzino = prodottiCategoria.length > 0;
   const lottoById = useMemo(() => {
@@ -592,7 +592,7 @@ export function OperationForm({
 
   function selectProduct(codice: string) {
     setProdottoCodice(codice);
-    const voce = catalogo?.find((p) => p.code === codice);
+    const voce = catalog?.find((p) => p.code === codice);
     setProdotto(voce?.name ?? "");
     if (voce?.active_substance) setSostanzaAttiva(voce.active_substance);
     if (voce?.registration_number) setNumeroRegistrazione(voce.registration_number);
@@ -918,7 +918,7 @@ export function OperationForm({
           {usaCatalogo ? (
             <Select id="op-prod" value={prodottoCodice} onChange={(e) => selectProduct(e.target.value)}>
               <option value="">{t("operazioneForm.selectFromNationalRegister")}</option>
-              {catalogo?.map((p) => (
+              {catalog?.map((p) => (
                 <option key={p.code} value={p.code}>
                   {p.name}
                   {p.registration_number ? ` · ${p.registration_number}` : ""}

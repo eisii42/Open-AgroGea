@@ -39,7 +39,7 @@ import i18n from "../i18n";
  *
  * Tutto imperativo via `getState()`: il ciclo NON sottoscrive lo store globale,
  * quindi non innesca re-render della mappa GeoLibre. Lo stato vive qui, locale
- * al pannello. Funziona offline: se il fetch fallisce, ripiega sulle letture già
+ * al pannello. Funziona offline: se il fetch fallisce, ripiega sulle readings già
  * presenti in PGlite. Il bilancio idrico è opzionale (`skipWaterBalance`): i DSS
  * patologici non lo calcolano più (è uno strumento a sé nel pannello «Acqua»).
  */
@@ -81,7 +81,7 @@ export interface DssPlotResult {
   /** Parametri idro-pedologici risolti (null se non calcolati). */
   soil: ResolvedSoilParameters | null;
   /** Serie giornaliera del bilancio idrico (vuota se non calcolata). */
-  bilancioSerie: WaterIndexDay[];
+  balanceSeries: WaterIndexDay[];
   series: DssWeatherDay[];
   meteo: DssWeatherInfo | null;
   message?: string;
@@ -135,7 +135,7 @@ function phenologicalPhase(plot: Plot): PhenologicalPhase {
     : "piena";
 }
 
-/** Finestra di lettura locale di fallback (offline): ampia come quella online. */
+/** Finestra di reading locale di fallback (offline): ampia come quella online. */
 const GIORNI_FINESTRA = 430;
 
 /** Valore numerico finito da un metadata (string/number), altrimenti undefined. */
@@ -200,7 +200,7 @@ async function computePlot(
     vettori: [],
     bilancio: null,
     soil: null,
-    bilancioSerie: [],
+    balanceSeries: [],
     series: [],
     meteo: null,
   };
@@ -222,7 +222,7 @@ async function computePlot(
 
   const biofix = biofixGdd(plot, treatments);
 
-  // 0) Storico stagionale (colture ad accumulo): backfill gated via Archive API.
+  // 0) Storico stagionale (crops ad accumulo): backfill gated via Archive API.
   if (module.seasonalAccumulation) {
     try {
       await WeatherSyncService.assicuraStoricoGdd({
@@ -237,7 +237,7 @@ async function computePlot(
   }
 
   // 1) Meteo: lucchetto orario (company) → fetch solo se stantio. Offline →
-  //    fallback sulle letture già in PGlite.
+  //    fallback sulle readings già in PGlite.
   let series: DssWeatherDay[];
   let meteo: DssWeatherInfo;
   let lettureRaw: WeatherReading[] = [];
@@ -248,8 +248,8 @@ async function computePlot(
       appezzamentoPrincipale: plot,
       config: weatherConfig,
     });
-    lettureRaw = res.letture;
-    series = buildDssSeries(res.letture);
+    lettureRaw = res.readings;
+    series = buildDssSeries(res.readings);
     meteo = {
       fetched: res.fetched,
       inserite: res.inserite,
@@ -260,12 +260,12 @@ async function computePlot(
     const dopo = new Date(
       Date.now() - GIORNI_FINESTRA * 24 * 3600 * 1000,
     ).toISOString();
-    const letture = await dal.listLettureMeteo(activeCompanyId, {
+    const readings = await dal.listLettureMeteo(activeCompanyId, {
       dopo,
       limit: 30_000,
     });
-    lettureRaw = letture;
-    series = buildDssSeries(letture);
+    lettureRaw = readings;
+    series = buildDssSeries(readings);
     meteo = {
       fetched: false,
       inserite: 0,
@@ -279,7 +279,7 @@ async function computePlot(
 
   // 2) Bilancio idrico (FAO 56/66) — solo se richiesto.
   let bilancio: BalanceSummary | null = null;
-  let bilancioSerie: WaterIndexDay[] = [];
+  let balanceSeries: WaterIndexDay[] = [];
   let statoIdrico: FieldWaterStatus | undefined;
   let soil: ResolvedSoilParameters | null = null;
   if (!opzioni.skipWaterBalance && lettureRaw.length > 0) {
@@ -289,14 +289,14 @@ async function computePlot(
       profonditaRadiciM: profonditaRadiciCrop,
     });
     const out = computeWaterBalance({
-      letture: lettureRaw,
+      readings: lettureRaw,
       irrigazioni: irrigationInputsFromTreatments(treatments, plot.area_ha),
       crop: module.mainSpecies,
       phase: phenologicalPhase(plot),
       soil: soil.parametri,
       altitude: 0,
     });
-    bilancioSerie = out.series;
+    balanceSeries = out.series;
     // Stato idrico CORRENTE = ultimo day osservato (≤ oggi). La series include
     // ~16 giorni di PREVISIONE in coda: usarne l'ultimo (futuro) "laverebbe via"
     // l'irrigation di oggi sotto giorni di ETc successivi. Così invece l'apporto
@@ -377,7 +377,7 @@ async function computePlot(
     vettori,
     bilancio,
     soil,
-    bilancioSerie,
+    balanceSeries,
     series,
     meteo,
     message:
@@ -424,7 +424,7 @@ export function useDssCalculation() {
               vettori: [],
               bilancio: null,
               soil: null,
-              bilancioSerie: [],
+              balanceSeries: [],
               series: [],
               meteo: null,
               message:

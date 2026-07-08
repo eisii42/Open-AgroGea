@@ -13,28 +13,28 @@ import { AgroDalWarehouse } from "./dal-warehouse";
 import { nowIso, type Row, upsertSql } from "./write";
 
 /**
- * Strato "moduli locali" del DAL: letture e configurazione meteo, cache DSS,
+ * Strato "moduli locali" del DAL: readings e configurazione meteo, cache DSS,
  * bilancio idrico FAO 56/66, giornale trasferimenti e cataloghi di stato.
- * Tranne le letture meteo di stazione, sono tabelle LOCAL-ONLY: scritture
+ * Tranne le readings meteo di stazione, sono tabelle LOCAL-ONLY: scritture
  * dirette, mai dall'outbox.
  */
 export class AgroDalLocal extends AgroDalWarehouse {
-  // -- letture meteo (Smart IoT / agrometeo) ---------------------------------
+  // -- readings meteo (Smart IoT / agrometeo) ---------------------------------
 
   /**
    * Ingestione in blocco di metriche di stazione (parsing edge → PGlite). Ogni
-   * lettura passa dal solito percorso transazionale dato+outbox. Idempotente per `id`.
+   * reading passa dal solito percorso transazionale dato+outbox. Idempotente per `id`.
    */
   async insertLettureMeteo(
-    letture: Array<
+    readings: Array<
       Omit<WeatherReading, "tenant_id" | "created_at" | "updated_at" | "deleted_at">
     >,
   ): Promise<number> {
     const ts = nowIso();
-    for (const lettura of letture) {
+    for (const reading of readings) {
       const row: WeatherReading = {
-        ...lettura,
-        metadata: lettura.metadata ?? {},
+        ...reading,
+        metadata: reading.metadata ?? {},
         tenant_id: this.tenantId,
         created_at: ts,
         updated_at: ts,
@@ -46,25 +46,25 @@ export class AgroDalLocal extends AgroDalWarehouse {
         row as unknown as Row & { id: string },
       );
     }
-    return letture.length;
+    return readings.length;
   }
 
   /**
-   * Ingestione in blocco di letture meteo RICOMPUTABILI (Open-Meteo): un'unica
+   * Ingestione in blocco di readings meteo RICOMPUTABILI (Open-Meteo): un'unica
    * transazione, nessuna voce di outbox. Idempotente per `id`.
    */
   async insertLettureMeteoLocali(
-    letture: Array<
+    readings: Array<
       Omit<WeatherReading, "tenant_id" | "created_at" | "updated_at" | "deleted_at">
     >,
   ): Promise<number> {
-    if (letture.length === 0) return 0;
+    if (readings.length === 0) return 0;
     const ts = nowIso();
     await this.db.transaction(async (tx: Transaction) => {
-      for (const lettura of letture) {
+      for (const reading of readings) {
         const row: WeatherReading = {
-          ...lettura,
-          metadata: lettura.metadata ?? {},
+          ...reading,
+          metadata: reading.metadata ?? {},
           tenant_id: this.tenantId,
           created_at: ts,
           updated_at: ts,
@@ -77,7 +77,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
         await tx.query(sql, values);
       }
     });
-    return letture.length;
+    return readings.length;
   }
 
   async listLettureMeteo(
@@ -106,7 +106,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
   }
 
   /**
-   * Timestamp della lettura meteo più vecchia dell'azienda (ISO), o null. Usato
+   * Timestamp della reading meteo più vecchia dell'azienda (ISO), o null. Usato
    * dal backfill storico per evitare richieste ridondanti all'Archive API.
    */
   async minRilevatoMeteo(companyId: string): Promise<string | null> {
@@ -407,8 +407,8 @@ export class AgroDalLocal extends AgroDalWarehouse {
   // -- cataloghi di stato multiregionali (Modulo 3, local-only) --------------
 
   /**
-   * Voci di catalogo del paese dato e del tipo dato, sortedList per name.
-   * Scrittura/lettura diretta, MAI dall'outbox: è reference data per nazione.
+   * Voci di catalog del paese dato e del tipo dato, sortedList per name.
+   * Scrittura/reading diretta, MAI dall'outbox: è reference data per nazione.
    */
   async listCatalogo(
     countryCode: string,
@@ -424,7 +424,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
   }
 
   /**
-   * Carica in blocco voci di catalogo. Upsert idempotente sulla chiave naturale
+   * Carica in blocco voci di catalog. Upsert idempotente sulla chiave naturale
    * (country_code, type, code). Local-only.
    */
   async upsertCatalogoVoci(

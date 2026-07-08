@@ -53,7 +53,7 @@ function punteggioComando(comando: ComandoBase, tokens: string[]): number {
  * query → solo quelli che contengono TUTTI i token, sorted per punteggio
  * decrescente; a parità, title più corto e poi ordine originale (stabile).
  */
-export function filtraComandi<T extends ComandoBase>(
+export function filterCommands<T extends ComandoBase>(
   comandi: T[],
   query: string,
 ): T[] {

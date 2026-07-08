@@ -178,12 +178,12 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
 
   const esporta = async (r: DssPlotResult, formato: MoistureHistoryFormat) => {
     const plot = plots.find((a) => a.id === r.plotId);
-    if (!plot || r.bilancioSerie.length === 0) return;
+    if (!plot || r.balanceSeries.length === 0) return;
     setEsportando(true);
     try {
       const fc = buildMoistureHistoryFc(
         plot,
-        seriesToMoistureHistory(r.bilancioSerie),
+        seriesToMoistureHistory(r.balanceSeries),
       );
       const base = `umidita_${plot.user_plot_name || plot.id}`.replace(
         /[^\w.-]+/g,
@@ -385,7 +385,7 @@ function WaterResultCard({
   onExport: (formato: MoistureHistoryFormat) => void;
 }) {
   const { t } = useTranslation();
-  const { name, bilancio, soil, bilancioSerie, message } = risultato;
+  const { name, bilancio, soil, balanceSeries, message } = risultato;
   const etichetteSorgente = useMemo(() => getEtichetteSorgente(t), [t]);
 
   // La series copre ~430 giorni: su un grafico stretto un singolo day d'irrigation
@@ -393,20 +393,20 @@ function WaterResultCard({
   // la previsione in coda) così gli apporti irrigui e l'andamento di Dr si leggono.
   const datiGrafico = useMemo(
     () =>
-      bilancioSerie.slice(-75).map((g) => ({
+      balanceSeries.slice(-75).map((g) => ({
         data: shortDate(g.data),
         depletion: Math.round(g.depletion * 10) / 10,
         irrigation: Math.round(g.irrigation * 10) / 10,
         rain: Math.round(g.rain * 10) / 10,
       })),
-    [bilancioSerie],
+    [balanceSeries],
   );
 
   // Totale irrigato nel periodo (mm): rende ESPLICITO che il bilancio conteggia
   // gli apporti irrigui, anche quando — a profile umido — percolano senza ridurre Dr.
-  const irrigazioneTotale = useMemo(
-    () => bilancioSerie.reduce((s, g) => s + (g.irrigation ?? 0), 0),
-    [bilancioSerie],
+  const totalIrrigation = useMemo(
+    () => balanceSeries.reduce((s, g) => s + (g.irrigation ?? 0), 0),
+    [balanceSeries],
   );
 
   return (
@@ -430,7 +430,7 @@ function WaterResultCard({
             </span>
             <span className="text-[var(--ink-3)]">{t("bilancioIdricoPanel.irrigationPeriod")}</span>
             <span className="agro-num text-right" style={{ color: "#0ea5e9" }}>
-              {irrigazioneTotale.toFixed(0)} mm
+              {totalIrrigation.toFixed(0)} mm
             </span>
             <span className="text-[var(--ink-3)]">{t("bilancioIdricoPanel.autonomy")}</span>
             <span className="agro-num text-right">
@@ -541,7 +541,7 @@ function WaterResultCard({
           )}
 
           {/* Export dello storico umidità (GeoJSON/Shapefile/CSV). */}
-          {bilancioSerie.length > 0 && (
+          {balanceSeries.length > 0 && (
             <div className="flex flex-col gap-1">
               <span className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--ink-4)]">
                 <Download size={12} /> {t("bilancioIdricoPanel.exportMoistureHistory")}

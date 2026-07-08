@@ -35,7 +35,7 @@ function metaToStrings(meta: Record<string, unknown>): MetaState {
   return out;
 }
 
-/** Legge una stringa non vuota da `metadata` di una voce di catalogo. */
+/** Legge una stringa non vuota da `metadata` di una voce di catalog. */
 function metaStr(meta: Record<string, unknown>, key: string): string | null {
   const v = meta?.[key];
   return typeof v === "string" && v.trim() ? v : null;
@@ -57,7 +57,7 @@ export function CropDataForm({
   const saveCrop = useAgroStore((s) => s.saveCrop);
   const savePlotCampaign = useAgroStore((s) => s.savePlotCampaign);
 
-  // Cataloghi di stato filtrati per il country_code risolto del tenant (Modulo 3):
+  // Cataloghi di stato filtered per il country_code risolto del tenant (Modulo 3):
   // specie e varietà del registro nazionale per i quick-pick guidati. Se vuoti,
   // i campi restano a testo libero (l'utente non è bloccato).
   const { voci: cropCatalog, countryCode } = useCountryCatalog("crop");
@@ -81,7 +81,7 @@ export function CropDataForm({
   }, [dal, plot.id, reloadKey]);
 
   // Data dell'ultima SEMINA/TRAPIANTO dal Quaderno di Campagna (fonte di verità
-  // per le annuali; alimenta il biofix GDD del DSS). Sola lettura qui.
+  // per le annuali; alimenta il biofix GDD del DSS). Sola reading qui.
   const [lastSowing, setUltimaSemina] = useState<string | null>(null);
   useEffect(() => {
     let vivo = true;
@@ -156,7 +156,7 @@ export function CropDataForm({
   // Annuali (semina/trapianto ogni campagna) vs perenni (anno d'impianto).
   const isAnnuale = category === "seminativo" || category === "orticoltura";
 
-  // Varietà del catalogo, filtrate sulla specie scelta (metadata.crop_code) se il
+  // Varietà del catalog, filtrate sulla specie scelta (metadata.crop_code) se il
   // collegamento esiste; altrimenti tutte le varietà del paese.
   const varietyOptions = useMemo(() => {
     const code = cropCode.trim();
@@ -167,7 +167,7 @@ export function CropDataForm({
     return linked.length > 0 ? linked : varietyCatalog;
   }, [varietyCatalog, cropCode]);
 
-  // Quick-pick specie dal catalogo: auto-compila tipo (se mappato), name comune,
+  // Quick-pick specie dal catalog: auto-compila tipo (se mappato), name comune,
   // name scientifico e codice ministeriale.
   function selectCatalogSpecies(code: string) {
     const voce = cropCatalog.find((v) => v.code === code);
@@ -183,7 +183,7 @@ export function CropDataForm({
     setCropCode(voce.code);
   }
 
-  // Quick-pick varietà dal catalogo: auto-compila name varietà, codice e clone.
+  // Quick-pick varietà dal catalog: auto-compila name varietà, codice e clone.
   function selectCatalogVariety(code: string) {
     setVarietyCode(code);
     const voce = varietyOptions.find((v) => v.code === code);
@@ -295,7 +295,7 @@ export function CropDataForm({
         </p>
       )}
 
-      {/* Quick-pick specie dal catalogo nazionale (se disponibile) */}
+      {/* Quick-pick specie dal catalog nazionale (se disponibile) */}
       {cropCatalog.length > 0 && (
         <div>
           <Label htmlFor="crop-catalog">

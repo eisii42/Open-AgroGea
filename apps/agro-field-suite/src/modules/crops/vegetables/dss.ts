@@ -16,4 +16,4 @@ const sviluppo: DssModel = creaDssAccumuloTermico("pomodoro", {
   rischioAlRaggiungimento: "basso",
 });
 
-export const dssOrticoltura: DssModel[] = [sviluppo];
+export const dssVegetables: DssModel[] = [sviluppo];

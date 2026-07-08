@@ -11,7 +11,7 @@ import { AgroDalBase } from "./dal-base";
 import { nowIso, type Row } from "./write";
 
 /**
- * Strato anagrafico del DAL: companies, posti collaboratore, colture,
+ * Strato anagrafico del DAL: companies, posti collaboratore, crops,
  * plots e stato di Campagna Agraria.
  */
 export class AgroDalRegistry extends AgroDalBase {

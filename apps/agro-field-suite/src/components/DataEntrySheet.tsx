@@ -22,7 +22,7 @@ import { useReadOnly } from "@agrogea/core";
 /**
  * Scheda dati fissa (Modulo UI §3): si apre automaticamente a fine disegno e
  * mostra il form contestuale al tipo di geometria appena tracciata.
- *   * Poligono → plot (con area geodetica pre-calcolata, sola lettura);
+ *   * Poligono → plot (con area geodetica pre-calcolata, sola reading);
  *   * Linea/Punto → asset infrastrutturale / POI.
  * "Salva" scrive sul DAL (PGlite → outbox); "Annulla" scarta la geometria
  * provvisoria (lo sketch grezzo è già nascosto, quindi nulla resta sulla mappa).
@@ -239,7 +239,7 @@ function AssetForm({
     }
   };
 
-  // Coordinata del punto per i POI (sola lettura informativa).
+  // Coordinata del punto per i POI (sola reading informativa).
   const punto =
     !isLinea && pending.feature.geometry.type === "Point"
       ? (pending.feature.geometry as Point).coordinates

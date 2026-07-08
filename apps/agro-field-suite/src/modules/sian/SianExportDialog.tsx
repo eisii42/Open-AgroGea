@@ -49,7 +49,7 @@ const TIPI_OPERAZIONE: OperationType[] = [
   "sampling",
 ];
 
-function etichettaTipo(t: TFunction, tipo: OperationType): string {
+function typeLabel(t: TFunction, tipo: OperationType): string {
   const map: Record<OperationType, string> = {
     phytosanitary: t("sianExportDialog.operationType.phytosanitary"),
     fertilization: t("sianExportDialog.operationType.fertilization"),
@@ -62,7 +62,7 @@ function etichettaTipo(t: TFunction, tipo: OperationType): string {
   return map[tipo];
 }
 
-function etichettaColonna(t: TFunction, col: SianColumn): string {
+function columnLabel(t: TFunction, col: SianColumn): string {
   return t(`sianExportDialog.columns.${col.id}`, col.label);
 }
 
@@ -123,7 +123,7 @@ export function SianExportDialog({
   const [al, setAl] = useState("");
   // -- filtri spaziali --
   const [appIds, setAppIds] = useState<string[]>([]);
-  const [colture, setColture] = useState<string[]>([]);
+  const [cropNames, setCropNames] = useState<string[]>([]);
   const [includiSenzaApp, setIncludiSenzaApp] = useState(true);
   // -- filtro operazioni --
   const [tipi, setTipi] = useState<OperationType[]>([]);
@@ -133,7 +133,7 @@ export function SianExportDialog({
   const [intestazioni, setIntestazioni] = useState(true);
   const [bom, setBom] = useState(true);
 
-  const coltureDisponibili = useMemo<string[]>(() => {
+  const availableCrops = useMemo<string[]>(() => {
     const set = new Set<string>();
     for (const a of plots) {
       const c = cropForPlot(a.id, campaignFields, crops);
@@ -147,11 +147,11 @@ export function SianExportDialog({
       dal: dal || null,
       al: al || null,
       appezzamentoIds: appIds,
-      colture,
+      crops: cropNames,
       tipiOperazione: tipi,
       includiSenzaAppezzamento: includiSenzaApp,
     }),
-    [dal, al, appIds, colture, tipi, includiSenzaApp],
+    [dal, al, appIds, cropNames, tipi, includiSenzaApp],
   );
 
   const filteredRows = useMemo(
@@ -159,7 +159,7 @@ export function SianExportDialog({
     [operazioni, plots, filtri],
   );
 
-  const colonneNonSelezionate = COLONNE_SIAN.filter(
+  const unselectedColumns = COLONNE_SIAN.filter(
     (c) => !colonne.includes(c.id),
   );
 
@@ -192,9 +192,9 @@ export function SianExportDialog({
       company?.business_name,
       config,
       campiExport,
-      (col) => etichettaColonna(t, col),
+      (col) => columnLabel(t, col),
       // Etichetta del tipo operation nella lingua attiva (mai il codice inglese).
-      { resolveOperationType: (op) => etichettaTipo(t, op) },
+      { resolveOperationType: (op) => typeLabel(t, op) },
     );
     void recordTransfer({
       operation_type: "export",
@@ -206,7 +206,7 @@ export function SianExportDialog({
 
   const labelColonna = (id: string) => {
     const col = COLONNE_SIAN.find((c) => c.id === id);
-    return col ? etichettaColonna(t, col) : id;
+    return col ? columnLabel(t, col) : id;
   };
 
   return (
@@ -300,15 +300,15 @@ export function SianExportDialog({
                 {t("sianExportDialog.noSelectionAllPlots")}
               </p>
             </div>
-            {coltureDisponibili.length > 0 && (
+            {availableCrops.length > 0 && (
               <div>
                 <Label>{t("sianExportDialog.crops")}</Label>
                 <div className="mt-1 flex flex-wrap gap-1.5">
-                  {coltureDisponibili.map((c) => (
+                  {availableCrops.map((c) => (
                     <Chip
                       key={c}
-                      active={colture.includes(c)}
-                      onClick={() => toggleInArray(colture, c, setColture)}
+                      active={cropNames.includes(c)}
+                      onClick={() => toggleInArray(cropNames, c, setCropNames)}
                       label={c}
                     />
                   ))}
@@ -333,7 +333,7 @@ export function SianExportDialog({
                   key={tipoOp}
                   active={tipi.includes(tipoOp)}
                   onClick={() => toggleInArray(tipi, tipoOp, setTipi)}
-                  label={etichettaTipo(t, tipoOp)}
+                  label={typeLabel(t, tipoOp)}
                 />
               ))}
             </div>
@@ -401,7 +401,7 @@ export function SianExportDialog({
               )}
             </ul>
 
-            {colonneNonSelezionate.length > 0 && (
+            {unselectedColumns.length > 0 && (
               <div>
                 <Label htmlFor="sian-add-col">{t("sianExportDialog.addColumn")}</Label>
                 <Select
@@ -412,9 +412,9 @@ export function SianExportDialog({
                   }}
                 >
                   <option value="">{t("sianExportDialog.chooseField")}</option>
-                  {colonneNonSelezionate.map((c) => (
+                  {unselectedColumns.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {etichettaColonna(t, c)}
+                      {columnLabel(t, c)}
                     </option>
                   ))}
                 </Select>

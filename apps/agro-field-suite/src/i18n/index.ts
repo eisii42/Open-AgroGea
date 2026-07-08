@@ -27,7 +27,7 @@ for (const [path, mod] of Object.entries(catalogModules)) {
   resources[code] = { translation: mod.default };
 }
 
-/** Codici catalogo effettivamente spediti (es. `["en", "es", "fr", "it"]`). */
+/** Codici catalog effettivamente spediti (es. `["en", "es", "fr", "it"]`). */
 export const AVAILABLE_LOCALES: string[] = Object.keys(resources).sort();
 
 i18n

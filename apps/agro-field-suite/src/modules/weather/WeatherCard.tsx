@@ -40,7 +40,7 @@ function gradi(v: number | null | undefined): string {
 }
 
 /** Etichetta breve del giorno: "Oggi" per l'indice 0, altrimenti il weekday. */
-function etichettaGiorno(
+function dayLabel(
   dataIso: string,
   indice: number,
   locale: string,
@@ -62,7 +62,7 @@ export function WeatherCard() {
   const [aperto, setAperto] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const carica = useCallback(
+  const load = useCallback(
     async (force: boolean) => {
       if (!activeCompanyId || !coordinate) return;
       setStato("loading");
@@ -90,14 +90,14 @@ export function WeatherCard() {
 
   // Avvio app / coordinate disponibili → caricamento (cache oraria a valle).
   useEffect(() => {
-    void carica(false);
-  }, [carica]);
+    void load(false);
+  }, [load]);
 
   // Aggiornamento automatico orario (timeout come nel resto del module meteo).
   useEffect(() => {
-    const id = window.setInterval(() => void carica(true), 60 * 60 * 1000);
+    const id = window.setInterval(() => void load(true), 60 * 60 * 1000);
     return () => window.clearInterval(id);
-  }, [carica]);
+  }, [load]);
 
   // Chiusura del popover su click esterno / Esc.
   useEffect(() => {
@@ -147,7 +147,7 @@ export function WeatherCard() {
             </p>
             <button
               type="button"
-              onClick={() => void carica(true)}
+              onClick={() => void load(true)}
               title={t("meteoCard.refreshNow")}
               className="flex h-7 w-7 items-center justify-center rounded-[var(--r-1)] text-[var(--ink-3)] hover:bg-[var(--panel-2)]"
             >
@@ -210,7 +210,7 @@ export function WeatherCard() {
                       }`}
                     >
                       <span className="text-[11px] font-medium capitalize text-[var(--ink-3)]">
-                        {etichettaGiorno(g.data, i, i18n.language, t("meteoCard.today"))}
+                        {dayLabel(g.data, i, i18n.language, t("meteoCard.today"))}
                       </span>
                       <Icona size={20} className="text-[var(--ink-2)]" />
                       <span className="agro-num text-xs font-semibold tabular-nums">

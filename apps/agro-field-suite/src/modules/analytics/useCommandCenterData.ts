@@ -15,8 +15,8 @@ import type { KpiParams } from "./kpi-config";
 /**
  * Hook di caricamento del Data Command Center. Materializza dal DAL i dati NON
  * presenti nello store di dominio (campagne di TUTTE le annate per il confronto
- * storico, letture meteo, cache DSS, indici idrici) e li combina con il dominio
- * già idratato (plots, colture, operazioni, harvests) per alimentare il
+ * storico, readings meteo, cache DSS, indici idrici) e li combina con il dominio
+ * già idratato (plots, crops, operazioni, harvests) per alimentare il
  * motore analitico puro. Ricalcola al cambio di company, annata, crop o
  * parametri KPI.
  */
@@ -62,7 +62,7 @@ export function useCommandCenterData(
   const [reloadToken, setReloadToken] = useState(0);
   const refresh = useCallback(() => setReloadToken((t) => t + 1), []);
 
-  // Base: campagne di tutte le annate + letture meteo dell'azienda.
+  // Base: campagne di tutte le annate + readings meteo dell'azienda.
   useEffect(() => {
     let alive = true;
     if (!dal || !activeCompanyId) {

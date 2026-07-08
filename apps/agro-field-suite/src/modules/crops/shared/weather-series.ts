@@ -2,7 +2,7 @@ import type { WeatherReading } from "@agrogea/core";
 import type { DssWeatherDay } from "../types";
 
 /**
- * Costruzione della series meteo GIORNALIERA per i DSS, a partire dalle letture
+ * Costruzione della series meteo GIORNALIERA per i DSS, a partire dalle readings
  * orarie/locali di PGlite (`letture_meteo`, il "meteo_osservazioni" della
  * specifica). È il ponte del refactor §3: i motori puri di `@agrogea/tools`
  * restano invariati e tutto ciò che li alimenta proviene ESCLUSIVAMENTE dal DB
@@ -23,7 +23,7 @@ interface GiornoAgg {
   rhMean: number | null;
   rain: number | null;
   leafWetnessHours: number;
-  /** Numero di letture orarie confluite nel day (0 = day mancante). */
+  /** Numero di readings orarie confluite nel day (0 = day mancante). */
   campioni: number;
 }
 
@@ -39,10 +39,10 @@ function mediaFinita(valori: number[]): number | null {
   return ok.reduce((a, b) => a + b, 0) / ok.length;
 }
 
-/** Aggrega le letture (orarie) in record giornalieri grezzi, con buchi. */
-function aggregaPerGiorno(letture: WeatherReading[]): Map<string, GiornoAgg> {
+/** Aggrega le readings (orarie) in record giornalieri grezzi, con buchi. */
+function aggregaPerGiorno(readings: WeatherReading[]): Map<string, GiornoAgg> {
   const perGiorno = new Map<string, GiornoAgg>();
-  for (const l of letture) {
+  for (const l of readings) {
     const data = giornoDi(l.measured_at);
     let agg = perGiorno.get(data);
     if (!agg) {
@@ -74,11 +74,11 @@ function aggregaPerGiorno(letture: WeatherReading[]): Map<string, GiornoAgg> {
     }
     const bag = l.leaf_wetness;
     if (bag != null && Number.isFinite(bag)) {
-      agg.leafWetnessHours += bag; // ogni lettura oraria contribuisce 0..1 ore
+      agg.leafWetnessHours += bag; // ogni reading oraria contribuisce 0..1 ore
     }
     agg.campioni += 1;
   }
-  // rhMean accumulata → media reale per il numero di letture del day.
+  // rhMean accumulata → media reale per il numero di readings del day.
   for (const agg of perGiorno.values()) {
     if (agg.rhMean != null && agg.campioni > 0) {
       agg.rhMean = agg.rhMean / agg.campioni;
@@ -159,12 +159,12 @@ function riempiMediaAdiacenti(
 
 /**
  * Serie giornaliera continua e priva di NaN per i DSS. Ritorna `[]` solo se non
- * c'è alcuna lettura: i moduli interpretano la series vuota come "dati meteo
+ * c'è alcuna reading: i moduli interpretano la series vuota come "dati meteo
  * assenti" senza crashare.
  */
-export function buildDssSeries(letture: WeatherReading[]): DssWeatherDay[] {
-  if (letture.length === 0) return [];
-  const perGiorno = aggregaPerGiorno(letture);
+export function buildDssSeries(readings: WeatherReading[]): DssWeatherDay[] {
+  if (readings.length === 0) return [];
+  const perGiorno = aggregaPerGiorno(readings);
   const date = [...perGiorno.keys()].sort();
   if (date.length === 0) return [];
 

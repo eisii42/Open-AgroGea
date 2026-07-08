@@ -9,7 +9,7 @@ import { AGRO_LOCAL_SCHEMA_SQL } from "../packages/agro-core/src/db/schema";
  * cataloghi del paese del tenant (es. fitofarmaci ES vs IT). Test a livello SQL,
  * la stessa query che esegue `AgroDal.listCatalogo`.
  */
-describe("Modulo 3 / cataloghi filtrati per country_code", () => {
+describe("Modulo 3 / cataloghi filtered per country_code", () => {
   it("isola le voci per paese e tipo (fitosanitari MAPA vs SIAN)", async () => {
     const db = new PGlite();
     await db.exec(AGRO_LOCAL_SCHEMA_SQL);

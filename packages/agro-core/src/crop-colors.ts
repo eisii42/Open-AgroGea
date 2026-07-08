@@ -117,7 +117,7 @@ const CROP_GROUPS: CropGroup[] = [
 ];
 
 /**
- * Palette di fallback per colture non riconosciute: tinte distinte e separabili,
+ * Palette di fallback per crops non riconosciute: tinte distinte e separabili,
  * scelte deterministicamente dal name (stessa crop → sempre stesso colore).
  */
 const FALLBACK_PALETTE = [

@@ -3,7 +3,7 @@
  *
  * Pura e testabile. Le zone sono sortedList per indice crescente (zona 0 = vigore
  * più basso): la rampa RdYlGn 5 classi mappa il basso vigore sul rosso e l'alto
- * sul verde, lettura immediata della mappa di prescrizione.
+ * sul verde, reading immediata della mappa di prescrizione.
  */
 import type { VectorStyleStop } from "@geolibre/core";
 

@@ -94,7 +94,7 @@ export interface CropModule {
    * true se la crop ha modelli ad accumulo termico STAGIONALE (gradi-day
    * che maturano su mesi: spigatura cereali, generazioni d'insetto…). Abilita il
    * backfill dello storico meteo via Archive API, così l'accumulo parte dal
-   * biofix e non dai pochi giorni di previsione. Le colture con soli modelli
+   * biofix e non dai pochi giorni di previsione. Le crops con soli modelli
    * giornalieri (es. vite: peronospora/oidio) la lasciano falsa.
    */
   seasonalAccumulation?: boolean;

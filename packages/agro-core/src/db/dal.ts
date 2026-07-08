@@ -14,7 +14,7 @@ import { openTenantDb } from "./tenant-db";
  * L'implementazione è stratificata per dominio, dalla base verso l'alto:
  *   - {@link AgroDalBase}     — transazione dato+outbox, pull LWW, coda sync,
  *                               watermark del pull incrementale;
- *   - {@link AgroDalRegistry} — anagrafiche (companies, posti, colture,
+ *   - {@link AgroDalRegistry} — anagrafiche (companies, posti, crops,
  *                               plots, campagne);
  *   - {@link AgroDalLogbook}  — registrazioni di field (Quaderno, harvests,
  *                               soil, scouting, asset);

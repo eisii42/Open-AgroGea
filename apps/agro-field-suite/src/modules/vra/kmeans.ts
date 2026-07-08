@@ -39,7 +39,7 @@ function nearestCentroid(value: number, centroids: number[]): number {
 /**
  * Clusterizza valori 1D in `k` gruppi con l'algoritmo di Lloyd.
  *
- * @param values Valori finiti (es. NDVI per cella). I non-finiti vanno filtrati
+ * @param values Valori finiti (es. NDVI per cella). I non-finiti vanno filtered
  *   dal chiamante.
  * @param k Numero di zone richiesto; ridotto al numero di valori distinti.
  * @param opts.maxIter Iterazioni massime (default 50).

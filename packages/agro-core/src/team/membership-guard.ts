@@ -193,7 +193,7 @@ export function roleInCompany(
 }
 
 /**
- * true se il ruolo è di sola lettura. I VIEWER non possono mutare nulla: l'UI
+ * true se il ruolo è di sola reading. I VIEWER non possono mutare nulla: l'UI
  * (Command Center, mappa, Field Attributes di GeoLibre) va configurata
  * read-only. Un ruolo `null` (abbonato master / self-service senza membership)
  * NON è read-only: l'owner mantiene pieni poteri.

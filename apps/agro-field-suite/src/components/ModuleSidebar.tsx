@@ -86,7 +86,7 @@ export function ModuleSidebar({
   const drawIntent = useAgroStore((s) => s.drawIntent);
   const setDrawIntent = useAgroStore((s) => s.setDrawIntent);
   const flags = useSettingsStore((s) => s.dashboardLayout);
-  // Sola lettura (ruolo VIEWER): gli strumenti che MUTANO la geometria/i Field
+  // Sola reading (ruolo VIEWER): gli strumenti che MUTANO la geometria/i Field
   // Attributes (disegno, Modifica/Elimina) vanno disattivati.
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const readOnly = useReadOnly(activeCompanyId);
@@ -337,7 +337,7 @@ export function ModuleSidebar({
                       openPanels.includes(tool.action.panel)) ||
                     (tool.action.kind === "draw" &&
                       drawIntent === tool.action.intent);
-                  // In sola lettura blocco disegno e gestione (Modifica/Elimina).
+                  // In sola reading blocco disegno e gestione (Modifica/Elimina).
                   const mutating =
                     tool.action.kind === "draw" ||
                     (tool.action.kind === "panel" &&

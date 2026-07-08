@@ -787,7 +787,7 @@ function ProdottoDettaglio({
   const validInbound =
     Number.isFinite(qtaNum) && qtaNum > 0 && Number.isFinite(costoNum) && costoNum >= 0;
 
-  async function handleCarica(event: FormEvent) {
+  async function handleLoad(event: FormEvent) {
     event.preventDefault();
     if (saving || !validInbound) return;
     setSaving(true);
@@ -856,7 +856,7 @@ function ProdottoDettaglio({
 
       {caricoOpen && (
         <form
-          onSubmit={handleCarica}
+          onSubmit={handleLoad}
           className="flex flex-col gap-3 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2"
         >
           <div className="grid grid-cols-2 gap-3">

@@ -10,7 +10,7 @@ import { v5 as uuidv5 } from "uuid";
 import i18n from "../i18n";
 
 /**
- * Namespace fisso per derivare l'id (UUIDv5) di una lettura meteo dalla sua
+ * Namespace fisso per derivare l'id (UUIDv5) di una reading meteo dalla sua
  * chiave naturale. La colonna `letture_meteo.id` è di tipo `uuid` (come la PK
  * remota e `outbox.riga_id`): inserirvi una chiave testuale grezza tipo
  * "open-meteo:<iso>" fa fallire l'INSERT con "invalid input syntax for type
@@ -21,8 +21,8 @@ import i18n from "../i18n";
  */
 const NS_LETTURA_METEO = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
 
-/** Id `uuid` deterministico di una lettura meteo dalla sua chiave naturale. */
-function idLettura(chiaveNaturale: string): string {
+/** Id `uuid` deterministico di una reading meteo dalla sua chiave naturale. */
+function readingId(chiaveNaturale: string): string {
   return uuidv5(chiaveNaturale, NS_LETTURA_METEO);
 }
 
@@ -86,7 +86,7 @@ export interface MeteoFetchResult {
   fetched: boolean;
   fonte: WeatherDataSource;
   /** Serie completa (storico + previsione) letta da PGlite dopo l'eventuale pull. */
-  letture: WeatherReading[];
+  readings: WeatherReading[];
   /** Righe nuove scritte in `letture_meteo` (0 se servita dalla cache). */
   inserite: number;
   /** Perché non ha fetchato, quando `fetched` è false (es. lucchetto orario). */
@@ -243,7 +243,7 @@ async function fetchOpenMeteo(
     const pioggia = h.precipitation[i] ?? null;
     return {
       // id idempotente (UUIDv5 dalla chiave naturale): un re-import sovrascrive.
-      id: idLettura(`${STAZIONE_OPEN_METEO}:${rilevatoIl}`),
+      id: readingId(`${STAZIONE_OPEN_METEO}:${rilevatoIl}`),
       company_id: companyId,
       station_id: STAZIONE_OPEN_METEO,
       measured_at: rilevatoIl,
@@ -282,7 +282,7 @@ function isoGiorno(ms: number): string {
 /**
  * Storico GIORNALIERO dall'Archive API per il backfill dell'accumulo stagionale.
  * Per minimizzare le rows (e quindi il peso locale) ogni giorno è normalizzato
- * in DUE letture sintetiche — minima al mattino, massima al pomeriggio — così
+ * in DUE readings sintetiche — minima al mattino, massima al pomeriggio — così
  * l'aggregazione giornaliera dei DSS ricava tMin/tMax corretti senza dati orari.
  */
 async function fetchArchivioGdd(
@@ -316,7 +316,7 @@ async function fetchArchivioGdd(
     if (tMin == null && tMax == null) return; // giorno senza dato → saltato
     // Riga "minima" (mattino).
     rows.push({
-      id: idLettura(`${STAZIONE_OPEN_METEO}:arch:${giorno}:min`),
+      id: readingId(`${STAZIONE_OPEN_METEO}:arch:${giorno}:min`),
       company_id: companyId,
       station_id: STAZIONE_OPEN_METEO,
       measured_at: `${giorno}T06:00:00.000Z`,
@@ -331,7 +331,7 @@ async function fetchArchivioGdd(
     });
     // Riga "massima" (pomeriggio), porta anche la pioggia del giorno.
     rows.push({
-      id: idLettura(`${STAZIONE_OPEN_METEO}:arch:${giorno}:max`),
+      id: readingId(`${STAZIONE_OPEN_METEO}:arch:${giorno}:max`),
       company_id: companyId,
       station_id: STAZIONE_OPEN_METEO,
       measured_at: `${giorno}T14:00:00.000Z`,
@@ -401,7 +401,7 @@ async function fetchStazionePrivata(
 export const WeatherSyncService = {
   /**
    * Garantisce una serie meteo fresca per l'azienda, rispettando il lucchetto
-   * orario. Ritorna sempre le letture lette da PGlite (anche servendo dalla
+   * orario. Ritorna sempre le readings lette da PGlite (anche servendo dalla
    * cache), così il chiamante ha la serie pronta per i DSS senza un secondo giro.
    */
   async assicuraDatiMeteo(
@@ -417,11 +417,11 @@ export const WeatherSyncService = {
 
     // Lucchetto orario: dati ancora freschi → si legge dalla cache locale.
     if (dentroLock && !force) {
-      const letture = await readSeries(dal, companyId);
+      const readings = await readSeries(dal, companyId);
       return {
         fetched: false,
         fonte,
-        letture,
+        readings,
         inserite: 0,
         motivo: i18n.t("weatherSyncService.dataUpdatedMinutesAgo", {
           minutes: Math.round(eta),
@@ -450,8 +450,8 @@ export const WeatherSyncService = {
         : await dal.insertLettureMeteoLocali(nuove);
     await dal.touchWeatherPull(companyId, new Date().toISOString());
 
-    const letture = await readSeries(dal, companyId);
-    return { fetched: true, fonte, letture, inserite };
+    const readings = await readSeries(dal, companyId);
+    return { fetched: true, fonte, readings, inserite };
   },
 
   /**
