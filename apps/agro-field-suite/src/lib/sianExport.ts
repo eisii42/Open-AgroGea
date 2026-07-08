@@ -196,7 +196,7 @@ export const COLONNE_SIAN: SianColumn[] = [
     id: "destinazione",
     label: "Destinazione raccolta",
     // La destinazione della harvest è congelata in metadata.destinazione (vedi
-    // raccolteToOperazioni); vuota per le altre operazioni.
+    // harvestsToOperations); vuota per le altre operazioni.
     value: (t) =>
       t.operation_type === "harvest"
         ? (t.weather_conditions as { destinazione?: string } | null)?.destinazione ?? ""
@@ -320,7 +320,7 @@ export function resolveColumns(ids: string[]): SianColumn[] {
 /**
  * Risolve la campagna agraria di un'operazione per popolare i riferimenti
  * ministeriali (codici SIAN/SIEX). Prima cerca l'aggancio diretto
- * (`plot_campaign_id`); se manca — o punta a una riga non caricata — ricade sul
+ * (`plot_campaign_id`); se manca — o punta a una row non caricata — ricade sul
  * match per plot + anno dell'operazione. Così i codici compilati nella
  * scheda crop DOPO la registrazione (o su operazioni non agganciate, come la
  * semina con auto-assegnazione) compaiono comunque nell'export.
@@ -392,7 +392,7 @@ export function buildSianCsv(
  * di metadati in memoria, mai persistito). L'aggancio alla campagna (`plot_id`,
  * `plot_campaign_id`) è preservato per la risoluzione dei codici SIAN.
  */
-export function raccolteToOperazioni(
+export function harvestsToOperations(
   harvests: Harvest[],
 ): TreatmentLog[] {
   return harvests

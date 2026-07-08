@@ -6,7 +6,7 @@
  * consumata sia dal Company Creation Guard (creazione companies) sia dal Seat
  * Enforcement Engine ({@link ../team/MembershipGuard}).
  *
- * Nota di terminologia: nello schema AgroGea la "singola azienda" è una riga di
+ * Nota di terminologia: nello schema AgroGea la "singola azienda" è una row di
  * `companies` (`company_id`); il `tenant_id` è invece il workspace dell'abbonato
  * master (`auth.uid()`). I limiti per-company della specifica si applicano quindi
  * per `company_id`.

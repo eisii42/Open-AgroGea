@@ -14,7 +14,7 @@ import { useTenantCountry } from "../../hooks/useTenantCountry";
 
 /**
  * Pagina "Company" del Data Command Center: andamento GENERALE dell'azienda
- * (superficie, campi, operazioni e raccolto dell'annata) e stato del Magazzino
+ * (area, campi, operazioni e raccolto dell'annata) e stato del Magazzino
  * (value giacenze a CUMP, lots scaduti/in scadenza, costo products imputato
  * per field). Complementare alla pagina "Colture e plots", che resta
  * focalizzata sull'analisi agronomica per crop/field.
@@ -58,7 +58,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
     () => plots.filter((a) => a.deleted_at == null),
     [plots],
   );
-  const superficieTotale = vivi.reduce((s, a) => s + Number(a.area_ha ?? 0), 0);
+  const totalArea = vivi.reduce((s, a) => s + Number(a.area_ha ?? 0), 0);
 
   const operazioniAnno = useMemo(
     () =>
@@ -69,7 +69,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
       ).length,
     [treatments, campaignYear],
   );
-  const raccoltoAnnoKg = useMemo(
+  const harvestYearKg = useMemo(
     () =>
       harvests
         .filter(
@@ -102,14 +102,14 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
     [products, stockPerProduct],
   );
 
-  const lottiConGiacenza = useMemo(
+  const lotsWithStock = useMemo(
     () => lots.filter((l) => l.deleted_at == null && Number(l.quantity_on_hand) > 0),
     [lots],
   );
-  const lottiScaduti = lottiConGiacenza.filter(
+  const lottiScaduti = lotsWithStock.filter(
     (l) => expiryStatus(l.expires_at) === "expired",
   );
-  const lottiInScadenza = lottiConGiacenza.filter(
+  const lottiInScadenza = lotsWithStock.filter(
     (l) => expiryStatus(l.expires_at) === "expiring",
   );
   // Scorta minima (v17): products sotto la soglia di riordino.
@@ -173,7 +173,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
           <KpiCard
             Icon={MapPinned}
             label={t("companyOverview.kpi.totalArea")}
-            value={`${superficieTotale.toFixed(2)} ha`}
+            value={`${totalArea.toFixed(2)} ha`}
             sub={t("companyOverview.kpi.plots", { count: vivi.length })}
           />
           <KpiCard
@@ -185,7 +185,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
           <KpiCard
             Icon={Wheat}
             label={t("companyOverview.kpi.harvestYear")}
-            value={`${(raccoltoAnnoKg / 100).toFixed(1)} q`}
+            value={`${(harvestYearKg / 100).toFixed(1)} q`}
             sub={t("companyOverview.kpi.harvestSub")}
           />
           <KpiCard
@@ -210,7 +210,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
             tone={sottoScorta > 0 ? "warn" : undefined}
             sub={
               t("companyOverview.kpi.productsSub", {
-                count: lottiConGiacenza.length,
+                count: lotsWithStock.length,
               }) +
               (sottoScorta > 0
                 ? ` · ${t("companyOverview.kpi.belowMinStock", { count: sottoScorta })}`
@@ -264,14 +264,14 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
               </tr>
             </thead>
             <tbody>
-              {costiCampo.map((riga) => (
+              {costiCampo.map((row) => (
                 <tr
-                  key={riga.plot_id ?? "azienda"}
+                  key={row.plot_id ?? "azienda"}
                   className="border-b border-[var(--line)] last:border-0"
                 >
-                  <td className="py-1.5 pr-2">{fieldName(riga.plot_id)}</td>
+                  <td className="py-1.5 pr-2">{fieldName(row.plot_id)}</td>
                   <td className="agro-num py-1.5 text-right">
-                    {euro(Number(riga.total_cost))} €
+                    {euro(Number(row.total_cost))} €
                   </td>
                 </tr>
               ))}

@@ -39,7 +39,7 @@ export class WarehouseError extends Error {
  * Strato "Magazzino" del DAL (0.2.0): anagrafica products (categorie rigide),
  * lots con scadenza/stock, carico con aggiornamento CUMP e issue ATOMICO
  * agganciato alle attività del Quaderno. Ogni scrittura segue il percorso
- * transazionale dato+outbox; le operazioni multi-riga (carico, issue,
+ * transazionale dato+outbox; le operazioni multi-row (carico, issue,
  * storno) vivono in UN'UNICA transazione: o si conferma tutto, o niente.
  */
 export class AgroDalWarehouse extends AgroDalLogbook {
@@ -199,18 +199,18 @@ export class AgroDalWarehouse extends AgroDalLogbook {
         lot as unknown as Row & { id: string },
       );
 
-      const prodottoAggiornato: Product = {
+      const updatedProduct: Product = {
         ...product,
         avg_unit_cost: newCump,
         updated_at: ts,
       };
-      const insProd = upsertSql("products", prodottoAggiornato as unknown as Row);
+      const insProd = upsertSql("products", updatedProduct as unknown as Row);
       await tx.query(insProd.sql, insProd.values);
       await this.enqueueOutbox(
         tx,
         "products",
         "update",
-        prodottoAggiornato as unknown as Row & { id: string },
+        updatedProduct as unknown as Row & { id: string },
       );
     });
     return lot;
@@ -342,9 +342,9 @@ export class AgroDalWarehouse extends AgroDalLogbook {
 
         // UPDATE della stock: il CHECK `quantity_on_hand >= 0` a schema è la
         // rete di sicurezza atomica anche in caso di scritture concorrenti.
-        // La riga di outbox è COMPLETA (solo colonne di product_lots, senza i
+        // La row di outbox è COMPLETA (solo colonne di product_lots, senza i
         // campi del join) come ogni altra mutazione sincronizzata.
-        const lottoAggiornato: ProductLot = {
+        const updatedLot: ProductLot = {
           id: lot.id,
           tenant_id: lot.tenant_id,
           product_id: lot.product_id,
@@ -358,13 +358,13 @@ export class AgroDalWarehouse extends AgroDalLogbook {
           updated_at: ts,
           deleted_at: null,
         };
-        const updLot = upsertSql("product_lots", lottoAggiornato as unknown as Row);
+        const updLot = upsertSql("product_lots", updatedLot as unknown as Row);
         await tx.query(updLot.sql, updLot.values);
         await this.enqueueOutbox(
           tx,
           "product_lots",
           "update",
-          lottoAggiornato as unknown as Row & { id: string },
+          updatedLot as unknown as Row & { id: string },
         );
 
         // Costo imputato = CUMP del product CONGELATO al momento dello issue.

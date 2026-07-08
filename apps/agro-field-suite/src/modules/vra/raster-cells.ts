@@ -48,7 +48,7 @@ export function rasterToGridCells(
 
   for (let row0 = 0; row0 < window.height; row0 += passo) {
     const rowEnd = Math.min(row0 + passo, window.height);
-    // Nord decresce con la riga (origine in alto a sinistra).
+    // Nord decresce con la row (origine in alto a sinistra).
     const nordTop = window.originNorthing - row0 * window.pixelHeight;
     const nordBottom = window.originNorthing - rowEnd * window.pixelHeight;
     for (let col0 = 0; col0 < window.width; col0 += passo) {

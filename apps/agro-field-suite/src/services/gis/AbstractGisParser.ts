@@ -27,7 +27,7 @@ import type {
 } from "geojson";
 import {
   mapSianFeature,
-  numeroItaliano,
+  italianNumber,
   parseCsvRows,
   type SianCampoMappato,
   type SianProperties,
@@ -70,7 +70,7 @@ function pick(idx: Map<string, unknown>, alias: readonly string[]): unknown {
   return null;
 }
 
-function asCodice(value: unknown): string | null {
+function asCode(value: unknown): string | null {
   if (value == null) return null;
   const s = String(value).trim();
   return s === "" ? null : s;
@@ -105,9 +105,9 @@ function resolveArea(
   aliases: AdapterAliases,
   areaGeodeticaHa?: number | null,
 ): number {
-  const dichiarata = numeroItaliano(pick(idx, aliases.areaHa));
+  const dichiarata = italianNumber(pick(idx, aliases.areaHa));
   if (dichiarata != null && dichiarata > 0) return arrotonda4(dichiarata);
-  const mq = numeroItaliano(pick(idx, aliases.areaMq));
+  const mq = italianNumber(pick(idx, aliases.areaMq));
   if (mq != null && mq > 0) return arrotonda4(mq / 10000);
   if (areaGeodeticaHa != null && areaGeodeticaHa > 0) return arrotonda4(areaGeodeticaHa);
   return 0;
@@ -119,11 +119,11 @@ function resolveReference(
 ): string | null {
   if (aliases.referenceComposite && aliases.referenceComposite.length > 0) {
     const parts = aliases.referenceComposite
-      .map((a) => asCodice(idx.get(a)))
+      .map((a) => asCode(idx.get(a)))
       .filter((p): p is string => p != null);
     if (parts.length > 0) return parts.join(aliases.sep ?? "-");
   }
-  return asCodice(pick(idx, aliases.reference));
+  return asCode(pick(idx, aliases.reference));
 }
 
 /** Costruisce un adapter alias-based da una mappa di alias nazionale. */
@@ -139,9 +139,9 @@ function makeAdapter(
       const idx = indicizza(props);
       return {
         reference_parcel_external_id: resolveReference(idx, aliases),
-        agricultural_parcel_external_id: asCodice(pick(idx, aliases.agricultural)),
-        crop_external_code: asCodice(pick(idx, aliases.crop)),
-        variety_external_code: asCodice(pick(idx, aliases.variety)),
+        agricultural_parcel_external_id: asCode(pick(idx, aliases.agricultural)),
+        crop_external_code: asCode(pick(idx, aliases.crop)),
+        variety_external_code: asCode(pick(idx, aliases.variety)),
         superficie_ha: resolveArea(idx, aliases, areaGeodeticaHa),
         geometria,
       };

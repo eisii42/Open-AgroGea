@@ -29,7 +29,7 @@ const TREATMENT_FIELD_KEY: Record<string, string> = {
  *   * selettore del field per Campagna Agraria (name utente + codice crop SIAN);
  *   * data treatment, avversità (dropdown rigorosa), product commerciale,
  *     n. registrazione ministeriale, sostanza attiva, dose+unità, volume acqua,
- *     CF operatore e numero di patentino.
+ *     CF operatore e number di patentino.
  * Tutti i target touch sono ≥ 44px.
  */
 
@@ -162,16 +162,16 @@ export function TreatmentForm({
   );
 
   // Superficie autorevole per i calcoli: dichiarata di campagna o quella fisica.
-  const superficie = campoSel?.superficieHa ?? plot?.area_ha ?? null;
+  const area = campoSel?.superficieHa ?? plot?.area_ha ?? null;
 
-  // Totale automatico: dose × superficie (solo per unità riferite all'ettaro).
+  // Totale automatico: dose × area (solo per unità riferite all'ettaro).
   const quantitaTotale = useMemo(() => {
     const dose = Number.parseFloat(doseValore);
-    if (!Number.isFinite(dose) || !superficie || !doseUnita.endsWith("/ha")) {
+    if (!Number.isFinite(dose) || !area || !doseUnita.endsWith("/ha")) {
       return null;
     }
-    return Math.round(dose * superficie * 100) / 100;
-  }, [doseValore, doseUnita, superficie]);
+    return Math.round(dose * area * 100) / 100;
+  }, [doseValore, doseUnita, area]);
 
   // Geo-compliance dell'appezzamento selezionato (vincoli + massimale azoto).
   const compliance = useMemo(
@@ -475,7 +475,7 @@ export function TreatmentForm({
           <strong className="agro-num text-[var(--ink)]">
             {quantitaTotale} {doseUnita.split("/")[0]}
           </strong>{" "}
-          ({doseValore} {doseUnita} × {superficie?.toFixed(2)} ha)
+          ({doseValore} {doseUnita} × {area?.toFixed(2)} ha)
         </p>
       )}
 

@@ -65,10 +65,10 @@ export function useGeoCompliance() {
       if (esito.vincoli.length === 0) return null;
 
       // Superficie autorevole: area geodetica del DAL.
-      const superficie = plot.area_ha;
+      const area = plot.area_ha;
       return {
         note: esito.note,
-        azotoMaxTotaleKg: azotoTotaleMax(superficie, esito.azotoMaxKgHa),
+        azotoMaxTotaleKg: azotoTotaleMax(area, esito.azotoMaxKgHa),
       };
     },
     [complianceLayers],

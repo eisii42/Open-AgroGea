@@ -21,7 +21,7 @@ export interface SyncTarget {
    * Idratazione inversa: download le rows del tenant dal data plane remoto
    * nel PGlite locale (primo avvio su un dispositivo nuovo, o riallineamento
    * dopo modifiche fatte altrove). Resta opzionale nell'interfaccia per i
-   * target che non la supportano. Ritorna il numero di rows applicate.
+   * target che non la supportano. Ritorna il number di rows applicate.
    */
   pull?(dal: AgroDal): Promise<number>;
 }

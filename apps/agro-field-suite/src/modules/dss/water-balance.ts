@@ -89,7 +89,7 @@ function irrigationVolumeLiters(t: TreatmentLog): number | null {
 /**
  * Estrae gli apporti irrigui giornalieri (mm) dai treatments di tipo
  * `irrigation`: il volume d'acqua registrato sull'operazione (`total_quantity`,
- * con fallback su `water_volume_l`), riportato a lama d'acqua sulla superficie
+ * con fallback su `water_volume_l`), riportato a lama d'acqua sulla area
  * dell'appezzamento.
  */
 export function irrigationInputsFromTreatments(

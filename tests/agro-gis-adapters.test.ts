@@ -20,7 +20,7 @@ describe("AbstractGisParser / selezione adapter per country_code", () => {
 });
 
 describe("Adapter IT (SIAN/AGEA)", () => {
-  it("decodifica Isola/Plot e superficie dichiarata (formato IT)", () => {
+  it("decodifica Isola/Plot e area dichiarata (formato IT)", () => {
     const p = itSianAdapter.mapFeature(
       { ID_ISOLA: "12", ID_APPEZZ: "3", COD_PROD: "060", SUP_HA: "1,5000" },
       null,
@@ -56,7 +56,7 @@ describe("Adapter ES (SIGPAC/SIEX)", () => {
 });
 
 describe("Adapter FR (TelePAC/RPG)", () => {
-  it("decodifica Îlot/Parcelle/Code culture e superficie in ettari", () => {
+  it("decodifica Îlot/Parcelle/Code culture e area in ettari", () => {
     const p = frTelepacAdapter.mapFeature(
       { NUM_ILOT: "5", NUM_PARCEL: "2", CODE_CULTU: "BTH", SURF_PARC: "3.20" },
       null,
@@ -87,7 +87,7 @@ describe("Adapter EU (base internazionale)", () => {
     assert.equal(p.superficie_ha, 4);
   });
 
-  it("ricade sull'area geodetica se la superficie non è negli attributi", () => {
+  it("ricade sull'area geodetica se la area non è negli attributi", () => {
     const p = euBaseAdapter.mapFeature({ crop_code: "X" }, null, 2.1234);
     assert.equal(p.superficie_ha, 2.1234);
   });

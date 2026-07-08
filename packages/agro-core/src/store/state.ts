@@ -321,7 +321,7 @@ export interface DomainSlice {
   setActiveCampaign: (anno: number) => Promise<void>;
   /**
    * Crea/update lo stato di Campagna Agraria di un field (SIAN/AGEA) e idrata
-   * lo store. Ritorna la riga o null senza company attiva.
+   * lo store. Ritorna la row o null senza company attiva.
    */
   savePlotCampaign: (
     input: Omit<
@@ -333,12 +333,12 @@ export interface DomainSlice {
   /**
    * Chiude il ciclo colturale di una campagna (v17, raccolto delle annuali):
    * il field torna libero (mappa neutra, DSS spento) e una nuova semina può
-   * ripartire nello stesso anno. Idrata lo store con la riga chiusa.
+   * ripartire nello stesso anno. Idrata lo store con la row chiusa.
    */
   closeCampaign: (id: string) => Promise<void>;
   /**
    * Crea/update una specie/varietà coltivata (`crops`) e idrata lo store.
-   * Ritorna la riga o null senza DAL attivo.
+   * Ritorna la row o null senza DAL attivo.
    */
   saveCrop: (
     input: Omit<
@@ -348,7 +348,7 @@ export interface DomainSlice {
   ) => Promise<Crop | null>;
   /**
    * Crea/update un product di warehouse (categorie rigide, validazione per
-   * categoria nel DAL) e idrata lo store. Ritorna la riga o null senza DAL.
+   * categoria nel DAL) e idrata lo store. Ritorna la row o null senza DAL.
    */
   saveProduct: (
     input: Omit<

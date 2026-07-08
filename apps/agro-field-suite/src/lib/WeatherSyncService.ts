@@ -97,7 +97,7 @@ export interface MeteoFetchResult {
 // Previsione "da cruscotto" (scheda meteo dell'header): oggi + N giorni.
 // ---------------------------------------------------------------------------
 
-/** Condizioni correnti per la riga principale della scheda meteo. */
+/** Condizioni correnti per la row principale della scheda meteo. */
 export interface MeteoCorrente {
   /** ISO dell'osservazione corrente restituita da Open-Meteo. */
   ora: string;

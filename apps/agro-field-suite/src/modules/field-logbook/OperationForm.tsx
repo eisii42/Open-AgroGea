@@ -56,7 +56,7 @@ interface OpFieldSpec {
   waterVolume?: boolean;
   /** Apporto irriguo in mm/hl (lama d'acqua o volume) — irrigazione. */
   irrigationAmount?: boolean;
-  /** Totale automatico dose × superficie (unità /ha). */
+  /** Totale automatico dose × area (unità /ha). */
   totalAuto?: boolean;
   /** Totale inserito a mano in kg. */
   totalManual?: boolean;
@@ -171,7 +171,7 @@ export const OPERAZIONI: OperazioneSpec[] = [
   },
 ];
 
-export function operazioneSpec(type: OperationType): OperazioneSpec {
+export function operationSpec(type: OperationType): OperazioneSpec {
   return OPERAZIONI.find((o) => o.type === type) ?? OPERAZIONI[0];
 }
 
@@ -237,7 +237,7 @@ function persistOperatorMemory(memory: OperatorMemory) {
   }
 }
 
-/** Stringa da numero nullable (per i default della ripetizione operation). */
+/** Stringa da number nullable (per i default della ripetizione operation). */
 const numStr = (v: number | null | undefined) => (v == null ? "" : String(v));
 
 export interface OperazioneFormProps {
@@ -293,7 +293,7 @@ export function OperationForm({
   defaults,
 }: OperazioneFormProps) {
   const { t } = useTranslation();
-  const spec = operazioneSpec(operationType);
+  const spec = operationSpec(operationType);
   const f = spec.fields;
   const usesCampaign = (campaignFields?.length ?? 0) > 0;
   const catalog =
@@ -387,27 +387,27 @@ export function OperationForm({
     () => campaignFields?.find((c) => c.campoCampagnaId === campoCampagnaId) ?? null,
     [campaignFields, campoCampagnaId],
   );
-  const superficie = campoSel?.superficieHa ?? plot?.area_ha ?? null;
+  const area = campoSel?.superficieHa ?? plot?.area_ha ?? null;
   const isSampling = operationType === "sampling";
   const soilMode = isSampling && matrice === "suolo";
 
   // Volume irriguo (litri) canonico salvato su `water_volume_l`, dall'apporto in
-  // mm/hl e dalla superficie del field (i mm sono per ettaro).
+  // mm/hl e dalla area del field (i mm sono per ettaro).
   const irrLitres = useMemo(
     () =>
       f.irrigationAmount
-        ? irrigationToLitres(Number.parseFloat(irrAmount), irrUnit, superficie)
+        ? irrigationToLitres(Number.parseFloat(irrAmount), irrUnit, area)
         : null,
-    [f.irrigationAmount, irrAmount, irrUnit, superficie],
+    [f.irrigationAmount, irrAmount, irrUnit, area],
   );
 
   const totaleAutomatico = useMemo(() => {
     const dose = Number.parseFloat(doseValore);
-    if (!f.totalAuto || !Number.isFinite(dose) || !superficie || !doseUnita.endsWith("/ha")) {
+    if (!f.totalAuto || !Number.isFinite(dose) || !area || !doseUnita.endsWith("/ha")) {
       return null;
     }
-    return Math.round(dose * superficie * 100) / 100;
-  }, [f.totalAuto, doseValore, doseUnita, superficie]);
+    return Math.round(dose * area * 100) / 100;
+  }, [f.totalAuto, doseValore, doseUnita, area]);
 
   const totaleManualeNum =
     totaleManuale.trim() === "" ? null : Number(totaleManuale);
@@ -466,7 +466,7 @@ export function OperationForm({
 
   // -- Magazzino (0.2.0): categoria pertinente e validazione rows issue ----
   const warehouseCategory = categoryForOperation(operationType);
-  const prodottiCategoria = useMemo(
+  const categoryProducts = useMemo(
     () =>
       warehouseCategory
         ? (prodottiMagazzino ?? []).filter(
@@ -475,7 +475,7 @@ export function OperationForm({
         : [],
     [prodottiMagazzino, warehouseCategory],
   );
-  const usaMagazzino = prodottiCategoria.length > 0;
+  const usesWarehouse = categoryProducts.length > 0;
   const lottoById = useMemo(() => {
     const map = new Map<string, ProductLot>();
     for (const l of lottiMagazzino ?? []) map.set(l.id, l);
@@ -521,33 +521,33 @@ export function OperationForm({
       product_lot_id: row.lotId,
       quantity: Number.parseFloat(row.quantity),
     }));
-  // Una riga toccata ma non valida blocca il submit (niente scarichi "a metà").
+  // Una row toccata ma non valida blocca il submit (niente scarichi "a metà").
   const scarichiIncompleti = scarichiRows.some(
     (row) =>
       (row.productId || row.lotId || row.quantity.trim() !== "") &&
       !rowValida(row),
   );
 
-  // Auto-fill (v17): con UNA riga di issue non modificata a mano, la quantità
-  // segue il totale previsto (dose × superficie, o totale manuale in kg).
+  // Auto-fill (v17): con UNA row di issue non modificata a mano, la quantità
+  // segue il totale previsto (dose × area, o totale manuale in kg).
   useEffect(() => {
     if (totalePrevisto == null || totalePrevisto <= 0) return;
     setScarichiRows((rows) => {
       if (rows.length !== 1) return rows;
       const row = rows[0];
       if (row.manual || !row.productId) return rows;
-      const p = prodottiCategoria.find((x) => x.id === row.productId);
+      const p = categoryProducts.find((x) => x.id === row.productId);
       if (!p || p.unit !== baseDose) return rows;
       const q = String(totalePrevisto);
       return row.quantity === q ? rows : [{ ...row, quantity: q }];
     });
-  }, [totalePrevisto, baseDose, prodottiCategoria]);
+  }, [totalePrevisto, baseDose, categoryProducts]);
 
   // -- automazione semina → crop di campagna (v17) -------------------------
   const activeCampaign = useAgroStore((s) => s.activeCampaign);
   const seedProduct =
     operationType === "sowing"
-      ? prodottiCategoria.find((p) => p.id === scarichiRows[0]?.productId) ?? null
+      ? categoryProducts.find((p) => p.id === scarichiRows[0]?.productId) ?? null
       : null;
   // Il field scelto non ha una campagna APERTA per l'annata: la semina può
   // assegnargli la crop (crops + plots_campaign) automaticamente.
@@ -566,7 +566,7 @@ export function OperationForm({
   };
   const speciesName = metaSeedStr("species") ?? seedProduct?.name ?? "";
   const assegnazione: CropAssignment | null =
-    proposeAssignment && assegnaColtura && superficie != null
+    proposeAssignment && assegnaColtura && area != null
       ? {
           plotId: plotId,
           species: speciesName,
@@ -577,7 +577,7 @@ export function OperationForm({
             doseUnita === "kg/ha" && doseValore
               ? Number.parseFloat(doseValore)
               : null,
-          declaredAreaHa: superficie,
+          declaredAreaHa: area,
         }
       : null;
 
@@ -615,7 +615,7 @@ export function OperationForm({
           const lot = patch.productId
             ? lottiUtilizzabili(patch.productId)[0] ?? null
             : null;
-          const p = prodottiCategoria.find((x) => x.id === patch.productId);
+          const p = categoryProducts.find((x) => x.id === patch.productId);
           const auto =
             !row.manual && totalePrevisto != null && p?.unit === baseDose
               ? String(totalePrevisto)
@@ -635,11 +635,11 @@ export function OperationForm({
         return { ...row, ...patch };
       }),
     );
-    // Prima riga: auto-compila il name product (fallback testuale del registro)
+    // Prima row: auto-compila il name product (fallback testuale del registro)
     // e i default dell'anagrafica (registrazione, sostanza attiva, carenza e
     // rientro, v17) se i campi sono ancora vuoti.
     if (index === 0 && patch.productId) {
-      const p = prodottiCategoria.find((x) => x.id === patch.productId);
+      const p = categoryProducts.find((x) => x.id === patch.productId);
       if (p) {
         setProdotto((corrente) => corrente || p.name);
         if (p.registration_number) {
@@ -666,8 +666,8 @@ export function OperationForm({
   }
 
   /**
-   * Divide la quantità della riga su più lots in ordine FEFO (v17): la riga
-   * viene sostituita da una riga per lot finché la quantità è coperta.
+   * Divide la quantità della row su più lots in ordine FEFO (v17): la row
+   * viene sostituita da una row per lot finché la quantità è coperta.
    * No-op se la stock complessiva del product non basta.
    */
   function dividiFefo(index: number) {
@@ -734,7 +734,7 @@ export function OperationForm({
         total_quantity: totaleAutomatico ?? (f.totalManual ? totaleManualeNum : null),
         // water_volume_l = volume in litri: la botte (fitosanitari) o l'apporto
         // irriguo convertito da mm/hl (irrigazione). È la forma che il bilancio
-        // idrico riconverte in lama d'acqua (mm) sulla superficie del field.
+        // idrico riconverte in lama d'acqua (mm) sulla area del field.
         water_volume_l: f.waterVolume
           ? acquaVolume
             ? Number.parseInt(acquaVolume, 10)
@@ -933,7 +933,7 @@ export function OperationForm({
 
       {/* Scarico da warehouse (0.2.0): product → lot → quantità. Lotti
           scaduti visibili ma NON selezionabili (uso bloccato §5.1). */}
-      {usaMagazzino && !isSampling && (
+      {usesWarehouse && !isSampling && (
         <section className="flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2">
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
             {t("operazioneForm.warehouseSection")}
@@ -944,7 +944,7 @@ export function OperationForm({
             </p>
           )}
           {scarichiRows.map((row, index) => {
-            const prodottoSel = prodottiCategoria.find(
+            const selectedProduct = categoryProducts.find(
               (p) => p.id === row.productId,
             );
             const productLots = (lottiMagazzino ?? []).filter(
@@ -970,7 +970,7 @@ export function OperationForm({
                       }
                     >
                       <option value="">{t("operazioneForm.selectEllipsis")}</option>
-                      {prodottiCategoria.map((p) => {
+                      {categoryProducts.map((p) => {
                         // Product in unità non riconciliabile con la dose
                         // (kg vs l): non selezionabile finché c'è un totale
                         // previsto da far quadrare.
@@ -1009,7 +1009,7 @@ export function OperationForm({
                             {" · "}
                             {t("operazioneForm.warehouseAvailable", {
                               qty: Number(l.quantity_on_hand),
-                              unit: prodottoSel?.unit ?? "",
+                              unit: selectedProduct?.unit ?? "",
                             })}
                             {scaduto
                               ? ` · ${t("operazioneForm.warehouseExpiredOption")}`
@@ -1031,7 +1031,7 @@ export function OperationForm({
                   <div className="flex flex-1 flex-col gap-1.5">
                     <Label htmlFor={`op-mag-qta-${index}`}>
                       {t("operazioneForm.warehouseQuantity", {
-                        unit: prodottoSel?.unit ?? "—",
+                        unit: selectedProduct?.unit ?? "—",
                       })}
                     </Label>
                     <Input
@@ -1052,7 +1052,7 @@ export function OperationForm({
                     <p className="pb-2 text-[11px] text-[var(--ink-3)]">
                       {t("operazioneForm.warehouseAvailable", {
                         qty: disponibile,
-                        unit: prodottoSel?.unit ?? "",
+                        unit: selectedProduct?.unit ?? "",
                       })}
                     </p>
                   )}
@@ -1071,13 +1071,13 @@ export function OperationForm({
                 {(() => {
                   const qty = Number.parseFloat(row.quantity);
                   if (!Number.isFinite(qty) || qty <= 0) return null;
-                  const unit = prodottoSel?.unit ?? "";
+                  const unit = selectedProduct?.unit ?? "";
                   const doseEffettiva =
-                    superficie && superficie > 0 ? qty / superficie : null;
+                    area && area > 0 ? qty / area : null;
                   const scostamento =
                     totalePrevisto != null &&
                     totalePrevisto > 0 &&
-                    prodottoSel?.unit === baseDose &&
+                    selectedProduct?.unit === baseDose &&
                     Math.abs(qty - totalePrevisto) / totalePrevisto > 0.05;
                   const exceedsLot =
                     disponibile != null && qty > disponibile;
@@ -1277,23 +1277,23 @@ export function OperationForm({
               <strong className="agro-num">
                 {(irrLitres / 1000).toFixed(1)} m³
               </strong>
-              {superficie != null && superficie > 0 && (
+              {area != null && area > 0 && (
                 <>
                   {" · "}
                   <strong className="agro-num">
                     {litresToIrrigation(
                       irrLitres,
                       irrUnit === "mm" ? "hl" : "mm",
-                      superficie,
+                      area,
                     ).toFixed(1)}{" "}
                     {irrUnit === "mm" ? "hl" : "mm"}
                   </strong>{" "}
-                  {t("operazioneForm.onSurface", { area: superficie.toFixed(2) })}
+                  {t("operazioneForm.onSurface", { area: area.toFixed(2) })}
                 </>
               )}
             </p>
           )}
-          {superficie == null && irrUnit === "mm" && (
+          {area == null && irrUnit === "mm" && (
             <p className="rounded-[var(--r-2)] bg-[var(--warn-l)] px-3 py-1.5 text-xs text-[var(--warn)]">
               {t("operazioneForm.selectPlotForMmConversion")}
             </p>
@@ -1307,7 +1307,7 @@ export function OperationForm({
           <strong className="agro-num text-[var(--ink)]">
             {totaleAutomatico} {doseUnita.split("/")[0]}
           </strong>{" "}
-          ({doseValore} {doseUnita} × {superficie?.toFixed(2)} ha)
+          ({doseValore} {doseUnita} × {area?.toFixed(2)} ha)
         </p>
       )}
 

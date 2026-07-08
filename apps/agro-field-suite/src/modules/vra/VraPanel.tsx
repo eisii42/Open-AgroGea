@@ -13,7 +13,7 @@ import {
 
 /**
  * Modulo "Mappe a rateo variabile" (VRA). Scheda separata da "Analisi indici":
- * l'agronomo sceglie plot, indice di base, tipo di lavorazione, numero
+ * l'agronomo sceglie plot, indice di base, tipo di lavorazione, number
  * di zone e i ratei (quantità) per zona; la mappa è zonata via K-means ed
  * esportabile per i terminali dei trattori (ISO-XML / GeoJSON).
  */
@@ -60,7 +60,7 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
   const [zone, setZone] = useState(3);
   const [ratei, setRatei] = useState<number[]>([120, 100, 80]);
 
-  // Adatta la lista dei ratei al numero di zone (zona 0 = indice più basso).
+  // Adatta la lista dei ratei al number di zone (zona 0 = indice più basso).
   useEffect(() => {
     setRatei((prev) => {
       if (prev.length === zone) return prev;
@@ -158,7 +158,7 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
           </div>
         </section>
 
-        {/* Risoluzione cella + numero zone */}
+        {/* Risoluzione cella + number zone */}
         <section className="grid grid-cols-2 gap-2">
           <div>
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">

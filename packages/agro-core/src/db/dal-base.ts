@@ -36,7 +36,7 @@ export class AgroDalBase {
   /**
    * Accoda la mutazione in `sync_outbox` DENTRO la transazione passata: è il
    * mattone condiviso tra la scrittura singola ({@link writeWithOutbox}) e le
-   * scritture multi-riga atomiche del Magazzino (carico lot con CUMP,
+   * scritture multi-row atomiche del Magazzino (carico lot con CUMP,
    * issue attività), dove più rows di dominio e le loro voci di outbox
    * devono confermarsi o fallire insieme.
    */
@@ -93,7 +93,7 @@ export class AgroDalBase {
 
   /**
    * Applica rows arrivate dal data plane remoto (pull di idratazione): upsert
-   * LWW SENZA voce di outbox. Una riga locale più recente non viene sovrascritta.
+   * LWW SENZA voce di outbox. Una row locale più recente non viene sovrascritta.
    */
   async applyRemoteRows(tabella: SyncTable, rows: Row[]): Promise<number> {
     if (rows.length === 0) return 0;

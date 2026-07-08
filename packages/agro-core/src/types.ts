@@ -76,7 +76,7 @@ export type LicensePlan = "base" | "standard" | "plus" | (string & {});
  * `user_profiles.preferences`.
  */
 export interface UserPreferences {
-  /** Unità di misura agronomiche (superficie, resa, apporti idrici). */
+  /** Unità di misura agronomiche (area, resa, apporti idrici). */
   units?: {
     area: "ha" | "ac";
     yield: "q" | "t" | "kg";
@@ -202,7 +202,7 @@ export interface Plot {
   cadastral_parcel: string | null;
   /**
    * Superficie geodetica in ettari (NUMERIC 10,4): UNICO punto di verità per la
-   * superficie, ricalcolata dal DAL con `@turf/area` a ogni upsert. Fonte
+   * area, ricalcolata dal DAL con `@turf/area` a ogni upsert. Fonte
    * autorevole per dosi e quantità totali.
    */
   area_ha: number;
@@ -291,7 +291,7 @@ export interface TreatmentLog {
   registration_number: string | null;
   dose_value: number | null;
   dose_unit: DoseUnit | null;
-  /** dose × superficie plot, congelata al momento della registrazione. */
+  /** dose × area plot, congelata al momento della registrazione. */
   total_quantity: number | null;
   /** Avversità/patogeno bersaglio (ex avversita_target). */
   target_disease: string | null;
@@ -671,7 +671,7 @@ export type MembershipStatus = "active" | "invited" | "revoked";
 /**
  * Appartenenza al team di un'azienda (`tenant_memberships`). Sincronizzata via
  * outbox. Mappa terminologica: la "singola azienda" della specifica multiutente
- * è `company_id` (riga di `companies`); il `tenant_id` è il workspace
+ * è `company_id` (row di `companies`); il `tenant_id` è il workspace
  * dell'abbonato master. I limiti per ruolo/piano sono enforced lato client
  * (module `subscription-limits`/`MembershipGuard` della field-suite).
  */

@@ -23,7 +23,7 @@ import {
   type CropAssignment,
   OPERAZIONI,
   OperationForm,
-  operazioneSpec,
+  operationSpec,
 } from "./OperationForm";
 
 const TIPO_COLOR: Record<string, string> = {
@@ -277,7 +277,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     <FieldSheet
       title={
         formType
-          ? operazioneSpec(formType).label
+          ? operationSpec(formType).label
           : chooser
             ? t("quadernoPanel.title.newOperation")
             : t("quadernoPanel.title.logbook")

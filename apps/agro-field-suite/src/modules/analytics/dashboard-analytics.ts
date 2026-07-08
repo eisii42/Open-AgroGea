@@ -87,7 +87,7 @@ function plotNames(data: DashboardData): Map<string, string> {
   return new Map(data.plots.map((a) => [a.id, a.user_plot_name]));
 }
 
-/** Mappa plot_id → superficie (ha), per i rapporti per ettaro (es. resa/ha). */
+/** Mappa plot_id → area (ha), per i rapporti per ettaro (es. resa/ha). */
 function plotAreas(data: DashboardData): Map<string, number> {
   return new Map(data.plots.map((a) => [a.id, a.area_ha]));
 }

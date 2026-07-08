@@ -165,7 +165,7 @@ describe("irrigationInputMm / irrigationInputsFromTreatments", () => {
 });
 
 describe("computeWaterBalance — composizione end-to-end", () => {
-  it("produce una riga per day con ETc = ET0·Kc e bilancio coerente", () => {
+  it("produce una row per day con ETc = ET0·Kc e bilancio coerente", () => {
     const readings = [
       reading("2026-06-01", { rain_mm: 0 }),
       reading("2026-06-02", { rain_mm: 5 }),

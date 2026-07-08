@@ -69,9 +69,9 @@ export function RawDataInspector({
 }: {
   plotIds: Set<string> | null;
   campaignYear: number;
-  /** Plot attualmente isolato dal cross-filtering (riga evidenziata). */
+  /** Plot attualmente isolato dal cross-filtering (row evidenziata). */
   focusedPlotId?: string | null;
-  /** Innesca il cross-filtering su un plot (clic sul focus di riga). */
+  /** Innesca il cross-filtering su un plot (clic sul focus di row). */
   onFocusPlot?: (plotId: string) => void;
 }) {
   const { t } = useTranslation();

@@ -48,7 +48,7 @@ type CommandCenterPage = "crops" | "company";
  *   * «Colture e plots» — l'analisi agronomica: filtri gerarchici
  *     (annata → crop → plots), griglia KPI configurabile, dashboard
  *     editabile, calendario operativo e Raw Data Inspector con cross-filtering;
- *   * «Company» — l'andamento generale: superficie/operazioni/raccolto
+ *   * «Company» — l'andamento generale: area/operazioni/raccolto
  *     dell'annata, stato del Magazzino (value giacenze a CUMP, lots scaduti e
  *     in scadenza), costo products imputato per field e backup/ripristino.
  * Il contesto aziendale vive nello store e sopravvive allo switch di vista.
@@ -232,7 +232,7 @@ export function CommandCenter() {
     });
   };
 
-  // Cross-filtering dal Raw Data Inspector: il clic sul "focus" di una riga
+  // Cross-filtering dal Raw Data Inspector: il clic sul "focus" di una row
   // isola quell'appezzamento (toggle: ricliccare lo stesso lo deseleziona).
   const onFocusPlot = (plotId: string) => {
     setSelectedPlotIds((prev) =>

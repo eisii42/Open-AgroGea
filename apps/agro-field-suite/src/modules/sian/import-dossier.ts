@@ -11,11 +11,11 @@ import i18n from "../../i18n";
  *
  * Per ogni field decodificato:
  *   * se l'appezzamento FISICO non esiste (nessun match per id SIAN) e c'è una
- *     geometria poligonale → crea la riga immutabile in `plots`,
+ *     geometria poligonale → crea la row immutabile in `plots`,
  *     marcandone l'id SIAN nei metadata per i re-import futuri;
  *   * se esiste già (perimetria immutata) → ne riusa l'identità;
  *   * in entrambi i casi → popola/update `campi_campagna` sull'anno indicato
- *     con i codici ministeriali e la superficie dichiarata.
+ *     con i codici ministeriali e la area dichiarata.
  *
  * I record CSV privi di geometria che non trovano un plot esistente
  * vengono saltati (non si può creare un'entità fisica senza poligono).

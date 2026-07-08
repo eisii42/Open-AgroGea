@@ -17,7 +17,7 @@
  *     (proprietà di filiera dentro `crop_metadata` JSONB), referenziata da
  *     `plots_campaign.crop_id`: l'appezzamento fisico (`plots_registry`) non
  *     porta più colonne colturali hardcoded (crop/varieta/vite_*);
- *   * superficie: un'unica colonna `area_ha NUMERIC(10,4)` (eliminati i
+ *   * area: un'unica colonna `area_ha NUMERIC(10,4)` (eliminati i
  *     duplicati `superficie_ha`/`area_ettari`), autocompilata dal calcolo
  *     geometrico nel DAL.
  *
@@ -135,7 +135,7 @@ alter table crops add column if not exists deleted_at timestamptz;
 create index if not exists crops_tenant_idx on crops (tenant_id);
 
 -- plots_registry — anagrafica FISICA immutabile dell'appezzamento (LPIS). Niente
--- attributi colturali (vivono in crops/plots_campaign) né duplicati di superficie.
+-- attributi colturali (vivono in crops/plots_campaign) né duplicati di area.
 create table if not exists plots_registry (
   id               uuid primary key,
   tenant_id        uuid not null,
@@ -146,7 +146,7 @@ create table if not exists plots_registry (
   geometry         jsonb not null,
   irrigation_type  text,
   planting_year    smallint,
-  -- unico punto di verità per la superficie, ricalcolata dal DAL (@turf/area).
+  -- unico punto di verità per la area, ricalcolata dal DAL (@turf/area).
   area_ha          numeric(10, 4) not null,
   -- cache dell'ultimo NDVI medio della pipeline STAC (consultabile offline).
   last_ndvi_mean   numeric,
@@ -357,7 +357,7 @@ create index if not exists sync_outbox_pending_idx
 
 -- weather_config — configurazione per-company della fonte meteo. Tabella
 -- LOCAL-ONLY: non transita dall'outbox (la api_key non lascia il device, ed è
--- stato di installazione). Una riga per company.
+-- stato di installazione). Una row per company.
 create table if not exists weather_config (
   company_id           uuid primary key references companies (id) on delete cascade,
   tenant_id            uuid not null,
@@ -469,7 +469,7 @@ alter table sync_outbox
   drop constraint if exists sync_outbox_table_name_check;
 
 -- tenant_memberships — multiutente: posti collaboratore per singola company
--- (company_id). Una riga = un membro (per email) con un ruolo. Sincronizzata via
+-- (company_id). Una row = un membro (per email) con un ruolo. Sincronizzata via
 -- outbox come le altre tabelle di dominio (LWW su updated_at). I limiti per
 -- ruolo/piano sono enforced lato client (subscription-limits/MembershipGuard).
 create table if not exists tenant_memberships (
@@ -561,7 +561,7 @@ alter table products
 create index if not exists products_company_idx
   on products (company_id, category);
 
--- product_lots — lots di warehouse: numero lot, scadenza, stock corrente
+-- product_lots — lots di warehouse: number lot, scadenza, stock corrente
 -- e costo unitario di carico (input del CUMP). Il CHECK "quantity_on_hand >= 0"
 -- è la guardia ATOMICA dello issue: la transazione che porterebbe la stock
 -- sotto zero fallisce per intero (nessuno stato parziale/inconsistente).

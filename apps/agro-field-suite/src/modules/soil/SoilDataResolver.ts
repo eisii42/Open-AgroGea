@@ -107,7 +107,7 @@ const TOLLERANZA_VICINANZA_DEG = 0.0005;
 // Mappatura attributi (PURA)
 // ---------------------------------------------------------------------------
 
-function numero(value: unknown): number | null {
+function number(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string") {
     const n = Number(value.replace(",", "."));
@@ -117,7 +117,7 @@ function numero(value: unknown): number | null {
 }
 
 /** Primo value numerico tra più chiavi candidate (case-insensitive). */
-function primoNumero(
+function firstNumber(
   props: Record<string, unknown>,
   chiavi: string[],
 ): number | null {
@@ -125,7 +125,7 @@ function primoNumero(
     Object.entries(props).map(([k, v]) => [k.toLowerCase(), v]),
   );
   for (const chiave of chiavi) {
-    const n = numero(lower.get(chiave.toLowerCase()));
+    const n = number(lower.get(chiave.toLowerCase()));
     if (n != null) return n;
   }
   return null;
@@ -155,9 +155,9 @@ function firstString(
 export function frazioniDaProprieta(
   props: Record<string, unknown>,
 ): TextureFractions | null {
-  const sabbia = primoNumero(props, ["sabbia", "sand", "arena", "sand_pct", "sand_perc"]);
-  const limo = primoNumero(props, ["limo", "silt", "limos", "silt_pct"]);
-  const argilla = primoNumero(props, ["argilla", "clay", "arcilla", "clay_pct"]);
+  const sabbia = firstNumber(props, ["sabbia", "sand", "arena", "sand_pct", "sand_perc"]);
+  const limo = firstNumber(props, ["limo", "silt", "limos", "silt_pct"]);
+  const argilla = firstNumber(props, ["argilla", "clay", "arcilla", "clay_pct"]);
   if (sabbia != null || limo != null || argilla != null) {
     const fr = normalizeFractions(sabbia ?? 0, limo ?? 0, argilla ?? 0);
     if (fr) return fr;
@@ -170,7 +170,7 @@ export function frazioniDaProprieta(
 export function sostanzaOrganicaDaProprieta(
   props: Record<string, unknown>,
 ): number | null {
-  return primoNumero(props, [
+  return firstNumber(props, [
     "organic_matter",
     "sostanza_organica",
     "om",
@@ -236,17 +236,17 @@ export function parametersFromManualSoil(
   const s = raw as Record<string, unknown>;
 
   const profondita =
-    numero(s.profondita_radici) ??
+    number(s.profondita_radici) ??
     opzioni.profonditaRadiciM ??
     SUOLO_FRANCO_DEFAULT.rootDepth;
   const depletion =
-    numero(s.frazione_deplezione) ??
+    number(s.frazione_deplezione) ??
     opzioni.depletionFraction ??
     SUOLO_FRANCO_DEFAULT.depletionFraction;
 
   // Costanti idrauliche dirette (utente esperto).
-  const cc = numero(s.capacita_campo);
-  const pa = numero(s.punto_appassimento);
+  const cc = number(s.capacita_campo);
+  const pa = number(s.punto_appassimento);
   if (cc != null && pa != null) {
     return {
       fieldCapacity: cc,
@@ -274,14 +274,14 @@ export function parametriDaMetadata(
   const raw = meta.parametri_suolo;
   if (!raw || typeof raw !== "object") return null;
   const p = raw as Record<string, unknown>;
-  const cc = numero(p.fieldCapacity);
-  const pa = numero(p.wiltingPoint);
+  const cc = number(p.fieldCapacity);
+  const pa = number(p.wiltingPoint);
   if (cc == null || pa == null) return null;
   return {
     fieldCapacity: cc,
     wiltingPoint: pa,
-    rootDepth: numero(p.rootDepth) ?? SUOLO_FRANCO_DEFAULT.rootDepth,
-    depletionFraction: numero(p.depletionFraction) ?? SUOLO_FRANCO_DEFAULT.depletionFraction,
+    rootDepth: number(p.rootDepth) ?? SUOLO_FRANCO_DEFAULT.rootDepth,
+    depletionFraction: number(p.depletionFraction) ?? SUOLO_FRANCO_DEFAULT.depletionFraction,
   };
 }
 

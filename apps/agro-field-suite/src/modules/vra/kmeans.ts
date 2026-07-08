@@ -41,7 +41,7 @@ function nearestCentroid(value: number, centroids: number[]): number {
  *
  * @param values Valori finiti (es. NDVI per cella). I non-finiti vanno filtered
  *   dal chiamante.
- * @param k Numero di zone richiesto; ridotto al numero di valori distinti.
+ * @param k Numero di zone richiesto; ridotto al number di valori distinti.
  * @param opts.maxIter Iterazioni massime (default 50).
  */
 export function kmeans1d(

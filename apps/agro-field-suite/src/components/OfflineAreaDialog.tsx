@@ -85,7 +85,7 @@ export function OfflineAreaDialog({ onClose, mapControllerRef }: Props) {
   }
 
   /** Acquisisce il viewport corrente della mappa come bbox. */
-  function usaEstensioneMappa() {
+  function useMapExtent() {
     const map = mapControllerRef.current?.getMap();
     if (!map) return;
     const b = map.getBounds();
@@ -166,7 +166,7 @@ export function OfflineAreaDialog({ onClose, mapControllerRef }: Props) {
         {/* Acquisizione bbox da mappa */}
         <button
           type="button"
-          onClick={usaEstensioneMappa}
+          onClick={useMapExtent}
           className="w-full rounded-[var(--r-2)] border border-[var(--line)] px-3 py-2 text-xs font-medium text-[var(--ink-2)] hover:bg-[var(--panel-2)]"
         >
           {t("offlineAreaDialog.useCurrentMapExtent")}

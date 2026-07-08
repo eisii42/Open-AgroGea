@@ -10,7 +10,7 @@ import {
   buildSianCsv,
   COLONNE_SIAN,
   filterSianTreatments,
-  raccolteToOperazioni,
+  harvestsToOperations,
   resolveColumns,
 } from "../apps/agro-field-suite/src/lib/sianExport";
 
@@ -173,9 +173,9 @@ describe("buildSianCsv · struttura", () => {
       includiIntestazioni: true,
       bom: true,
     });
-    const [header, riga] = csv.split("\n");
+    const [header, row] = csv.split("\n");
     assert.equal(header, "Plot;Data;Product");
-    assert.equal(riga, "Vigna Alta;2026-03-10;Rame");
+    assert.equal(row, "Vigna Alta;2026-03-10;Rame");
   });
 
   it("onora il separatore e l'assenza di intestazioni", () => {
@@ -225,12 +225,12 @@ describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
       },
       campi,
     );
-    const [header, riga] = csv.split("\n");
+    const [header, row] = csv.split("\n");
     assert.equal(
       header,
       "ID Isola SIAN;ID Plot SIAN;Codice crop SIAN;Anno campagna",
     );
-    assert.equal(riga, "IS-1;AP-9;060;2026");
+    assert.equal(row, "IS-1;AP-9;060;2026");
   });
 
   it("lascia vuoti i riferimenti senza campagna agganciata", () => {
@@ -316,7 +316,7 @@ describe("buildSianCsv · tipo operation localizzato", () => {
 
 describe("raccolteToOperazioni · le harvests rientrano nel QDCA", () => {
   it("mappa cultivar→product, kg→quantità, destinazione e tipo harvest", () => {
-    const ops = raccolteToOperazioni([
+    const ops = harvestsToOperations([
       harvest("r1", "a1", "2026-09-15T08:00:00.000Z", {
         plot_campaign_id: "cc-a1",
       }),
@@ -348,7 +348,7 @@ describe("raccolteToOperazioni · le harvests rientrano nel QDCA", () => {
   });
 
   it("esclude le harvests cancellate (tombstone)", () => {
-    const ops = raccolteToOperazioni([
+    const ops = harvestsToOperations([
       harvest("r1", "a1", "2026-09-15T08:00:00.000Z", {
         deleted_at: "2026-10-01T00:00:00.000Z",
       }),

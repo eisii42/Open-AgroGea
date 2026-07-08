@@ -78,7 +78,7 @@ function aggregaPerGiorno(readings: WeatherReading[]): Map<string, GiornoAgg> {
     }
     agg.campioni += 1;
   }
-  // rhMean accumulata → media reale per il numero di readings del day.
+  // rhMean accumulata → media reale per il number di readings del day.
   for (const agg of perGiorno.values()) {
     if (agg.rhMean != null && agg.campioni > 0) {
       agg.rhMean = agg.rhMean / agg.campioni;

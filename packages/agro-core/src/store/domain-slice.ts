@@ -105,7 +105,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       }
 
       // Specchio locale (PGlite): rende l'azienda disponibile offline e idrata lo
-      // store. La riga porta `tenant_id = claims.tenantId` (uid nel self-service).
+      // store. La row porta `tenant_id = claims.tenantId` (uid nel self-service).
       const record = await dal.upsertCompany({
         id,
         business_name: ragioneSociale,
@@ -264,7 +264,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       }
       const existing = get().companies.find((a) => a.id === activeCompanyId);
       if (!existing) return;
-      // Si riscrive la riga intera (esistente + patch): l'area di sync è LWW su
+      // Si riscrive la row intera (esistente + patch): l'area di sync è LWW su
       // updated_at, quindi un upsert completo è il percorso canonico.
       const record = await dal.upsertCompany({ ...existing, ...patch });
       set((s) => ({
@@ -336,7 +336,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       const existing = get().treatments.find((t) => t.id === id);
       if (!existing) return null;
       // insertTreatment esegue INSERT ... ON CONFLICT (id) DO UPDATE: passando
-      // l'id esistente la riga viene aggiornata (created_at è preservato dal DAL).
+      // l'id esistente la row viene aggiornata (created_at è preservato dal DAL).
       const record = await dal.insertTreatment({ ...existing, ...patch, id });
       set((s) => ({
         treatments: s.treatments.map((t) => (t.id === record.id ? record : t)),
@@ -441,7 +441,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       if (!dal) return;
       const record = await dal.closeCampaign(id);
       if (!record) return;
-      // La riga resta nello store (i registri storici la referenziano) ma con
+      // La row resta nello store (i registri storici la referenziano) ma con
       // closed_at valorizzato: mappa e DSS la ignorano da subito.
       set((s) => ({
         campaignFields: s.campaignFields.map((c) =>

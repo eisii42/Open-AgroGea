@@ -24,7 +24,7 @@ import {
   COLONNE_SIAN_DEFAULT,
   esportaSianCsv,
   filterSianTreatments,
-  raccolteToOperazioni,
+  harvestsToOperations,
   type SeparatoreCsv,
   type SianColumn,
   type SianExportConfig,
@@ -114,7 +114,7 @@ export function SianExportDialog({
   // operazioni sintetiche (operation_type = "harvest"), così l'export copre
   // l'intero Quaderno di Campagna Agraria.
   const operazioni = useMemo(
-    () => [...treatments, ...raccolteToOperazioni(harvests)],
+    () => [...treatments, ...harvestsToOperations(harvests)],
     [treatments, harvests],
   );
 

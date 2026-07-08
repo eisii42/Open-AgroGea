@@ -130,9 +130,9 @@ export function buildPrintSvg(opts: PrintOptions): string {
     );
     y += 18;
     // Spezza le note su più rows (~38 caratteri).
-    for (const riga of spezza(opts.note, 38)) {
+    for (const row of spezza(opts.note, 38)) {
       blocchi.push(
-        `<text x="${panelX}" y="${y}" font-size="11" fill="#333d47">${esc(riga)}</text>`,
+        `<text x="${panelX}" y="${y}" font-size="11" fill="#333d47">${esc(row)}</text>`,
       );
       y += 16;
     }

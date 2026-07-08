@@ -118,7 +118,7 @@ function buildShpShx(records: Record[]): { shp: Uint8Array; shx: Uint8Array } {
     const numPoints = r.rings.reduce((n, ring) => n + ring.length, 0);
 
     // Record header (.shp).
-    sd.setInt32(off, i + 1, false); // numero record (1-based)
+    sd.setInt32(off, i + 1, false); // number record (1-based)
     sd.setInt32(off + 4, contentWords[i], false);
     let c = off + 8;
     sd.setInt32(c, SHAPE_TYPE_POLYGON, true);

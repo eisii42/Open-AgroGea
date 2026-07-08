@@ -75,7 +75,7 @@ describe("v17 / chiusura campagna e secondo raccolto", () => {
     // Idempotenza: richiudere una campagna chiusa è un no-op.
     assert.equal(await dal.closeCampaign(prima.id), null);
 
-    // Secondo raccolto: nuova semina nello stesso anno → riga NUOVA (la
+    // Secondo raccolto: nuova semina nello stesso anno → row NUOVA (la
     // campagna chiusa non viene riusata né riaperta).
     const seconda = await dal.upsertCampoCampagna({
       plot_id: plotId,

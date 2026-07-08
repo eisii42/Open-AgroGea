@@ -8,7 +8,7 @@
  * così è interamente unit-testabile.
  *
  * Mappa terminologica con la specifica: ciò che la specifica chiama "tenant_id
- * della singola azienda" qui è `company_id` (riga di `companies`). Il
+ * della singola azienda" qui è `company_id` (row di `companies`). Il
  * `tenant_id` resta il workspace dell'abbonato master.
  */
 

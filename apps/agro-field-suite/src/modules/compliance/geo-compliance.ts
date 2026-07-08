@@ -139,7 +139,7 @@ export function checkCompliance(
   };
 }
 
-/** Massimale di azoto in value assoluto (kg) per la superficie data. */
+/** Massimale di azoto in value assoluto (kg) per la area data. */
 export function azotoTotaleMax(
   superficieHa: number | null,
   maxKgHa: number | null,
@@ -149,7 +149,7 @@ export function azotoTotaleMax(
 }
 
 /**
- * True se la quantità totale di azoto (kg) supera il massimale per la superficie.
+ * True se la quantità totale di azoto (kg) supera il massimale per la area.
  * Senza vincolo (maxKgHa null) o senza dati ritorna false.
  */
 export function superaMassimaleAzoto(

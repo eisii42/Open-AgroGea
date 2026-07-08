@@ -776,7 +776,7 @@ interface DatedValue {
 /**
  * Aggrega una metrica idrica per data su più plots. Gli indici idrici
  * (et0/etc/depletion/raw/awc) sono in mm, grandezze INTENSIVE (già per unità di
- * superficie): vanno mediati tra i poligoni, NON sommati (la somma su N campi
+ * area): vanno mediati tra i poligoni, NON sommati (la somma su N campi
  * gonfiava l'ETc — Modulo 1.1). `mode` distingue media (default) da somma.
  */
 function aggregateByDate(

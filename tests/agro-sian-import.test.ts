@@ -4,7 +4,7 @@ import type { Polygon } from "geojson";
 import {
   matchExistingPlot,
   mapSianFeature,
-  numeroItaliano,
+  italianNumber,
   parseCsvRows,
   resolveAreaHa,
 } from "../apps/agro-field-suite/src/services/gis/sian-mapping";
@@ -24,17 +24,17 @@ const QUADRATO: Polygon = {
 
 describe("numeroItaliano", () => {
   it("interpreta la virgola decimale e i separatori di migliaia", () => {
-    assert.equal(numeroItaliano("1.234,56"), 1234.56);
-    assert.equal(numeroItaliano("12,5"), 12.5);
-    assert.equal(numeroItaliano("10"), 10);
-    assert.equal(numeroItaliano("12.34"), 12.34);
-    assert.equal(numeroItaliano(""), null);
-    assert.equal(numeroItaliano("abc"), null);
+    assert.equal(italianNumber("1.234,56"), 1234.56);
+    assert.equal(italianNumber("12,5"), 12.5);
+    assert.equal(italianNumber("10"), 10);
+    assert.equal(italianNumber("12.34"), 12.34);
+    assert.equal(italianNumber(""), null);
+    assert.equal(italianNumber("abc"), null);
   });
 });
 
 describe("risolviSuperficieHa", () => {
-  it("dà priorità alla superficie dichiarata in ettari", () => {
+  it("dà priorità alla area dichiarata in ettari", () => {
     assert.equal(resolveAreaHa({ SUP_HA: "2,5" }), 2.5);
   });
   it("converte un'area in m² quando manca quella in ettari", () => {

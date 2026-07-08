@@ -153,7 +153,7 @@ export class AgroDalRegistry extends AgroDalBase {
     // modo visibile invece di corrompere DB locale e outbox).
     const geometry = normalizeGeometry(input.geometry);
     // Area geodetica ricalcolata dalla geometria a ogni upsert: UNICO punto di
-    // verità per la superficie (NUMERIC 10,4), indipendente dal client.
+    // verità per la area (NUMERIC 10,4), indipendente dal client.
     const area_ha = areaHectares(geometry);
     const row: Plot = {
       created_at: ts,
@@ -175,7 +175,7 @@ export class AgroDalRegistry extends AgroDalBase {
   /**
    * Aggiorna solo la cache NDVI dell'appezzamento (pipeline STAC). Percorso
    * transazionale dato+outbox come ogni scrittura, ma non ricalcola l'area né
-   * tocca la geometria. La riga deve esistere.
+   * tocca la geometria. La row deve esistere.
    */
   async updateMeanNdvi(id: string, meanNdvi: number): Promise<void> {
     const ts = nowIso();
@@ -231,10 +231,10 @@ export class AgroDalRegistry extends AgroDalBase {
       },
   ): Promise<PlotCampaign> {
     const ts = nowIso();
-    // Riusa la riga esistente APERTA (stesso plot+anno) per restare
+    // Riusa la row esistente APERTA (stesso plot+anno) per restare
     // idempotente su re-import del Fascicolo, preservandone id e created_at.
     // Le campagne CHIUSE (closed_at) non si riaprono mai: una nuova semina dopo
-    // il raccolto crea una nuova riga (secondo raccolto nello stesso anno).
+    // il raccolto crea una nuova row (secondo raccolto nello stesso anno).
     const esistente = await this.db.query<PlotCampaign>(
       `select * from plots_campaign
        where plot_id = $1 and campaign_year = $2
@@ -270,8 +270,8 @@ export class AgroDalRegistry extends AgroDalBase {
   /**
    * Chiude il ciclo colturale di una campagna (v17): imposta `closed_at` e
    * il field torna libero (mappa neutra, DSS spento, nuova semina possibile).
-   * Percorso transazionale dato+outbox; no-op se la riga non esiste o è già
-   * chiusa. Ritorna la riga aggiornata o null.
+   * Percorso transazionale dato+outbox; no-op se la row non esiste o è già
+   * chiusa. Ritorna la row aggiornata o null.
    */
   async closeCampaign(
     id: string,

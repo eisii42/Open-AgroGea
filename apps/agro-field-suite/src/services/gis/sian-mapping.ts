@@ -48,7 +48,7 @@ const ALIAS = {
     "uso_suolo",
   ],
   varieta: ["variety_external_code", "cod_var", "cod_varieta", "varieta", "var"],
-  superficie: [
+  area: [
     "superficie_ha",
     "sup_ha",
     "supha",
@@ -82,17 +82,17 @@ function pick(idx: Map<string, unknown>, alias: readonly string[]): unknown {
   return null;
 }
 
-function asCodice(value: unknown): string | null {
+function asCode(value: unknown): string | null {
   if (value == null) return null;
   const s = String(value).trim();
   return s === "" ? null : s;
 }
 
 /**
- * Converte un numero possibilmente in formato italiano (virgola decimale,
+ * Converte un number possibilmente in formato italiano (virgola decimale,
  * separatori di migliaia) in number. Ritorna null se non interpretabile.
  */
-export function numeroItaliano(value: unknown): number | null {
+export function italianNumber(value: unknown): number | null {
   if (value == null) return null;
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
   let s = String(value).trim();
@@ -111,7 +111,7 @@ function arrotonda4(n: number): number {
 }
 
 /**
- * Risolve la superficie in ettari: priorità alla superficie DICHIARATA in ha
+ * Risolve la area in ettari: priorità alla area DICHIARATA in ha
  * negli attributi; in mancanza, converte un'eventuale area in m²; come last
  * spiaggia usa l'area geodetica fornita (già in ha). Mai negativa.
  */
@@ -120,9 +120,9 @@ export function resolveAreaHa(
   areaGeodeticaHa?: number | null,
 ): number {
   const idx = indicizza(props);
-  const dichiarata = numeroItaliano(pick(idx, ALIAS.superficie));
+  const dichiarata = italianNumber(pick(idx, ALIAS.area));
   if (dichiarata != null && dichiarata > 0) return arrotonda4(dichiarata);
-  const mq = numeroItaliano(pick(idx, ALIAS.superficieMq));
+  const mq = italianNumber(pick(idx, ALIAS.superficieMq));
   if (mq != null && mq > 0) return arrotonda4(mq / 10000);
   if (areaGeodeticaHa != null && areaGeodeticaHa > 0) {
     return arrotonda4(areaGeodeticaHa);
@@ -132,7 +132,7 @@ export function resolveAreaHa(
 
 /**
  * Decodifica una singola feature ministeriale in un record di field-campagna.
- * @param areaGeodeticaHa Area calcolata (ha) come fallback per la superficie.
+ * @param areaGeodeticaHa Area calcolata (ha) come fallback per la area.
  */
 export function mapSianFeature(
   props: SianProperties,
@@ -141,10 +141,10 @@ export function mapSianFeature(
 ): SianCampoMappato {
   const idx = indicizza(props);
   return {
-    reference_parcel_external_id: asCodice(pick(idx, ALIAS.isola)),
-    agricultural_parcel_external_id: asCodice(pick(idx, ALIAS.plot)),
-    crop_external_code: asCodice(pick(idx, ALIAS.crop)),
-    variety_external_code: asCodice(pick(idx, ALIAS.varieta)),
+    reference_parcel_external_id: asCode(pick(idx, ALIAS.isola)),
+    agricultural_parcel_external_id: asCode(pick(idx, ALIAS.plot)),
+    crop_external_code: asCode(pick(idx, ALIAS.crop)),
+    variety_external_code: asCode(pick(idx, ALIAS.varieta)),
     superficie_ha: resolveAreaHa(props, areaGeodeticaHa),
     geometria,
   };
@@ -152,7 +152,7 @@ export function mapSianFeature(
 
 /**
  * Parser CSV minimale per i file di interscambio CAA (separatore `;` o `,`,
- * virgolette RFC-4180). Puro: niente DOM. Ritorna una riga di properties per
+ * virgolette RFC-4180). Puro: niente DOM. Ritorna una row di properties per
  * record, pronta per {@link mapSianFeature}.
  */
 export function parseCsvRows(testo: string): SianProperties[] {

@@ -92,7 +92,7 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
   const [warningDays, setWarningDays] = useState(loadExpiryDays);
   const [errore, setErrore] = useState<string | null>(null);
 
-  const prodottoAperto = useMemo(
+  const openProduct = useMemo(
     () => products.find((p) => p.id === prodottoApertoId) ?? null,
     [products, prodottoApertoId],
   );
@@ -139,13 +139,13 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
       title={
         nuovo
           ? t("warehouse.newProduct")
-          : prodottoAperto
-            ? prodottoAperto.name
+          : openProduct
+            ? openProduct.name
             : t("warehouse.title")
       }
       onClose={onClose}
       footer={
-        nuovo || prodottoAperto ? undefined : (
+        nuovo || openProduct ? undefined : (
           <Button
             className="min-h-[var(--touch-min)] w-full"
             onClick={() => setNuovo(true)}
@@ -182,17 +182,17 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
           }}
           onCancel={() => setNuovo(false)}
         />
-      ) : prodottoAperto ? (
+      ) : openProduct ? (
         <ProdottoDettaglio
-          product={prodottoAperto}
-          lots={lotsPerProduct.get(prodottoAperto.id) ?? []}
+          product={openProduct}
+          lots={lotsPerProduct.get(openProduct.id) ?? []}
           warningDays={warningDays}
           onBack={() => setProdottoApertoId(null)}
           onCarica={(input) => conErrore(() => receiveLot(input))}
           onDeleteLotto={(id) => conErrore(() => deleteLot(id))}
           onDeleteProdotto={async () => {
             await conErrore(async () => {
-              await deleteProduct(prodottoAperto.id);
+              await deleteProduct(openProduct.id);
               setProdottoApertoId(null);
             });
           }}

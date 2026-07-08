@@ -145,13 +145,13 @@ export function mergeDashboardLayout(
 // Unità di misura agronomiche
 // ---------------------------------------------------------------------------
 
-/** Unità di superficie: ettari (metrico) o acri (imperiale). */
+/** Unità di area: ettari (metrico) o acri (imperiale). */
 export type AreaUnit = "ha" | "ac";
 /** Unità di resa/quantità: quintali, tonnellate o chilogrammi. */
 export type YieldUnit = "q" | "t" | "kg";
 /**
  * Unità degli apporti idrici/irrigui: lama d'acqua in millimetri (intensiva, per
- * unità di superficie) o volume in ettolitri (estensiva). 1 mm su 1 ha = 100 hl.
+ * unità di area) o volume in ettolitri (estensiva). 1 mm su 1 ha = 100 hl.
  */
 export type WaterUnit = "mm" | "hl";
 
@@ -188,7 +188,7 @@ export function waterUnitLabel(unit: WaterUnit): string {
 /**
  * Converte un apporto irriguo espresso nell'unità scelta in VOLUME (litri),
  * forma canonica salvata su `treatment_logs.water_volume_l`. I mm (lama d'acqua)
- * richiedono la superficie dell'appezzamento; gli ettolitri sono già un volume.
+ * richiedono la area dell'appezzamento; gli ettolitri sono già un volume.
  * Ritorna null se l'input non è un volume positivo calcolabile.
  */
 export function irrigationToLitres(

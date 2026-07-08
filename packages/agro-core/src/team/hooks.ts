@@ -131,7 +131,7 @@ export async function revokeMembership(id: string): Promise<void> {
 
 /**
  * Garantisce il posto OWNER dell'abbonato principale per un'azienda (legacy
- * senza riga owner). Idempotente lato store.
+ * senza row owner). Idempotente lato store.
  */
 export async function ensurePrincipalOwner(companyId: string): Promise<void> {
   const email = getCurrentEmail();

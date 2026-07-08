@@ -96,7 +96,7 @@ export function ModuleSidebar({
 
   // Badge alert Magazzino (v17): lots con stock scaduti o in scadenza.
   const lots = useAgroStore((s) => s.lots);
-  const magazzinoAlerts = lots.filter(
+  const warehouseAlerts = lots.filter(
     (l) =>
       l.deleted_at == null &&
       Number(l.quantity_on_hand) > 0 &&
@@ -311,14 +311,14 @@ export function ModuleSidebar({
             >
               <mod.Icon size={16} className="text-[var(--accent)]" />
               <span className="flex-1">{t(mod.labelKey as never)}</span>
-              {mod.id === "magazzino" && magazzinoAlerts > 0 && (
+              {mod.id === "magazzino" && warehouseAlerts > 0 && (
                 <span
                   title={t("moduleSidebar.warehouseAlerts", {
-                    count: magazzinoAlerts,
+                    count: warehouseAlerts,
                   })}
                   className="rounded-full bg-[var(--warn-l)] px-1.5 text-[10px] font-semibold text-[var(--warn)]"
                 >
-                  {magazzinoAlerts} ⚠
+                  {warehouseAlerts} ⚠
                 </span>
               )}
               <ChevronRight

@@ -139,7 +139,7 @@ function phenologicalPhase(plot: Plot): PhenologicalPhase {
 const GIORNI_FINESTRA = 430;
 
 /** Valore numerico finito da un metadata (string/number), altrimenti undefined. */
-function numeroMeta(value: unknown): number | undefined {
+function metaNumber(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string") {
     const n = Number(value.replace(",", "."));
@@ -212,7 +212,7 @@ async function computePlot(
   const cropRecord = campagna
     ? crops.find((c) => c.id === campagna.crop_id) ?? null
     : null;
-  const profonditaRadiciCrop = numeroMeta(
+  const profonditaRadiciCrop = metaNumber(
     cropRecord?.crop_metadata?.profondita_radici,
   );
   const treatments = await dal.listTreatments(activeCompanyId, {
@@ -240,7 +240,7 @@ async function computePlot(
   //    fallback sulle readings già in PGlite.
   let series: DssWeatherDay[];
   let meteo: DssWeatherInfo;
-  let lettureRaw: WeatherReading[] = [];
+  let rawReadings: WeatherReading[] = [];
   try {
     const res = await WeatherSyncService.assicuraDatiMeteo({
       dal,
@@ -248,7 +248,7 @@ async function computePlot(
       appezzamentoPrincipale: plot,
       config: weatherConfig,
     });
-    lettureRaw = res.readings;
+    rawReadings = res.readings;
     series = buildDssSeries(res.readings);
     meteo = {
       fetched: res.fetched,
@@ -264,7 +264,7 @@ async function computePlot(
       dopo,
       limit: 30_000,
     });
-    lettureRaw = readings;
+    rawReadings = readings;
     series = buildDssSeries(readings);
     meteo = {
       fetched: false,
@@ -282,14 +282,14 @@ async function computePlot(
   let balanceSeries: WaterIndexDay[] = [];
   let statoIdrico: FieldWaterStatus | undefined;
   let soil: ResolvedSoilParameters | null = null;
-  if (!opzioni.skipWaterBalance && lettureRaw.length > 0) {
+  if (!opzioni.skipWaterBalance && rawReadings.length > 0) {
     const soilSamples = await dal.listSoilSamples(activeCompanyId);
     soil = await new SoilDataResolver().risolvi(plot, soilSamples, {
       mappaCustom: opzioni.mappaCustom,
       profonditaRadiciM: profonditaRadiciCrop,
     });
     const out = computeWaterBalance({
-      readings: lettureRaw,
+      readings: rawReadings,
       irrigazioni: irrigationInputsFromTreatments(treatments, plot.area_ha),
       crop: module.mainSpecies,
       phase: phenologicalPhase(plot),
