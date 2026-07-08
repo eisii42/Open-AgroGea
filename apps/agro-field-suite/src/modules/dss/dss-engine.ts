@@ -19,7 +19,7 @@ import type { DssContext } from "../crops";
  * 0.0 (nullo) → 1.0 (critico). Non duplica logica: aggrega e normalizza.
  *
  * Puro (oggetti/array): testabile sotto `node --test`. Lo stato del pannello e
- * la persistenza vivono nel hook `useDssCalcolo`.
+ * la persistenza vivono nel hook `useDssCalculation`.
  */
 
 export type CategoriaRischio = "fitopatologico" | "idrico";
@@ -36,7 +36,7 @@ export interface VettoreRischioDss {
 }
 
 /** Stato idrico sintetico in ingresso al motore (dal bilancio FAO 66). */
-export interface StatoIdricoCampo {
+export interface FieldWaterStatus {
   depletion: number;
   raw: number;
   awc: number;
@@ -56,7 +56,7 @@ export const KY_DEFAULT: Record<CropType, number> = {
 };
 
 /** Ky di default della coltura (fallback prudente 1.0). */
-export function kyColtura(coltura: CropType): number {
+export function cropKy(coltura: CropType): number {
   return KY_DEFAULT[coltura] ?? 1.0;
 }
 
@@ -66,7 +66,7 @@ export function kyColtura(coltura: CropType): number {
  * 1 fino al punto di appassimento (AWC). Lo 0.5 marca quindi l'ingresso in
  * stress idrico, coerentemente con la legenda della mappa DSS.
  */
-export function rischioIdrico01(stato: StatoIdricoCampo): number {
+export function waterRisk01(stato: FieldWaterStatus): number {
   const { depletion, raw, awc } = stato;
   if (raw <= 0 || awc <= raw) {
     return depletion > 0 ? 1 : 0;
@@ -78,19 +78,19 @@ export function rischioIdrico01(stato: StatoIdricoCampo): number {
 }
 
 /** true se il campo è in stress idrico (Dr ≥ RAW). */
-export function inStressIdrico(stato: StatoIdricoCampo): boolean {
+export function underWaterStress(stato: FieldWaterStatus): boolean {
   return stato.depletion >= stato.raw;
 }
 
 /** Costruisce il vettore di stress idrico (riduzione resa via Ky, FAO 66). */
-export function vettoreStressIdrico(
-  stato: StatoIdricoCampo,
+export function waterStressVector(
+  stato: FieldWaterStatus,
   coltura: CropType,
 ): VettoreRischioDss {
-  const rischio01 = rischioIdrico01(stato);
-  const ky = kyColtura(coltura);
+  const rischio01 = waterRisk01(stato);
+  const ky = cropKy(coltura);
   const perditaResa = yieldReductionFao66(stato.depletion, stato.raw, stato.awc, ky);
-  const stress = inStressIdrico(stato);
+  const stress = underWaterStress(stato);
   return {
     id: "stress-idrico",
     categoria: "idrico",
@@ -129,16 +129,16 @@ export interface EsitoDssEngine {
  * se fornito lo stato idrico, il vettore di stress idrico. Il risk
  * complessivo è il massimo dei vettori (il fattore limitante guida la decisione).
  */
-export function eseguiDssEngine(
+export function runDssEngine(
   modulo: CropModule,
   series: DssWeatherDay[],
   context?: DssContext,
-  statoIdrico?: StatoIdricoCampo,
+  statoIdrico?: FieldWaterStatus,
 ): EsitoDssEngine {
   const esiti = runDssModule(modulo, series, context);
   const vettori = vettoriPatologici(esiti);
   if (statoIdrico) {
-    vettori.push(vettoreStressIdrico(statoIdrico, modulo.mainSpecies));
+    vettori.push(waterStressVector(statoIdrico, modulo.mainSpecies));
   }
   const rischioComplessivo01 = vettori.reduce(
     (max, v) => Math.max(max, v.rischio01),

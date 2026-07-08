@@ -72,7 +72,7 @@ export const ETICHETTE_TIPO_IT: Record<string, string> = {
   sampling: "Campionamento",
 };
 
-function etichettaTipoOperazione(
+function operationTypeLabel(
   op: OperationType,
   ctx?: SianColumnContext,
 ): string {
@@ -105,7 +105,7 @@ export const COLONNE_SIAN: SianColumn[] = [
     label: "Tipo operazione",
     // Etichetta leggibile (mai il codice interno inglese): default italiano,
     // sovrascrivibile con la lingua attiva dalla UI.
-    value: (t, _a, _c, ctx) => etichettaTipoOperazione(t.operation_type, ctx),
+    value: (t, _a, _c, ctx) => operationTypeLabel(t.operation_type, ctx),
   },
   { id: "prodotto", label: "Product", value: (t) => t.product_name ?? "" },
   {
@@ -276,7 +276,7 @@ export const CONFIG_SIAN_DEFAULT: SianExportConfig = {
  * azienda" (senza appezzamento) sono escluse quando si filtra per appezzamento
  * o coltura, perché non hanno un riferimento spaziale da confrontare.
  */
-export function filtraTrattamentiSian(
+export function filterSianTreatments(
   treatments: TreatmentLog[],
   plots: Plot[],
   filtri: SianFiltri,
@@ -325,7 +325,7 @@ export function risolviColonne(ids: string[]): SianColumn[] {
  * scheda coltura DOPO la registrazione (o su operazioni non agganciate, come la
  * semina con auto-assegnazione) compaiono comunque nell'export.
  */
-function risolviCampo(
+function resolveField(
   t: TreatmentLog,
   perCampoId: Map<string, PlotCampaign>,
   perPlotAnno: Map<string, PlotCampaign[]>,
@@ -346,7 +346,7 @@ function risolviCampo(
 /**
  * Genera il testo CSV dal registro (già filtrato) secondo la config. La
  * campagna agraria si risolve via `plot_campaign_id` con FALLBACK per
- * appezzamento+anno (vedi {@link risolviCampo}): i codici ministeriali seguono
+ * appezzamento+anno (vedi {@link resolveField}): i codici ministeriali seguono
  * lo stato di campagna corrente, non una fotografia al momento dell'operazione.
  */
 export function buildSianCsv(
@@ -374,7 +374,7 @@ export function buildSianCsv(
   const sep = config.separatore;
   const righe = treatments.map((t) => {
     const app = t.plot_id ? perId.get(t.plot_id) : undefined;
-    const campo = risolviCampo(t, perCampo, perPlotAnno);
+    const campo = resolveField(t, perCampo, perPlotAnno);
     return cols.map((c) => csvCell(c.value(t, app, campo, ctx), sep)).join(sep);
   });
   const lines = config.includiIntestazioni

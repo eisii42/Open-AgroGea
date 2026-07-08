@@ -215,7 +215,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
    * Sostituisce in transazione i risultati cache dei modelli passati per un
    * appezzamento: semantica "ultimo valore per modello".
    */
-  async salvaDssRisultati(
+  async saveDssResults(
     plotId: string,
     risultati: Array<
       Pick<DssResult, "model_name" | "risk_level" | "output_value"> & {
@@ -282,7 +282,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
    * la semantica è "rimpiazza tutto per plot_campaign_id" (come dss_results per
    * modello). Local-only: nessuna voce di outbox.
    */
-  async salvaIndiciIdrici(
+  async saveWaterIndices(
     plotCampaignId: string,
     righe: Array<
       Omit<SoilWaterIndex, "id" | "plot_campaign_id" | "calculated_at"> & {

@@ -23,7 +23,7 @@ import {
 import {
   AVVERSITA_PAN,
   type CampoCampagnaOption,
-  type ComplianceTrattamento,
+  type ComplianceTreatment,
   type TrattamentoFormValues,
 } from "@agrogea/ui";
 import { Button, cn, Input, Label, Select } from "@geolibre/ui";
@@ -176,7 +176,7 @@ export function operazioneSpec(type: OperationType): OperazioneSpec {
 }
 
 /** Input del campionamento suolo emesso dal form (verso `soil_samples`). */
-export type CampionamentoSuoloInput = Omit<
+export type SoilSampleInput = Omit<
   SoilSample,
   "id" | "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
 >;
@@ -198,7 +198,7 @@ interface ScaricoRow {
  * di una semente (automazione v17): il chiamante (LogbookPanel) crea
  * `crops` + `plots_campaign` dopo la registrazione dell'operazione.
  */
-export interface AssegnazioneColtura {
+export interface CropAssignment {
   plotId: string;
   /** Nome comune della specie (dall'anagrafica semente o dal nome prodotto). */
   species: string;
@@ -254,7 +254,7 @@ export interface OperazioneFormProps {
    */
   prodottiMagazzino?: Product[];
   lottiMagazzino?: ProductLot[];
-  valutaCompliance?: (appezzamento: Plot) => ComplianceTrattamento | null;
+  valutaCompliance?: (appezzamento: Plot) => ComplianceTreatment | null;
   defaultAppezzamentoId?: string | null;
   /**
    * Salvataggio dell'operazione; `scarichi` non vuoto attiva lo scarico
@@ -265,10 +265,10 @@ export interface OperazioneFormProps {
   onSubmit: (
     values: TrattamentoFormValues,
     scarichi?: IssueRequest[],
-    assegnazione?: AssegnazioneColtura | null,
+    assegnazione?: CropAssignment | null,
   ) => Promise<void> | void;
   /** Salvataggio del campionamento di suolo (tabella dedicata). */
-  onSubmitSoil?: (input: CampionamentoSuoloInput) => Promise<void> | void;
+  onSubmitSoil?: (input: SoilSampleInput) => Promise<void> | void;
   onCancel?: () => void;
   /**
    * Valori iniziali per "Ripeti operazione": precompila i campi dal record
@@ -295,7 +295,7 @@ export function OperationForm({
   const { t } = useTranslation();
   const spec = operazioneSpec(operationType);
   const f = spec.fields;
-  const usaCampagna = (campaignFields?.length ?? 0) > 0;
+  const usesCampaign = (campaignFields?.length ?? 0) > 0;
   const catalogo =
     f.product === "phyto"
       ? prodottiCatalogo
@@ -311,7 +311,7 @@ export function OperationForm({
   const initialApp = defaultAppezzamentoId || defaults?.plot_id || "";
   const [plotId, setAppezzamentoId] = useState(initialApp);
   const [campoCampagnaId, setCampoCampagnaId] = useState(() => {
-    if (!usaCampagna || !initialApp) return "";
+    if (!usesCampaign || !initialApp) return "";
     return (
       campaignFields?.find((c) => c.plotId === initialApp)
         ?.campoCampagnaId ?? ""
@@ -462,7 +462,7 @@ export function OperationForm({
   ]);
   const mancano = panErrors.length > 0;
   // Per il campione di suolo serve un campo georeferenziato (centroid = posizione).
-  const soilSenzaCampo = soilMode && !appezzamento;
+  const soilWithoutField = soilMode && !appezzamento;
 
   // -- Magazzino (0.2.0): categoria pertinente e validazione righe scarico ----
   const categoriaMagazzino = categoryForOperation(operationType);
@@ -545,28 +545,28 @@ export function OperationForm({
 
   // -- automazione semina → coltura di campagna (v17) -------------------------
   const activeCampaign = useAgroStore((s) => s.activeCampaign);
-  const seedProdotto =
+  const seedProduct =
     operationType === "sowing"
       ? prodottiCategoria.find((p) => p.id === scarichiRows[0]?.productId) ?? null
       : null;
   // Il campo scelto non ha una campagna APERTA per l'annata: la semina può
   // assegnargli la coltura (crops + plots_campaign) automaticamente.
-  const plotSenzaCampagna = Boolean(
+  const plotWithoutCampaign = Boolean(
     plotId &&
       !(campaignFields ?? []).some((c) => c.plotId === plotId),
   );
   const [assegnaColtura, setAssegnaColtura] = useState(true);
-  const proponiAssegnazione = Boolean(
-    seedProdotto && plotId && plotSenzaCampagna,
+  const proposeAssignment = Boolean(
+    seedProduct && plotId && plotWithoutCampaign,
   );
-  const metaSeed = (seedProdotto?.metadata ?? {}) as Record<string, unknown>;
+  const metaSeed = (seedProduct?.metadata ?? {}) as Record<string, unknown>;
   const metaSeedStr = (key: string): string | null => {
     const v = metaSeed[key];
     return typeof v === "string" && v.trim() ? v.trim() : null;
   };
-  const speciesName = metaSeedStr("species") ?? seedProdotto?.name ?? "";
-  const assegnazione: AssegnazioneColtura | null =
-    proponiAssegnazione && assegnaColtura && superficie != null
+  const speciesName = metaSeedStr("species") ?? seedProduct?.name ?? "";
+  const assegnazione: CropAssignment | null =
+    proposeAssignment && assegnaColtura && superficie != null
       ? {
           plotId: plotId,
           species: speciesName,
@@ -581,16 +581,16 @@ export function OperationForm({
         }
       : null;
 
-  const canSubmit = !saving && !mancano && !soilSenzaCampo && !scarichiIncompleti;
+  const canSubmit = !saving && !mancano && !soilWithoutField && !scarichiIncompleti;
 
-  function selezionaCampagna(value: string) {
+  function selectCampaign(value: string) {
     setCampoCampagnaId(value);
     setAppezzamentoId(
       campaignFields?.find((c) => c.campoCampagnaId === value)?.plotId ?? "",
     );
   }
 
-  function selezionaProdotto(codice: string) {
+  function selectProduct(codice: string) {
     setProdottoCodice(codice);
     const voce = catalogo?.find((p) => p.code === codice);
     setProdotto(voce?.name ?? "");
@@ -604,7 +604,7 @@ export function OperationForm({
 
   // -- righe scarico magazzino ------------------------------------------------
 
-  function aggiornaScarico(index: number, patch: Partial<ScaricoRow>) {
+  function updateIssue(index: number, patch: Partial<ScaricoRow>) {
     setScarichiRows((rows) =>
       rows.map((row, i) => {
         if (i !== index) return row;
@@ -661,7 +661,7 @@ export function OperationForm({
     }
   }
 
-  function rimuoviScarico(index: number) {
+  function removeIssue(index: number) {
     setScarichiRows((rows) => rows.filter((_, i) => i !== index));
   }
 
@@ -799,10 +799,10 @@ export function OperationForm({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="op-app">
-            {usaCampagna ? t("logbook.common.fieldCampaign") : t("logbook.common.plot")}
+            {usesCampaign ? t("logbook.common.fieldCampaign") : t("logbook.common.plot")}
           </Label>
-          {usaCampagna ? (
-            <Select id="op-app" value={campoCampagnaId} onChange={(e) => selezionaCampagna(e.target.value)}>
+          {usesCampaign ? (
+            <Select id="op-app" value={campoCampagnaId} onChange={(e) => selectCampaign(e.target.value)}>
               <option value="">
                 {soilMode ? t("logbook.common.select") : t("logbook.common.wholeFarm")}
               </option>
@@ -844,7 +844,7 @@ export function OperationForm({
         </div>
       )}
 
-      {soilSenzaCampo && (
+      {soilWithoutField && (
         <p className="rounded-[var(--r-2)] bg-[var(--warn-l)] px-3 py-2 text-xs text-[var(--warn)]">
           {t("operazioneForm.selectPlotForSoilSample")}
         </p>
@@ -916,7 +916,7 @@ export function OperationForm({
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="op-prod">{productLabel}</Label>
           {usaCatalogo ? (
-            <Select id="op-prod" value={prodottoCodice} onChange={(e) => selezionaProdotto(e.target.value)}>
+            <Select id="op-prod" value={prodottoCodice} onChange={(e) => selectProduct(e.target.value)}>
               <option value="">{t("operazioneForm.selectFromNationalRegister")}</option>
               {catalogo?.map((p) => (
                 <option key={p.code} value={p.code}>
@@ -947,7 +947,7 @@ export function OperationForm({
             const prodottoSel = prodottiCategoria.find(
               (p) => p.id === row.productId,
             );
-            const lottiProdotto = (lottiMagazzino ?? []).filter(
+            const productLots = (lottiMagazzino ?? []).filter(
               (l) => l.product_id === row.productId,
             );
             const lottoSel = lottoById.get(row.lotId) ?? null;
@@ -966,7 +966,7 @@ export function OperationForm({
                       id={`op-mag-prod-${index}`}
                       value={row.productId}
                       onChange={(e) =>
-                        aggiornaScarico(index, { productId: e.target.value })
+                        updateIssue(index, { productId: e.target.value })
                       }
                     >
                       <option value="">{t("operazioneForm.selectEllipsis")}</option>
@@ -994,12 +994,12 @@ export function OperationForm({
                       id={`op-mag-lotto-${index}`}
                       value={row.lotId}
                       onChange={(e) =>
-                        aggiornaScarico(index, { lotId: e.target.value })
+                        updateIssue(index, { lotId: e.target.value })
                       }
                       disabled={!row.productId}
                     >
                       <option value="">{t("operazioneForm.selectEllipsis")}</option>
-                      {lottiProdotto.map((l) => {
+                      {productLots.map((l) => {
                         const stato = expiryStatus(l.expires_at);
                         const scaduto = stato === "expired";
                         return (
@@ -1020,7 +1020,7 @@ export function OperationForm({
                         );
                       })}
                     </Select>
-                    {row.productId && lottiProdotto.length === 0 && (
+                    {row.productId && productLots.length === 0 && (
                       <p className="text-[11px] text-[var(--warn)]">
                         {t("operazioneForm.warehouseNoLots")}
                       </p>
@@ -1043,7 +1043,7 @@ export function OperationForm({
                       max={disponibile ?? undefined}
                       value={row.quantity}
                       onChange={(e) =>
-                        aggiornaScarico(index, { quantity: e.target.value })
+                        updateIssue(index, { quantity: e.target.value })
                       }
                       className="agro-num"
                     />
@@ -1059,7 +1059,7 @@ export function OperationForm({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => rimuoviScarico(index)}
+                    onClick={() => removeIssue(index)}
                     className="min-h-[40px] px-2 text-xs"
                   >
                     {t("operazioneForm.warehouseRemoveRow")}
@@ -1079,15 +1079,15 @@ export function OperationForm({
                     totalePrevisto > 0 &&
                     prodottoSel?.unit === baseDose &&
                     Math.abs(qty - totalePrevisto) / totalePrevisto > 0.05;
-                  const oltreLotto =
+                  const exceedsLot =
                     disponibile != null && qty > disponibile;
                   const copribile =
-                    oltreLotto &&
+                    exceedsLot &&
                     lottiUtilizzabili(row.productId).reduce(
                       (s, l) => s + Number(l.quantity_on_hand),
                       0,
                     ) >= qty;
-                  if (!doseEffettiva && !scostamento && !oltreLotto) return null;
+                  if (!doseEffettiva && !scostamento && !exceedsLot) return null;
                   return (
                     <div className="flex flex-wrap items-center gap-2 text-[11px]">
                       {doseEffettiva != null && f.dose && (
@@ -1138,7 +1138,7 @@ export function OperationForm({
 
       {/* Automazione v17: la semina di una semente su un campo senza coltura
           propone di creare scheda coltura + campagna agraria in automatico. */}
-      {proponiAssegnazione && (
+      {proposeAssignment && (
         <label className="flex items-start gap-2 rounded-[var(--r-2)] border border-[var(--accent-bd)] bg-[var(--accent-l)] px-3 py-2">
           <input
             type="checkbox"

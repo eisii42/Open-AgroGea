@@ -11,14 +11,14 @@
 import type { Plot, SoilSample } from "@agrogea/core";
 
 /** Variabili chimiche del campionamento usabili come asse X dello scatter. */
-export type VariabileSuolo =
+export type SoilVariable =
   | "ph"
   | "organic_matter"
   | "nitrogen"
   | "phosphorus"
   | "potassium";
 
-export const ETICHETTE_VARIABILE: Record<VariabileSuolo, string> = {
+export const ETICHETTE_VARIABILE: Record<SoilVariable, string> = {
   ph: "pH",
   organic_matter: "Sostanza organica (%)",
   nitrogen: "Azoto (N)",
@@ -27,7 +27,7 @@ export const ETICHETTE_VARIABILE: Record<VariabileSuolo, string> = {
 };
 
 /** Un punto dello scatter: chimica del suolo (X) vs ultimo NDVI medio (Y). */
-export interface PuntoScatterSuolo {
+export interface SoilScatterPoint {
   plotId: string;
   name: string;
   /** Media della variabile chimica sui soilSamples dell'appezzamento. */
@@ -44,9 +44,9 @@ function media(values: number[]): number | null {
 }
 
 /** Media per appezzamento di una variabile chimica (ignora i valori nulli). */
-export function mediaCampionamentiPerAppezzamento(
+export function meanSoilSamplesPerPlot(
   soilSamples: SoilSample[],
-  variabile: VariabileSuolo,
+  variabile: SoilVariable,
 ): Map<string, { media: number; n: number }> {
   const byApz = new Map<string, number[]>();
   for (const c of soilSamples) {
@@ -73,10 +73,10 @@ export function mediaCampionamentiPerAppezzamento(
 export function buildNdviScatter(
   plots: Plot[],
   soilSamples: SoilSample[],
-  variabile: VariabileSuolo,
-): PuntoScatterSuolo[] {
-  const medie = mediaCampionamentiPerAppezzamento(soilSamples, variabile);
-  const punti: PuntoScatterSuolo[] = [];
+  variabile: SoilVariable,
+): SoilScatterPoint[] {
+  const medie = meanSoilSamplesPerPlot(soilSamples, variabile);
+  const punti: SoilScatterPoint[] = [];
   for (const apz of plots) {
     const ndvi = apz.last_ndvi_mean;
     const chim = medie.get(apz.id);
@@ -97,7 +97,7 @@ export function buildNdviScatter(
  * leggere il legame NDVI↔chimica. Restituisce null con meno di 2 punti o
  * varianza nulla (correlazione indefinita).
  */
-export function correlazionePearson(punti: PuntoScatterSuolo[]): number | null {
+export function correlazionePearson(punti: SoilScatterPoint[]): number | null {
   const n = punti.length;
   if (n < 2) return null;
   const mx = punti.reduce((s, p) => s + p.x, 0) / n;

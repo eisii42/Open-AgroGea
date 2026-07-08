@@ -20,7 +20,7 @@ import { useCountryCatalog } from "../../hooks/useTenantCountry";
 import { ConfirmDeleteOperation } from "./ConfirmDeleteOperation";
 import { OperationDetailCard } from "./OperationDetailCard";
 import {
-  type AssegnazioneColtura,
+  type CropAssignment,
   OPERAZIONI,
   OperationForm,
   operazioneSpec,
@@ -86,7 +86,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   // SIAN). Solo campagne APERTE: quelle chiuse dal raccolto (v17) non sono più
   // un target valido per nuove operazioni, e il campo risulta "senza coltura"
   // (abilita l'auto-assegnazione alla semina).
-  const campiCampagnaOptions = useMemo<CampoCampagnaOption[]>(
+  const campaignFieldOptions = useMemo<CampoCampagnaOption[]>(
     () =>
       campaignFields
         .filter((c) => c.closed_at == null && c.deleted_at == null)
@@ -121,7 +121,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   // "Ripeti operazione" (v17): riapre il form del tipo giusto precompilato dal
   // record esistente; la data resta oggi e gli scarichi si riscelgono sui
   // lots attuali del magazzino.
-  function ripetiOperazione(op: TreatmentLog) {
+  function repeatOperation(op: TreatmentLog) {
     setFormDefaults({
       plot_id: op.plot_id,
       plot_campaign_id: op.plot_campaign_id,
@@ -181,7 +181,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   async function handleSubmit(
     values: TrattamentoFormValues,
     scarichi?: IssueRequest[],
-    assegnazione?: AssegnazioneColtura | null,
+    assegnazione?: CropAssignment | null,
   ) {
     await recordTreatment(values, scarichi);
     if (assegnazione) {
@@ -232,14 +232,14 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   }, [notifica]);
 
   /** Etichetta sintetica dell'operazione, per il banner di conferma. */
-  function etichettaOperazione(t: TreatmentLog): string {
+  function operationLabel(t: TreatmentLog): string {
     const data = new Date(t.executed_at).toLocaleDateString("it-IT");
     return `${t.product_name ?? t.operation_type} · ${data}`;
   }
 
   async function confermaEliminazione() {
     if (!daEliminare) return;
-    const etichetta = etichettaOperazione(daEliminare);
+    const etichetta = operationLabel(daEliminare);
     await deleteTreatment(daEliminare.id);
     setDaEliminare(null);
     setNotifica(t("quadernoPanel.notification.removed", { label: etichetta }));
@@ -310,7 +310,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
           key={formNonce}
           operationType={formType}
           plots={plots}
-          campaignFields={campiCampagnaOptions}
+          campaignFields={campaignFieldOptions}
           prodottiCatalogo={fitosanitari}
           concimiCatalogo={concimi}
           prodottiMagazzino={products}
@@ -488,7 +488,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
                     {/* "Ripeti operazione": form precompilato con data = oggi. */}
                     <button
                       type="button"
-                      onClick={() => ripetiOperazione(trattamento)}
+                      onClick={() => repeatOperation(trattamento)}
                       title={t("quadernoPanel.list.repeatOperation")}
                       aria-label={t("quadernoPanel.list.repeatOperation")}
                       className="flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-[var(--r-2)] text-[var(--accent)] hover:bg-[var(--accent-l)]"
@@ -501,7 +501,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
                       onClick={() => setDaEliminare(trattamento)}
                       title={t("quadernoPanel.list.deleteOperation")}
                       aria-label={t("quadernoPanel.list.deleteAriaLabel", {
-                        label: etichettaOperazione(trattamento),
+                        label: operationLabel(trattamento),
                       })}
                       className="flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-[var(--r-2)] text-[#dc2626] hover:bg-[var(--danger-l,#fee2e2)]"
                     >
@@ -517,7 +517,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
 
       <ConfirmDeleteOperation
         open={daEliminare != null}
-        etichetta={daEliminare ? etichettaOperazione(daEliminare) : ""}
+        etichetta={daEliminare ? operationLabel(daEliminare) : ""}
         onConfirm={confermaEliminazione}
         onClose={() => setDaEliminare(null)}
       />

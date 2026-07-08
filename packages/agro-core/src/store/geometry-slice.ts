@@ -25,7 +25,7 @@ export function createGeometrySlice(
       const { dal, activeCompanyId, syncRouter, plots } = get();
       if (!dal || !activeCompanyId) return null;
       // L'area geodetica (area_ha) è calcolata dal DAL dalla geometria.
-      const record = await dal.upsertAppezzamento({
+      const record = await dal.upsertPlot({
         id: attrs.id ?? uuidv4(),
         company_id: activeCompanyId,
         user_plot_name: attrs.name ?? `Plot ${plots.length + 1}`,
@@ -150,13 +150,13 @@ export function createGeometrySlice(
       const { dal, syncRouter } = get();
       if (!dal) return;
       if (kind === "appezzamento") {
-        await dal.deleteAppezzamento(id);
+        await dal.deletePlot(id);
         set((s) => ({ plots: s.plots.filter((a) => a.id !== id) }));
       } else if (kind === "infrastruttura") {
         await dal.deleteAsset(id);
         set((s) => ({ assets: s.assets.filter((a) => a.id !== id) }));
       } else {
-        await dal.deleteCampionamento(id);
+        await dal.deleteSoilSample(id);
         set((s) => ({
           soilSamples: s.soilSamples.filter((c) => c.id !== id),
         }));
@@ -179,7 +179,7 @@ export function createGeometrySlice(
       if (!dal) return;
       const existing = get().plots.find((a) => a.id === id);
       if (!existing) return;
-      const record = await dal.upsertAppezzamento({ ...existing, ...patch });
+      const record = await dal.upsertPlot({ ...existing, ...patch });
       set((s) => ({
         plots: [
           ...s.plots.filter((a) => a.id !== record.id),

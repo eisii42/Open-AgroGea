@@ -87,7 +87,7 @@ export function CropDataForm({
     let vivo = true;
     if (!dal || !activeCompanyId) return;
     void dal
-      .listTrattamenti(activeCompanyId, { plotId: appezzamento.id, limit: 200 })
+      .listTreatments(activeCompanyId, { plotId: appezzamento.id, limit: 200 })
       .then((rows) => {
         if (!vivo) return;
         const semina = rows.find((t) => t.operation_type === "sowing");

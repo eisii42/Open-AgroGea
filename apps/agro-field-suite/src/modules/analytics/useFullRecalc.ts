@@ -1,9 +1,9 @@
 import { cropForPlot, useAgroStore } from "@agrogea/core";
 import { useCallback, useRef, useState } from "react";
-import { useDssCalcolo } from "../../hooks/useDssCalculation";
+import { useDssCalculation } from "../../hooks/useDssCalculation";
 import {
-  type OpzioniSuolo,
-  useSuoloPipeline,
+  type SoilOptions,
+  useSoilPipeline,
 } from "../../hooks/useSoilPipeline";
 import { cropModuleForCrop } from "../crops";
 
@@ -39,7 +39,7 @@ const IDLE: FullRecalcState = {
 
 // "Calcola tutto" rinfresca l'NDVI (vigore) sull'ultima scena utile: sufficiente
 // per l'anomalia ΔNDVI e per i KPI; l'utente può poi approfondire dal modulo Suolo.
-const SUOLO_OPZIONI: OpzioniSuolo = {
+const SUOLO_OPZIONI: SoilOptions = {
   indici: ["ndvi"],
   indicePrimario: "ndvi",
   cloudCoverMax: 20,
@@ -47,8 +47,8 @@ const SUOLO_OPZIONI: OpzioniSuolo = {
 };
 
 export function useFullRecalc(onDone?: () => void) {
-  const suolo = useSuoloPipeline();
-  const dss = useDssCalcolo();
+  const suolo = useSoilPipeline();
+  const dss = useDssCalculation();
   const [state, setState] = useState<FullRecalcState>(IDLE);
   const runningRef = useRef(false);
 

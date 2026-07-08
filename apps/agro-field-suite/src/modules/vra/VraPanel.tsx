@@ -74,7 +74,7 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
   const apz = plots.find((a) => a.id === apzId);
   const unita = UNITA_LAVORAZIONE[lavorazione];
   const inCorso = stato.fase === "lavorazione";
-  const puoGenerare = apz != null && !inCorso;
+  const canGenerate = apz != null && !inCorso;
 
   return (
     <FieldSheet
@@ -83,7 +83,7 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
       footer={
         <Button
           className="min-h-[var(--touch-min)] w-full"
-          disabled={!puoGenerare}
+          disabled={!canGenerate}
           onClick={() => {
             if (!apz) return;
             reset();

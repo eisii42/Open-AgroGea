@@ -8,9 +8,9 @@ import {
   type SoilParameters,
 } from "@agrogea/tools";
 import {
-  apportiIrriguiDaTrattamenti,
-  apportoIrriguoMm,
-  calcolaBilancioIdrico,
+  irrigationInputsFromTreatments,
+  irrigationInputMm,
+  computeWaterBalance,
 } from "../apps/agro-field-suite/src/modules/dss/water-balance";
 
 /**
@@ -132,11 +132,11 @@ function lettura(
   };
 }
 
-describe("apportoIrriguoMm / apportiIrriguiDaTrattamenti", () => {
+describe("irrigationInputMm / irrigationInputsFromTreatments", () => {
   it("10 000 L su 1 ha = 1 mm; ignora aree non valide", () => {
-    assert.equal(apportoIrriguoMm(10_000, 1), 1);
-    assert.equal(apportoIrriguoMm(50_000, 2), 2.5);
-    assert.equal(apportoIrriguoMm(10_000, 0), 0);
+    assert.equal(irrigationInputMm(10_000, 1), 1);
+    assert.equal(irrigationInputMm(50_000, 2), 2.5);
+    assert.equal(irrigationInputMm(10_000, 0), 0);
   });
 
   it("estrae solo i treatments di tipo irrigation con volume", () => {
@@ -157,21 +157,21 @@ describe("apportoIrriguoMm / apportiIrriguiDaTrattamenti", () => {
         executed_at: "2026-06-03T08:00:00Z",
       },
     ] as unknown as TreatmentLog[];
-    const apporti = apportiIrriguiDaTrattamenti(treatments, 2);
+    const apporti = irrigationInputsFromTreatments(treatments, 2);
     assert.equal(apporti.length, 1);
     assert.equal(apporti[0].data, "2026-06-01");
     assert.equal(apporti[0].mm, 1); // 20000 / (2 ha · 10000)
   });
 });
 
-describe("calcolaBilancioIdrico — composizione end-to-end", () => {
+describe("computeWaterBalance — composizione end-to-end", () => {
   it("produce una riga per day con ETc = ET0·Kc e bilancio coerente", () => {
     const letture = [
       lettura("2026-06-01", { rain_mm: 0 }),
       lettura("2026-06-02", { rain_mm: 5 }),
       lettura("2026-06-03", { rain_mm: 0 }),
     ];
-    const out = calcolaBilancioIdrico({
+    const out = computeWaterBalance({
       letture,
       irrigazioni: [{ data: "2026-06-03", mm: 4 }],
       coltura: "vite",

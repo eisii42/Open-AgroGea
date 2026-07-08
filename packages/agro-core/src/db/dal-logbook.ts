@@ -29,7 +29,7 @@ const ETICHETTE_OPERAZIONE: Record<string, string> = {
 export class AgroDalLogbook extends AgroDalRegistry {
   // -- registro treatments (Quaderno di Campagna) ---------------------------
 
-  async insertTrattamento(
+  async insertTreatment(
     input: Omit<
       TreatmentLog,
       "id" | "tenant_id" | "created_at" | "updated_at" | "deleted_at"
@@ -56,11 +56,11 @@ export class AgroDalLogbook extends AgroDalRegistry {
    * Soft-delete di una singola operazione del Quaderno: marca `deleted_at` e
    * accoda la mutazione di delete nello stesso percorso transazionale dato+outbox.
    */
-  async deleteTrattamento(id: string): Promise<void> {
+  async deleteTreatment(id: string): Promise<void> {
     await this.softDelete("treatment_logs", id);
   }
 
-  async listTrattamenti(
+  async listTreatments(
     companyId: string,
     options: { plotId?: string; limit?: number } = {},
   ): Promise<TreatmentLog[]> {
@@ -111,7 +111,7 @@ export class AgroDalLogbook extends AgroDalRegistry {
 
   // -- soilSamples suolo (Modulo 1) ----------------------------------------
 
-  async upsertCampionamento(
+  async upsertSoilSample(
     input: Omit<
       SoilSample,
       "tenant_id" | "created_at" | "updated_at" | "deleted_at"
@@ -133,11 +133,11 @@ export class AgroDalLogbook extends AgroDalRegistry {
     return row;
   }
 
-  async deleteCampionamento(id: string): Promise<void> {
+  async deleteSoilSample(id: string): Promise<void> {
     await this.softDelete("soil_samples", id);
   }
 
-  async listCampionamenti(companyId: string): Promise<SoilSample[]> {
+  async listSoilSamples(companyId: string): Promise<SoilSample[]> {
     const result = await this.db.query<SoilSample>(
       `select * from soil_samples
        where company_id = $1 and deleted_at is null
@@ -149,7 +149,7 @@ export class AgroDalLogbook extends AgroDalRegistry {
 
   // -- harvest_logs (Modulo Harvest) ----------------------------------------
 
-  async upsertRaccolta(
+  async upsertHarvest(
     input: Omit<
       Harvest,
       "tenant_id" | "created_at" | "updated_at" | "deleted_at"
@@ -172,11 +172,11 @@ export class AgroDalLogbook extends AgroDalRegistry {
     return row;
   }
 
-  async deleteRaccolta(id: string): Promise<void> {
+  async deleteHarvest(id: string): Promise<void> {
     await this.softDelete("harvest_logs", id);
   }
 
-  async listRaccolte(
+  async listHarvests(
     companyId: string,
     options: { plotId?: string; limit?: number } = {},
   ): Promise<Harvest[]> {
@@ -267,7 +267,7 @@ export class AgroDalLogbook extends AgroDalRegistry {
    * storage remoto PRIMA dell'insert (il path la usa), così `photo_url` è già
    * valorizzato e passa anch'esso dall'outbox — niente patch local-only.
    */
-  async salvaOsservazioneScouting(
+  async saveScoutingObservation(
     input: Omit<ScoutingObservation, "tenant_id" | "created_at" | "updated_at" | "deleted_at"> &
       Partial<Pick<ScoutingObservation, "id">>,
   ): Promise<ScoutingObservation> {
@@ -291,7 +291,7 @@ export class AgroDalLogbook extends AgroDalRegistry {
     return row;
   }
 
-  async eliminaOsservazioneScouting(id: string): Promise<void> {
+  async deleteScoutingObservation(id: string): Promise<void> {
     await this.softDelete("scouting_observations", id);
   }
 }

@@ -8,7 +8,7 @@ import { Button, cn } from "@geolibre/ui";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { type DssTarget, useDssCalcolo } from "../../hooks/useDssCalculation";
+import { type DssTarget, useDssCalculation } from "../../hooks/useDssCalculation";
 import { CropDataForm } from "./CropDataForm";
 import { cropModuleForCrop } from "./index";
 import { DssRiskCard } from "./shared/DssRiskCard";
@@ -116,7 +116,7 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
   const crops = useAgroStore((s) => s.crops);
   const campaignFields = useAgroStore((s) => s.campaignFields);
   const selezionatoId = useAgroStore((s) => s.selectedPlotId);
-  const { stato, calcola } = useDssCalcolo();
+  const { stato, calcola } = useDssCalculation();
 
   const [sel, setSel] = useState<Set<string>>(
     () =>

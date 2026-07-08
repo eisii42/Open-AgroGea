@@ -8,7 +8,7 @@ import type { AgroDal, CompanyWeatherConfig, Crop } from "@agrogea/core";
 import type { PhenologicalPhase } from "@agrogea/tools";
 import type { FeatureCollection } from "geojson";
 import { useCallback, useState } from "react";
-import { type ParametriSuoloRisolti, SoilDataResolver } from "../modules/soil";
+import { type ResolvedSoilParameters, SoilDataResolver } from "../modules/soil";
 import {
   buildDssSeries,
   type CropModule,
@@ -17,14 +17,14 @@ import {
   type DssWeatherDay,
 } from "../modules/crops";
 import {
-  eseguiDssEngine,
-  type StatoIdricoCampo,
+  runDssEngine,
+  type FieldWaterStatus,
   type VettoreRischioDss,
 } from "../modules/dss/dss-engine";
 import {
-  apportiIrriguiDaTrattamenti,
-  calcolaBilancioIdrico,
-  type IndiceIdricoGiorno,
+  irrigationInputsFromTreatments,
+  computeWaterBalance,
+  type WaterIndexDay,
 } from "../modules/dss/water-balance";
 import { WeatherSyncService } from "../lib/WeatherSyncService";
 import i18n from "../i18n";
@@ -46,7 +46,7 @@ import i18n from "../i18n";
 
 export type FaseDss = "idle" | "calcolo" | "completato" | "errore";
 
-export interface InfoMeteoDss {
+export interface DssWeatherInfo {
   fetched: boolean;
   inserite: number;
   fonte: string;
@@ -54,7 +54,7 @@ export interface InfoMeteoDss {
 }
 
 /** Sintesi del bilancio idrico per la UI (dettaglio in `soil_water_indices`). */
-export interface BilancioSintesi {
+export interface BalanceSummary {
   /** Giorni di autonomia prima del primo stress nella finestra. */
   autonomyDays: number;
   /** Deplezione radicale dell'ultimo day (mm). */
@@ -77,13 +77,13 @@ export interface DssPlotResult {
   /** Vettori di risk normalizzati 0..1 (patologici + idrico se calcolato). */
   vettori: VettoreRischioDss[];
   /** Sintesi del bilancio idrico (null se non calcolato/calcolabile). */
-  bilancio: BilancioSintesi | null;
+  bilancio: BalanceSummary | null;
   /** Parametri idro-pedologici risolti (null se non calcolati). */
-  suolo: ParametriSuoloRisolti | null;
+  suolo: ResolvedSoilParameters | null;
   /** Serie giornaliera del bilancio idrico (vuota se non calcolata). */
-  bilancioSerie: IndiceIdricoGiorno[];
+  bilancioSerie: WaterIndexDay[];
   series: DssWeatherDay[];
-  meteo: InfoMeteoDss | null;
+  meteo: DssWeatherInfo | null;
   message?: string;
 }
 
@@ -127,7 +127,7 @@ const FASI_VALIDE: readonly PhenologicalPhase[] = [
 ];
 
 /** Fase fenologica dal metadata (override), default "piena" (piena stagione). */
-function faseFenologica(appezzamento: Plot): PhenologicalPhase {
+function phenologicalPhase(appezzamento: Plot): PhenologicalPhase {
   const meta = (appezzamento.metadata ?? {}) as Record<string, unknown>;
   const phase = meta.phase;
   return typeof phase === "string" && FASI_VALIDE.includes(phase as PhenologicalPhase)
@@ -215,7 +215,7 @@ async function calcolaPlot(
   const profonditaRadiciCrop = numeroMeta(
     cropRecord?.crop_metadata?.profondita_radici,
   );
-  const treatments = await dal.listTrattamenti(activeCompanyId, {
+  const treatments = await dal.listTreatments(activeCompanyId, {
     plotId: appezzamento.id,
     limit: 1000,
   });
@@ -239,7 +239,7 @@ async function calcolaPlot(
   // 1) Meteo: lucchetto orario (azienda) → fetch solo se stantio. Offline →
   //    fallback sulle letture già in PGlite.
   let series: DssWeatherDay[];
-  let meteo: InfoMeteoDss;
+  let meteo: DssWeatherInfo;
   let lettureRaw: WeatherReading[] = [];
   try {
     const res = await WeatherSyncService.assicuraDatiMeteo({
@@ -272,27 +272,27 @@ async function calcolaPlot(
       fonte: weatherConfig?.data_source ?? "public_api",
       motivo:
         errFetch instanceof Error
-          ? i18n.t("useDssCalcolo.offlineFallback", { error: errFetch.message })
-          : i18n.t("useDssCalcolo.useLocalWeatherData"),
+          ? i18n.t("useDssCalculation.offlineFallback", { error: errFetch.message })
+          : i18n.t("useDssCalculation.useLocalWeatherData"),
     };
   }
 
   // 2) Bilancio idrico (FAO 56/66) — solo se richiesto.
-  let bilancio: BilancioSintesi | null = null;
-  let bilancioSerie: IndiceIdricoGiorno[] = [];
-  let statoIdrico: StatoIdricoCampo | undefined;
-  let suolo: ParametriSuoloRisolti | null = null;
+  let bilancio: BalanceSummary | null = null;
+  let bilancioSerie: WaterIndexDay[] = [];
+  let statoIdrico: FieldWaterStatus | undefined;
+  let suolo: ResolvedSoilParameters | null = null;
   if (!opzioni.skipWaterBalance && lettureRaw.length > 0) {
-    const soilSamples = await dal.listCampionamenti(activeCompanyId);
+    const soilSamples = await dal.listSoilSamples(activeCompanyId);
     suolo = await new SoilDataResolver().risolvi(appezzamento, soilSamples, {
       mappaCustom: opzioni.mappaCustom,
       profonditaRadiciM: profonditaRadiciCrop,
     });
-    const out = calcolaBilancioIdrico({
+    const out = computeWaterBalance({
       letture: lettureRaw,
-      irrigazioni: apportiIrriguiDaTrattamenti(treatments, appezzamento.area_ha),
+      irrigazioni: irrigationInputsFromTreatments(treatments, appezzamento.area_ha),
       coltura: modulo.mainSpecies,
-      phase: faseFenologica(appezzamento),
+      phase: phenologicalPhase(appezzamento),
       suolo: suolo.parametri,
       altitude: 0,
     });
@@ -326,7 +326,7 @@ async function calcolaPlot(
     }
     let persistito = false;
     if (campagna && out.series.length > 0) {
-      await dal.salvaIndiciIdrici(
+      await dal.saveWaterIndices(
         campagna.id,
         out.series.map((g) => ({
           date: g.data,
@@ -364,11 +364,11 @@ async function calcolaPlot(
     gddStartDate: biofix,
     ...(typeof germogli === "number" ? { shootLengthCm: germogli } : {}),
   };
-  const { esiti, vettori } = eseguiDssEngine(modulo, series, context, statoIdrico);
+  const { esiti, vettori } = runDssEngine(modulo, series, context, statoIdrico);
 
   // 4) Persistenza cache dei modelli patologici (ultimo valore per model).
   if (series.length > 0) {
-    await dal.salvaDssRisultati(appezzamento.id, outcomesToDssResults(esiti));
+    await dal.saveDssResults(appezzamento.id, outcomesToDssResults(esiti));
   }
 
   return {
@@ -382,12 +382,12 @@ async function calcolaPlot(
     meteo,
     message:
       series.length === 0
-        ? i18n.t("useDssCalcolo.noWeatherData")
+        ? i18n.t("useDssCalculation.noWeatherData")
         : undefined,
   };
 }
 
-export function useDssCalcolo() {
+export function useDssCalculation() {
   const [stato, setStato] = useState<StatoDssCalcolo>(STATO_INIZIALE);
 
   const reset = useCallback(() => setStato(STATO_INIZIALE), []);
@@ -400,7 +400,7 @@ export function useDssCalcolo() {
         const { dal, activeCompanyId, weatherConfig, crops } =
           useAgroStore.getState();
         if (!dal || !activeCompanyId) {
-          throw new Error(i18n.t("useDssCalcolo.noActiveCompany"));
+          throw new Error(i18n.t("useDssCalculation.noActiveCompany"));
         }
         const ctx: ContestoCalcolo = {
           dal,
@@ -430,7 +430,7 @@ export function useDssCalcolo() {
               message:
                 errPlot instanceof Error
                   ? errPlot.message
-                  : i18n.t("useDssCalcolo.plotCalculationError"),
+                  : i18n.t("useDssCalculation.plotCalculationError"),
             });
           }
         }
@@ -445,7 +445,7 @@ export function useDssCalcolo() {
           ...STATO_INIZIALE,
           phase: "errore",
           message:
-            err instanceof Error ? err.message : i18n.t("useDssCalcolo.dssCalculationError"),
+            err instanceof Error ? err.message : i18n.t("useDssCalculation.dssCalculationError"),
         });
       }
     },

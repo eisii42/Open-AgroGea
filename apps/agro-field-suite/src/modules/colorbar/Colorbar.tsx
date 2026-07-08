@@ -6,7 +6,7 @@ import {
 import { useAppStore } from "@geolibre/core";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { rampaRischioDss } from "../dss/dss-overlay";
+import { dssRiskRamp } from "../dss/dss-overlay";
 import { buildColorbar, type ColorbarModel } from "./colorbar-model";
 
 /**
@@ -70,7 +70,7 @@ export function Colorbar() {
 /** Legenda del rischio DSS: rampa verde→giallo→rosso, calibrata per coltura. */
 function DssLegendCard({ coltura }: { coltura: CropType }) {
   const { t } = useTranslation();
-  const model = buildColorbar(rampaRischioDss(coltura));
+  const model = buildColorbar(dssRiskRamp(coltura));
   return (
     <div className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2 shadow-[var(--sh-1)]">
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-3)]">

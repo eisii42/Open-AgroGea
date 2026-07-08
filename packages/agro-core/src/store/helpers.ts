@@ -112,7 +112,7 @@ export async function persistiGeometriaSuDal(
     const existing = get().plots.find((a) => a.id === id);
     if (!existing) return null;
     const before = existing.geometry;
-    const record = await dal.upsertAppezzamento({
+    const record = await dal.upsertPlot({
       ...existing,
       geometry: geometry as Polygon | MultiPolygon,
     });
@@ -143,7 +143,7 @@ export async function persistiGeometriaSuDal(
   const existing = get().soilSamples.find((c) => c.id === id);
   if (!existing || geometry.type !== "Point") return null;
   const before = existing.sampling_position;
-  const record = await dal.upsertCampionamento({ ...existing, sampling_position: geometry });
+  const record = await dal.upsertSoilSample({ ...existing, sampling_position: geometry });
   set((s) => ({
     soilSamples: [...s.soilSamples.filter((c) => c.id !== record.id), record],
   }));

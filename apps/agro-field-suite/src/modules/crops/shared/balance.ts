@@ -39,7 +39,7 @@ export interface CropBalanceOutput {
   /** Coefficiente colturale Kc usato (specie + phase). */
   kc: number;
   /** ETc giornaliera (mm). */
-  etcSerie: number[];
+  etcSeries: number[];
   /** Bilancio day per day e piano irriguo. */
   series: IrrigationPlanDay[];
   /** Giorni di autonomia prima del primo stress senza irrigare. */
@@ -50,14 +50,14 @@ export function cropWaterBalance(
   input: CropBalanceInput,
 ): CropBalanceOutput {
   const kc = getPhaseCalibration(input.specie, input.phase).kc;
-  const etcSerie = input.meteo.map((day) =>
+  const etcSeries = input.meteo.map((day) =>
     cropEt(et0PenmanMonteith(day), kc),
   );
   const { series, autonomyDays } = irrigationPlan(
     input.suolo,
-    etcSerie,
+    etcSeries,
     input.pioggiaSerie,
     input.deplezioneIniziale ?? 0,
   );
-  return { kc, etcSerie, series, autonomyDays };
+  return { kc, etcSeries, series, autonomyDays };
 }

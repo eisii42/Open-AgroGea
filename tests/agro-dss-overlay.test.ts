@@ -3,10 +3,10 @@ import { describe, it } from "node:test";
 import type { Plot } from "@agrogea/core";
 import {
   summaryCalibration,
-  coloreRischioDss,
+  dssRiskColor,
   costruisciOverlayDss,
-  livelloRischioDss,
-  rampaRischioDss,
+  dssRiskLevelFn,
+  dssRiskRamp,
   type FieldSummary,
   summarizeFieldRisk,
 } from "../apps/agro-field-suite/src/modules/dss/dss-overlay";
@@ -76,7 +76,7 @@ describe("calibrazione per coltura", () => {
     assert.ok(mais.pesoStress > vite.pesoStress);
   });
   it("la rampa per coltura ha 3 stop verde→giallo→rosso", () => {
-    const r = rampaRischioDss("vite");
+    const r = dssRiskRamp("vite");
     assert.equal(r.length, 3);
     assert.equal(r[0][1], "#1a9850");
     assert.equal(r[2][1], "#d73027");
@@ -84,16 +84,16 @@ describe("calibrazione per coltura", () => {
   });
 });
 
-describe("coloreRischioDss / livelloRischioDss", () => {
+describe("dssRiskColor / dssRiskLevelFn", () => {
   it("mappa il punteggio su verde/giallo/rosso secondo la rampa", () => {
-    const r = rampaRischioDss("vite");
-    assert.equal(coloreRischioDss(0, r), "#1a9850"); // verde
-    assert.equal(coloreRischioDss(1, r), "#d73027"); // rosso
+    const r = dssRiskRamp("vite");
+    assert.equal(dssRiskColor(0, r), "#1a9850"); // verde
+    assert.equal(dssRiskColor(1, r), "#d73027"); // rosso
   });
   it("etichetta i tre livelli", () => {
-    assert.equal(livelloRischioDss(0.1), "ottimale");
-    assert.equal(livelloRischioDss(0.5), "allerta");
-    assert.equal(livelloRischioDss(0.8), "critico");
+    assert.equal(dssRiskLevelFn(0.1), "ottimale");
+    assert.equal(dssRiskLevelFn(0.5), "allerta");
+    assert.equal(dssRiskLevelFn(0.8), "critico");
   });
 });
 
@@ -127,7 +127,7 @@ describe("costruisciOverlayDss", () => {
       ["a", { rischio01: 0.05 }],
       ["c", { rischio01: 0.9 }],
     ]);
-    const fc = costruisciOverlayDss(plots, sintesi, rampaRischioDss("vite"));
+    const fc = costruisciOverlayDss(plots, sintesi, dssRiskRamp("vite"));
     assert.equal(fc.features.length, 2); // b è omesso (niente sintesi)
     const a = fc.features.find((f) => f.properties?.id === "a");
     const c = fc.features.find((f) => f.properties?.id === "c");

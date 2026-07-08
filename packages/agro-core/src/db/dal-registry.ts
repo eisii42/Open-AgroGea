@@ -17,7 +17,7 @@ import { nowIso, type Row } from "./write";
 export class AgroDalRegistry extends AgroDalBase {
   // -- companies -------------------------------------------------------------
 
-  async upsertAzienda(
+  async upsertCompany(
     input: Omit<Company, "tenant_id" | "created_at" | "updated_at" | "deleted_at"> &
       Partial<Pick<Company, "created_at">>,
   ): Promise<Company> {
@@ -139,7 +139,7 @@ export class AgroDalRegistry extends AgroDalBase {
 
   // -- plots_registry --------------------------------------------------------
 
-  async upsertAppezzamento(
+  async upsertPlot(
     input: Omit<
       Plot,
       "tenant_id" | "created_at" | "updated_at" | "deleted_at" | "area_ha"
@@ -177,7 +177,7 @@ export class AgroDalRegistry extends AgroDalBase {
    * transazionale dato+outbox come ogni scrittura, ma non ricalcola l'area né
    * tocca la geometria. La riga deve esistere.
    */
-  async aggiornaNdviMedio(id: string, meanNdvi: number): Promise<void> {
+  async updateMeanNdvi(id: string, meanNdvi: number): Promise<void> {
     const ts = nowIso();
     const result = await this.db.query<Plot>(
       `select * from plots_registry where id = $1 and deleted_at is null`,
@@ -199,11 +199,11 @@ export class AgroDalRegistry extends AgroDalBase {
     );
   }
 
-  async deleteAppezzamento(id: string): Promise<void> {
+  async deletePlot(id: string): Promise<void> {
     await this.softDelete("plots_registry", id);
   }
 
-  async listAppezzamenti(companyId: string): Promise<Plot[]> {
+  async listPlots(companyId: string): Promise<Plot[]> {
     const result = await this.db.query<Plot>(
       `select * from plots_registry
        where company_id = $1 and deleted_at is null

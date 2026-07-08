@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Polygon } from "geojson";
 import {
-  abbinaAppezzamentoEsistente,
+  matchExistingPlot,
   mapSianFeature,
   numeroItaliano,
   parseCsvRows,
@@ -74,25 +74,25 @@ describe("mapSianFeature", () => {
   });
 });
 
-describe("abbinaAppezzamentoEsistente", () => {
+describe("matchExistingPlot", () => {
   it("abbina per id SIAN dell'appezzamento memorizzato nei metadata", () => {
     const esistenti = [
       { id: "fisico-1", metadata: { agricultural_parcel_external_id: "7" } },
       { id: "fisico-2", metadata: { agricultural_parcel_external_id: "9" } },
     ];
     assert.equal(
-      abbinaAppezzamentoEsistente({ agricultural_parcel_external_id: "9" }, esistenti),
+      matchExistingPlot({ agricultural_parcel_external_id: "9" }, esistenti),
       "fisico-2",
     );
   });
 
   it("ritorna null quando non c'è corrispondenza (va creato)", () => {
     assert.equal(
-      abbinaAppezzamentoEsistente({ agricultural_parcel_external_id: "999" }, []),
+      matchExistingPlot({ agricultural_parcel_external_id: "999" }, []),
       null,
     );
     assert.equal(
-      abbinaAppezzamentoEsistente({ agricultural_parcel_external_id: null }, [
+      matchExistingPlot({ agricultural_parcel_external_id: null }, [
         { id: "x", metadata: { agricultural_parcel_external_id: "1" } },
       ]),
       null,

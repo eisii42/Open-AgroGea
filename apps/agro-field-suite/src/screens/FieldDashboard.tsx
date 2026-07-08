@@ -19,7 +19,7 @@ import { ModuleSidebar } from "../components/ModuleSidebar";
 import { TransferTagsFeed } from "../components/TransferTagsFeed";
 import { useReadOnly } from "@agrogea/core";
 import { useGeometryUndoRedo } from "../hooks/useGeometryUndoRedo";
-import { useAppezzamentiLayer } from "../hooks/usePlotsLayer";
+import { usePlotsLayer } from "../hooks/usePlotsLayer";
 import { useFeatureSelection } from "../hooks/useFeatureSelection";
 import { useFieldLayers } from "../hooks/useFieldLayers";
 import { useFieldPlugins } from "../hooks/useFieldPlugins";
@@ -174,7 +174,7 @@ export function FieldDashboard() {
   const styleEpoch = useMapStyleEpoch(mapControllerRef, mapReady);
 
   useFieldPlugins(mapControllerRef, mapReady);
-  useAppezzamentiLayer(mapControllerRef, styleEpoch);
+  usePlotsLayer(mapControllerRef, styleEpoch);
   useFieldLayers(styleEpoch);
   const hover = useHoverTooltips(mapControllerRef, mapReady);
   useFeatureSelection(mapControllerRef, mapReady);

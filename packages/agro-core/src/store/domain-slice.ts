@@ -106,7 +106,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
 
       // Specchio locale (PGlite): rende l'azienda disponibile offline e idrata lo
       // store. La riga porta `tenant_id = claims.tenantId` (uid nel self-service).
-      const record = await dal.upsertAzienda({
+      const record = await dal.upsertCompany({
         id,
         business_name: ragioneSociale,
         national_company_id: nationalId,
@@ -226,17 +226,17 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         products,
         lots,
       ] = await Promise.all([
-        dal.listAppezzamenti(activeCompanyId),
+        dal.listPlots(activeCompanyId),
         dal.listCrops(),
-        dal.listTrattamenti(activeCompanyId),
+        dal.listTreatments(activeCompanyId),
         dal.listAssets(activeCompanyId),
-        dal.listCampionamenti(activeCompanyId),
-        dal.listRaccolte(activeCompanyId),
+        dal.listSoilSamples(activeCompanyId),
+        dal.listHarvests(activeCompanyId),
         dal.getConfigMeteo(activeCompanyId),
         dal.listDataTransferLogs(),
         dal.listCampiCampagna({ anno: get().activeCampaign }),
         dal.listMemberships(),
-        dal.listProdotti(activeCompanyId),
+        dal.listProducts(activeCompanyId),
         dal.listLotti(activeCompanyId),
       ]);
       set({
@@ -266,7 +266,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       if (!existing) return;
       // Si riscrive la riga intera (esistente + patch): l'area di sync è LWW su
       // updated_at, quindi un upsert completo è il percorso canonico.
-      const record = await dal.upsertAzienda({ ...existing, ...patch });
+      const record = await dal.upsertCompany({ ...existing, ...patch });
       set((s) => ({
         companies: s.companies.map((a) => (a.id === record.id ? record : a)),
       }));
@@ -295,7 +295,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       // Con scarichi: attività + scarico lots + costo CUMP in un'unica
       // transazione (l'eccezione WarehouseError risale al form senza scritture
       // parziali). Senza scarichi: percorso classico (fallback testo libero).
-      const { trattamento: record } = await dal.insertTrattamentoConScarichi(
+      const { trattamento: record } = await dal.insertTreatmentWithIssues(
         { ...input, company_id: activeCompanyId },
         scarichi ?? [],
       );
@@ -311,7 +311,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       assertWritable(get);
       const { dal, activeCompanyId, syncRouter } = get();
       if (!dal) return;
-      await dal.deleteTrattamento(id);
+      await dal.deleteTreatment(id);
       set((s) => ({ treatments: s.treatments.filter((t) => t.id !== id) }));
       // Lo storno magazzino del DAL può aver reintegrato giacenze: si riidratano.
       if (activeCompanyId) {
@@ -335,9 +335,9 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       if (!dal) return null;
       const existing = get().treatments.find((t) => t.id === id);
       if (!existing) return null;
-      // insertTrattamento esegue INSERT ... ON CONFLICT (id) DO UPDATE: passando
+      // insertTreatment esegue INSERT ... ON CONFLICT (id) DO UPDATE: passando
       // l'id esistente la riga viene aggiornata (created_at è preservato dal DAL).
-      const record = await dal.insertTrattamento({ ...existing, ...patch, id });
+      const record = await dal.insertTreatment({ ...existing, ...patch, id });
       set((s) => ({
         treatments: s.treatments.map((t) => (t.id === record.id ? record : t)),
       }));
@@ -358,7 +358,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       assertWritable(get);
       const { dal, syncRouter } = get();
       if (!dal) return;
-      await dal.aggiornaNdviMedio(plotId, meanNdvi);
+      await dal.updateMeanNdvi(plotId, meanNdvi);
       set((s) => ({
         plots: s.plots.map((a) =>
           a.id === plotId ? { ...a, last_ndvi_mean: meanNdvi } : a,
@@ -371,7 +371,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       assertWritable(get);
       const { dal, activeCompanyId, syncRouter } = get();
       if (!dal || !activeCompanyId) return null;
-      const record = await dal.upsertRaccolta({
+      const record = await dal.upsertHarvest({
         id: input.id ?? uuidv4(),
         company_id: activeCompanyId,
         plot_id: input.plot_id ?? null,
@@ -395,7 +395,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       assertWritable(get);
       const { dal, syncRouter } = get();
       if (!dal) return;
-      await dal.deleteRaccolta(id);
+      await dal.deleteHarvest(id);
       set((s) => ({ harvests: s.harvests.filter((r) => r.id !== id) }));
       syncRouter?.notifyLocalWrite();
     },
@@ -467,7 +467,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       assertWritable(get);
       const { dal, activeCompanyId, syncRouter } = get();
       if (!dal || !activeCompanyId) return null;
-      const record = await dal.upsertCampionamento({
+      const record = await dal.upsertSoilSample({
         id: input.id ?? uuidv4(),
         company_id: activeCompanyId,
         plot_id: input.plot_id ?? null,
@@ -496,7 +496,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       assertWritable(get);
       const { dal, activeCompanyId, syncRouter } = get();
       if (!dal || !activeCompanyId) return null;
-      const record = await dal.upsertProdotto({
+      const record = await dal.upsertProduct({
         ...input,
         company_id: activeCompanyId,
       });
@@ -518,7 +518,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       assertWritable(get);
       const { dal, syncRouter } = get();
       if (!dal) return;
-      await dal.deleteProdotto(id);
+      await dal.deleteProduct(id);
       set((s) => ({ products: s.products.filter((p) => p.id !== id) }));
       syncRouter?.notifyLocalWrite();
     },
@@ -530,7 +530,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       const record = await dal.receiveLot(input);
       // Il carico aggiorna anche il CUMP del prodotto: si riidratano entrambi.
       const [products, lots] = await Promise.all([
-        dal.listProdotti(activeCompanyId),
+        dal.listProducts(activeCompanyId),
         dal.listLotti(activeCompanyId),
       ]);
       set({ products, lots });
@@ -542,7 +542,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       assertWritable(get);
       const { dal, syncRouter } = get();
       if (!dal) return;
-      await dal.deleteLotto(id);
+      await dal.deleteLot(id);
       set((s) => ({ lots: s.lots.filter((l) => l.id !== id) }));
       syncRouter?.notifyLocalWrite();
     },

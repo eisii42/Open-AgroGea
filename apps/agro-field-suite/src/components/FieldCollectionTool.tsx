@@ -227,7 +227,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
         ? await uploadPhoto(form.photoFile, id, dal.tenantId)
         : null;
 
-      const obs = await dal.salvaOsservazioneScouting({
+      const obs = await dal.saveScoutingObservation({
         id,
         company_id: activeCompanyId,
         lat: pendingPoint.lat,
@@ -266,7 +266,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
       if (obs?.photo_url) {
         await controlPlane().removeScoutingPhoto?.(obs.photo_url);
       }
-      await dal.eliminaOsservazioneScouting(id);
+      await dal.deleteScoutingObservation(id);
       const updated = observations.filter((o) => o.id !== id);
       setObservations(updated);
       syncLayerToStore(updated);

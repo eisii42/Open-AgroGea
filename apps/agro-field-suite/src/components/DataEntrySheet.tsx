@@ -32,7 +32,7 @@ const TIPI_ASSET_LINEA = ["condotta", "recinzione", "rete-antigrandine", "strada
 const TIPI_ASSET_PUNTO = ["pozzo", "trappola", "sensore-iot", "ingresso", "fabbricato"];
 
 export function DataEntrySheet({ pending }: { pending: PendingGeometry }) {
-  const salvaAppezzamento = useAgroStore((s) => s.saveDrawnPlot);
+  const savePlot = useAgroStore((s) => s.saveDrawnPlot);
   const salvaAsset = useAgroStore((s) => s.saveDrawnAsset);
   const clearPending = useAgroStore((s) => s.clearPendingGeometry);
 
@@ -50,7 +50,7 @@ export function DataEntrySheet({ pending }: { pending: PendingGeometry }) {
         pending={pending}
         onCancel={resolve}
         onSave={async (attrs) => {
-          const record = await salvaAppezzamento(
+          const record = await savePlot(
             pending.feature.geometry as Polygon | MultiPolygon,
             attrs,
           );

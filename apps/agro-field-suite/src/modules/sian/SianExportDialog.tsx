@@ -23,7 +23,7 @@ import {
   COLONNE_SIAN,
   COLONNE_SIAN_DEFAULT,
   esportaSianCsv,
-  filtraTrattamentiSian,
+  filterSianTreatments,
   raccolteToOperazioni,
   type SeparatoreCsv,
   type SianColumn,
@@ -154,8 +154,8 @@ export function SianExportDialog({
     [dal, al, appIds, colture, tipi, includiSenzaApp],
   );
 
-  const righeFiltrate = useMemo(
-    () => filtraTrattamentiSian(operazioni, plots, filtri),
+  const filteredRows = useMemo(
+    () => filterSianTreatments(operazioni, plots, filtri),
     [operazioni, plots, filtri],
   );
 
@@ -187,7 +187,7 @@ export function SianExportDialog({
       bom,
     };
     const nomeFile = esportaSianCsv(
-      righeFiltrate,
+      filteredRows,
       plots,
       azienda?.business_name,
       config,
@@ -219,7 +219,7 @@ export function SianExportDialog({
           </DialogTitle>
           <DialogDescription>
             {t("sianExportDialog.previewIntro")}{" "}
-            <strong>{righeFiltrate.length}</strong>{" "}
+            <strong>{filteredRows.length}</strong>{" "}
             {t("sianExportDialog.previewOperations")} ·{" "}
             <strong>{colonne.length}</strong> {t("sianExportDialog.previewColumns")}.
           </DialogDescription>
@@ -459,10 +459,10 @@ export function SianExportDialog({
             </Button>
             <Button
               className="flex-1"
-              disabled={colonne.length === 0 || righeFiltrate.length === 0}
+              disabled={colonne.length === 0 || filteredRows.length === 0}
               onClick={esporta}
             >
-              {t("sianExportDialog.exportCsv", { count: righeFiltrate.length })}
+              {t("sianExportDialog.exportCsv", { count: filteredRows.length })}
             </Button>
           </div>
         </div>

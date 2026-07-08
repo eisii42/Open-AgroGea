@@ -191,7 +191,7 @@ function AppezzamentoEdit({ record }: { record: Plot }) {
   const [nome, setNome] = useState(record.user_plot_name);
   const [irrigazione, setIrrigazione] = useState(record.irrigation_type ?? "");
   const [suolo, setSuolo] = useState<SuoloForm>(() =>
-    leggiSuoloForm(record.metadata),
+    readSoilForm(record.metadata),
   );
   const [saving, setSaving] = useState(false);
 
@@ -199,7 +199,7 @@ function AppezzamentoEdit({ record }: { record: Plot }) {
   // "live" durante il trascinamento). Unico punto di verità: area_ha.
   const area = record.area_ha;
 
-  const setCampoSuolo = (campo: keyof SuoloForm, valore: string) =>
+  const setSoilField = (campo: keyof SuoloForm, valore: string) =>
     setSuolo((s) => ({ ...s, [campo]: valore }));
 
   const submit = async () => {
@@ -208,7 +208,7 @@ function AppezzamentoEdit({ record }: { record: Plot }) {
       await aggiorna(record.id, {
         user_plot_name: nome.trim() || record.user_plot_name,
         irrigation_type: irrigazione.trim() || null,
-        metadata: mergeSuoloMetadata(record.metadata, suolo),
+        metadata: mergeSoilMetadata(record.metadata, suolo),
       });
     } finally {
       setSaving(false);
@@ -262,7 +262,7 @@ function AppezzamentoEdit({ record }: { record: Plot }) {
             onChange={(e) => setIrrigazione(e.target.value)}
           />
         </div>
-        <SuoloComposizioneSection suolo={suolo} onChange={setCampoSuolo} />
+        <SuoloComposizioneSection suolo={suolo} onChange={setSoilField} />
       </div>
     </FieldSheet>
   );
@@ -354,7 +354,7 @@ const CAMPI_NUMERICI: (keyof SuoloForm)[] = [
 ];
 
 /** Idrata il form dai metadata salvati (`metadata.suolo`). */
-function leggiSuoloForm(metadata: Record<string, unknown>): SuoloForm {
+function readSoilForm(metadata: Record<string, unknown>): SuoloForm {
   const raw = metadata?.suolo;
   if (!raw || typeof raw !== "object") return { ...SUOLO_FORM_VUOTO };
   const s = raw as Record<string, unknown>;
@@ -379,7 +379,7 @@ function leggiSuoloForm(metadata: Record<string, unknown>): SuoloForm {
 }
 
 /** Fonde il form nei metadata: rimuove `suolo` se l'utente ha svuotato tutto. */
-function mergeSuoloMetadata(
+function mergeSoilMetadata(
   metadata: Record<string, unknown>,
   form: SuoloForm,
 ): Record<string, unknown> {

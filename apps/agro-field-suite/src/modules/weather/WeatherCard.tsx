@@ -7,7 +7,7 @@ import {
   type PrevisioneDashboard,
   WeatherSyncService,
 } from "../../lib/WeatherSyncService";
-import { infoMeteoCodice } from "../../lib/weather-codes";
+import { weatherCodeInfo } from "../../lib/weather-codes";
 
 /**
  * Scheda meteo dell'header (di fianco allo switcher azienda): condizioni
@@ -20,7 +20,7 @@ import { infoMeteoCodice } from "../../lib/weather-codes";
  */
 
 /** Coordinate [lon, lat] dell'azienda attiva, o null se non localizzabile. */
-function useCoordinateAzienda(): [number, number] | null {
+function useCompanyCoordinates(): [number, number] | null {
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const companies = useAgroStore((s) => s.companies);
   const plots = useAgroStore((s) => s.plots);
@@ -55,7 +55,7 @@ function etichettaGiorno(
 export function WeatherCard() {
   const { t, i18n } = useTranslation();
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
-  const coordinate = useCoordinateAzienda();
+  const coordinate = useCompanyCoordinates();
 
   const [previsione, setPrevisione] = useState<PrevisioneDashboard | null>(null);
   const [stato, setStato] = useState<"idle" | "loading" | "errore">("idle");
@@ -120,7 +120,7 @@ export function WeatherCard() {
   if (!activeCompanyId || !coordinate) return null;
 
   const corrente = previsione?.corrente;
-  const infoCorrente = infoMeteoCodice(corrente?.weatherCode);
+  const infoCorrente = weatherCodeInfo(corrente?.weatherCode);
   const IconaCorrente = infoCorrente.Icon;
 
   return (
@@ -197,7 +197,7 @@ export function WeatherCard() {
               {/* Previsione giornaliera (oggi + successivi) */}
               <div className="mt-3 grid grid-cols-5 gap-1 border-t border-[var(--line)] pt-2.5">
                 {(previsione?.giorni ?? []).map((g, i) => {
-                  const info = infoMeteoCodice(g.weatherCode);
+                  const info = weatherCodeInfo(g.weatherCode);
                   const Icona = info.Icon;
                   return (
                     <div

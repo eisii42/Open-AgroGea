@@ -16,14 +16,14 @@ export {
   frazioniDaProprieta,
   METADATA_SUOLO_KEY,
   parametriDaMetadata,
-  parametriDaSuoloManuale,
+  parametersFromManualSoil,
   SoilDataResolver,
   sostanzaOrganicaDaProprieta,
   SUOLO_FRANCO_DEFAULT,
-  type OpzioniRisoluzione,
-  type ParametriSuoloRisolti,
+  type ResolutionOptions,
+  type ResolvedSoilParameters,
   type SoilSource,
-  type SuoloManuale,
+  type ManualSoil,
 } from "./SoilDataResolver";
 
 export {

@@ -25,7 +25,7 @@ import {
 import {
   type DssPlotResult,
   type DssTarget,
-  useDssCalcolo,
+  useDssCalculation,
 } from "../../hooks/useDssCalculation";
 import { useDssOverlayLayer } from "../../hooks/useDssOverlayLayer";
 import { cropModuleForCrop } from "../crops";
@@ -49,7 +49,7 @@ import { downloadArtifact } from "../../services/gis/geo-export";
  * (come la pipeline indici). Esegue in locale il bilancio idrico sull'ultimo meteo
  * di PGlite per gli plots scelti e ne mostra, per ciascuno, la depletion
  * radicale Dr day per day (con la soglia RAW), l'autonomia residua e lo
- * stato di stress. Compone gli engine puri via {@link useDssCalcolo}; la series
+ * stato di stress. Compone gli engine puri via {@link useDssCalculation}; la series
  * giornaliera è persistita in `soil_water_indices` quando il campo ha una campagna
  * attiva.
  */
@@ -87,7 +87,7 @@ const ETICHETTA_FORMATO: Record<MoistureHistoryFormat, string> = {
 };
 
 /** Mappa la series giornaliera del bilancio nello schema `soil_water_indices`. */
-function serieAStoricoUmidita(
+function seriesToMoistureHistory(
   series: {
     data: string;
     et0: number;
@@ -141,19 +141,19 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
       return next;
     });
 
-  const { stato, calcola } = useDssCalcolo();
+  const { stato, calcola } = useDssCalculation();
   const [mostraOverlay, setMostraOverlay] = useState(false);
   const [esportando, setEsportando] = useState(false);
 
   // Mappa custom del suolo (Tier 1): layer esterni caricati via «Aggiungi dati».
   const layers = useAppStore((s) => s.layers);
   const [mappaSuoloId, setMappaSuoloId] = useState("");
-  const layerSuolo = useMemo(
+  const soilLayer = useMemo(
     () => layers.filter((l) => l.metadata?.[EXTERNAL_LAYER_FLAG] === true && l.geojson),
     [layers],
   );
   const mappaCustom =
-    (layerSuolo.find((l) => l.id === mappaSuoloId)?.geojson as
+    (soilLayer.find((l) => l.id === mappaSuoloId)?.geojson as
       | FeatureCollection
       | undefined) ?? null;
 
@@ -183,7 +183,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
     try {
       const fc = buildMoistureHistoryFc(
         appezzamento,
-        serieAStoricoUmidita(r.bilancioSerie),
+        seriesToMoistureHistory(r.bilancioSerie),
       );
       const base = `umidita_${appezzamento.user_plot_name || appezzamento.id}`.replace(
         /[^\w.-]+/g,
@@ -202,7 +202,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
 
   // Overlay coropletico del risk sintetico (stress idrico + NDVI) per campo,
   // aggregato su TUTTI gli plots calcolati.
-  const overlayAppezzamenti = useMemo(
+  const plotsOverlay = useMemo(
     () =>
       completato
         ? stato.risultati
@@ -212,7 +212,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
     [completato, stato.risultati, plots],
   );
 
-  const sintesiPerCampo = useMemo(() => {
+  const summaryPerField = useMemo(() => {
     const m = new Map<string, FieldSummary>();
     if (!completato) return m;
     for (const r of stato.risultati) {
@@ -236,8 +236,8 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
   }, [completato, stato.risultati, plots]);
 
   useDssOverlayLayer({
-    plots: overlayAppezzamenti,
-    sintesiPerCampo,
+    plots: plotsOverlay,
+    summaryPerField,
     coltura: stato.risultati[0]?.modulo.mainSpecies ?? "vite",
     attivo: mostraOverlay && completato,
   });
@@ -311,7 +311,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
             )}
 
             {/* Tier 1 — sorgente suolo opzionale: layer EC_a/tessitura. */}
-            {layerSuolo.length > 0 && (
+            {soilLayer.length > 0 && (
               <label className="flex flex-col gap-1 text-xs">
                 <span className="flex items-center gap-1.5 font-medium text-[var(--ink-3)]">
                   <Layers size={13} /> {t("bilancioIdricoPanel.soilMap")}
@@ -322,7 +322,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
                   className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-1.5 text-sm"
                 >
                   <option value="">{t("bilancioIdricoPanel.soilMapAuto")}</option>
-                  {layerSuolo.map((l) => (
+                  {soilLayer.map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.name}
                     </option>

@@ -39,7 +39,7 @@ export {
   plotsToFeatureCollection,
   assetsToFeatureCollection,
   cropForPlot,
-  cropLabelPerAppezzamento,
+  cropLabelPerPlot,
   poiToFeatureCollection,
   harvestsToFeatureCollection,
   treatmentsToFeatureCollection,

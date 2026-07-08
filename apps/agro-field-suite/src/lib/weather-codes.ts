@@ -18,14 +18,14 @@ import {
  * tabella WMO 4677 usata da Open-Meteo.
  */
 
-export interface InfoMeteoCodice {
+export interface WeatherCodeInfo {
   Icon: LucideIcon;
   label: string;
 }
 
-const SCONOSCIUTO: InfoMeteoCodice = { Icon: Cloud, label: "—" };
+const SCONOSCIUTO: WeatherCodeInfo = { Icon: Cloud, label: "—" };
 
-const TABELLA: Record<number, InfoMeteoCodice> = {
+const TABELLA: Record<number, WeatherCodeInfo> = {
   0: { Icon: Sun, label: "Sereno" },
   1: { Icon: Sun, label: "Quasi sereno" },
   2: { Icon: CloudSun, label: "Parz. nuvoloso" },
@@ -57,7 +57,7 @@ const TABELLA: Record<number, InfoMeteoCodice> = {
 };
 
 /** Icona ed etichetta per un codice WMO (fallback neutro se assente/ignoto). */
-export function infoMeteoCodice(code: number | null | undefined): InfoMeteoCodice {
+export function weatherCodeInfo(code: number | null | undefined): WeatherCodeInfo {
   if (code == null) return SCONOSCIUTO;
   return TABELLA[code] ?? SCONOSCIUTO;
 }

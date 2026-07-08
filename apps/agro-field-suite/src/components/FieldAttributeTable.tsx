@@ -46,7 +46,7 @@ function getAgroExpressionSnippets(t: TFunction): ExpressionSnippet[] {
  * Tabelle analizzabili dalla tabella attributi. L'utente le sceglie dal selettore
  * in barra; non si attiva più in base al layer selezionato in mappa. Gli id
  * corrispondono ai layer proiettati nello store GeoLibre (vedi useFieldLayers /
- * useAppezzamentiLayer).
+ * usePlotsLayer).
  */
 function getTableOptions(t: TFunction): { layerId: string; label: string }[] {
   return [

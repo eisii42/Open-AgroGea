@@ -19,8 +19,8 @@ import type { Feature, FeatureCollection } from "geojson";
  * in `useDssOverlayLayer` / `Colorbar`.
  */
 
-export interface IngressiSintesiCampo {
-  /** Stress idrico normalizzato 0..1 (da `rischioIdrico01`). */
+export interface FieldSummaryInputs {
+  /** Stress idrico normalizzato 0..1 (da `waterRisk01`). */
   stressIdrico01: number;
   /** Rischio fitopatologico normalizzato 0..1 (max dei vettori). */
   rischioPatologico01: number;
@@ -32,7 +32,7 @@ export interface IngressiSintesiCampo {
   sostanzaOrganica?: number | null;
 }
 
-export interface CalibrazioneSintesi {
+export interface SummaryCalibration {
   pesoStress: number;
   pesoPatologico: number;
   pesoVigore: number;
@@ -53,7 +53,7 @@ export interface CalibrazioneSintesi {
  */
 const PESI_COLTURA: Record<
   CropType,
-  Pick<CalibrazioneSintesi, "pesoStress" | "pesoPatologico" | "pesoVigore" | "pesoSuolo">
+  Pick<SummaryCalibration, "pesoStress" | "pesoPatologico" | "pesoVigore" | "pesoSuolo">
 > = {
   vite: { pesoStress: 0.3, pesoPatologico: 0.35, pesoVigore: 0.2, pesoSuolo: 0.15 },
   olivo: { pesoStress: 0.25, pesoPatologico: 0.35, pesoVigore: 0.25, pesoSuolo: 0.15 },
@@ -76,7 +76,7 @@ const AZOTO_TARGET: Record<CropType, number> = {
 export function summaryCalibration(
   coltura: CropType,
   phase: PhenologicalPhase,
-): CalibrazioneSintesi {
+): SummaryCalibration {
   return {
     ...PESI_COLTURA[coltura],
     ndviAtteso: getPhaseCalibration(coltura, phase).ndviAtteso,
@@ -95,10 +95,10 @@ function deficitVigore(ndvi: number, banda: [number, number]): number {
 }
 
 /** Deficit nutrizionale 0..1 da azoto/sostanza organica rispetto ai target. */
-function deficitSuolo(
+function soilDeficit(
   azoto: number | null | undefined,
   so: number | null | undefined,
-  cal: CalibrazioneSintesi,
+  cal: SummaryCalibration,
 ): number | null {
   const termini: number[] = [];
   if (typeof azoto === "number" && cal.azotoTarget > 0) {
@@ -117,8 +117,8 @@ function deficitSuolo(
  * pesi rinormalizzati sui fattori presenti, così il punteggio resta in [0,1].
  */
 export function summarizeFieldRisk(
-  ingressi: IngressiSintesiCampo,
-  cal: CalibrazioneSintesi,
+  ingressi: FieldSummaryInputs,
+  cal: SummaryCalibration,
 ): number {
   const termini: Array<{ peso: number; valore: number }> = [
     { peso: cal.pesoStress, valore: clamp01(ingressi.stressIdrico01) },
@@ -130,7 +130,7 @@ export function summarizeFieldRisk(
       valore: deficitVigore(ingressi.ndvi, cal.ndviAtteso),
     });
   }
-  const suolo = deficitSuolo(ingressi.azoto, ingressi.sostanzaOrganica, cal);
+  const suolo = soilDeficit(ingressi.azoto, ingressi.sostanzaOrganica, cal);
   if (suolo != null) termini.push({ peso: cal.pesoSuolo, valore: suolo });
 
   const pesoTot = termini.reduce((a, t) => a + t.peso, 0);
@@ -154,7 +154,7 @@ const ROSSO = "#d73027";
  * sensibilità della coltura — le più sensibili allertano prima. Il rosso marca
  * lo stato critico (≥ soglia rossa).
  */
-export function rampaRischioDss(coltura: CropType): ColorRamp {
+export function dssRiskRamp(coltura: CropType): ColorRamp {
   // Sensibilità ≈ peso combinato di stress+patologie: più alta ⇒ allerta prima.
   const pesi = PESI_COLTURA[coltura];
   const sensibilita = pesi.pesoStress + pesi.pesoPatologico; // ~0.5..0.6
@@ -173,7 +173,7 @@ function due(n: number): string {
 }
 
 /** Colore esadecimale del punteggio secondo la rampa (step: ultima soglia vince). */
-export function coloreRischioDss(score: number, rampa: ColorRamp): string {
+export function dssRiskColor(score: number, rampa: ColorRamp): string {
   let hex = rampa[0]?.[1] ?? VERDE;
   for (const [soglia, colore] of rampa) {
     if (score >= soglia) hex = colore;
@@ -184,7 +184,7 @@ export function coloreRischioDss(score: number, rampa: ColorRamp): string {
 }
 
 /** Etichetta qualitativa del punteggio per tooltip/legenda. */
-export function livelloRischioDss(score: number): "ottimale" | "allerta" | "critico" {
+export function dssRiskLevelFn(score: number): "ottimale" | "allerta" | "critico" {
   if (score >= 0.66) return "critico";
   if (score >= 0.4) return "allerta";
   return "ottimale";
@@ -202,12 +202,12 @@ export interface FieldSummary {
  */
 export function costruisciOverlayDss(
   plots: Plot[],
-  sintesiPerCampo: Map<string, FieldSummary>,
+  summaryPerField: Map<string, FieldSummary>,
   rampa: ColorRamp,
 ): FeatureCollection {
   const features: Feature[] = [];
   for (const a of plots) {
-    const sintesi = sintesiPerCampo.get(a.id);
+    const sintesi = summaryPerField.get(a.id);
     if (!sintesi) continue;
     const score = clamp01(sintesi.rischio01);
     features.push({
@@ -217,8 +217,8 @@ export function costruisciOverlayDss(
         id: a.id,
         plot_name: a.user_plot_name,
         rischio01: Math.round(score * 100) / 100,
-        livello: livelloRischioDss(score),
-        fillColor: coloreRischioDss(score, rampa),
+        livello: dssRiskLevelFn(score),
+        fillColor: dssRiskColor(score, rampa),
       },
     });
   }

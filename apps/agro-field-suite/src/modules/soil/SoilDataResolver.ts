@@ -46,7 +46,7 @@ export const METADATA_SUOLO_KEY = "suolo";
  * percentuali) alimenta Saxton-Rawls; in alternativa si possono fornire
  * direttamente le costanti idrauliche θFC/θPWP per l'utente esperto.
  */
-export interface SuoloManuale {
+export interface ManualSoil {
   /** Classe tessiturale testuale (IT/EN/ES). */
   tessitura?: string;
   /** Percentuali granulometriche (somma ~100). */
@@ -70,7 +70,7 @@ export interface SuoloManuale {
   punto_appassimento?: number;
 }
 
-export interface ParametriSuoloRisolti {
+export interface ResolvedSoilParameters {
   parametri: SoilParameters;
   sorgente: SoilSource;
   /** Numero di campioni/feature che hanno concorso al calcolo. */
@@ -89,7 +89,7 @@ export const SUOLO_FRANCO_DEFAULT: SoilParameters = {
   depletionFraction: 0.5,
 };
 
-export interface OpzioniRisoluzione {
+export interface ResolutionOptions {
   /** Strato vettoriale custom (EC_a/tessitura) da Add Data, se presente. */
   mappaCustom?: FeatureCollection | null;
   /** Profondità radicale (m): override coltura/appezzamento. */
@@ -226,7 +226,7 @@ export function aggregaTessitura(
  * tessitura/percentuali via Saxton-Rawls → null. Profondità e frazione di
  * depletion manuali hanno la precedenza sugli override del chiamante.
  */
-export function parametriDaSuoloManuale(
+export function parametersFromManualSoil(
   appezzamento: Plot,
   opzioni: { profonditaRadiciM?: number; depletionFraction?: number } = {},
 ): SoilParameters | null {
@@ -338,8 +338,8 @@ export class SoilDataResolver {
   async risolvi(
     appezzamento: Plot,
     soilSamples: SoilSample[],
-    opzioni: OpzioniRisoluzione = {},
-  ): Promise<ParametriSuoloRisolti> {
+    opzioni: ResolutionOptions = {},
+  ): Promise<ResolvedSoilParameters> {
     const opzSaxton = {
       profonditaRadiciM: opzioni.profonditaRadiciM,
       depletionFraction: opzioni.depletionFraction,
@@ -390,7 +390,7 @@ export class SoilDataResolver {
     }
 
     // TIER 3 — Composizione inserita manualmente nella scheda appezzamento.
-    const manuale = parametriDaSuoloManuale(appezzamento, opzSaxton);
+    const manuale = parametersFromManualSoil(appezzamento, opzSaxton);
     if (manuale) {
       return {
         parametri: manuale,

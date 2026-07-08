@@ -262,7 +262,7 @@
       "error": "erreur"
     }
   },
-  "useDssCalcolo": {
+  "useDssCalculation": {
     "offlineFallback": "Hors ligne ou échec de la récupération ({{error}}). Utilisation des données locales.",
     "useLocalWeatherData": "Utilisation des données météo locales.",
     "noWeatherData": "Aucune donnée météo disponible : configurez la source ou connectez-vous pour le premier téléchargement.",

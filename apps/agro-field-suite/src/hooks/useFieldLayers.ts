@@ -23,7 +23,7 @@ import {
  * Proietta i layer "infrastrutture" e "poi" del dominio agronomico nello store
  * layer di GeoLibre. La visibilità è gestita dal Layer Manager NATIVO di
  * GeoLibre (built-in "layer-control"): qui si scrivono solo i dati, sempre nel
- * flusso unidirezionale (mai su MapLibre direttamente), come `useAppezzamentiLayer`.
+ * flusso unidirezionale (mai su MapLibre direttamente), come `usePlotsLayer`.
  */
 
 interface ManagedLayer {

@@ -92,7 +92,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
         : null,
     [campaignFields, appId],
   );
-  const cropCampo = useMemo(
+  const fieldCrop = useMemo(
     () =>
       campoAperto
         ? crops.find((c) => c.id === campoAperto.crop_id) ?? null
@@ -100,24 +100,24 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
     [crops, campoAperto],
   );
   // Solo le ANNUALI si chiudono col raccolto (le perenni restano in campo).
-  const categoriaCampo =
-    typeof cropCampo?.crop_metadata?.["category"] === "string"
-      ? (cropCampo.crop_metadata["category"] as string)
+  const fieldCategory =
+    typeof fieldCrop?.crop_metadata?.["category"] === "string"
+      ? (fieldCrop.crop_metadata["category"] as string)
       : null;
   const isAnnuale =
-    categoriaCampo === "seminativo" || categoriaCampo === "orticoltura";
+    fieldCategory === "seminativo" || fieldCategory === "orticoltura";
   const [chiudi, setChiudi] = useState(false);
 
   // Al cambio campo: proponi la chiusura per le annuali e precompila la
   // cultivar dalla coltura di campagna (se il campo cultivar è ancora vuoto).
   useEffect(() => {
     setChiudi(isAnnuale);
-    if (cropCampo) {
-      const label = cropCampo.variety_name ?? cropCampo.common_name;
+    if (fieldCrop) {
+      const label = fieldCrop.variety_name ?? fieldCrop.common_name;
       setCultivar((corrente) => corrente || label);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appId, isAnnuale, cropCampo?.id]);
+  }, [appId, isAnnuale, fieldCrop?.id]);
 
   // -- compliance dichiarativa (SIAN/SIEX): campi mancanti sulla campagna -----
   // Gate consapevole, non blocco duro: senza dati dichiarativi il salvataggio
@@ -172,14 +172,14 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
     return () => clearTimeout(t);
   }, [notifica]);
 
-  function etichettaRaccolta(r: Harvest): string {
+  function harvestLabel(r: Harvest): string {
     const data = new Date(r.harvested_at).toLocaleDateString("it-IT");
     return `${r.cultivar ?? t("raccoltaPanel.harvestFallbackLabel")} · ${data}`;
   }
 
   async function confermaEliminazione() {
     if (!daEliminare) return;
-    const etichetta = etichettaRaccolta(daEliminare);
+    const etichetta = harvestLabel(daEliminare);
     await deleteHarvest(daEliminare.id);
     setDaEliminare(null);
     setNotifica(t("raccoltaPanel.removedNotice", { label: etichetta }));
@@ -361,7 +361,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
 
           {/* v17: chiusura del ciclo colturale al raccolto (solo campagne
               aperte; proposta pre-attiva per le annuali). */}
-          {campoAperto && cropCampo && (
+          {campoAperto && fieldCrop && (
             <label className="flex items-start gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2">
               <input
                 type="checkbox"
@@ -372,9 +372,9 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
               <span className="min-w-0">
                 <span className="block text-sm font-medium">
                   {t("raccoltaPanel.closeCampaign", {
-                    crop: cropCampo.variety_name
-                      ? `${cropCampo.common_name} (${cropCampo.variety_name})`
-                      : cropCampo.common_name,
+                    crop: fieldCrop.variety_name
+                      ? `${fieldCrop.common_name} (${fieldCrop.variety_name})`
+                      : fieldCrop.common_name,
                     year: activeCampaign,
                   })}
                 </span>
@@ -464,7 +464,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
                   type="button"
                   onClick={() => setDaEliminare(r)}
                   title={t("raccoltaPanel.deleteHarvest")}
-                  aria-label={t("raccoltaPanel.deleteHarvestAria", { label: etichettaRaccolta(r) })}
+                  aria-label={t("raccoltaPanel.deleteHarvestAria", { label: harvestLabel(r) })}
                   className="flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-[var(--r-2)] text-[#dc2626] hover:bg-[var(--danger-l,#fee2e2)]"
                 >
                   <Trash2 size={16} />
@@ -477,7 +477,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
 
       <ConfirmDeleteOperation
         open={daEliminare != null}
-        etichetta={daEliminare ? etichettaRaccolta(daEliminare) : ""}
+        etichetta={daEliminare ? harvestLabel(daEliminare) : ""}
         titolo={t("raccoltaPanel.deleteHarvest")}
         messaggio={t("raccoltaPanel.deleteConfirmMessage")}
         consensoLabel={t("raccoltaPanel.deleteConfirmConsent")}

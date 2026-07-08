@@ -142,7 +142,7 @@ export function CommandCenter() {
     effectivePlotIds == null ||
     (plotId != null && effectivePlotIds.has(plotId));
 
-  const scopedTrattamenti = useMemo(
+  const scopedTreatments = useMemo(
     () =>
       treatments.filter(
         (t) =>
@@ -153,7 +153,7 @@ export function CommandCenter() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [treatments, effectivePlotIds, campaignYear],
   );
-  const scopedRaccolte = useMemo(
+  const scopedHarvests = useMemo(
     () =>
       harvests.filter(
         (r) =>
@@ -167,12 +167,12 @@ export function CommandCenter() {
 
   // Operazioni/harvests ristrette ai SOLI plots (tutte le annate): è il
   // filtro temporale della dashboard a scegliere il periodo, non l'annata KPI.
-  const plotTrattamenti = useMemo(
+  const plotTreatments = useMemo(
     () => treatments.filter((t) => t.deleted_at == null && inEffective(t.plot_id)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [treatments, effectivePlotIds],
   );
-  const plotRaccolte = useMemo(
+  const plotHarvests = useMemo(
     () => harvests.filter((r) => r.deleted_at == null && inEffective(r.plot_id)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [harvests, effectivePlotIds],
@@ -187,8 +187,8 @@ export function CommandCenter() {
       ),
       crops,
       campaigns: data.allCampaigns.filter((c) => c.deleted_at == null),
-      treatments: plotTrattamenti,
-      harvests: plotRaccolte,
+      treatments: plotTreatments,
+      harvests: plotHarvests,
       soilIndices: data.soilIndices,
       weather: data.weather,
       dssRisultati: data.dssRisultati,
@@ -201,8 +201,8 @@ export function CommandCenter() {
       data.soilIndices,
       data.weather,
       data.dssRisultati,
-      plotTrattamenti,
-      plotRaccolte,
+      plotTreatments,
+      plotHarvests,
       effectivePlotIds,
     ],
   );
@@ -215,8 +215,8 @@ export function CommandCenter() {
     if (!data.result) return;
     const csv = buildExecutiveReportCsv({
       result: data.result,
-      treatments: scopedTrattamenti,
-      harvests: scopedRaccolte,
+      treatments: scopedTreatments,
+      harvests: scopedHarvests,
       companyName,
     });
     const filename = executiveReportFilename(companyName, campaignYear);

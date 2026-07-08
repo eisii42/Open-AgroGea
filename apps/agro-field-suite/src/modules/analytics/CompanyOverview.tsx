@@ -41,7 +41,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
     if (!dal || !activeCompanyId) return;
     let attivo = true;
     void dal
-      .costiProdottiPerCampo(activeCompanyId, {
+      .productCostsPerField(activeCompanyId, {
         dal: `${campaignYear}-01-01T00:00:00.000Z`,
         al: `${campaignYear}-12-31T23:59:59.999Z`,
       })
@@ -82,7 +82,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
   );
 
   // -- stato magazzino ---------------------------------------------------------
-  const giacenzaPerProdotto = useMemo(() => {
+  const stockPerProduct = useMemo(() => {
     const map = new Map<string, number>();
     for (const l of lots) {
       if (l.deleted_at != null) continue;
@@ -96,10 +96,10 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
     () =>
       products.reduce(
         (sum, p) =>
-          sum + (giacenzaPerProdotto.get(p.id) ?? 0) * Number(p.avg_unit_cost),
+          sum + (stockPerProduct.get(p.id) ?? 0) * Number(p.avg_unit_cost),
         0,
       ),
-    [products, giacenzaPerProdotto],
+    [products, stockPerProduct],
   );
 
   const lottiConGiacenza = useMemo(
@@ -116,11 +116,11 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
   const sottoScorta = products.filter((p) => {
     const min = p.metadata?.["min_stock"];
     return (
-      typeof min === "number" && (giacenzaPerProdotto.get(p.id) ?? 0) < min
+      typeof min === "number" && (stockPerProduct.get(p.id) ?? 0) < min
     );
   }).length;
 
-  const nomeCampo = (plotId: string | null): string =>
+  const fieldName = (plotId: string | null): string =>
     plotId
       ? plots.find((a) => a.id === plotId)?.user_plot_name ??
         plotId.slice(0, 8)
@@ -269,7 +269,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
                   key={riga.plot_id ?? "azienda"}
                   className="border-b border-[var(--line)] last:border-0"
                 >
-                  <td className="py-1.5 pr-2">{nomeCampo(riga.plot_id)}</td>
+                  <td className="py-1.5 pr-2">{fieldName(riga.plot_id)}</td>
                   <td className="agro-num py-1.5 text-right">
                     {euro(Number(riga.total_cost))} €
                   </td>

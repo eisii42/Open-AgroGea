@@ -58,7 +58,7 @@ export function runDssModule(
   });
 }
 
-/** Proietta gli esiti nelle righe accettate da `AgroDal.salvaDssRisultati`. */
+/** Proietta gli esiti nelle righe accettate da `AgroDal.saveDssResults`. */
 export function outcomesToDssResults(
   esiti: DssOutcome[],
 ): Array<{

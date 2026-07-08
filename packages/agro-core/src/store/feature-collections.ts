@@ -42,7 +42,7 @@ export function cropForPlot(
 }
 
 /** CropType (record `crops`) associata a un appezzamento nell'annata attiva. */
-function cropPerAppezzamento(
+function cropPerPlot(
   plotId: string,
   campaignFields: PlotCampaign[],
   crops: Crop[],
@@ -61,12 +61,12 @@ function cropPerAppezzamento(
  * A differenza di {@link cropForPlot} (che ritorna la categoria DSS),
  * qui si privilegia il nome reale della coltura, più informativo nel tooltip.
  */
-export function cropLabelPerAppezzamento(
+export function cropLabelPerPlot(
   plotId: string,
   campaignFields: PlotCampaign[],
   crops: Crop[],
 ): string | null {
-  const crop = cropPerAppezzamento(plotId, campaignFields, crops);
+  const crop = cropPerPlot(plotId, campaignFields, crops);
   if (!crop) return null;
   return crop.variety_name
     ? `${crop.common_name} (${crop.variety_name})`
@@ -82,7 +82,7 @@ export function plotsToFeatureCollection(
   return {
     type: "FeatureCollection",
     features: plots.map((a) => {
-      const crop = cropPerAppezzamento(a.id, campaignFields, crops);
+      const crop = cropPerPlot(a.id, campaignFields, crops);
       const kind = crop?.common_name ?? null;
       // Colore ad hoc per specie (grigio neutro se senza coltura). Iniettato
       // come proprietà simplestyle per-feature → onorato dal renderer GeoLibre.

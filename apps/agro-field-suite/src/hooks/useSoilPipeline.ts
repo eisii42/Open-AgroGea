@@ -13,7 +13,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   OverlayRaster,
-  PuntoSerie,
+  SeriesPoint,
   SuoloJob,
   SuoloProgress,
 } from "../workers/soil.worker";
@@ -40,17 +40,17 @@ export type StrategiaTemporale =
 /** Tetto dell'analisi personalizzata: l'intervallo non può superare i 60 giorni. */
 export const MAX_GIORNI_PERSONALIZZATO = 60;
 
-export interface OpzioniSuolo {
+export interface SoilOptions {
   indici: VegetationIndex[];
   indicePrimario: VegetationIndex;
   cloudCoverMax: number;
   strategia: StrategiaTemporale;
 }
 
-export interface RisultatoAppezzamento {
+export interface PlotResult {
   plotId: string;
   name: string;
-  series: PuntoSerie[];
+  series: SeriesPoint[];
 }
 
 export type SuoloStato =
@@ -63,7 +63,7 @@ export type SuoloStato =
     }
   | {
       phase: "completato";
-      risultati: RisultatoAppezzamento[];
+      risultati: PlotResult[];
       indici: VegetationIndex[];
       indicePrimario: VegetationIndex;
     }
@@ -149,7 +149,7 @@ function iniettaOverlay(plotId: string, overlay: OverlayRaster): void {
   }
 }
 
-export function useSuoloPipeline() {
+export function useSoilPipeline() {
   const saveMeanNdvi = useAgroStore((s) => s.saveMeanNdvi);
   const [stato, setStato] = useState<SuoloStato>({ phase: "idle" });
   const workerRef = useRef<Worker | null>(null);
@@ -168,7 +168,7 @@ export function useSuoloPipeline() {
 
   const eseguiJob = useCallback(
     (job: SuoloJob, onProgress: (p: SuoloProgress) => void) =>
-      new Promise<{ series: PuntoSerie[]; overlay: OverlayRaster | null }>(
+      new Promise<{ series: SeriesPoint[]; overlay: OverlayRaster | null }>(
         (resolve, reject) => {
           const worker = workerRef.current;
           if (!worker) {
@@ -193,10 +193,10 @@ export function useSuoloPipeline() {
   );
 
   const calcola = useCallback(
-    async (plots: Plot[], opzioni: OpzioniSuolo) => {
+    async (plots: Plot[], opzioni: SoilOptions) => {
       if (plots.length === 0 || opzioni.indici.length === 0) return;
       rimuoviOverlay();
-      const risultati: RisultatoAppezzamento[] = [];
+      const risultati: PlotResult[] = [];
 
       try {
         const strategia = opzioni.strategia;

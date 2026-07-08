@@ -210,7 +210,7 @@ export interface AppezzamentoEsistente {
  * (memorizzato in `metadata.agricultural_parcel_external_id` al primo import). Ritorna l'id
  * fisico esistente, o null se va creato un nuovo appezzamento.
  */
-export function abbinaAppezzamentoEsistente(
+export function matchExistingPlot(
   campo: Pick<SianCampoMappato, "agricultural_parcel_external_id">,
   esistenti: AppezzamentoEsistente[],
 ): string | null {

@@ -75,7 +75,7 @@ export interface CampoCampagnaOption {
 }
 
 /** Esito della geo-compliance per l'appezzamento selezionato, iniettato dall'app. */
-export interface ComplianceTrattamento {
+export interface ComplianceTreatment {
   /** Note leggibili dei vincoli (ZVN, SIC/ZPS). */
   note: string[];
   /** Massimale assoluto di azoto (kg) per l'appezzamento; null = nessun vincolo. */
@@ -97,7 +97,7 @@ export interface TrattamentoFormProps {
    * Valuta i vincoli geografici dell'appezzamento (iniettata dall'app, che
    * legge i layer ZVN/SIC-ZPS). Tiene @agrogea/ui disaccoppiato dal motore.
    */
-  valutaCompliance?: (appezzamento: Plot) => ComplianceTrattamento | null;
+  valutaCompliance?: (appezzamento: Plot) => ComplianceTreatment | null;
   /**
    * Catalogo fitosanitari filtrato per `country_code` (iniettato dall'app via
    * `useCountryCatalog`). Se fornito, il campo "Product" diventa un dropdown del
@@ -122,7 +122,7 @@ export function TreatmentForm({
     key: string,
     options?: Record<string, unknown>,
   ) => string;
-  const usaCampagna = (campaignFields?.length ?? 0) > 0;
+  const usesCampaign = (campaignFields?.length ?? 0) > 0;
   const usaCatalogo = (prodottiCatalogo?.length ?? 0) > 0;
 
   const [tipo, setTipo] = useState<OperationType>("phytosanitary");
@@ -130,7 +130,7 @@ export function TreatmentForm({
     defaultAppezzamentoId ?? "",
   );
   const [campoCampagnaId, setCampoCampagnaId] = useState<string>(() => {
-    if (!usaCampagna || !defaultAppezzamentoId) return "";
+    if (!usesCampaign || !defaultAppezzamentoId) return "";
     return (
       campaignFields?.find((c) => c.plotId === defaultAppezzamentoId)
         ?.campoCampagnaId ?? ""
@@ -215,14 +215,14 @@ export function TreatmentForm({
   );
   const mancano = panErrors.length > 0;
 
-  function selezionaCampagna(value: string) {
+  function selectCampaign(value: string) {
     setCampoCampagnaId(value);
     const opt = campaignFields?.find((c) => c.campoCampagnaId === value);
     setAppezzamentoId(opt?.plotId ?? "");
   }
 
   // Selezione dal catalogo nazionale: auto-compila sostanza attiva e n. registrazione.
-  function selezionaProdotto(codice: string) {
+  function selectProduct(codice: string) {
     setProdottoCodice(codice);
     const voce = prodottiCatalogo?.find((p) => p.code === codice);
     setProdotto(voce?.name ?? "");
@@ -298,15 +298,15 @@ export function TreatmentForm({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="qdc-appezzamento">
-            {usaCampagna
+            {usesCampaign
               ? t("logbook.common.fieldCampaign")
               : t("logbook.common.plot")}
           </Label>
-          {usaCampagna ? (
+          {usesCampaign ? (
             <Select
               id="qdc-appezzamento"
               value={campoCampagnaId}
-              onChange={(e) => selezionaCampagna(e.target.value)}
+              onChange={(e) => selectCampaign(e.target.value)}
             >
               <option value="">{t("logbook.common.wholeFarm")}</option>
               {campaignFields?.map((c) => (
@@ -364,7 +364,7 @@ export function TreatmentForm({
             <Select
               id="qdc-prodotto"
               value={prodottoCodice}
-              onChange={(e) => selezionaProdotto(e.target.value)}
+              onChange={(e) => selectProduct(e.target.value)}
               required={fito}
             >
               <option value="">{t("logbook.common.selectFromRegister")}</option>

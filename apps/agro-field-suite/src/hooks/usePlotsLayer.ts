@@ -19,7 +19,7 @@ const LAYER_SOURCE_PATH = "agrogea://plots";
  * nello store layer di GeoLibre: MapController.syncLayers fa il resto.
  * Flusso unidirezionale rispettato — qui non si tocca mai MapLibre.
  */
-export function useAppezzamentiLayer(
+export function usePlotsLayer(
   mapControllerRef: RefObject<MapController | null>,
   // Cambiando ad ogni `style.load`, forza la re-iniezione del layer dopo un
   // cambio basemap (lo stile MapLibre riparte da zero). Vedi useMapStyleEpoch.

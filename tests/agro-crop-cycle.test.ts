@@ -119,10 +119,10 @@ describe("v17 / chiusura campagna e secondo raccolto", () => {
 });
 
 describe("v17 / metadata products (identità colturale sementi)", () => {
-  it("upsertProdotto persiste e preserva il metadata jsonb", async () => {
+  it("upsertProduct persiste e preserva il metadata jsonb", async () => {
     const dal = await TestDal.create();
     const { companyId } = await seedPlot(dal);
-    const prodotto = await dal.upsertProdotto({
+    const prodotto = await dal.upsertProduct({
       company_id: companyId,
       category: "seed",
       name: "Frumento Bologna",
@@ -141,13 +141,13 @@ describe("v17 / metadata products (identità colturale sementi)", () => {
         min_stock: 50,
       },
     });
-    const riletto = await dal.getProdotto(prodotto.id);
+    const riletto = await dal.getProduct(prodotto.id);
     assert.equal(riletto?.metadata?.["species"], "Frumento tenero");
     assert.equal(riletto?.metadata?.["crop_category"], "seminativo");
     assert.equal(riletto?.metadata?.["min_stock"], 50);
 
     // Update anagrafico SENZA metadata: il jsonb esistente sopravvive.
-    await dal.upsertProdotto({
+    await dal.upsertProduct({
       id: prodotto.id,
       company_id: companyId,
       category: "seed",
@@ -160,7 +160,7 @@ describe("v17 / metadata products (identità colturale sementi)", () => {
       uma_code: null,
       notes: null,
     });
-    const dopo = await dal.getProdotto(prodotto.id);
+    const dopo = await dal.getProduct(prodotto.id);
     assert.equal(dopo?.metadata?.["variety_name"], "Bologna");
   });
 });

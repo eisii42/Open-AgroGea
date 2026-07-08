@@ -50,7 +50,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
    * categoria (`validateProduct`); il CUMP (`avg_unit_cost`) NON si imposta da
    * qui: lo aggiorna solo il carico lots ({@link receiveLot}).
    */
-  async upsertProdotto(
+  async upsertProduct(
     input: Omit<
       Product,
       | "id"
@@ -78,7 +78,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
       );
     }
     const ts = nowIso();
-    const esistente = input.id ? await this.getProdotto(input.id) : null;
+    const esistente = input.id ? await this.getProduct(input.id) : null;
     const row: Product = {
       id: input.id ?? uuidv4(),
       tenant_id: this.tenantId,
@@ -109,7 +109,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
     return row;
   }
 
-  async getProdotto(id: string): Promise<Product | null> {
+  async getProduct(id: string): Promise<Product | null> {
     const result = await this.db.query<Product>(
       `select * from products where id = $1`,
       [id],
@@ -117,7 +117,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
     return result.rows[0] ?? null;
   }
 
-  async listProdotti(
+  async listProducts(
     companyId: string,
     options: { categoria?: Product["category"] } = {},
   ): Promise<Product[]> {
@@ -136,7 +136,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
     return result.rows;
   }
 
-  async deleteProdotto(id: string): Promise<void> {
+  async deleteProduct(id: string): Promise<void> {
     await this.softDelete("products", id);
   }
 
@@ -154,7 +154,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
     > & { id?: string },
   ): Promise<ProductLot> {
     const ts = nowIso();
-    const prodotto = await this.getProdotto(input.product_id);
+    const prodotto = await this.getProduct(input.product_id);
     if (!prodotto || prodotto.deleted_at) {
       throw new WarehouseError(
         "invalid_product",
@@ -190,8 +190,8 @@ export class AgroDalWarehouse extends AgroDalLogbook {
         input.unit_cost,
       );
 
-      const insLotto = upsertSql("product_lots", lotto as unknown as Row);
-      await tx.query(insLotto.sql, insLotto.values);
+      const insLot = upsertSql("product_lots", lotto as unknown as Row);
+      await tx.query(insLot.sql, insLot.values);
       await this.enqueueOutbox(
         tx,
         "product_lots",
@@ -265,7 +265,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
     return result.rows;
   }
 
-  async deleteLotto(id: string): Promise<void> {
+  async deleteLot(id: string): Promise<void> {
     await this.softDelete("product_lots", id);
   }
 
@@ -278,9 +278,9 @@ export class AgroDalWarehouse extends AgroDalLogbook {
    * parziale, nessuna attività orfana). Il costo imputato è quantità × CUMP
    * del prodotto al momento dello scarico (§5.3), congelato in
    * `activity_products` (§5.4). Con `scarichi` vuoto degrada a
-   * {@link insertTrattamento} (fallback testo libero intatto).
+   * {@link insertTreatment} (fallback testo libero intatto).
    */
-  async insertTrattamentoConScarichi(
+  async insertTreatmentWithIssues(
     input: Omit<
       TreatmentLog,
       "id" | "tenant_id" | "created_at" | "updated_at" | "deleted_at"
@@ -288,7 +288,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
     scarichi: IssueRequest[],
   ): Promise<{ trattamento: TreatmentLog; scarichi: ActivityProduct[] }> {
     if (scarichi.length === 0) {
-      return { trattamento: await this.insertTrattamento(input), scarichi: [] };
+      return { trattamento: await this.insertTreatment(input), scarichi: [] };
     }
     const ts = nowIso();
     const trattamento: TreatmentLog = {
@@ -299,7 +299,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
       updated_at: ts,
       deleted_at: null,
     };
-    const righeScarico: ActivityProduct[] = [];
+    const issueRows: ActivityProduct[] = [];
 
     await this.db.transaction(async (tx: Transaction) => {
       const insTratt = upsertSql("treatment_logs", trattamento as unknown as Row);
@@ -358,8 +358,8 @@ export class AgroDalWarehouse extends AgroDalLogbook {
           updated_at: ts,
           deleted_at: null,
         };
-        const updLotto = upsertSql("product_lots", lottoAggiornato as unknown as Row);
-        await tx.query(updLotto.sql, updLotto.values);
+        const updLot = upsertSql("product_lots", lottoAggiornato as unknown as Row);
+        await tx.query(updLot.sql, updLot.values);
         await this.enqueueOutbox(
           tx,
           "product_lots",
@@ -381,27 +381,27 @@ export class AgroDalWarehouse extends AgroDalLogbook {
           updated_at: ts,
           deleted_at: null,
         };
-        const insScarico = upsertSql("activity_products", scarico as unknown as Row);
-        await tx.query(insScarico.sql, insScarico.values);
+        const insIssue = upsertSql("activity_products", scarico as unknown as Row);
+        await tx.query(insIssue.sql, insIssue.values);
         await this.enqueueOutbox(
           tx,
           "activity_products",
           "insert",
           scarico as unknown as Row & { id: string },
         );
-        righeScarico.push(scarico);
+        issueRows.push(scarico);
       }
     });
-    return { trattamento, scarichi: righeScarico };
+    return { trattamento, scarichi: issueRows };
   }
 
   /**
    * Soft-delete di un'operazione del Quaderno con STORNO magazzino: tombstone
    * dell'attività e dei suoi scarichi + reintegro delle giacenze dei lots,
    * tutto in un'unica transazione (l'inventario resta coerente). Sostituisce
-   * {@link AgroDalLogbook.deleteTrattamento} per le attività con scarichi.
+   * {@link AgroDalLogbook.deleteTreatment} per le attività con scarichi.
    */
-  override async deleteTrattamento(id: string): Promise<void> {
+  override async deleteTreatment(id: string): Promise<void> {
     const ts = nowIso();
     await this.db.transaction(async (tx: Transaction) => {
       await tx.query(
@@ -472,7 +472,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
    * base del bilancio di campo (0.4.0). `plot_id` null = operazioni "intera
    * azienda".
    */
-  async costiProdottiPerCampo(
+  async productCostsPerField(
     companyId: string,
     options: { dal?: string; al?: string } = {},
   ): Promise<FieldProductCost[]> {

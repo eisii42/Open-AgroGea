@@ -12,7 +12,7 @@ import {
   frazioniDaCampione,
   frazioniDaProprieta,
   parametriDaMetadata,
-  parametriDaSuoloManuale,
+  parametersFromManualSoil,
   SUOLO_FRANCO_DEFAULT,
 } from "../apps/agro-field-suite/src/modules/soil/SoilDataResolver";
 
@@ -219,7 +219,7 @@ describe("parametriDaMetadata — fallback Tier 3", () => {
   });
 });
 
-describe("parametriDaSuoloManuale — Tier 3 inserimento manuale", () => {
+describe("parametersFromManualSoil — Tier 3 inserimento manuale", () => {
   function plotMeta(meta: Record<string, unknown>): Plot {
     return {
       id: "p2",
@@ -241,7 +241,7 @@ describe("parametriDaSuoloManuale — Tier 3 inserimento manuale", () => {
   }
 
   it("calcola θFC/θPWP via Saxton-Rawls dalla classe tessiturale manuale", () => {
-    const p = parametriDaSuoloManuale(
+    const p = parametersFromManualSoil(
       plotMeta({ suolo: { tessitura: "argilloso", sostanza_organica: 2 } }),
     );
     assert.ok(p);
@@ -250,7 +250,7 @@ describe("parametriDaSuoloManuale — Tier 3 inserimento manuale", () => {
   });
 
   it("usa le percentuali manuali e gli override profondità/depletion", () => {
-    const p = parametriDaSuoloManuale(
+    const p = parametersFromManualSoil(
       plotMeta({
         suolo: {
           sabbia: 30,
@@ -267,7 +267,7 @@ describe("parametriDaSuoloManuale — Tier 3 inserimento manuale", () => {
   });
 
   it("rispetta le costanti idrauliche dirette (utente esperto)", () => {
-    const p = parametriDaSuoloManuale(
+    const p = parametersFromManualSoil(
       plotMeta({ suolo: { capacita_campo: 0.34, punto_appassimento: 0.16 } }),
     );
     assert.ok(p);
@@ -276,7 +276,7 @@ describe("parametriDaSuoloManuale — Tier 3 inserimento manuale", () => {
   });
 
   it("null se non c'è composizione manuale utile", () => {
-    assert.equal(parametriDaSuoloManuale(plotMeta({})), null);
-    assert.equal(parametriDaSuoloManuale(plotMeta({ suolo: { ph: 6.5 } })), null);
+    assert.equal(parametersFromManualSoil(plotMeta({})), null);
+    assert.equal(parametersFromManualSoil(plotMeta({ suolo: { ph: 6.5 } })), null);
   });
 });

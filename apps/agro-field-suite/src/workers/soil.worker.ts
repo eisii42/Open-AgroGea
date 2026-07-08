@@ -56,7 +56,7 @@ export interface SuoloJob {
 /** Cella della griglia VRA: poligono con valore medio dell'index primario. */
 export type VraCells = FeatureCollection<Polygon, { valore: number }>;
 
-export interface PuntoSerie {
+export interface SeriesPoint {
   datetime: string;
   cloudCover: number | null;
   /** Media per index (chiave = index), NaN se nessun pixel valido. */
@@ -84,7 +84,7 @@ export type SuoloProgress =
     }
   | {
       tipo: "done";
-      series: PuntoSerie[];
+      series: SeriesPoint[];
       overlay: OverlayRaster | null;
       /** Celle VRA dell'index primario, solo se `job.vra` è impostato. */
       vraCells: VraCells | null;
@@ -250,7 +250,7 @@ async function elaboraScena(
   job: SuoloJob,
   conOverlay: boolean,
 ): Promise<{
-  punto: PuntoSerie;
+  punto: SeriesPoint;
   overlay: OverlayRaster | null;
   vraCells: VraCells | null;
 }> {
@@ -314,7 +314,7 @@ ctx.addEventListener("message", async (event: MessageEvent<SuoloJob>) => {
     if (job.scene.length === 0) {
       throw new Error("Nessuna scena disponibile per i filtri scelti.");
     }
-    const series: PuntoSerie[] = [];
+    const series: SeriesPoint[] = [];
     let overlay: OverlayRaster | null = null;
     let vraCells: VraCells | null = null;
 

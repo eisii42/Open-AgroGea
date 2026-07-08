@@ -1,7 +1,7 @@
 import { useAgroStore } from "@agrogea/core";
 import type { Polygon, MultiPolygon } from "geojson";
 import {
-  abbinaAppezzamentoEsistente,
+  matchExistingPlot,
   type SianCampoMappato,
 } from "../../services/gis/sian-mapping";
 import i18n from "../../i18n";
@@ -74,7 +74,7 @@ export async function importaFascicoloSian(
   };
 
   for (const campo of campi) {
-    let plotId = abbinaAppezzamentoEsistente(campo, esistenti);
+    let plotId = matchExistingPlot(campo, esistenti);
 
     if (!plotId) {
       if (!isPoligono(campo.geometria)) {
@@ -90,7 +90,7 @@ export async function importaFascicoloSian(
           : i18n.t("importaFascicolo.sianPlotFallbackName", {
               index: esistenti.length + 1,
             });
-      const creato = await dal.upsertAppezzamento({
+      const creato = await dal.upsertPlot({
         id: crypto.randomUUID(),
         company_id: activeCompanyId,
         // L'appezzamento è l'entità FISICA: la coltura vive in plots_campaign/crops.

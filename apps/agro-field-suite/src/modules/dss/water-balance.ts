@@ -34,7 +34,7 @@ export interface ApportoIrriguo {
   mm: number;
 }
 
-export interface BilancioIdricoParams {
+export interface WaterBalanceParams {
   /** Letture meteo orarie/giornaliere dell'azienda (`weather_readings`). */
   letture: WeatherReading[];
   /** Apporti irrigui giornalieri (mm), dai log gestionali. */
@@ -49,7 +49,7 @@ export interface BilancioIdricoParams {
 }
 
 /** Riga giornaliera del bilancio idrico, pronta per `soil_water_indices`. */
-export interface IndiceIdricoGiorno {
+export interface WaterIndexDay {
   data: string;
   et0: number;
   etc: number;
@@ -62,21 +62,21 @@ export interface IndiceIdricoGiorno {
   inStress: boolean;
 }
 
-export interface BilancioIdricoOutput {
+export interface WaterBalanceOutput {
   kc: number;
-  series: IndiceIdricoGiorno[];
+  series: WaterIndexDay[];
   /** Giorni di autonomia prima del primo stress (index nella series). */
   autonomyDays: number;
 }
 
 /** Lama irrigua (mm) da un volume in litri applicato su `areaHa` ettari. */
-export function apportoIrriguoMm(litri: number, areaHa: number): number {
+export function irrigationInputMm(litri: number, areaHa: number): number {
   if (!(areaHa > 0) || !(litri > 0)) return 0;
   return litri / (areaHa * LITRI_PER_MM_HA);
 }
 
 /** Volume d'acqua (litri) di un'irrigation: `total_quantity`, poi `water_volume_l`. */
-function volumeIrriguoLitri(t: TreatmentLog): number | null {
+function irrigationVolumeLiters(t: TreatmentLog): number | null {
   if (t.total_quantity != null && Number.isFinite(t.total_quantity)) {
     return t.total_quantity;
   }
@@ -92,7 +92,7 @@ function volumeIrriguoLitri(t: TreatmentLog): number | null {
  * con fallback su `water_volume_l`), riportato a lama d'acqua sulla superficie
  * dell'appezzamento.
  */
-export function apportiIrriguiDaTrattamenti(
+export function irrigationInputsFromTreatments(
   treatments: TreatmentLog[],
   areaHa: number,
 ): ApportoIrriguo[] {
@@ -100,7 +100,7 @@ export function apportiIrriguiDaTrattamenti(
     .filter((t) => t.operation_type === "irrigation")
     .map((t) => ({
       data: giornoDi(t.executed_at),
-      mm: apportoIrriguoMm(volumeIrriguoLitri(t) ?? 0, areaHa),
+      mm: irrigationInputMm(irrigationVolumeLiters(t) ?? 0, areaHa),
     }))
     .filter((a) => a.mm > 0);
 }
@@ -217,9 +217,9 @@ function irrigazionePerGiorno(
  * Calcola il bilancio idrico giornaliero componendo gli engine puri:
  * ET0 (Penman-Monteith) → ETc (ET0·Kc per phase) → depletion Dr,t (FAO-66).
  */
-export function calcolaBilancioIdrico(
-  params: BilancioIdricoParams,
-): BilancioIdricoOutput {
+export function computeWaterBalance(
+  params: WaterBalanceParams,
+): WaterBalanceOutput {
   const kc = getPhaseCalibration(params.coltura, params.phase).kc;
   const { meteo, rain, date } = serieAgrometeoDaLetture(
     params.letture,
@@ -227,17 +227,17 @@ export function calcolaBilancioIdrico(
   );
 
   const et0Serie = meteo.map((m) => et0PenmanMonteith(m));
-  const etcSerie = et0Serie.map((et0) => cropEt(et0, kc));
-  const irrSerie = irrigazionePerGiorno(date, params.irrigazioni ?? []);
+  const etcSeries = et0Serie.map((et0) => cropEt(et0, kc));
+  const irrSeries = irrigazionePerGiorno(date, params.irrigazioni ?? []);
 
   const { series, autonomyDays }: {
     series: WaterBalanceDay[];
     autonomyDays: number;
   } = waterBalanceFao66(
     params.suolo,
-    etcSerie,
+    etcSeries,
     rain,
-    irrSerie,
+    irrSeries,
     params.deplezioneIniziale ?? 0,
   );
 

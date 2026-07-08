@@ -2,7 +2,7 @@ import type { Plot } from "@agrogea/core";
 import { useAppStore } from "@geolibre/core";
 import type { FeatureCollection, Geometry } from "geojson";
 import { useCallback } from "react";
-import type { ComplianceTrattamento } from "@agrogea/ui";
+import type { ComplianceTreatment } from "@agrogea/ui";
 import {
   azotoTotaleMax,
   type LayerCompliance,
@@ -58,7 +58,7 @@ export function useGeoCompliance() {
   const complianceLayers = useComplianceLayers();
 
   return useCallback(
-    (appezzamento: Plot): ComplianceTrattamento | null => {
+    (appezzamento: Plot): ComplianceTreatment | null => {
       if (complianceLayers.length === 0) return null;
 
       const esito = verificaCompliance(appezzamento.geometry, complianceLayers);

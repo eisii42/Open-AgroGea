@@ -97,7 +97,7 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
     [products, prodottoApertoId],
   );
 
-  const lottiPerProdotto = useMemo(() => {
+  const lotsPerProduct = useMemo(() => {
     const map = new Map<string, ProductLot[]>();
     for (const lotto of lots) {
       const list = map.get(lotto.product_id) ?? [];
@@ -185,7 +185,7 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
       ) : prodottoAperto ? (
         <ProdottoDettaglio
           prodotto={prodottoAperto}
-          lots={lottiPerProdotto.get(prodottoAperto.id) ?? []}
+          lots={lotsPerProduct.get(prodottoAperto.id) ?? []}
           warningDays={warningDays}
           onBack={() => setProdottoApertoId(null)}
           onCarica={(input) => conErrore(() => receiveLot(input))}
@@ -235,7 +235,7 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
           ) : (
             <ul className="flex flex-col gap-2">
               {products.map((prodotto) => {
-                const suoi = lottiPerProdotto.get(prodotto.id) ?? [];
+                const suoi = lotsPerProduct.get(prodotto.id) ?? [];
                 const giacenza = suoi.reduce(
                   (sum, l) => sum + Number(l.quantity_on_hand),
                   0,

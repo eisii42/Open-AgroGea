@@ -65,10 +65,10 @@ export async function buildCompanySnapshot(
     allCampaigns,
     allCrops,
   ] = await Promise.all([
-    dal.listAppezzamenti(id),
-    dal.listTrattamenti(id, { limit: FULL }),
-    dal.listCampionamenti(id),
-    dal.listRaccolte(id, { limit: FULL }),
+    dal.listPlots(id),
+    dal.listTreatments(id, { limit: FULL }),
+    dal.listSoilSamples(id),
+    dal.listHarvests(id, { limit: FULL }),
     // Infrastrutture (POI puntuali, geometrie CAD) e rilievi GPS di campo:
     // entità a livello azienda, senza legame con un singolo appezzamento.
     dal.listAssets(id),
@@ -166,21 +166,21 @@ export async function importCompanyData(
 
   const restoreLogs = async (logs: AgronomicLogs) => {
     for (const tr of logs.treatments) {
-      await dal.insertTrattamento({
+      await dal.insertTreatment({
         ...stripEnv(tr),
         company_id: targetCompanyId,
       });
       summary.treatments++;
     }
     for (const so of logs.soilSamples) {
-      await dal.upsertCampionamento({
+      await dal.upsertSoilSample({
         ...stripEnv(so),
         company_id: targetCompanyId,
       });
       summary.soilSamples++;
     }
     for (const ha of logs.harvests) {
-      await dal.upsertRaccolta({
+      await dal.upsertHarvest({
         ...stripEnv(ha),
         company_id: targetCompanyId,
       });
@@ -197,7 +197,7 @@ export async function importCompanyData(
   }
 
   for (const bundle of snapshot.plots) {
-    await dal.upsertAppezzamento({
+    await dal.upsertPlot({
       ...stripEnv(bundle.plot),
       company_id: targetCompanyId,
     });
@@ -221,7 +221,7 @@ export async function importCompanyData(
   }
   // Rilievi GPS di campo.
   for (const obs of snapshot.scouting) {
-    await dal.salvaOsservazioneScouting({
+    await dal.saveScoutingObservation({
       ...stripEnv(obs),
       company_id: targetCompanyId,
     });

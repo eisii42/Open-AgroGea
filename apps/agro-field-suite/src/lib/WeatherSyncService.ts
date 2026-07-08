@@ -40,7 +40,7 @@ function idLettura(chiaveNaturale: string): string {
  */
 
 /** Riga meteo pronta per il DAL (idempotente per `id`). */
-type LetturaMeteoInput = Omit<
+type WeatherReadingInput = Omit<
   WeatherReading,
   "tenant_id" | "created_at" | "updated_at" | "deleted_at"
 >;
@@ -227,7 +227,7 @@ async function fetchOpenMeteo(
   companyId: string,
   lon: number,
   lat: number,
-): Promise<LetturaMeteoInput[]> {
+): Promise<WeatherReadingInput[]> {
   const resp = await fetch(buildOpenMeteoUrl(lon, lat));
   if (!resp.ok) {
     throw new Error(i18n.t("weatherSyncService.openMeteoHttpError", { status: resp.status }));
@@ -291,7 +291,7 @@ async function fetchArchivioGdd(
   lat: number,
   daISO: string,
   aISO: string,
-): Promise<LetturaMeteoInput[]> {
+): Promise<WeatherReadingInput[]> {
   const params = new URLSearchParams({
     latitude: lat.toFixed(4),
     longitude: lon.toFixed(4),
@@ -308,7 +308,7 @@ async function fetchArchivioGdd(
   const d = data.daily;
   if (!d?.time?.length) return [];
 
-  const righe: LetturaMeteoInput[] = [];
+  const righe: WeatherReadingInput[] = [];
   d.time.forEach((giorno, i) => {
     const tMin = d.temperature_2m_min[i];
     const tMax = d.temperature_2m_max[i];
@@ -361,7 +361,7 @@ async function fetchArchivioGdd(
 type AdapterCentralina = (
   companyId: string,
   config: CompanyWeatherConfig,
-) => Promise<LetturaMeteoInput[]>;
+) => Promise<WeatherReadingInput[]>;
 
 const ADAPTER_CENTRALINE: Record<string, AdapterCentralina> = {
   // Davis WeatherLink v2: GET /v2/historic/{station-id} con API key/secret.
@@ -377,7 +377,7 @@ const ADAPTER_CENTRALINE: Record<string, AdapterCentralina> = {
 async function fetchStazionePrivata(
   companyId: string,
   config: CompanyWeatherConfig,
-): Promise<LetturaMeteoInput[]> {
+): Promise<WeatherReadingInput[]> {
   const modello = (config.station_model ?? "").trim().toLowerCase();
   const adapter = ADAPTER_CENTRALINE[modello];
   if (!adapter) {
@@ -417,7 +417,7 @@ export const WeatherSyncService = {
 
     // Lucchetto orario: dati ancora freschi → si legge dalla cache locale.
     if (dentroLock && !force) {
-      const letture = await leggiSerie(dal, companyId);
+      const letture = await readSeries(dal, companyId);
       return {
         fetched: false,
         fonte,
@@ -431,7 +431,7 @@ export const WeatherSyncService = {
     }
 
     // Oltre il lucchetto (o forzato): si scarica e si scrive.
-    let nuove: LetturaMeteoInput[];
+    let nuove: WeatherReadingInput[];
     if (fonte === "private_station") {
       if (!config) throw new Error(i18n.t("weatherSyncService.missingStationConfig"));
       nuove = await fetchStazionePrivata(companyId, config);
@@ -450,7 +450,7 @@ export const WeatherSyncService = {
         : await dal.insertLettureMeteoLocali(nuove);
     await dal.touchWeatherPull(companyId, new Date().toISOString());
 
-    const letture = await leggiSerie(dal, companyId);
+    const letture = await readSeries(dal, companyId);
     return { fetched: true, fonte, letture, inserite };
   },
 
@@ -562,7 +562,7 @@ export const WeatherSyncService = {
  * `stazione_id` farebbe sparire i dati appena la fonte cambia o entro il
  * lucchetto orario — il bug per cui i DSS "cercavano i dati nel posto sbagliato".
  */
-async function leggiSerie(
+async function readSeries(
   dal: AgroDal,
   companyId: string,
 ): Promise<WeatherReading[]> {

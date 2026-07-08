@@ -9,11 +9,11 @@ import {
 } from "@agrogea/tools";
 import { cropModuleById, type DssWeatherDay } from "../apps/agro-field-suite/src/modules/crops";
 import {
-  eseguiDssEngine,
-  inStressIdrico,
-  kyColtura,
-  rischioIdrico01,
-  vettoreStressIdrico,
+  runDssEngine,
+  underWaterStress,
+  cropKy,
+  waterRisk01,
+  waterStressVector,
 } from "../apps/agro-field-suite/src/modules/dss/dss-engine";
 
 /**
@@ -92,25 +92,25 @@ describe("yieldReductionFao66 (Ky)", () => {
   });
 });
 
-describe("rischioIdrico01 e vettore di stress", () => {
+describe("waterRisk01 e vettore di stress", () => {
   it("vale 0 a campo pieno, 0.5 alla soglia RAW, 1 al punto di appassimento", () => {
-    assert.equal(rischioIdrico01({ depletion: 0, raw: RAW, awc: AWC }), 0);
-    assert.equal(rischioIdrico01({ depletion: RAW, raw: RAW, awc: AWC }), 0.5);
-    assert.equal(rischioIdrico01({ depletion: AWC, raw: RAW, awc: AWC }), 1);
+    assert.equal(waterRisk01({ depletion: 0, raw: RAW, awc: AWC }), 0);
+    assert.equal(waterRisk01({ depletion: RAW, raw: RAW, awc: AWC }), 0.5);
+    assert.equal(waterRisk01({ depletion: AWC, raw: RAW, awc: AWC }), 1);
   });
-  it("inStressIdrico true solo da RAW in su", () => {
-    assert.equal(inStressIdrico({ depletion: 99, raw: RAW, awc: AWC }), false);
-    assert.equal(inStressIdrico({ depletion: 100, raw: RAW, awc: AWC }), true);
+  it("underWaterStress true solo da RAW in su", () => {
+    assert.equal(underWaterStress({ depletion: 99, raw: RAW, awc: AWC }), false);
+    assert.equal(underWaterStress({ depletion: 100, raw: RAW, awc: AWC }), true);
   });
-  it("vettoreStressIdrico produce un rischio01 coerente e usa Ky della coltura", () => {
-    const v = vettoreStressIdrico({ depletion: 150, raw: RAW, awc: AWC }, "mais");
+  it("waterStressVector produce un rischio01 coerente e usa Ky della coltura", () => {
+    const v = waterStressVector({ depletion: 150, raw: RAW, awc: AWC }, "mais");
     assert.equal(v.categoria, "idrico");
     assert.ok(v.rischio01 > 0.5 && v.rischio01 <= 1);
-    assert.equal(kyColtura("mais"), 1.25);
+    assert.equal(cropKy("mais"), 1.25);
   });
 });
 
-describe("eseguiDssEngine — composizione unificata", () => {
+describe("runDssEngine — composizione unificata", () => {
   it("unisce vettori patologici e idrico; il complessivo è il massimo", () => {
     const olivo = cropModuleById("olivo");
     assert.ok(olivo, "modulo olivo presente");
@@ -123,7 +123,7 @@ describe("eseguiDssEngine — composizione unificata", () => {
       rain: 1,
       leafWetnessHours: 16,
     }));
-    const out = eseguiDssEngine(olivo!, series, undefined, {
+    const out = runDssEngine(olivo!, series, undefined, {
       depletion: 180,
       raw: RAW,
       awc: AWC,
@@ -138,7 +138,7 @@ describe("eseguiDssEngine — composizione unificata", () => {
 
   it("senza stato idrico non aggiunge il vettore idrico", () => {
     const vite = cropModuleById("vite");
-    const out = eseguiDssEngine(vite!, [], undefined);
+    const out = runDssEngine(vite!, [], undefined);
     assert.equal(out.vettori.every((v) => v.categoria === "fitopatologico"), true);
   });
 });

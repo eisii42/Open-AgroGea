@@ -23,16 +23,16 @@ import {
 } from "recharts";
 import {
   MAX_GIORNI_PERSONALIZZATO,
-  type OpzioniSuolo,
-  type RisultatoAppezzamento,
+  type SoilOptions,
+  type PlotResult,
   type StrategiaTemporale,
-  useSuoloPipeline,
+  useSoilPipeline,
 } from "../../hooks/useSoilPipeline";
 import {
   buildNdviScatter,
   correlazionePearson,
   ETICHETTE_VARIABILE,
-  type VariabileSuolo,
+  type SoilVariable,
 } from "./soil-analytics";
 
 /**
@@ -85,7 +85,7 @@ function getStrategie(
 }
 
 // Variabili chimiche selezionabili come asse X dello scatter NDVI↔suolo.
-const VARIABILI_SCATTER: VariabileSuolo[] = [
+const VARIABILI_SCATTER: SoilVariable[] = [
   "ph",
   "organic_matter",
   "nitrogen",
@@ -121,7 +121,7 @@ function isoDate(offsetGiorni = 0): string {
  * più plots: una linea per appezzamento sull'index primario.
  */
 function buildChartData(
-  risultati: RisultatoAppezzamento[],
+  risultati: PlotResult[],
   indici: VegetationIndex[],
   indicePrimario: VegetationIndex,
 ): { rows: Record<string, number | string>[]; series: string[] } {
@@ -161,10 +161,10 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
   const crops = useAgroStore((s) => s.crops);
   const campaignFields = useAgroStore((s) => s.campaignFields);
   const selezionatoId = useAgroStore((s) => s.selectedPlotId);
-  const { stato, calcola, reset } = useSuoloPipeline();
+  const { stato, calcola, reset } = useSoilPipeline();
 
   // Pannello Charts: scatter NDVI (Y) ↔ variabile chimica del suolo (X).
-  const [varX, setVarX] = useState<VariabileSuolo>("ph");
+  const [varX, setVarX] = useState<SoilVariable>("ph");
   const scatter = useMemo(
     () => buildNdviScatter(plots, soilSamples, varX),
     [plots, soilSamples, varX],
@@ -227,12 +227,12 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
     );
   }, [strategiaId, inizioCustom, fineCustom]);
 
-  const puoCalcolare =
+  const canCompute =
     indiciSel.size > 0 && apzSel.size > 0 && !inCorso && !rangeNonValido;
 
   const avvia = () => {
     reset();
-    const opzioni: OpzioniSuolo = {
+    const opzioni: SoilOptions = {
       indici: [...indiciSel],
       indicePrimario: indiciSel.has(indicePrimario)
         ? indicePrimario
@@ -257,7 +257,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
       footer={
         <Button
           className="min-h-[var(--touch-min)] w-full"
-          disabled={!puoCalcolare}
+          disabled={!canCompute}
           onClick={avvia}
         >
           {inCorso

@@ -9,7 +9,7 @@ import {
 import { useEffect } from "react";
 import {
   costruisciOverlayDss,
-  rampaRischioDss,
+  dssRiskRamp,
   type FieldSummary,
 } from "../modules/dss/dss-overlay";
 
@@ -35,7 +35,7 @@ const STOPS_DSS: VectorStyleStop[] = [
 export interface DssOverlayParams {
   plots: Plot[];
   /** Punteggio sintetico 0..1 per appezzamento (id → sintesi). */
-  sintesiPerCampo: Map<string, FieldSummary>;
+  summaryPerField: Map<string, FieldSummary>;
   /** CropType prevalente, per la calibrazione della rampa/legenda. */
   coltura: CropType;
   /** true per mostrare l'overlay; false lo rimuove dalla mappa. */
@@ -52,15 +52,15 @@ function rimuoviLayer(): void {
 }
 
 export function useDssOverlayLayer(params: DssOverlayParams): void {
-  const { plots, sintesiPerCampo, coltura, attivo, styleEpoch = 0 } = params;
+  const { plots, summaryPerField, coltura, attivo, styleEpoch = 0 } = params;
 
   useEffect(() => {
-    if (!attivo || sintesiPerCampo.size === 0) {
+    if (!attivo || summaryPerField.size === 0) {
       rimuoviLayer();
       return;
     }
-    const rampa = rampaRischioDss(coltura);
-    const geojson = costruisciOverlayDss(plots, sintesiPerCampo, rampa);
+    const rampa = dssRiskRamp(coltura);
+    const geojson = costruisciOverlayDss(plots, summaryPerField, rampa);
     if (geojson.features.length === 0) {
       rimuoviLayer();
       return;
@@ -94,5 +94,5 @@ export function useDssOverlayLayer(params: DssOverlayParams): void {
       sourcePath: `agrogea://${DSS_OVERLAY_LAYER_ID}`,
     };
     store.addLayer(layer);
-  }, [plots, sintesiPerCampo, coltura, attivo, styleEpoch]);
+  }, [plots, summaryPerField, coltura, attivo, styleEpoch]);
 }

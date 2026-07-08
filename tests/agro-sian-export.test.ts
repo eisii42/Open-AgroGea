@@ -9,7 +9,7 @@ import type {
 import {
   buildSianCsv,
   COLONNE_SIAN,
-  filtraTrattamentiSian,
+  filterSianTreatments,
   raccolteToOperazioni,
   risolviColonne,
 } from "../apps/agro-field-suite/src/lib/sianExport";
@@ -130,9 +130,9 @@ const TRATT = [
   tratt("t3", null, "2026-06-01T08:00:00.000Z", "tillage"),
 ];
 
-describe("filtraTrattamentiSian · temporale", () => {
+describe("filterSianTreatments · temporale", () => {
   it("filtra per intervallo di date inclusivo", () => {
-    const out = filtraTrattamentiSian(TRATT, APPS, {
+    const out = filterSianTreatments(TRATT, APPS, {
       dal: "2026-05-01",
       al: "2026-05-31",
     });
@@ -140,25 +140,25 @@ describe("filtraTrattamentiSian · temporale", () => {
   });
 
   it("senza date restituisce tutto", () => {
-    assert.equal(filtraTrattamentiSian(TRATT, APPS, {}).length, 3);
+    assert.equal(filterSianTreatments(TRATT, APPS, {}).length, 3);
   });
 });
 
-describe("filtraTrattamentiSian · spaziale", () => {
+describe("filterSianTreatments · spaziale", () => {
   it("filtra per appezzamento ed esclude le operazioni intera azienda", () => {
-    const out = filtraTrattamentiSian(TRATT, APPS, { appezzamentoIds: ["a1"] });
+    const out = filterSianTreatments(TRATT, APPS, { appezzamentoIds: ["a1"] });
     assert.deepEqual(out.map((t) => t.id), ["t1"]);
   });
 
   it("può escludere le operazioni intera azienda", () => {
-    const out = filtraTrattamentiSian(TRATT, APPS, {
+    const out = filterSianTreatments(TRATT, APPS, {
       includiSenzaAppezzamento: false,
     });
     assert.deepEqual(out.map((t) => t.id).sort(), ["t1", "t2"]);
   });
 
   it("filtra per tipo di operazione", () => {
-    const out = filtraTrattamentiSian(TRATT, APPS, {
+    const out = filterSianTreatments(TRATT, APPS, {
       tipiOperazione: ["fertilization"],
     });
     assert.deepEqual(out.map((t) => t.id), ["t2"]);
