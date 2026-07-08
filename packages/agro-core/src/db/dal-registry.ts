@@ -216,7 +216,7 @@ export class AgroDalRegistry extends AgroDalBase {
   // -- campi campagna (stato burocratico annuale, SIAN/AGEA) -----------------
 
   /**
-   * Crea o aggiorna lo stato di Campagna Agraria di un appezzamento per un'annata
+   * Crea o aggiorna lo stato di Campagna Agraria di un plot per un'annata
    * (upsert sul vincolo univoco plot_id+campaign_year). Percorso transazionale
    * dato+outbox come ogni mutazione di dominio.
    */
@@ -231,7 +231,7 @@ export class AgroDalRegistry extends AgroDalBase {
       },
   ): Promise<PlotCampaign> {
     const ts = nowIso();
-    // Riusa la riga esistente APERTA (stesso appezzamento+anno) per restare
+    // Riusa la riga esistente APERTA (stesso plot+anno) per restare
     // idempotente su re-import del Fascicolo, preservandone id e created_at.
     // Le campagne CHIUSE (closed_at) non si riaprono mai: una nuova semina dopo
     // il raccolto crea una nuova riga (secondo raccolto nello stesso anno).

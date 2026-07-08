@@ -4,7 +4,7 @@ import { dssFrutta } from "./dss";
 export { bilancioFrutta } from "./balance";
 export { dssFrutta } from "./dss";
 
-/** Modulo coltura Frutta: tracker fenologico, specie di riferimento "melo". */
+/** Modulo crop Frutta: tracker fenologico, specie di riferimento "melo". */
 export const fruitModule: CropModule = {
   id: "frutta",
   label: "Frutta",

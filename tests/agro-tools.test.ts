@@ -97,7 +97,7 @@ describe("indici spettrali", () => {
 });
 
 describe("fenologia", () => {
-  it("ogni coltura ha 4 fasi con Kc positivo", () => {
+  it("ogni crop ha 4 fasi con Kc positivo", () => {
     for (const matrice of Object.values(CROP_MATRICES)) {
       assert.equal(matrice.fasi.length, 4);
       for (const phase of matrice.fasi) assert.ok(phase.kc > 0);
@@ -177,13 +177,13 @@ describe("agrometeo", () => {
   });
 
   it("stato idrico: AWC, RAW e soglia di stress", () => {
-    const suolo = {
+    const soil = {
       fieldCapacity: 0.3,
       wiltingPoint: 0.12,
       rootDepth: 1,
       depletionFraction: 0.5,
     };
-    const stato = soilWaterStatus(suolo, 0);
+    const stato = soilWaterStatus(soil, 0);
     // AWC = (0.30-0.12)*1*1000 = 180 mm; RAW = 90 mm
     assert.ok(Math.abs(stato.awc - 180) < 1e-6);
     assert.ok(Math.abs(stato.raw - 90) < 1e-6);
@@ -191,7 +191,7 @@ describe("agrometeo", () => {
   });
 
   it("piano irriguo: prescrive irrigation raggiunta la depletion critica", () => {
-    const suolo = {
+    const soil = {
       fieldCapacity: 0.3,
       wiltingPoint: 0.12,
       rootDepth: 1,
@@ -200,7 +200,7 @@ describe("agrometeo", () => {
     // 5 mm/day di ETc, nessuna rain: RAW=90mm → autonomia ~18 giorni
     const etc = new Array(40).fill(5);
     const rain = new Array(40).fill(0);
-    const { series, autonomyDays } = irrigationPlan(suolo, etc, rain, 0);
+    const { series, autonomyDays } = irrigationPlan(soil, etc, rain, 0);
     assert.ok(autonomyDays >= 17 && autonomyDays <= 19, `autonomia ${autonomyDays}`);
     assert.ok(series.some((g) => g.irrigation > 0));
   });

@@ -1,7 +1,7 @@
 /**
  * Legenda colture: mostra, per gli plots dell'azienda attiva, l'elenco
  * delle specie presenti con il rispettivo colore ad hoc e icona, più la voce
- * neutra "Senza coltura" se almeno un appezzamento non ha coltura nell'annata.
+ * neutra "Senza coltura" se almeno un plot non ha crop nell'annata.
  *
  * Si nasconde quando non ci sono plots o il layer è invisibile.
  */
@@ -43,7 +43,7 @@ export function CropLegend({
   const [collapsed, setCollapsed] = useState(false);
   const highlightTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Paint originali catturati alla PRIMA evidenziazione: se si clicca una
-  // coltura diversa mentre un'altra è ancora illuminata, il ripristino deve
+  // crop diversa mentre un'altra è ancora illuminata, il ripristino deve
   // usare questi valori e non quelli (già alterati) del click precedente.
   const basePaint = useRef<{ fillOpacity: unknown; lineWidth: unknown } | null>(
     null,

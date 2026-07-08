@@ -136,7 +136,7 @@ export function useFieldLayers(
     });
   }, [soilSamples, styleEpoch]);
 
-  // Modulo Harvest: proietta gli eventi di raccolta come layer puntuale. Le
+  // Modulo Harvest: proietta gli eventi di harvest come layer puntuale. Le
   // harvests senza geometria propria ereditano il centroid dell'appezzamento
   // collegato, così compaiono in mappa; le loro properties (cultivar,
   // destinazione, quantita_kg) alimentano i grafici della tabella attributi.

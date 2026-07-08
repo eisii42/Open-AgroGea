@@ -8,11 +8,11 @@
  *
  * Nota di terminologia: nello schema AgroGea la "singola azienda" è una riga di
  * `companies` (`company_id`); il `tenant_id` è invece il workspace dell'abbonato
- * master (`auth.uid()`). I limiti per-azienda della specifica si applicano quindi
+ * master (`auth.uid()`). I limiti per-company della specifica si applicano quindi
  * per `company_id`.
  */
 
-/** Ruolo di un membro all'interno di una singola azienda. */
+/** Ruolo di un membro all'interno di una singola company. */
 export type TeamRole = "OWNER" | "MANAGER" | "VIEWER";
 
 /** Elenco canonico dei ruoli (ordine di presentazione UI). */
@@ -22,7 +22,7 @@ export const TEAM_ROLES: readonly TeamRole[] = ["OWNER", "MANAGER", "VIEWER"];
  * Piano di abbonamento che governa quote di companies e posti (seat). Lineup
  * unico a 3 livelli — il multiutente è integrato qui dentro:
  *
- *   - `base`     — single user, 1 azienda.
+ *   - `base`     — single user, 1 company.
  *   - `standard` — 5 companies, piccolo team.
  *   - `plus`     — companies illimitate, team ampio.
  *
@@ -36,15 +36,15 @@ export type SubscriptionPlan =
   | "plus"
   | (string & {});
 
-/** Vincoli numerici di un piano (companies + posti per ruolo, per singola azienda). */
+/** Vincoli numerici di un piano (companies + posti per ruolo, per singola company). */
 export interface PlanLimits {
   /** Numero massimo di companies (workspace) creabili dall'abbonato. */
   max_companies: number;
-  /** Posti OWNER per singola azienda (incluso l'abbonato principale). */
+  /** Posti OWNER per singola company (incluso l'abbonato principale). */
   max_owners_per_company: number;
-  /** Posti MANAGER per singola azienda. */
+  /** Posti MANAGER per singola company. */
   max_managers_per_company: number;
-  /** Posti VIEWER per singola azienda. */
+  /** Posti VIEWER per singola company. */
   max_viewers_per_company: number;
 }
 
@@ -58,9 +58,9 @@ export const UNLIMITED = 9999;
 /**
  * Tabella RIGIDA dei vincoli per piano (lineup unico a 3 livelli).
  *
- * - `base`:     1 azienda; single user (owner 1, manager 0, viewer 0).
- * - `standard`: 5 companies; per azienda owner 1, manager 1, viewer 2.
- * - `plus`:     companies illimitate; per azienda owner 10, manager 2, viewer 3.
+ * - `base`:     1 company; single user (owner 1, manager 0, viewer 0).
+ * - `standard`: 5 companies; per company owner 1, manager 1, viewer 2.
+ * - `plus`:     companies illimitate; per company owner 10, manager 2, viewer 3.
  */
 export const PLAN_LIMITS: Record<string, PlanLimits> = {
   base: {
@@ -154,7 +154,7 @@ export function isUnlimited(n: number): boolean {
 }
 
 /**
- * true se l'abbonato può creare un'altra azienda dato il conteggio di quelle
+ * true se l'abbonato può creare un'altra company dato il conteggio di quelle
  * ATTIVE (non eliminate) già possedute.
  */
 export function canCreateCompany(
@@ -168,7 +168,7 @@ export function canCreateCompany(
 // Eccezione controllata di quota
 // ---------------------------------------------------------------------------
 
-/** Natura della quota saturata: creazione azienda vs posto collaboratore. */
+/** Natura della quota saturata: creazione company vs posto collaboratore. */
 export type QuotaKind = "company" | "seat";
 
 /**

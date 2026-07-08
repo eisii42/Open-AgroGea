@@ -56,7 +56,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
 
     switchTenant: async (companyId) => {
       // `setActiveCompany` azzera già lo stato derivato e ricarica dal PGlite il
-      // sottoinsieme di dati filtrato per la nuova azienda; il remount della
+      // sottoinsieme di dati filtrato per la nuova company; il remount della
       // dashboard (key in App) ricostruisce mappa e sorgenti, ripulendo la cache
       // dei vettori sulla WebView.
       await get().setActiveCompany(companyId);
@@ -134,7 +134,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       get().syncRouter?.notifyLocalWrite();
 
       // Multiutente: registra il posto OWNER dell'abbonato principale per la nuova
-      // azienda (via DAL → outbox). switchTenant → refreshDomainData lo idrata.
+      // company (via DAL → outbox). switchTenant → refreshDomainData lo idrata.
       const principalEmail =
         get().session?.user?.email ?? get().profile?.email ?? null;
       if (principalEmail) {
@@ -260,7 +260,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       assertWritable(get);
       const { dal, activeCompanyId, syncRouter } = get();
       if (!dal || !activeCompanyId) {
-        throw new Error("Nessuna azienda attiva: impossibile salvare l'anagrafica.");
+        throw new Error("Nessuna company attiva: impossibile salvare l'anagrafica.");
       }
       const existing = get().companies.find((a) => a.id === activeCompanyId);
       if (!existing) return;
@@ -277,7 +277,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       assertWritable(get);
       const { dal, activeCompanyId } = get();
       if (!dal || !activeCompanyId) {
-        throw new Error("Nessuna azienda attiva: impossibile salvare la configurazione meteo.");
+        throw new Error("Nessuna company attiva: impossibile salvare la configurazione meteo.");
       }
       const config = await dal.upsertConfigMeteo({
         company_id: activeCompanyId,
@@ -290,12 +290,12 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       assertWritable(get);
       const { dal, activeCompanyId, syncRouter } = get();
       if (!dal || !activeCompanyId) {
-        throw new Error("Nessuna azienda attiva: impossibile registrare.");
+        throw new Error("Nessuna company attiva: impossibile registrare.");
       }
-      // Con scarichi: attività + scarico lots + costo CUMP in un'unica
+      // Con scarichi: attività + issue lots + costo CUMP in un'unica
       // transazione (l'eccezione WarehouseError risale al form senza scritture
       // parziali). Senza scarichi: percorso classico (fallback testo libero).
-      const { trattamento: record } = await dal.insertTreatmentWithIssues(
+      const { treatment: record } = await dal.insertTreatmentWithIssues(
         { ...input, company_id: activeCompanyId },
         scarichi ?? [],
       );
@@ -313,12 +313,12 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       if (!dal) return;
       await dal.deleteTreatment(id);
       set((s) => ({ treatments: s.treatments.filter((t) => t.id !== id) }));
-      // Lo storno magazzino del DAL può aver reintegrato giacenze: si riidratano.
+      // Lo storno warehouse del DAL può aver reintegrato giacenze: si riidratano.
       if (activeCompanyId) {
         set({ lots: await dal.listLotti(activeCompanyId) });
       }
       syncRouter?.notifyLocalWrite();
-      // L'ultima operazione mostrata nella scheda dettaglio può essere quella
+      // L'ultima operation mostrata nella scheda dettaglio può essere quella
       // appena eliminata: la si ricalcola per l'appezzamento selezionato.
       const apzId = get().selectedPlotId;
       if (apzId) {
@@ -342,7 +342,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         treatments: s.treatments.map((t) => (t.id === record.id ? record : t)),
       }));
       syncRouter?.notifyLocalWrite();
-      // L'ultima operazione mostrata nella scheda dettaglio può essere quella
+      // L'ultima operation mostrata nella scheda dettaglio può essere quella
       // appena modificata: la si ricalcola per l'appezzamento selezionato.
       const apzId = get().selectedPlotId;
       if (apzId && (record.plot_id === apzId || existing.plot_id === apzId)) {
@@ -528,7 +528,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       const { dal, activeCompanyId, syncRouter } = get();
       if (!dal || !activeCompanyId) return null;
       const record = await dal.receiveLot(input);
-      // Il carico aggiorna anche il CUMP del prodotto: si riidratano entrambi.
+      // Il carico aggiorna anche il CUMP del product: si riidratano entrambi.
       const [products, lots] = await Promise.all([
         dal.listProducts(activeCompanyId),
         dal.listLotti(activeCompanyId),

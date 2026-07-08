@@ -50,7 +50,7 @@ import {
  * Dashboard aziendale EDITABILE del Command Center: griglia di grafici
  * riordinabili via drag-and-drop nativo, eliminabili e creabili come PRESET
  * multi-serie (es. bilancio idrico) o come ANALISI libera (entità → dimensione →
- * funzione(misura) → tipo). Config persistita per azienda.
+ * funzione(misura) → tipo). Config persistita per company.
  */
 
 function typeLabel(t: TFunction, type: ChartType): string {

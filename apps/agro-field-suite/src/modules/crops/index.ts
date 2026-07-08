@@ -6,9 +6,9 @@ import type { CropModule } from "./types";
 import { grapevineModule } from "./grapevine";
 
 /**
- * Registro dei moduli per coltura (refactor §3). Punto unico da cui la UI
- * risolve il modulo verticale di un appezzamento a partire dalla sua categoria
- * coltura. Aggiungere una coltura = creare la cartella e registrarla qui.
+ * Registro dei moduli per crop (refactor §3). Punto unico da cui la UI
+ * risolve il modulo verticale di un plot a partire dalla sua categoria
+ * crop. Aggiungere una crop = creare la cartella e registrarla qui.
  */
 export const CROP_MODULES: CropModule[] = [
   grapevineModule,
@@ -24,15 +24,15 @@ const PER_CATEGORIA = new Map<string, CropModule>(
   ),
 );
 
-/** Modulo coltura per la categoria di un appezzamento (`coltura`), o undefined. */
+/** Modulo crop per la categoria di un plot (`coltura`), o undefined. */
 export function cropModuleForCrop(
-  coltura: string | null | undefined,
+  crop: string | null | undefined,
 ): CropModule | undefined {
-  if (!coltura) return undefined;
-  return PER_CATEGORIA.get(coltura);
+  if (!crop) return undefined;
+  return PER_CATEGORIA.get(crop);
 }
 
-/** Modulo coltura per id stabile (es. "vite"). */
+/** Modulo crop per id stabile (es. "vite"). */
 export function cropModuleById(id: string): CropModule | undefined {
   return CROP_MODULES.find((modulo) => modulo.id === id);
 }

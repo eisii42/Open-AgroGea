@@ -4,7 +4,7 @@ import { dssCereali } from "./dss";
 export { bilancioCereali } from "./balance";
 export { dssCereali } from "./dss";
 
-/** Modulo coltura Seminativi: tracker fenologico, specie di riferimento "frumento". */
+/** Modulo crop Seminativi: tracker fenologico, specie di riferimento "frumento". */
 export const cerealsModule: CropModule = {
   id: "cereali",
   label: "Seminativo",

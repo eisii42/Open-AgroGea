@@ -11,8 +11,8 @@ import {
 } from "../packages/agro-core/src/warehouse/cump";
 
 /**
- * Magazzino 0.2.0 (schema v16): CUMP (media ponderata mobile), scarico ATOMICO
- * dei lots dalle attività del Quaderno (blocco per giacenza negativa e lots
+ * Magazzino 0.2.0 (schema v16): CUMP (media ponderata mobile), issue ATOMICO
+ * dei lots dalle attività del Quaderno (blocco per stock negativa e lots
  * scaduti), alert di scadenza, migrazione additiva (i dati testo-libero
  * pre-esistenti di treatment_logs sopravvivono) e flusso end-to-end della
  * Definition of Done §6.
@@ -82,12 +82,12 @@ const TRATTAMENTO_BASE = {
 };
 
 describe("CUMP / media ponderata mobile (funzione pura)", () => {
-  it("primo carico su giacenza vuota: CUMP = costo di carico", () => {
+  it("primo carico su stock vuota: CUMP = costo di carico", () => {
     assert.equal(cumpAfterInbound(0, 0, 100, 12.5), 12.5);
   });
 
   it("carico successivo: media ponderata sulle giacenze", () => {
-    // 100 kg a 10 € in giacenza + 50 kg a 16 € → (1000+800)/150 = 12 €
+    // 100 kg a 10 € in stock + 50 kg a 16 € → (1000+800)/150 = 12 €
     assert.equal(cumpAfterInbound(100, 10, 50, 16), 12);
   });
 
@@ -107,7 +107,7 @@ describe("expiryStatus / alert lots", () => {
     assert.equal(expiryStatus(giornoRelativo(60), oggi), "valid");
     assert.equal(expiryStatus(giornoRelativo(10), oggi), "expiring");
     assert.equal(expiryStatus(giornoRelativo(-1), oggi), "expired");
-    // Un lotto che scade oggi è ancora utilizzabile.
+    // Un lot che scade oggi è ancora utilizzabile.
     assert.notEqual(expiryStatus(giornoRelativo(0), oggi), "expired");
   });
 
@@ -156,7 +156,7 @@ describe("validateProduct / categorie rigide", () => {
 });
 
 describe("schema v16 / migrazione additiva", () => {
-  it("crea le tabelle magazzino, è idempotente e preserva i dati testo-libero", async () => {
+  it("crea le tabelle warehouse, è idempotente e preserva i dati testo-libero", async () => {
     const db = new PGlite();
     await db.exec(AGRO_LOCAL_SCHEMA_SQL);
 
@@ -210,11 +210,11 @@ describe("schema v16 / migrazione additiva", () => {
   });
 });
 
-describe("DAL magazzino / carico lots e CUMP", () => {
-  it("il carico crea il lotto, aggiorna il CUMP e accoda entrambe le mutazioni", async () => {
+describe("DAL warehouse / carico lots e CUMP", () => {
+  it("il carico crea il lot, aggiorna il CUMP e accoda entrambe le mutazioni", async () => {
     const dal = await TestDal.create();
     const companyId = await seedCompany(dal);
-    const prodotto = await dal.upsertProduct({
+    const product = await dal.upsertProduct({
       company_id: companyId,
       category: "phytosanitary",
       name: "Poltiglia Bordolese",
@@ -228,31 +228,31 @@ describe("DAL magazzino / carico lots e CUMP", () => {
     });
 
     await dal.receiveLot({
-      product_id: prodotto.id,
+      product_id: product.id,
       lot_number: "L-2026-01",
       expires_at: giornoRelativo(365),
       initial_quantity: 100,
       unit_cost: 10,
     });
     await dal.receiveLot({
-      product_id: prodotto.id,
+      product_id: product.id,
       lot_number: "L-2026-02",
       expires_at: giornoRelativo(400),
       initial_quantity: 50,
       unit_cost: 16,
     });
 
-    const aggiornato = await dal.getProduct(prodotto.id);
+    const aggiornato = await dal.getProduct(product.id);
     assert.equal(Number(aggiornato?.avg_unit_cost), 12); // (100·10 + 50·16)/150
 
-    const lots = await dal.listLotti(companyId, { productId: prodotto.id });
+    const lots = await dal.listLotti(companyId, { productId: product.id });
     assert.equal(lots.length, 2);
     assert.deepEqual(
       lots.map((l) => Number(l.quantity_on_hand)),
       [100, 50],
     );
 
-    // Outbox: prodotto (insert) + 2×(lotto + aggiornamento CUMP).
+    // Outbox: product (insert) + 2×(lot + aggiornamento CUMP).
     const outbox = await dal.listPendingMutations();
     const perTabella = outbox.reduce<Record<string, number>>((acc, m) => {
       acc[m.table_name] = (acc[m.table_name] ?? 0) + 1;
@@ -262,7 +262,7 @@ describe("DAL magazzino / carico lots e CUMP", () => {
     assert.ok((perTabella.products ?? 0) >= 3);
   });
 
-  it("il prodotto invalido per categoria è rifiutato", async () => {
+  it("il product invalido per categoria è rifiutato", async () => {
     const dal = await TestDal.create();
     const companyId = await seedCompany(dal);
     await assert.rejects(
@@ -283,12 +283,12 @@ describe("DAL magazzino / carico lots e CUMP", () => {
   });
 });
 
-describe("DAL magazzino / scarico atomico (§5.2)", () => {
+describe("DAL warehouse / issue atomico (§5.2)", () => {
   async function setup() {
     const dal = await TestDal.create();
     const companyId = await seedCompany(dal);
     const plotId = await seedPlot(dal, companyId);
-    const prodotto = await dal.upsertProduct({
+    const product = await dal.upsertProduct({
       company_id: companyId,
       category: "phytosanitary",
       name: "Poltiglia",
@@ -300,49 +300,49 @@ describe("DAL magazzino / scarico atomico (§5.2)", () => {
       uma_code: null,
       notes: null,
     });
-    const lotto = await dal.receiveLot({
-      product_id: prodotto.id,
+    const lot = await dal.receiveLot({
+      product_id: product.id,
       lot_number: "L-1",
       expires_at: giornoRelativo(180),
       initial_quantity: 10,
       unit_cost: 8,
     });
-    return { dal, companyId, plotId, prodotto, lotto };
+    return { dal, companyId, plotId, product, lot };
   }
 
-  it("scarica la giacenza e congela il costo CUMP nella giunzione", async () => {
-    const { dal, companyId, plotId, lotto } = await setup();
-    const { trattamento, scarichi } = await dal.insertTreatmentWithIssues(
+  it("scarica la stock e congela il costo CUMP nella giunzione", async () => {
+    const { dal, companyId, plotId, lot } = await setup();
+    const { treatment, scarichi } = await dal.insertTreatmentWithIssues(
       { ...TRATTAMENTO_BASE, company_id: companyId, plot_id: plotId },
-      [{ product_lot_id: lotto.id, quantity: 4 }],
+      [{ product_lot_id: lot.id, quantity: 4 }],
     );
 
     const lots = await dal.listLotti(companyId);
     assert.equal(Number(lots[0].quantity_on_hand), 6);
 
     assert.equal(scarichi.length, 1);
-    assert.equal(scarichi[0].unit_cost, 8); // CUMP al momento dello scarico
+    assert.equal(scarichi[0].unit_cost, 8); // CUMP al momento dello issue
     assert.equal(scarichi[0].total_cost, 32); // 4 × 8
 
-    const registrati = await dal.listScarichiAttivita(trattamento.id);
+    const registrati = await dal.listScarichiAttivita(treatment.id);
     assert.equal(registrati.length, 1);
     assert.equal(registrati[0].product_name, "Poltiglia");
   });
 
   it("giacenza insufficiente: BLOCCO atomico, nessuna scrittura parziale", async () => {
-    const { dal, companyId, plotId, lotto } = await setup();
+    const { dal, companyId, plotId, lot } = await setup();
     const outboxPrima = await dal.countPendingMutations();
 
     await assert.rejects(
       dal.insertTreatmentWithIssues(
         { ...TRATTAMENTO_BASE, company_id: companyId, plot_id: plotId },
-        [{ product_lot_id: lotto.id, quantity: 11 }], // > 10 disponibili
+        [{ product_lot_id: lot.id, quantity: 11 }], // > 10 disponibili
       ),
       (e: unknown) =>
         e instanceof WarehouseError && e.code === "insufficient_stock",
     );
 
-    // NIENTE è stato scritto: attività, scarichi, giacenza e outbox invariati.
+    // NIENTE è stato scritto: attività, scarichi, stock e outbox invariati.
     const treatments = await dal.listTreatments(companyId);
     assert.equal(treatments.length, 0);
     const lots = await dal.listLotti(companyId);
@@ -352,10 +352,10 @@ describe("DAL magazzino / scarico atomico (§5.2)", () => {
     assert.equal(await dal.countPendingMutations(), outboxPrima);
   });
 
-  it("scarico multi-lotto: se il SECONDO lotto non basta, si annulla anche il primo", async () => {
-    const { dal, companyId, plotId, prodotto, lotto } = await setup();
+  it("scarico multi-lot: se il SECONDO lot non basta, si annulla anche il primo", async () => {
+    const { dal, companyId, plotId, product, lot } = await setup();
     const lotto2 = await dal.receiveLot({
-      product_id: prodotto.id,
+      product_id: product.id,
       lot_number: "L-2",
       expires_at: giornoRelativo(180),
       initial_quantity: 5,
@@ -366,7 +366,7 @@ describe("DAL magazzino / scarico atomico (§5.2)", () => {
       dal.insertTreatmentWithIssues(
         { ...TRATTAMENTO_BASE, company_id: companyId, plot_id: plotId },
         [
-          { product_lot_id: lotto.id, quantity: 4 }, // ok
+          { product_lot_id: lot.id, quantity: 4 }, // ok
           { product_lot_id: lotto2.id, quantity: 6 }, // > 5: fallisce
         ],
       ),
@@ -382,9 +382,9 @@ describe("DAL magazzino / scarico atomico (§5.2)", () => {
   });
 
   it("lotto scaduto: uso bloccato", async () => {
-    const { dal, companyId, plotId, prodotto } = await setup();
+    const { dal, companyId, plotId, product } = await setup();
     const scaduto = await dal.receiveLot({
-      product_id: prodotto.id,
+      product_id: product.id,
       lot_number: "L-EXP",
       expires_at: giornoRelativo(-5),
       initial_quantity: 20,
@@ -401,17 +401,17 @@ describe("DAL magazzino / scarico atomico (§5.2)", () => {
   });
 
   it("l'eliminazione dell'attività storna gli scarichi e reintegra la giacenza", async () => {
-    const { dal, companyId, plotId, lotto } = await setup();
-    const { trattamento } = await dal.insertTreatmentWithIssues(
+    const { dal, companyId, plotId, lot } = await setup();
+    const { treatment } = await dal.insertTreatmentWithIssues(
       { ...TRATTAMENTO_BASE, company_id: companyId, plot_id: plotId },
-      [{ product_lot_id: lotto.id, quantity: 4 }],
+      [{ product_lot_id: lot.id, quantity: 4 }],
     );
 
-    await dal.deleteTreatment(trattamento.id);
+    await dal.deleteTreatment(treatment.id);
 
     const lots = await dal.listLotti(companyId);
     assert.equal(Number(lots[0].quantity_on_hand), 10); // reintegrata
-    const scarichi = await dal.listScarichiAttivita(trattamento.id);
+    const scarichi = await dal.listScarichiAttivita(treatment.id);
     assert.equal(scarichi.length, 0); // tombstone
     const treatments = await dal.listTreatments(companyId);
     assert.equal(treatments.length, 0);
@@ -419,7 +419,7 @@ describe("DAL magazzino / scarico atomico (§5.2)", () => {
 });
 
 describe("Definition of Done §6 / flusso end-to-end", () => {
-  it("prodotto → lotto → attività → giacenza, costo al campo, alert, fallback", async () => {
+  it("prodotto → lot → attività → stock, costo al campo, alert, fallback", async () => {
     const dal = await TestDal.create();
     const companyId = await seedCompany(dal);
     const plotId = await seedPlot(dal, companyId);
@@ -429,11 +429,11 @@ describe("Definition of Done §6 / flusso end-to-end", () => {
       ...TRATTAMENTO_BASE,
       company_id: companyId,
       plot_id: plotId,
-      product_name: "Vecchio prodotto testo libero",
+      product_name: "Vecchio product testo libero",
     });
 
-    // 1) Product con i campi obbligatori della categoria + lotto con scadenza.
-    const prodotto = await dal.upsertProduct({
+    // 1) Product con i campi obbligatori della categoria + lot con scadenza.
+    const product = await dal.upsertProduct({
       company_id: companyId,
       category: "fertilizer",
       name: "Nitrato ammonico",
@@ -445,15 +445,15 @@ describe("Definition of Done §6 / flusso end-to-end", () => {
       uma_code: null,
       notes: null,
     });
-    const lotto = await dal.receiveLot({
-      product_id: prodotto.id,
+    const lot = await dal.receiveLot({
+      product_id: product.id,
       lot_number: "NA-26-001",
       expires_at: giornoRelativo(20), // entro la soglia alert default (30)
       initial_quantity: 300,
       unit_cost: 0.55,
     });
 
-    // 2) L'attività scarica il lotto reale.
+    // 2) L'attività scarica il lot reale.
     await dal.insertTreatmentWithIssues(
       {
         ...TRATTAMENTO_BASE,
@@ -463,17 +463,17 @@ describe("Definition of Done §6 / flusso end-to-end", () => {
         product_name: "Nitrato ammonico",
         total_quantity: 120,
       },
-      [{ product_lot_id: lotto.id, quantity: 120 }],
+      [{ product_lot_id: lot.id, quantity: 120 }],
     );
 
     // 3) Giacenza aggiornata…
-    const lots = await dal.listLotti(companyId, { productId: prodotto.id });
+    const lots = await dal.listLotti(companyId, { productId: product.id });
     assert.equal(Number(lots[0].quantity_on_hand), 180);
     // …e blocco atomico oltre la disponibilità residua.
     await assert.rejects(
       dal.insertTreatmentWithIssues(
         { ...TRATTAMENTO_BASE, company_id: companyId, plot_id: plotId },
-        [{ product_lot_id: lotto.id, quantity: 999 }],
+        [{ product_lot_id: lot.id, quantity: 999 }],
       ),
       (e: unknown) =>
         e instanceof WarehouseError && e.code === "insufficient_stock",
@@ -495,7 +495,7 @@ describe("Definition of Done §6 / flusso end-to-end", () => {
     // 6) Il dato pre-esistente a testo libero è intatto.
     const treatments = await dal.listTreatments(companyId);
     const legacyRow = treatments.find((t) => t.id === legacy.id);
-    assert.equal(legacyRow?.product_name, "Vecchio prodotto testo libero");
+    assert.equal(legacyRow?.product_name, "Vecchio product testo libero");
     const legacyScarichi = await dal.listScarichiAttivita(legacy.id);
     assert.equal(legacyScarichi.length, 0);
   });

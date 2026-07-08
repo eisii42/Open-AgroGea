@@ -29,7 +29,7 @@ import { useMapStyleEpoch } from "../hooks/useMapStyleEpoch";
 /**
  * Pannelli overlay caricati on-demand (code-splitting): non servono al primo
  * render della mappa e trascinano dipendenze pesanti (Recharts nel pannello
- * Suolo, moduli coltura, export quaderno). Lazy → fuori dal chunk iniziale,
+ * Suolo, moduli crop, export logbook). Lazy → fuori dal chunk iniziale,
  * caricati solo all'apertura del relativo strumento.
  */
 const LogbookPanel = lazy(() =>

@@ -34,7 +34,7 @@ function idLettura(chiaveNaturale: string): string {
  * tabella locale `letture_meteo` (il modello "meteo_osservazioni" della
  * specifica), da cui poi leggono i DSS. Pensato per i tier gratuiti: un solo
  * fetch copre storico + previsione e un lucchetto orario evita di consumare
- * quota a ogni apertura/cambio azienda.
+ * quota a ogni apertura/cambio company.
  *
  * Regola architetturale: scrive SOLO via DAL, mai su PGlite direttamente.
  */
@@ -151,7 +151,7 @@ interface OpenMeteoForecastResp {
 const GIORNI_PREVISIONE_DASHBOARD = 5;
 
 /**
- * Cache in-memory (per azienda) della previsione da cruscotto. È volutamente
+ * Cache in-memory (per company) della previsione da cruscotto. È volutamente
  * separata dal lucchetto `last_weather_pull_at` dei DSS: quella scheda NON
  * scrive `letture_meteo`, quindi non deve marcare il pull autorevole (altrimenti
  * i DSS crederebbero i dati freschi senza averli). All'avvio dell'app la cache è
@@ -502,7 +502,7 @@ export const WeatherSyncService = {
    * oggi e i giorni seguenti, con codice WMO per le icone). Chiamata leggera e
    * separata dalla pipeline DSS: usa l'endpoint `daily`/`current` di Open-Meteo
    * (payload minimo) e una cache in-memory con lo stesso lucchetto orario, così
-   * apertura e cambi azienda non consumano quota oltre una volta l'ora.
+   * apertura e cambi company non consumano quota oltre una volta l'ora.
    */
   async previsioneDashboard(opzioni: {
     companyId: string;

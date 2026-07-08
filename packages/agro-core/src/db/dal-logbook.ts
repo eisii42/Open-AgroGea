@@ -24,7 +24,7 @@ const ETICHETTE_OPERAZIONE: Record<string, string> = {
 
 /**
  * Strato "registrazioni di campo" del DAL: Quaderno di Campagna (treatments),
- * harvests, soilSamples suolo, rilievi scouting e asset infrastrutturali.
+ * harvests, soilSamples soil, rilievi scouting e asset infrastrutturali.
  */
 export class AgroDalLogbook extends AgroDalRegistry {
   // -- registro treatments (Quaderno di Campagna) ---------------------------
@@ -53,7 +53,7 @@ export class AgroDalLogbook extends AgroDalRegistry {
   }
 
   /**
-   * Soft-delete di una singola operazione del Quaderno: marca `deleted_at` e
+   * Soft-delete di una singola operation del Quaderno: marca `deleted_at` e
    * accoda la mutazione di delete nello stesso percorso transazionale dato+outbox.
    */
   async deleteTreatment(id: string): Promise<void> {
@@ -82,7 +82,7 @@ export class AgroDalLogbook extends AgroDalRegistry {
   }
 
   /**
-   * Ultima operazione di campagna su un appezzamento, per la scheda di
+   * Ultima operation di campagna su un plot, per la scheda di
    * dettaglio: la più recente per `executed_at`, con etichetta pronta
    * "[Operazione] - [Data]". Null se l'appezzamento non ha registrazioni.
    */
@@ -109,7 +109,7 @@ export class AgroDalLogbook extends AgroDalRegistry {
     };
   }
 
-  // -- soilSamples suolo (Modulo 1) ----------------------------------------
+  // -- soilSamples soil (Modulo 1) ----------------------------------------
 
   async upsertSoilSample(
     input: Omit<
@@ -197,7 +197,7 @@ export class AgroDalLogbook extends AgroDalRegistry {
     return result.rows;
   }
 
-  // -- asset infrastruttura (Modulo 4 CAD-GIS) -------------------------------
+  // -- asset infrastructure (Modulo 4 CAD-GIS) -------------------------------
 
   async upsertAsset(
     input: Omit<

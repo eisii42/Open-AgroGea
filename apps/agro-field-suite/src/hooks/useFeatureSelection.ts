@@ -11,15 +11,15 @@ import { type RefObject, useEffect } from "react";
 /**
  * Click su un elemento esistente sui layer vettoriali agro. Il comportamento
  * dipende dal tipo:
- *   * appezzamento → apre il Quaderno di Campagna filtrato sulle SUE lavorazioni
+ *   * plot → apre il Quaderno di Campagna filtrato sulle SUE lavorazioni
  *     (l'editing geometria/metadati e l'eliminazione restano nel "Modifica /
  *     Elimina" → Registro geometrie);
- *   * infrastruttura / POI → apre la scheda di dettaglio/editing.
+ *   * infrastructure / POI → apre la scheda di dettaglio/editing.
  *
  * Si usa UN listener globale `click` + `queryRenderedFeatures` filtrato sui
  * layer agro esistenti, anziché i listener per-layer di MapLibre: questi ultimi
  * sono fragili con gli id stringa (UUID) e con i layer creati dopo il bind, ed
- * erano la causa per cui il tap su un appezzamento non apriva nulla.
+ * erano la causa per cui il tap su un plot non apriva nulla.
  *
  * Il click è inibito mentre si disegna o si modifica una geometria (in quei
  * casi serve all'engine per posare/spostare vertici).
@@ -36,7 +36,7 @@ interface LayerKind {
 }
 
 // Ordine di priorità a parità di hit: prima i punti/linee (più piccoli e
-// specifici), poi i poligoni di appezzamento (sfondo).
+// specifici), poi i poligoni di plot (sfondo).
 const LAYER_KINDS: LayerKind[] = [
   { id: circleLayerId(POI_ID), kind: "poi" },
   { id: circleLayerId(INFRASTRUTTURE_ID), kind: "infrastruttura" },

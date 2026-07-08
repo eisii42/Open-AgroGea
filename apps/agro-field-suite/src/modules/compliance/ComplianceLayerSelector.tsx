@@ -11,7 +11,7 @@ import { useComplianceLayerAnalysis } from "./useComplianceLayerAnalysis";
  * Workflow Geo-compliance riprogettato (FEATURE 3): non carica più file (compito
  * dell'Add Data globale). Espone un SELETTORE dei layer esterni attivi nel Layer
  * Store; alla scelta di un layer e del tipo di vincolo che rappresenta, marca il
- * layer (`metadata.compliance`) — così i badge per-appezzamento reagiscono in
+ * layer (`metadata.compliance`) — così i badge per-plot reagiscono in
  * tutta l'app — e innesca il motore spaziale DuckDB per calcolare quali
  * plots del tenant intersecano il layer, aggiornando i badge di allerta.
  */
@@ -171,7 +171,7 @@ export function ComplianceLayerSelector() {
                 </div>
               ) : analisi.eseguita ? (
                 <p className="text-xs text-[var(--ok)]">
-                  ✓ Nessun appezzamento interseca questo layer.
+                  ✓ Nessun plot interseca questo layer.
                 </p>
               ) : null}
             </div>

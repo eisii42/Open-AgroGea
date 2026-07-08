@@ -17,9 +17,9 @@ import { openTenantDb } from "./tenant-db";
  *   - {@link AgroDalRegistry} — anagrafiche (companies, posti, colture,
  *                               plots, campagne);
  *   - {@link AgroDalLogbook}  — registrazioni di campo (Quaderno, harvests,
- *                               suolo, scouting, asset);
+ *                               soil, scouting, asset);
  *   - {@link AgroDalWarehouse} — Magazzino (products, lots, carichi CUMP,
- *                               scarico atomico agganciato alle attività);
+ *                               issue atomico agganciato alle attività);
  *   - {@link AgroDalLocal}    — moduli local-only (meteo, DSS, bilancio
  *                               idrico, trasferimenti, cataloghi).
  */

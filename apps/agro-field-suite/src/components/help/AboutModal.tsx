@@ -12,7 +12,7 @@ import { APP_VERSION, checkForUpdates, type UpdateResult } from "./helpActions";
 
 /**
  * Modal "Informazioni": logo AgroGea, versione corrente del software e nota
- * legale sul trattamento local-first dei dati (PGlite per tenant; nessun dato
+ * legale sul treatment local-first dei dati (PGlite per tenant; nessun dato
  * lascia il dispositivo finché l'utente non sincronizza). Include un controllo
  * aggiornamenti inline così la scheda non resta un testo statico ma riflette
  * lo stato reale del software installato.

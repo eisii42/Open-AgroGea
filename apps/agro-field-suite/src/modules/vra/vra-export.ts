@@ -3,7 +3,7 @@
  *
  *  * GeoJSON: interscambio universale (QGIS, FMIS, la maggior parte dei terminali
  *    accetta una mappa a poligoni con colonna del rateo);
- *  * ISO 11783-10 (ISOXML / "ISOBUS TASKDATA"): zone di trattamento poligonali
+ *  * ISO 11783-10 (ISOXML / "ISOBUS TASKDATA"): zone di treatment poligonali
  *    con ProcessDataVariable per il rateo.
  *
  * NB: la mappatura DDI/unità ISOXML è un MVP: i DDI e i fattori di scala vanno
@@ -58,7 +58,7 @@ function pnt(lon: number, lat: number): string {
   return `<PNT A="2" C="${lat}" D="${lon}"/>`;
 }
 
-/** Anello esterno di un poligono GeoJSON → PLN/LSG ISOXML (zona di trattamento). */
+/** Anello esterno di un poligono GeoJSON → PLN/LSG ISOXML (zona di treatment). */
 function polygonToPln(feature: Feature<Polygon>): string {
   const ring = feature.geometry.coordinates[0] ?? [];
   const punti = ring.map(([lon, lat]) => pnt(lon, lat)).join("");

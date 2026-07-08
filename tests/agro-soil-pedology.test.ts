@@ -210,7 +210,7 @@ describe("parametriDaMetadata — fallback Tier 3", () => {
     assert.equal(p!.rootDepth, SUOLO_FRANCO_DEFAULT.rootDepth);
   });
 
-  it("null se il metadata non ha parametri suolo completi", () => {
+  it("null se il metadata non ha parametri soil completi", () => {
     assert.equal(parametriDaMetadata(plot({})), null);
     assert.equal(
       parametriDaMetadata(plot({ parametri_suolo: { fieldCapacity: 0.3 } })),

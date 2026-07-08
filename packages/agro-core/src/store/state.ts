@@ -95,7 +95,7 @@ export type GeomEditRequest = "save" | "cancel" | null;
  * Vista di primo livello dell'app di campo. `map` è la Dashboard geocentrica
  * (mappa + moduli); `command-center` è il Data Command Center analitico, dove la
  * mappa MaplLibre viene smontata per liberare risorse. Il contesto aziendale
- * (azienda attiva, DAL, dati di dominio) vive nello store e SOPRAVVIVE allo
+ * (company attiva, DAL, dati di dominio) vive nello store e SOPRAVVIVE allo
  * switch: cambiare vista non perde il workspace.
  */
 export type AppView = "map" | "command-center";
@@ -190,9 +190,9 @@ export interface DomainSlice {
   treatments: TreatmentLog[];
   /** Infrastrutture (CAD-GIS): layer "infrastrutture". */
   assets: InfrastructureAsset[];
-  /** Campionamenti suolo georeferenziati: layer "poi". */
+  /** Campionamenti soil georeferenziati: layer "poi". */
   soilSamples: SoilSample[];
-  /** Eventi di raccolta dell'azienda attiva (Modulo Harvest): layer "harvests". */
+  /** Eventi di harvest dell'azienda attiva (Modulo Harvest): layer "harvests". */
   harvests: Harvest[];
   /** Configurazione meteo dell'azienda attiva (Modulo Meteo), o null. */
   weatherConfig: CompanyWeatherConfig | null;
@@ -204,23 +204,23 @@ export interface DomainSlice {
   campaignFields: PlotCampaign[];
   /** Posti collaboratore del workspace (multiutente), idratati dal DAL. */
   memberships: TenantMembership[];
-  /** Anagrafica products di magazzino dell'azienda attiva (Modulo Magazzino). */
+  /** Anagrafica products di warehouse dell'azienda attiva (Modulo Magazzino). */
   products: Product[];
-  /** Lotti di magazzino (tutti i products dell'azienda attiva). */
+  /** Lotti di warehouse (tutti i products dell'azienda attiva). */
   lots: ProductLot[];
 
   setActiveCompany: (companyId: string | null) => Promise<void>;
   /**
-   * Cambio di workspace (azienda) richiesto dalla pagina di selezione: pulisce
+   * Cambio di workspace (company) richiesto dalla pagina di selezione: pulisce
    * lo stato derivato, isola le tabelle locali PGlite sul nuovo `tenant_id`
-   * (sottoinsieme filtrato per azienda) e aggiorna lo stato React. La cache di
+   * (sottoinsieme filtrato per company) e aggiorna lo stato React. La cache di
    * rendering dei vettori della mappa sulla WebView viene azzerata dal remount
    * della dashboard (`key={activeCompanyId}` in App), che ricostruisce mappa e
    * sorgenti da zero.
    */
   switchTenant: (companyId: string) => Promise<void>;
   /**
-   * Crea una nuova azienda (workspace) durante l'onboarding: INSERT remoto
+   * Crea una nuova company (workspace) durante l'onboarding: INSERT remoto
    * (online) — soggetto ai vincoli server-side su licenza e limite di piano —
    * poi specchio su PGlite locale e attivazione. Propaga l'eccezione del
    * database (messaggio del vincolo) al chiamante per il banner di errore nel
@@ -263,8 +263,8 @@ export interface DomainSlice {
   ) => Promise<void>;
   /**
    * Registra un'operazione del Quaderno; con `scarichi` valorizzato aggancia i
-   * lots di magazzino nella STESSA transazione (scarico atomico §5.2: giacenza
-   * insufficiente o lotto scaduto ⇒ l'intera registrazione fallisce e
+   * lots di warehouse nella STESSA transazione (issue atomico §5.2: stock
+   * insufficiente o lot scaduto ⇒ l'intera registrazione fallisce e
    * l'eccezione `WarehouseError` risale al form).
    */
   recordTreatment: (
@@ -275,7 +275,7 @@ export interface DomainSlice {
     scarichi?: IssueRequest[],
   ) => Promise<TreatmentLog>;
   /**
-   * Cancellazione protetta di una singola operazione del Quaderno (soft-delete
+   * Cancellazione protetta di una singola operation del Quaderno (soft-delete
    * via DAL → outbox) e rimozione reattiva dalla lista. La conferma invasiva
    * (banner + toggle) è responsabilità della UI: qui si esegue solo il DELETE.
    */
@@ -289,9 +289,9 @@ export interface DomainSlice {
     id: string,
     patch: Partial<TreatmentLog>,
   ) => Promise<TreatmentLog | null>;
-  /** Salva la cache NDVI di un appezzamento (pipeline STAC) e idrata lo store. */
+  /** Salva la cache NDVI di un plot (pipeline STAC) e idrata lo store. */
   saveMeanNdvi: (plotId: string, meanNdvi: number) => Promise<void>;
-  /** Registra/aggiorna un evento di raccolta (Modulo Harvest) e idrata lo store. */
+  /** Registra/aggiorna un evento di harvest (Modulo Harvest) e idrata lo store. */
   saveHarvest: (
     input: Partial<
       Omit<
@@ -301,7 +301,7 @@ export interface DomainSlice {
     > & { harvested_at: string },
   ) => Promise<Harvest | null>;
   /**
-   * Cancellazione protetta di un evento di raccolta (soft-delete via DAL →
+   * Cancellazione protetta di un evento di harvest (soft-delete via DAL →
    * outbox) e rimozione reattiva dalla lista. La conferma invasiva è
    * responsabilità della UI, come per {@link deleteTreatment}.
    */
@@ -321,7 +321,7 @@ export interface DomainSlice {
   setActiveCampaign: (anno: number) => Promise<void>;
   /**
    * Crea/aggiorna lo stato di Campagna Agraria di un campo (SIAN/AGEA) e idrata
-   * lo store. Ritorna la riga o null senza azienda attiva.
+   * lo store. Ritorna la riga o null senza company attiva.
    */
   savePlotCampaign: (
     input: Omit<
@@ -347,7 +347,7 @@ export interface DomainSlice {
     > & { id?: string },
   ) => Promise<Crop | null>;
   /**
-   * Crea/aggiorna un prodotto di magazzino (categorie rigide, validazione per
+   * Crea/aggiorna un product di warehouse (categorie rigide, validazione per
    * categoria nel DAL) e idrata lo store. Ritorna la riga o null senza DAL.
    */
   saveProduct: (
@@ -364,10 +364,10 @@ export interface DomainSlice {
     > &
       Partial<Pick<Product, "metadata">> & { id?: string },
   ) => Promise<Product | null>;
-  /** Soft-delete di un prodotto di magazzino (i lots restano storicizzati). */
+  /** Soft-delete di un product di warehouse (i lots restano storicizzati). */
   deleteProduct: (id: string) => Promise<void>;
   /**
-   * CARICO di un nuovo lotto: crea il lotto e aggiorna il CUMP del prodotto
+   * CARICO di un nuovo lot: crea il lot e aggiorna il CUMP del product
    * nella stessa transazione (§5.3), poi idrata products e lots nello store.
    */
   receiveLot: (
@@ -381,9 +381,9 @@ export interface DomainSlice {
       | "deleted_at"
     > & { id?: string },
   ) => Promise<ProductLot | null>;
-  /** Soft-delete di un lotto di magazzino. */
+  /** Soft-delete di un lot di warehouse. */
   deleteLot: (id: string) => Promise<void>;
-  /** Registra un campionamento di suolo (`soil_samples`) e idrata lo store. */
+  /** Registra un soilSample di soil (`soil_samples`) e idrata lo store. */
   saveSoilSample: (
     input: Omit<
       SoilSample,
@@ -405,7 +405,7 @@ export interface UiSlice {
   /** Sidebar moduli compressa (modalità mappa a schermo intero). */
   sidebarCollapsed: boolean;
   selectedPlotId: string | null;
-  /** Ultima operazione dell'appezzamento selezionato (scheda dettaglio). */
+  /** Ultima operation dell'appezzamento selezionato (scheda dettaglio). */
   lastOperation: LastOperation | null;
   /**
    * Plot per cui aprire il Quaderno filtrato sulle sue lavorazioni
@@ -429,7 +429,7 @@ export interface UiSlice {
    * Operazioni del Quaderno da renderizzare come simboli sulla mappa (toggle
    * "Mostra sulla mappa"). `null` = layer spento (nessun simbolo creato); array
    * = gli ID delle SOLE operazioni attualmente visibili nel registro (rispetta
-   * i filtri temporali/appezzamento applicati nel pannello).
+   * i filtri temporali/plot applicati nel pannello).
    */
   mapOperationIds: string[] | null;
   /**
@@ -458,7 +458,7 @@ export interface UiSlice {
   consumeScoutingOpen: () => void;
   /** Apre la scheda "Dati coltura" puntata sull'appezzamento (CTA compliance SIAN). */
   openCropForPlot: (plotId: string | null) => void;
-  /** Consuma la richiesta di apertura Dati coltura (chiamata dal ColturaDatiPanel). */
+  /** Consuma la richiesta di apertura Dati crop (chiamata dal ColturaDatiPanel). */
   consumeCropOpen: () => void;
   /** Imposta gli ID delle operazioni da mostrare come simboli in mappa (null = spento). */
   setMapOperationIds: (ids: string[] | null) => void;
@@ -521,12 +521,12 @@ export interface GeometrySlice {
   /** Ripristina la modifica geometrica annullata (riapplica `after` al DAL). */
   redoGeometry: () => Promise<void>;
   deleteElement: (kind: SelectableKind, id: string) => Promise<void>;
-  /** UPDATE alfanumerico di un appezzamento esistente (preserva i campi non passati). */
+  /** UPDATE alfanumerico di un plot esistente (preserva i campi non passati). */
   updatePlot: (
     id: string,
     patch: Partial<Plot>,
   ) => Promise<void>;
-  /** UPDATE alfanumerico di un asset/infrastruttura esistente. */
+  /** UPDATE alfanumerico di un asset/infrastructure esistente. */
   updateAsset: (
     id: string,
     patch: Partial<InfrastructureAsset>,
@@ -534,7 +534,7 @@ export interface GeometrySlice {
 }
 
 /**
- * Store Zustand agronomico completo: sessione/licenza, azienda attiva, dati di
+ * Store Zustand agronomico completo: sessione/licenza, company attiva, dati di
  * dominio idratati dal DAL e stato della Modalità Campo. Specchio agronomico
  * dello `useAppStore` di GeoLibre (che resta il proprietario di mappa e layer):
  * questo store NON tiene stato cartografico (la visibilità dei layer è gestita

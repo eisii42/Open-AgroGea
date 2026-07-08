@@ -1,7 +1,7 @@
 /**
  * Analitiche pure del Modulo Suolo (testabili sotto Node).
  *
- *  * incrocio NDVI ↔ chimica del suolo per lo scatter plot del pannello Charts;
+ *  * incrocio NDVI ↔ chimica del soil per lo scatter plot del pannello Charts;
  *  * funzione di prescrizione a rateo variabile (VRA) per la zonazione H3
  *    (alimenta `SpatialAnalysisEngine.zonateH3`);
  *  * costruttori della sorgente di clustering nativo MapLibre per i POI.
@@ -10,7 +10,7 @@
  */
 import type { Plot, SoilSample } from "@agrogea/core";
 
-/** Variabili chimiche del campionamento usabili come asse X dello scatter. */
+/** Variabili chimiche del soilSample usabili come asse X dello scatter. */
 export type SoilVariable =
   | "ph"
   | "organic_matter"
@@ -26,7 +26,7 @@ export const ETICHETTE_VARIABILE: Record<SoilVariable, string> = {
   potassium: "Potassio (K)",
 };
 
-/** Un punto dello scatter: chimica del suolo (X) vs ultimo NDVI medio (Y). */
+/** Un punto dello scatter: chimica del soil (X) vs ultimo NDVI medio (Y). */
 export interface SoilScatterPoint {
   plotId: string;
   name: string;
@@ -43,7 +43,7 @@ function media(values: number[]): number | null {
   return values.reduce((sum, v) => sum + v, 0) / values.length;
 }
 
-/** Media per appezzamento di una variabile chimica (ignora i valori nulli). */
+/** Media per plot di una variabile chimica (ignora i valori nulli). */
 export function meanSoilSamplesPerPlot(
   soilSamples: SoilSample[],
   variabile: SoilVariable,
@@ -66,8 +66,8 @@ export function meanSoilSamplesPerPlot(
 }
 
 /**
- * Costruisce i punti dello scatter NDVI ↔ chimica: un punto per appezzamento
- * che abbia sia l'ultimo NDVI medio sia almeno un campionamento valido della
+ * Costruisce i punti dello scatter NDVI ↔ chimica: un punto per plot
+ * che abbia sia l'ultimo NDVI medio sia almeno un soilSample valido della
  * variabile scelta.
  */
 export function buildNdviScatter(

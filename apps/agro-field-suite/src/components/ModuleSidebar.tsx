@@ -94,7 +94,7 @@ export function ModuleSidebar({
   // Dialog di configurazione dell'export SIAN (filtri + struttura CSV).
   const [sianOpen, setSianOpen] = useState(false);
 
-  // Badge alert Magazzino (v17): lots con giacenza scaduti o in scadenza.
+  // Badge alert Magazzino (v17): lots con stock scaduti o in scadenza.
   const lots = useAgroStore((s) => s.lots);
   const magazzinoAlerts = lots.filter(
     (l) =>

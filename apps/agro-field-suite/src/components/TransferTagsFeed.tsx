@@ -103,7 +103,7 @@ export function TransferTagsFeed({
     if (!empty) return null;
     return (
       <p className="text-xs text-[var(--ink-4)]">
-        Nessun trasferimento registrato per questa azienda.
+        Nessun trasferimento registrato per questa company.
       </p>
     );
   }

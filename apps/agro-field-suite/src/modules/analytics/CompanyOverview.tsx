@@ -17,7 +17,7 @@ import { useTenantCountry } from "../../hooks/useTenantCountry";
  * (superficie, campi, operazioni e raccolto dell'annata) e stato del Magazzino
  * (valore giacenze a CUMP, lots scaduti/in scadenza, costo products imputato
  * per campo). Complementare alla pagina "Colture e plots", che resta
- * focalizzata sull'analisi agronomica per coltura/campo.
+ * focalizzata sull'analisi agronomica per crop/campo.
  */
 export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
   const { t } = useTranslation();
@@ -51,7 +51,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
     return () => {
       attivo = false;
     };
-    // `lots` come dipendenza: ogni scarico/storno cambia i costi imputati.
+    // `lots` come dipendenza: ogni issue/storno cambia i costi imputati.
   }, [dal, activeCompanyId, campaignYear, lots]);
 
   const vivi = useMemo(
@@ -81,7 +81,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
     [harvests, campaignYear],
   );
 
-  // -- stato magazzino ---------------------------------------------------------
+  // -- stato warehouse ---------------------------------------------------------
   const stockPerProduct = useMemo(() => {
     const map = new Map<string, number>();
     for (const l of lots) {
@@ -91,7 +91,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
     return map;
   }, [lots]);
 
-  // Valore delle giacenze valorizzate al CUMP corrente di ciascun prodotto.
+  // Valore delle giacenze valorizzate al CUMP corrente di ciascun product.
   const valoreGiacenze = useMemo(
     () =>
       products.reduce(
@@ -130,7 +130,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
     v.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   // Compliance dichiarativa (IT → SIAN, ES → SIEX): campagne APERTE dell'annata
-  // con dati incompleti. Il click porta alla scheda Dati coltura del primo campo.
+  // con dati incompleti. Il click porta alla scheda Dati crop del primo campo.
   const sistema = declarativeSystem(countryCode);
   const campagneSianKo = useMemo(
     () =>
@@ -197,7 +197,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
         </div>
       </section>
 
-      {/* Stato del magazzino */}
+      {/* Stato del warehouse */}
       <section>
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-[var(--ink-4)]">
           {t("companyOverview.warehouseTitle")}

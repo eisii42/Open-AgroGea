@@ -92,7 +92,7 @@ export function SianExportDialog({
   const agroDal = useAgroStore((s) => s.dal);
   const recordTransfer = useAgroStore((s) => s.recordTransfer);
 
-  const azienda = companies.find((a) => a.id === activeCompanyId);
+  const company = companies.find((a) => a.id === activeCompanyId);
 
   // Campagne di TUTTI gli anni (lo store ne tiene solo l'anno attivo): servono a
   // risolvere i codici SIAN delle operazioni di annate diverse. Caricate
@@ -189,11 +189,11 @@ export function SianExportDialog({
     const nomeFile = esportaSianCsv(
       filteredRows,
       plots,
-      azienda?.business_name,
+      company?.business_name,
       config,
       campiExport,
       (col) => etichettaColonna(t, col),
-      // Etichetta del tipo operazione nella lingua attiva (mai il codice inglese).
+      // Etichetta del tipo operation nella lingua attiva (mai il codice inglese).
       { resolveOperationType: (op) => etichettaTipo(t, op) },
     );
     void recordTransfer({
@@ -322,7 +322,7 @@ export function SianExportDialog({
             />
           </section>
 
-          {/* ---- Filtro tipo operazione ---- */}
+          {/* ---- Filtro tipo operation ---- */}
           <section className="flex flex-col gap-2">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
               {t("sianExportDialog.operationTypes")}

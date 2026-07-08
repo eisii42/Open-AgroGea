@@ -52,16 +52,16 @@ function persistExpiryDays(days: number) {
   }
 }
 
-/** Badge di stato scadenza di un lotto (niente badge se valido). */
+/** Badge di stato scadenza di un lot (niente badge se valido). */
 function ExpiryBadge({
-  lotto,
+  lot,
   warningDays,
 }: {
-  lotto: ProductLot;
+  lot: ProductLot;
   warningDays: number;
 }) {
   const { t } = useTranslation();
-  const stato = expiryStatus(lotto.expires_at, new Date(), warningDays);
+  const stato = expiryStatus(lot.expires_at, new Date(), warningDays);
   if (stato === "valid") return null;
   return (
     <span
@@ -86,7 +86,7 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
   const receiveLot = useAgroStore((s) => s.receiveLot);
   const deleteLot = useAgroStore((s) => s.deleteLot);
 
-  // Vista: elenco | form nuovo prodotto | dettaglio prodotto (lots + carico).
+  // Vista: elenco | form nuovo product | dettaglio product (lots + carico).
   const [nuovo, setNuovo] = useState(false);
   const [prodottoApertoId, setProdottoApertoId] = useState<string | null>(null);
   const [warningDays, setWarningDays] = useState(loadExpiryDays);
@@ -99,15 +99,15 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
 
   const lotsPerProduct = useMemo(() => {
     const map = new Map<string, ProductLot[]>();
-    for (const lotto of lots) {
-      const list = map.get(lotto.product_id) ?? [];
-      list.push(lotto);
-      map.set(lotto.product_id, list);
+    for (const lot of lots) {
+      const list = map.get(lot.product_id) ?? [];
+      list.push(lot);
+      map.set(lot.product_id, list);
     }
     return map;
   }, [lots]);
 
-  // Alert §5.1: lots con giacenza scaduti o in scadenza entro la soglia.
+  // Alert §5.1: lots con stock scaduti o in scadenza entro la soglia.
   const lottiCritici = useMemo(
     () =>
       lots.filter(
@@ -164,7 +164,7 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
       {nuovo ? (
         <ProdottoForm
           onSubmit={async (input, lottoIniziale) => {
-            // Product + carico del lotto iniziale (giacenza di partenza): il
+            // Product + carico del lot iniziale (stock di partenza): il
             // carico aggiorna anche il CUMP dal costo unitario indicato.
             await conErrore(async () => {
               const record = await saveProduct(input);
@@ -184,7 +184,7 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
         />
       ) : prodottoAperto ? (
         <ProdottoDettaglio
-          prodotto={prodottoAperto}
+          product={prodottoAperto}
           lots={lotsPerProduct.get(prodottoAperto.id) ?? []}
           warningDays={warningDays}
           onBack={() => setProdottoApertoId(null)}
@@ -234,9 +234,9 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
             </p>
           ) : (
             <ul className="flex flex-col gap-2">
-              {products.map((prodotto) => {
-                const suoi = lotsPerProduct.get(prodotto.id) ?? [];
-                const giacenza = suoi.reduce(
+              {products.map((product) => {
+                const suoi = lotsPerProduct.get(product.id) ?? [];
+                const stock = suoi.reduce(
                   (sum, l) => sum + Number(l.quantity_on_hand),
                   0,
                 );
@@ -247,32 +247,32 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
                       "valid",
                 );
                 // Scorta minima (v17): badge di riordino sotto soglia.
-                const minStock = prodotto.metadata?.["min_stock"];
+                const minStock = product.metadata?.["min_stock"];
                 const sottoScorta =
-                  typeof minStock === "number" && giacenza < minStock;
+                  typeof minStock === "number" && stock < minStock;
                 return (
-                  <li key={prodotto.id}>
+                  <li key={product.id}>
                     <button
                       type="button"
-                      onClick={() => setProdottoApertoId(prodotto.id)}
+                      onClick={() => setProdottoApertoId(product.id)}
                       className="flex w-full items-center gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2 text-left hover:bg-[var(--panel-2)]"
                     >
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-semibold">
-                          {prodotto.name}
+                          {product.name}
                         </span>
                         <span className="block truncate text-xs text-[var(--ink-3)]">
-                          {t(`warehouse.categoryLabel.${prodotto.category}` as never)}
+                          {t(`warehouse.categoryLabel.${product.category}` as never)}
                           {" · "}
                           {t("warehouse.stock")}{" "}
                           <strong className="agro-num">
-                            {giacenza.toLocaleString("it-IT")} {prodotto.unit}
+                            {stock.toLocaleString("it-IT")} {product.unit}
                           </strong>
                           {" · "}
                           {t("warehouse.cump")}{" "}
                           <strong className="agro-num">
-                            {Number(prodotto.avg_unit_cost).toFixed(2)} €/
-                            {prodotto.unit}
+                            {Number(product.avg_unit_cost).toFixed(2)} €/
+                            {product.unit}
                           </strong>
                         </span>
                       </span>
@@ -300,7 +300,7 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
 }
 
 // ---------------------------------------------------------------------------
-// Form anagrafica prodotto (campi obbligatori PER CATEGORIA)
+// Form anagrafica product (campi obbligatori PER CATEGORIA)
 // ---------------------------------------------------------------------------
 
 interface ProdottoFormInput {
@@ -323,7 +323,7 @@ interface ProdottoFormInput {
   metadata: Record<string, unknown>;
 }
 
-/** Carico iniziale contestuale alla creazione del prodotto (giacenza di partenza). */
+/** Carico iniziale contestuale alla creazione del product (stock di partenza). */
 interface LottoInizialeInput {
   lot_number: string | null;
   expires_at: string | null;
@@ -354,7 +354,7 @@ function ProdottoForm({
   const [fornitore, setFornitore] = useState("");
   const [note, setNote] = useState("");
   // Identità colturale della semente (v17): alimenta l'auto-assegnazione della
-  // coltura al campo quando la semente viene seminata dal Quaderno.
+  // crop al campo quando la semente viene seminata dal Quaderno.
   const [specie, setSpecie] = useState("");
   const [nomeScientifico, setNomeScientifico] = useState("");
   const [varieta, setVarieta] = useState("");
@@ -363,7 +363,7 @@ function ProdottoForm({
   const [carenzaDefault, setCarenzaDefault] = useState("");
   const [rientroDefault, setRientroDefault] = useState("");
   const [scortaMinima, setScortaMinima] = useState("");
-  // Carico iniziale (fix: quantità e lotto direttamente alla creazione).
+  // Carico iniziale (fix: quantità e lot direttamente alla creazione).
   const [numeroLotto, setNumeroLotto] = useState("");
   const [scadenza, setScadenza] = useState("");
   const [quantita, setQuantita] = useState("");
@@ -405,7 +405,7 @@ function ProdottoForm({
   };
   // Stessa validazione RIGIDA del DAL, anticipata nel form (bottone disattivo).
   const errors = validateProduct(draft);
-  // La giacenza iniziale è FONDAMENTALE: quantità > 0 e costo >= 0 richiesti.
+  // La stock iniziale è FONDAMENTALE: quantità > 0 e costo >= 0 richiesti.
   const qtaNum = Number.parseFloat(quantita);
   const costoNum = Number.parseFloat(costo);
   const caricoValido =
@@ -495,7 +495,7 @@ function ProdottoForm({
             />
           </div>
           {/* Default per il Quaderno (v17): precompilano carenza e rientro
-              alla selezione del prodotto nel form trattamento. */}
+              alla selezione del product nel form treatment. */}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mag-carenza">{t("warehouse.defaultSafetyDays")}</Label>
             <Input
@@ -524,7 +524,7 @@ function ProdottoForm({
       )}
 
       {/* Identità colturale della semente (v17): con questi dati la SEMINA dal
-          Quaderno assegna automaticamente la coltura al campo. */}
+          Quaderno assegna automaticamente la crop al campo. */}
       {categoria === "seed" && (
         <section className="flex flex-col gap-3 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2">
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
@@ -648,8 +648,8 @@ function ProdottoForm({
         </div>
       </div>
 
-      {/* Carico iniziale: lotto di produzione, scadenza, quantità e costo.
-          La quantità è obbligatoria: un prodotto nasce con la sua giacenza. */}
+      {/* Carico iniziale: lot di produzione, scadenza, quantità e costo.
+          La quantità è obbligatoria: un product nasce con la sua stock. */}
       <section className="flex flex-col gap-3 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2">
         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
           {t("warehouse.initialLoad")}
@@ -747,11 +747,11 @@ function ProdottoForm({
 }
 
 // ---------------------------------------------------------------------------
-// Dettaglio prodotto: lots + carico nuovo lotto
+// Dettaglio product: lots + carico nuovo lot
 // ---------------------------------------------------------------------------
 
 function ProdottoDettaglio({
-  prodotto,
+  product,
   lots,
   warningDays,
   onBack,
@@ -759,7 +759,7 @@ function ProdottoDettaglio({
   onDeleteLotto,
   onDeleteProdotto,
 }: {
-  prodotto: Product;
+  product: Product;
   lots: ProductLot[];
   warningDays: number;
   onBack: () => void;
@@ -781,7 +781,7 @@ function ProdottoDettaglio({
   const [costo, setCosto] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const giacenza = lots.reduce((s, l) => s + Number(l.quantity_on_hand), 0);
+  const stock = lots.reduce((s, l) => s + Number(l.quantity_on_hand), 0);
   const qtaNum = Number.parseFloat(quantita);
   const costoNum = Number.parseFloat(costo);
   const caricoValido =
@@ -793,7 +793,7 @@ function ProdottoDettaglio({
     setSaving(true);
     try {
       await onCarica({
-        product_id: prodotto.id,
+        product_id: product.id,
         lot_number: numeroLotto.trim() || null,
         expires_at: scadenza || null,
         initial_quantity: qtaNum,
@@ -820,23 +820,23 @@ function ProdottoDettaglio({
       </button>
 
       <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] px-3 py-2 text-sm text-[var(--ink-2)]">
-        {t(`warehouse.categoryLabel.${prodotto.category}` as never)}
-        {prodotto.registration_number ? ` · ${prodotto.registration_number}` : ""}
-        {prodotto.active_substance ? ` · ${prodotto.active_substance}` : ""}
-        {prodotto.npk_n != null
-          ? ` · NPK ${prodotto.npk_n}-${prodotto.npk_p}-${prodotto.npk_k}`
+        {t(`warehouse.categoryLabel.${product.category}` as never)}
+        {product.registration_number ? ` · ${product.registration_number}` : ""}
+        {product.active_substance ? ` · ${product.active_substance}` : ""}
+        {product.npk_n != null
+          ? ` · NPK ${product.npk_n}-${product.npk_p}-${product.npk_k}`
           : ""}
-        {prodotto.uma_code ? ` · UMA ${prodotto.uma_code}` : ""}
-        {prodotto.supplier ? ` · ${prodotto.supplier}` : ""}
+        {product.uma_code ? ` · UMA ${product.uma_code}` : ""}
+        {product.supplier ? ` · ${product.supplier}` : ""}
         <br />
         {t("warehouse.stock")}{" "}
         <strong className="agro-num">
-          {giacenza.toLocaleString("it-IT")} {prodotto.unit}
+          {stock.toLocaleString("it-IT")} {product.unit}
         </strong>
         {" · "}
         {t("warehouse.cump")}{" "}
         <strong className="agro-num">
-          {Number(prodotto.avg_unit_cost).toFixed(4)} €/{prodotto.unit}
+          {Number(product.avg_unit_cost).toFixed(4)} €/{product.unit}
         </strong>
       </p>
 
@@ -880,7 +880,7 @@ function ProdottoDettaglio({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="lotto-quantita">
-                {t("warehouse.quantity")} ({prodotto.unit})
+                {t("warehouse.quantity")} ({product.unit})
               </Label>
               <Input
                 id="lotto-quantita"
@@ -896,7 +896,7 @@ function ProdottoDettaglio({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="lotto-costo">
-                {t("warehouse.unitCost")} (€/{prodotto.unit})
+                {t("warehouse.unitCost")} (€/{product.unit})
               </Label>
               <Input
                 id="lotto-costo"
@@ -927,36 +927,36 @@ function ProdottoDettaglio({
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {lots.map((lotto) => (
+          {lots.map((lot) => (
             <li
-              key={lotto.id}
+              key={lot.id}
               className="flex items-center gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2"
             >
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-2 text-sm font-semibold">
                   <span className="agro-num truncate">
-                    {lotto.lot_number ?? lotto.id.slice(0, 8)}
+                    {lot.lot_number ?? lot.id.slice(0, 8)}
                   </span>
-                  <ExpiryBadge lotto={lotto} warningDays={warningDays} />
+                  <ExpiryBadge lot={lot} warningDays={warningDays} />
                 </span>
                 <span className="block text-xs text-[var(--ink-3)]">
                   {t("warehouse.stock")}{" "}
                   <strong className="agro-num">
-                    {Number(lotto.quantity_on_hand).toLocaleString("it-IT")}/
-                    {Number(lotto.initial_quantity).toLocaleString("it-IT")}{" "}
-                    {prodotto.unit}
+                    {Number(lot.quantity_on_hand).toLocaleString("it-IT")}/
+                    {Number(lot.initial_quantity).toLocaleString("it-IT")}{" "}
+                    {product.unit}
                   </strong>
-                  {lotto.expires_at
+                  {lot.expires_at
                     ? ` · ${t("warehouse.expiresAt")} ${new Date(
-                        lotto.expires_at,
+                        lot.expires_at,
                       ).toLocaleDateString("it-IT")}`
                     : ""}
-                  {` · ${Number(lotto.unit_cost).toFixed(2)} €/${prodotto.unit}`}
+                  {` · ${Number(lot.unit_cost).toFixed(2)} €/${product.unit}`}
                 </span>
               </span>
               <button
                 type="button"
-                onClick={() => void onDeleteLotto(lotto.id)}
+                onClick={() => void onDeleteLotto(lot.id)}
                 title={t("warehouse.deleteLot")}
                 aria-label={t("warehouse.deleteLot")}
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--r-2)] text-[#dc2626] hover:bg-[var(--danger-l,#fee2e2)]"

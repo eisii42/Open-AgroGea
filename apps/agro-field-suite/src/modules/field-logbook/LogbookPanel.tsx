@@ -38,8 +38,8 @@ const TIPO_COLOR: Record<string, string> = {
  * form di registrazione. Ogni insert finisce in PGlite e nell'outbox nella
  * stessa transazione; il badge "coda" sparisce quando il sync router conferma.
  *
- * La lista è filtrabile per intervallo di date e per appezzamento (geometria).
- * Il form può aprirsi pre-mirato a un appezzamento tramite la scorciatoia "QDC"
+ * La lista è filtrabile per intervallo di date e per plot (geometria).
+ * Il form può aprirsi pre-mirato a un plot tramite la scorciatoia "QDC"
  * del popup del campo (store: quadernoNuovoAppezzamentoId).
  */
 export function LogbookPanel({ onClose }: { onClose: () => void }) {
@@ -52,14 +52,14 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   // i dropdown Product/Concime mostrano solo le voci del registro nazionale.
   const { voci: fitosanitari, countryCode } = useCountryCatalog("phytosanitary");
   const { voci: concimi } = useCountryCatalog("fertilizer");
-  // Magazzino (0.2.0): anagrafica e lots per la sezione di scarico del form.
+  // Magazzino (0.2.0): anagrafica e lots per la sezione di issue del form.
   const products = useAgroStore((s) => s.products);
   const lots = useAgroStore((s) => s.lots);
   const sync = useAgroStore((s) => s.sync);
   const recordTreatment = useAgroStore((s) => s.recordTreatment);
   const saveSoilSample = useAgroStore((s) => s.saveSoilSample);
   const deleteTreatment = useAgroStore((s) => s.deleteTreatment);
-  // Automazione v17: semina con semente → scheda coltura + campagna agraria.
+  // Automazione v17: semina con semente → scheda crop + campagna agraria.
   const saveCrop = useAgroStore((s) => s.saveCrop);
   const savePlotCampaign = useAgroStore((s) => s.savePlotCampaign);
   const activeCampaign = useAgroStore((s) => s.activeCampaign);
@@ -70,8 +70,8 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   const mapOperationIds = useAgroStore((s) => s.mapOperationIds);
   const setMapOperationIds = useAgroStore((s) => s.setMapOperationIds);
 
-  // Tipo operazione in compilazione (null = nessun form aperto); `chooser`
-  // mostra il selettore impilato di tutti i tipi operazione.
+  // Tipo operation in compilazione (null = nessun form aperto); `chooser`
+  // mostra il selettore impilato di tutti i tipi operation.
   const [formType, setFormType] = useState<OperationType | null>(null);
   const [chooser, setChooser] = useState(false);
   const [formDefaultAppId, setFormDefaultAppId] = useState<string>("");
@@ -82,7 +82,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     useState<Partial<TrattamentoFormValues> | null>(null);
   const [formNonce, setFormNonce] = useState(0);
 
-  // Opzioni di campo per la Campagna Agraria attiva (nome + codice coltura
+  // Opzioni di campo per la Campagna Agraria attiva (nome + codice crop
   // SIAN). Solo campagne APERTE: quelle chiuse dal raccolto (v17) non sono più
   // un target valido per nuove operazioni, e il campo risulta "senza coltura"
   // (abilita l'auto-assegnazione alla semina).
@@ -120,7 +120,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
 
   // "Ripeti operazione" (v17): riapre il form del tipo giusto precompilato dal
   // record esistente; la data resta oggi e gli scarichi si riscelgono sui
-  // lots attuali del magazzino.
+  // lots attuali del warehouse.
   function repeatOperation(op: TreatmentLog) {
     setFormDefaults({
       plot_id: op.plot_id,
@@ -149,7 +149,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     setDettaglio(null);
   }
 
-  // Cancellazione protetta: operazione in attesa di conferma + notifica esito.
+  // Cancellazione protetta: operation in attesa di conferma + notifica esito.
   const [daEliminare, setDaEliminare] = useState<TreatmentLog | null>(
     null,
   );
@@ -174,10 +174,10 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     }
   }, [logbookOpenPlotId, consumeLogbookOpen]);
 
-  // Con `scarichi` valorizzato l'attività scarica i lots di magazzino nella
-  // stessa transazione: un errore (giacenza/lotto scaduto) risale al form, che
+  // Con `scarichi` valorizzato l'attività scarica i lots di warehouse nella
+  // stessa transazione: un errore (stock/lot scaduto) risale al form, che
   // resta aperto e mostra il messaggio. `assegnazione` (semina di una semente
-  // su campo libero, v17) crea scheda coltura + campagna agraria in automatico.
+  // su campo libero, v17) crea scheda crop + campagna agraria in automatico.
   async function handleSubmit(
     values: TrattamentoFormValues,
     scarichi?: IssueRequest[],
@@ -214,7 +214,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     setFormDefaults(null);
   }
 
-  // Campionamento di suolo: scrive sulla tabella dedicata `soil_samples`.
+  // Campionamento di soil: scrive sulla tabella dedicata `soil_samples`.
   async function handleSubmitSoil(
     input: Parameters<typeof saveSoilSample>[0],
   ) {
@@ -357,7 +357,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
               {notifica}
             </div>
           )}
-          {/* Barra filtri: data + appezzamento (geometria). */}
+          {/* Barra filtri: data + plot (geometria). */}
           <div className="flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -435,39 +435,39 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
             </p>
           ) : (
             <ul className="flex flex-col gap-2">
-              {filtrati.map((trattamento) => {
-                const appezzamento = plots.find(
-                  (a) => a.id === trattamento.plot_id,
+              {filtrati.map((treatment) => {
+                const plot = plots.find(
+                  (a) => a.id === treatment.plot_id,
                 );
                 return (
                   <li
-                    key={trattamento.id}
+                    key={treatment.id}
                     className="flex items-stretch gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2"
                   >
                     <span
                       className="w-1 shrink-0 rounded-full"
                       style={{
                         background:
-                          TIPO_COLOR[trattamento.operation_type] ?? "var(--ink-4)",
+                          TIPO_COLOR[treatment.operation_type] ?? "var(--ink-4)",
                       }}
                     />
                     <button
                       type="button"
-                      onClick={() => setDettaglio(trattamento)}
+                      onClick={() => setDettaglio(treatment)}
                       title={t("quadernoPanel.list.openDetail")}
                       className="min-w-0 flex-1 text-left"
                     >
                       <p className="truncate text-sm font-semibold">
-                        {trattamento.product_name ?? trattamento.operation_type}
+                        {treatment.product_name ?? treatment.operation_type}
                       </p>
                       <p className="truncate text-xs text-[var(--ink-3)]">
                         {[
-                          trattamento.operation_type,
-                          appezzamento?.user_plot_name ?? t("logbook.common.wholeFarm"),
-                          trattamento.dose_value != null
-                            ? `${trattamento.dose_value} ${trattamento.dose_unit ?? ""}`
+                          treatment.operation_type,
+                          plot?.user_plot_name ?? t("logbook.common.wholeFarm"),
+                          treatment.dose_value != null
+                            ? `${treatment.dose_value} ${treatment.dose_unit ?? ""}`
                             : null,
-                          trattamento.target_disease,
+                          treatment.target_disease,
                         ]
                           .filter(Boolean)
                           .join(" · ")}
@@ -475,7 +475,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
                     </button>
                     <div className="flex shrink-0 flex-col items-end justify-between">
                       <time className="agro-num text-xs text-[var(--ink-3)]">
-                        {new Date(trattamento.executed_at).toLocaleDateString("it-IT")}
+                        {new Date(treatment.executed_at).toLocaleDateString("it-IT")}
                       </time>
                       {sync.pendingCount > 0 ? (
                         <span className="rounded-full bg-[var(--warn-l)] px-1.5 text-[10px] text-[var(--warn)]">
@@ -488,20 +488,20 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
                     {/* "Ripeti operazione": form precompilato con data = oggi. */}
                     <button
                       type="button"
-                      onClick={() => repeatOperation(trattamento)}
+                      onClick={() => repeatOperation(treatment)}
                       title={t("quadernoPanel.list.repeatOperation")}
                       aria-label={t("quadernoPanel.list.repeatOperation")}
                       className="flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-[var(--r-2)] text-[var(--accent)] hover:bg-[var(--accent-l)]"
                     >
                       <Copy size={15} />
                     </button>
-                    {/* Cancellazione protetta della singola operazione (FIX 1). */}
+                    {/* Cancellazione protetta della singola operation (FIX 1). */}
                     <button
                       type="button"
-                      onClick={() => setDaEliminare(trattamento)}
+                      onClick={() => setDaEliminare(treatment)}
                       title={t("quadernoPanel.list.deleteOperation")}
                       aria-label={t("quadernoPanel.list.deleteAriaLabel", {
-                        label: operationLabel(trattamento),
+                        label: operationLabel(treatment),
                       })}
                       className="flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-[var(--r-2)] text-[#dc2626] hover:bg-[var(--danger-l,#fee2e2)]"
                     >
@@ -524,7 +524,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
 
       {dettaglio && (
         <OperationDetailCard
-          operazione={dettaglio}
+          operation={dettaglio}
           appezzamentoNome={
             plots.find((a) => a.id === dettaglio.plot_id)?.user_plot_name ??
             null

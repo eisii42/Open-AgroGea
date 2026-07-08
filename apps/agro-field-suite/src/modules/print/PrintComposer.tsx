@@ -48,10 +48,10 @@ export function PrintComposer({ onClose, mapControllerRef }: Props) {
   const layers = useAppStore((s) => s.layers);
   const companies = useAgroStore((s) => s.companies);
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
-  const azienda = companies.find((a) => a.id === activeCompanyId);
+  const company = companies.find((a) => a.id === activeCompanyId);
 
   const [titolo, setTitolo] = useState(
-    `${azienda?.business_name ?? "AgroGea"} · ${new Date().toLocaleDateString("it-IT")}`,
+    `${company?.business_name ?? "AgroGea"} · ${new Date().toLocaleDateString("it-IT")}`,
   );
   const [note, setNote] = useState("");
   const [mostraScala, setMostraScala] = useState(true);

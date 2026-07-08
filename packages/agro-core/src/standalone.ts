@@ -3,7 +3,7 @@
  *
  * Fornisce l'identità locale fissa con cui avviare una sessione del tutto
  * offline: nessun login, nessuna licenza remota, nessun tenant cloud. Il
- * `tenantId` è una costante statica (l'app gestisce un'unica azienda locale per
+ * `tenantId` è una costante statica (l'app gestisce un'unica company locale per
  * dispositivo) e lo storage è marcato `local`, così il Sync Engine adotta il
  * {@link LocalOnlySyncTarget} e non tocca mai la rete.
  *

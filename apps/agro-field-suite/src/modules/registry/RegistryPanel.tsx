@@ -141,10 +141,10 @@ const CHIAVI: CampoChiave[] = getSezioni(((k: string) => k) as unknown as TFunct
 
 type FormState = Record<CampoChiave, string>;
 
-function statoIniziale(azienda: Company | undefined): FormState {
+function statoIniziale(company: Company | undefined): FormState {
   const out = {} as FormState;
   for (const k of CHIAVI) {
-    const v = azienda?.[k];
+    const v = company?.[k];
     out[k] = typeof v === "string" ? v : "";
   }
   return out;
@@ -154,14 +154,14 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const readOnly = useReadOnly(activeCompanyId);
-  const azienda = useAgroStore((s) =>
+  const company = useAgroStore((s) =>
     s.companies.find((a) => a.id === s.activeCompanyId),
   );
   const updateCompany = useAgroStore((s) => s.updateCompany);
 
   const SEZIONI = getSezioni(t);
   const [sezioneId, setSezioneId] = useState(SEZIONI[0].id);
-  const [form, setForm] = useState<FormState>(() => statoIniziale(azienda));
+  const [form, setForm] = useState<FormState>(() => statoIniziale(company));
   const [stato, setStato] = useState<"idle" | "salvo" | "fatto" | "errore">(
     "idle",
   );
@@ -169,16 +169,16 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
 
   // Ricarica i campi quando cambia l'azienda attiva (o arriva dal sync).
   useEffect(() => {
-    setForm(statoIniziale(azienda));
+    setForm(statoIniziale(company));
     setStato("idle");
-    // azienda.updated_at copre sia il cambio azienda sia l'idratazione da pull.
-  }, [activeCompanyId, azienda?.updated_at]);
+    // company.updated_at copre sia il cambio company sia l'idratazione da pull.
+  }, [activeCompanyId, company?.updated_at]);
 
   const setCampo = (key: CampoChiave, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
   const salva = async () => {
-    if (!azienda) return;
+    if (!company) return;
     setStato("salvo");
     setErroreMsg(undefined);
     try {
@@ -187,7 +187,7 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
         const v = form[k].trim();
         // business_name è NOT NULL: se svuotato si conserva il valore esistente.
         patch[k] =
-          k === "business_name" ? v || azienda.business_name : v || null;
+          k === "business_name" ? v || company.business_name : v || null;
       }
       await updateCompany(patch as unknown as Partial<Company>);
       setStato("fatto");
@@ -293,7 +293,7 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
             )}
           </div>
         </div>
-          {/* Trasferimento dati azienda (cloud): l'edizione standalone lo
+          {/* Trasferimento dati company (cloud): l'edizione standalone lo
               espone invece nel Data Command Center. */}
           {!STANDALONE && (
             <div className="mt-3">

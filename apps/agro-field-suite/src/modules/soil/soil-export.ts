@@ -52,16 +52,16 @@ function baricentro(geometry: Plot["geometry"]): Position {
  * baricentro dell'appezzamento, con gli indici idrici come attributi numerici.
  */
 export function buildMoistureHistoryFc(
-  appezzamento: Plot,
+  plot: Plot,
   series: MoistureHistoryRow[],
 ): FeatureCollection {
-  const centro = baricentro(appezzamento.geometry);
+  const centro = baricentro(plot.geometry);
   const features: Feature<Point>[] = series.map((r) => ({
     type: "Feature",
     geometry: { type: "Point", coordinates: centro },
     properties: {
-      plot_id: appezzamento.id,
-      plot_name: appezzamento.user_plot_name,
+      plot_id: plot.id,
+      plot_name: plot.user_plot_name,
       date: r.date,
       et0_mm: r.et0,
       etc_mm: r.etc,

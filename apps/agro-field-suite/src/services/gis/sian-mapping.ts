@@ -28,7 +28,7 @@ export interface SianCampoMappato {
 /** Alias accettati per ciascun campo (in ordine di priorità), normalizzati. */
 const ALIAS = {
   isola: ["reference_parcel_external_id", "id_isola", "cod_isola", "isola", "n_isola", "nisola"],
-  appezzamento: [
+  plot: [
     "agricultural_parcel_external_id",
     "id_appezz",
     "cod_appez",
@@ -38,7 +38,7 @@ const ALIAS = {
     "appezzamento",
     "n_appezz",
   ],
-  coltura: [
+  crop: [
     "crop_external_code",
     "cod_prod",
     "cod_coltura",
@@ -142,8 +142,8 @@ export function mapSianFeature(
   const idx = indicizza(props);
   return {
     reference_parcel_external_id: asCodice(pick(idx, ALIAS.isola)),
-    agricultural_parcel_external_id: asCodice(pick(idx, ALIAS.appezzamento)),
-    crop_external_code: asCodice(pick(idx, ALIAS.coltura)),
+    agricultural_parcel_external_id: asCodice(pick(idx, ALIAS.plot)),
+    crop_external_code: asCodice(pick(idx, ALIAS.crop)),
     variety_external_code: asCodice(pick(idx, ALIAS.varieta)),
     superficie_ha: risolviSuperficieHa(props, areaGeodeticaHa),
     geometria,
@@ -198,17 +198,17 @@ export function parseCsvRows(testo: string): SianProperties[] {
   });
 }
 
-/** Vista minima di un appezzamento esistente per l'abbinamento. */
+/** Vista minima di un plot esistente per l'abbinamento. */
 export interface AppezzamentoEsistente {
   id: string;
   metadata?: Record<string, unknown> | null;
 }
 
 /**
- * Decide se un campo ministeriale corrisponde a un appezzamento FISICO già
+ * Decide se un campo ministeriale corrisponde a un plot FISICO già
  * presente: l'abbinamento avviene per identificativo SIAN dell'appezzamento
  * (memorizzato in `metadata.agricultural_parcel_external_id` al primo import). Ritorna l'id
- * fisico esistente, o null se va creato un nuovo appezzamento.
+ * fisico esistente, o null se va creato un nuovo plot.
  */
 export function matchExistingPlot(
   campo: Pick<SianCampoMappato, "agricultural_parcel_external_id">,

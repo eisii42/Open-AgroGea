@@ -163,7 +163,7 @@ function InviteForm({
     [seats],
   );
 
-  // Se il ruolo selezionato non è più disponibile (cambio piano/azienda), si
+  // Se il ruolo selezionato non è più disponibile (cambio piano/company), si
   // ripiega sul primo invitabile.
   useEffect(() => {
     if (availableRoles.length > 0 && !availableRoles.includes(role)) {
@@ -192,7 +192,7 @@ function InviteForm({
       );
       setEmail("");
     } catch (e) {
-      // Eccezione controllata di quota → messaggio specifico per ruolo/azienda.
+      // Eccezione controllata di quota → messaggio specifico per ruolo/company.
       setError(
         isQuotaError(e) ? e.message : e instanceof Error ? e.message : String(e),
       );

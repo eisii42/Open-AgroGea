@@ -10,12 +10,12 @@ import {
 import { weatherCodeInfo } from "../../lib/weather-codes";
 
 /**
- * Scheda meteo dell'header (di fianco allo switcher azienda): condizioni
+ * Scheda meteo dell'header (di fianco allo switcher company): condizioni
  * correnti + previsione di oggi e dei 4 giorni successivi, con icone.
  *
  * Sorgente: `WeatherSyncService.previsioneDashboard` (Open-Meteo, endpoint
  * daily/current), localizzata sul centroid dell'azienda — la sede se nota,
- * altrimenti il primo appezzamento con geometria. Si aggiorna all'avvio dell'app
+ * altrimenti il primo plot con geometria. Si aggiorna all'avvio dell'app
  * (montaggio) e ogni ora (lucchetto orario condiviso con il resto del meteo).
  */
 
@@ -26,8 +26,8 @@ function useCompanyCoordinates(): [number, number] | null {
   const plots = useAgroStore((s) => s.plots);
 
   return useMemo(() => {
-    const azienda = companies.find((a) => a.id === activeCompanyId);
-    const sede = azienda?.centroid?.coordinates;
+    const company = companies.find((a) => a.id === activeCompanyId);
+    const sede = company?.centroid?.coordinates;
     if (sede && sede.length >= 2) return [sede[0], sede[1]];
     const conGeometria = plots.find((a) => a.geometry);
     if (conGeometria) return centroid(conGeometria.geometry);
@@ -83,7 +83,7 @@ export function WeatherCard() {
     [activeCompanyId, coordinate],
   );
 
-  // Cambio azienda → si azzera la scheda (i dati appartengono a un'altra sede).
+  // Cambio company → si azzera la scheda (i dati appartengono a un'altra sede).
   useEffect(() => {
     setPrevisione(null);
   }, [activeCompanyId]);

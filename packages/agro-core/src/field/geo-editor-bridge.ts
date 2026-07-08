@@ -81,7 +81,7 @@ export function bindGeoEditorCapture(): () => void {
       handled.add(key);
 
       const agro = useAgroStore.getState();
-      // Nessun contesto azienda: resta solo sketch GIS, niente data-entry.
+      // Nessun contesto company: resta solo sketch GIS, niente data-entry.
       if (!agro.dal || !agro.activeCompanyId) continue;
 
       const areaHa =

@@ -1,7 +1,7 @@
 /**
  * FieldCollectionTool — Rilievo in campo (Scouting GPS).
  *
- * Punti di osservazione geotaggati (focolai di infezione, trappole,
+ * Punti di observation geotaggati (focolai di infezione, trappole,
  * anomalie colturali) salvati in `scouting_observations` (PGlite + outbox).
  * Le foto passano dall'adapter dell'edizione (`uploadScoutingPhoto`), che le
  * carica su uno storage remoto e ritorna l'URL; senza adapter (standalone)

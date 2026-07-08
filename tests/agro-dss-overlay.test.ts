@@ -12,7 +12,7 @@ import {
 } from "../apps/agro-field-suite/src/modules/dss/dss-overlay";
 
 /**
- * Sintesi spaziale del risk DSS (Modulo 3): punteggio bilanciato per coltura,
+ * Sintesi spaziale del risk DSS (Modulo 3): punteggio bilanciato per crop,
  * rampa cromatica e costruzione dell'overlay coropletico.
  */
 
@@ -44,7 +44,7 @@ describe("summarizeFieldRisk", () => {
     assert.ok(stentato > vigoroso);
   });
 
-  it("gestisce NDVI/suolo assenti rinormalizzando i pesi (resta in [0,1])", () => {
+  it("gestisce NDVI/soil assenti rinormalizzando i pesi (resta in [0,1])", () => {
     const v = summarizeFieldRisk(
       { stressIdrico01: 0.5, rischioPatologico01: 0.5, ndvi: null },
       CAL,
@@ -75,7 +75,7 @@ describe("calibrazione per coltura", () => {
     // Il mais (seminativo) pesa di più lo stress idrico della vite.
     assert.ok(mais.pesoStress > vite.pesoStress);
   });
-  it("la rampa per coltura ha 3 stop verde→giallo→rosso", () => {
+  it("la rampa per crop ha 3 stop verde→giallo→rosso", () => {
     const r = dssRiskRamp("vite");
     assert.equal(r.length, 3);
     assert.equal(r[0][1], "#1a9850");

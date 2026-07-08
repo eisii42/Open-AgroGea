@@ -56,8 +56,8 @@ export function usePlotsLayer(
         opacity: 1,
         style: {
           ...DEFAULT_LAYER_STYLE,
-          // Base neutra (grigio): vale per gli plots senza coltura. Le
-          // feature con coltura portano `fill`/`stroke` per-feature (colore ad
+          // Base neutra (grigio): vale per gli plots senza crop. Le
+          // feature con crop portano `fill`/`stroke` per-feature (colore ad
           // hoc della specie), onorati grazie a `simpleStyleEnabled`.
           fillColor: NO_CROP_COLOR,
           fillOpacity: 0.3,

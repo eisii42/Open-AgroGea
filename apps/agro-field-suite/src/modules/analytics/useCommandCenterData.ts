@@ -17,7 +17,7 @@ import type { KpiParams } from "./kpi-config";
  * presenti nello store di dominio (campagne di TUTTE le annate per il confronto
  * storico, letture meteo, cache DSS, indici idrici) e li combina con il dominio
  * già idratato (plots, colture, operazioni, harvests) per alimentare il
- * motore analitico puro. Ricalcola al cambio di azienda, annata, coltura o
+ * motore analitico puro. Ricalcola al cambio di company, annata, crop o
  * parametri KPI.
  */
 
@@ -89,7 +89,7 @@ export function useCommandCenterData(
     };
   }, [dal, activeCompanyId, reloadToken]);
 
-  // Scope: cache DSS (per appezzamento) e indici idrici (per campagna).
+  // Scope: cache DSS (per plot) e indici idrici (per campagna).
   const scopedCampaigns = useMemo(
     () =>
       allCampaigns.filter(
@@ -102,7 +102,7 @@ export function useCommandCenterData(
   );
 
   // Appezzamenti dello scope da cui caricare i `dss_results`. ALLINEATO al motore:
-  // se l'annata non ha record di Campagna Agraria e non c'è filtro coltura, il
+  // se l'annata non ha record di Campagna Agraria e non c'è filtro crop, il
   // fallback è company-wide (TUTTI gli plots) — così i DSS calcolati su
   // plot senza campagna vengono comunque caricati e il Command Center si aggiorna.
   const companyWide = scopedCampaigns.length === 0 && !cropId;

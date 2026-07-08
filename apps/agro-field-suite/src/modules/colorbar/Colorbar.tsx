@@ -34,16 +34,16 @@ export function Colorbar() {
     return [...set];
   }, [layers]);
 
-  // Idem per il rischio DSS: una legenda per coltura distinta.
+  // Idem per il rischio DSS: una legenda per crop distinta.
   const colture = useMemo(() => {
     const set = new Set<CropType>();
     for (const l of layers) {
       if (
         l.visible &&
         l.metadata?.dssOverlay === true &&
-        typeof l.metadata?.coltura === "string"
+        typeof l.metadata?.crop === "string"
       ) {
-        set.add(l.metadata.coltura as CropType);
+        set.add(l.metadata.crop as CropType);
       }
     }
     return [...set];
@@ -53,8 +53,8 @@ export function Colorbar() {
 
   return (
     <div className="pointer-events-none absolute bottom-10 right-3 z-30 flex flex-col gap-2">
-      {colture.map((coltura) => (
-        <DssLegendCard key={coltura} coltura={coltura} />
+      {colture.map((crop) => (
+        <DssLegendCard key={crop} crop={crop} />
       ))}
       {indici.map((indice) => (
         <ColorbarCard
@@ -67,10 +67,10 @@ export function Colorbar() {
   );
 }
 
-/** Legenda del rischio DSS: rampa verde→giallo→rosso, calibrata per coltura. */
-function DssLegendCard({ coltura }: { coltura: CropType }) {
+/** Legenda del rischio DSS: rampa verde→giallo→rosso, calibrata per crop. */
+function DssLegendCard({ crop }: { crop: CropType }) {
   const { t } = useTranslation();
-  const model = buildColorbar(dssRiskRamp(coltura));
+  const model = buildColorbar(dssRiskRamp(crop));
   return (
     <div className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2 shadow-[var(--sh-1)]">
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-3)]">

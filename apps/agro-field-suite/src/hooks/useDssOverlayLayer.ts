@@ -34,10 +34,10 @@ const STOPS_DSS: VectorStyleStop[] = [
 
 export interface DssOverlayParams {
   plots: Plot[];
-  /** Punteggio sintetico 0..1 per appezzamento (id → sintesi). */
+  /** Punteggio sintetico 0..1 per plot (id → sintesi). */
   summaryPerField: Map<string, FieldSummary>;
   /** CropType prevalente, per la calibrazione della rampa/legenda. */
-  coltura: CropType;
+  crop: CropType;
   /** true per mostrare l'overlay; false lo rimuove dalla mappa. */
   attivo: boolean;
   /** Epoch dello stile mappa: forza la re-iniezione dopo un cambio basemap. */
@@ -52,14 +52,14 @@ function rimuoviLayer(): void {
 }
 
 export function useDssOverlayLayer(params: DssOverlayParams): void {
-  const { plots, summaryPerField, coltura, attivo, styleEpoch = 0 } = params;
+  const { plots, summaryPerField, crop, attivo, styleEpoch = 0 } = params;
 
   useEffect(() => {
     if (!attivo || summaryPerField.size === 0) {
       rimuoviLayer();
       return;
     }
-    const rampa = dssRiskRamp(coltura);
+    const rampa = dssRiskRamp(crop);
     const geojson = costruisciOverlayDss(plots, summaryPerField, rampa);
     if (geojson.features.length === 0) {
       rimuoviLayer();
@@ -89,10 +89,10 @@ export function useDssOverlayLayer(params: DssOverlayParams): void {
       visible: true,
       opacity: 1,
       style,
-      metadata: { agrogea: true, dssOverlay: true, coltura },
+      metadata: { agrogea: true, dssOverlay: true, crop },
       geojson,
       sourcePath: `agrogea://${DSS_OVERLAY_LAYER_ID}`,
     };
     store.addLayer(layer);
-  }, [plots, summaryPerField, coltura, attivo, styleEpoch]);
+  }, [plots, summaryPerField, crop, attivo, styleEpoch]);
 }

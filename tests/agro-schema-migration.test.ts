@@ -6,7 +6,7 @@ import { AGRO_LOCAL_SCHEMA_SQL } from "../packages/agro-core/src/db/schema";
 /**
  * Schema locale v12 (clean rewrite EN + normalizzazione colture). Verifica che
  * lo schema inglese si applichi pulito e idempotente su un'installazione nuova,
- * che le entità di dominio abbiano la nomenclatura EU-agnostica, che la coltura
+ * che le entità di dominio abbiano la nomenclatura EU-agnostica, che la crop
  * sia normalizzata in `crops` (FK da `plots_campaign`) e che la superficie sia
  * un'unica colonna `area_ha` (niente più duplicati).
  */

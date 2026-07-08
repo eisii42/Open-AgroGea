@@ -54,7 +54,7 @@ function AppezzamentoBody({ props }: { props: Record<string, unknown> }) {
   const { t } = useTranslation();
   const areaUnit = useSettingsStore((s) => s.units.area);
   const nome = str(props.user_plot_name) ?? t("mapTooltip.plot");
-  const coltura = str(props.crop);
+  const crop = str(props.crop);
   const colturaKind = str(props.crop_kind);
   const area = num(props.area_ha);
   const ndvi = num(props.last_ndvi_mean);
@@ -63,13 +63,13 @@ function AppezzamentoBody({ props }: { props: Record<string, unknown> }) {
   return (
     <div className="flex flex-col gap-1">
       <p className="text-[13px] font-semibold">{nome}</p>
-      {coltura && (
+      {crop && (
         <Row
           label={t("mapTooltip.crop")}
           value={
             <span className="inline-flex items-center gap-1.5">
               <CropIcon size={13} style={{ color: cropClr }} />
-              {coltura}
+              {crop}
             </span>
           }
         />

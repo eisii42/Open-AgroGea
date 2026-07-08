@@ -119,7 +119,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
     return m ? new Date(m).toISOString() : null;
   }
 
-  // -- config meteo azienda (Modulo Meteo, local-only) -----------------------
+  // -- config meteo company (Modulo Meteo, local-only) -----------------------
 
   async getConfigMeteo(companyId: string): Promise<CompanyWeatherConfig | null> {
     const result = await this.db.query<CompanyWeatherConfig>(
@@ -213,7 +213,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
 
   /**
    * Sostituisce in transazione i risultati cache dei modelli passati per un
-   * appezzamento: semantica "ultimo valore per modello".
+   * plot: semantica "ultimo valore per modello".
    */
   async saveDssResults(
     plotId: string,

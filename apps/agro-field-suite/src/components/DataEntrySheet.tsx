@@ -22,7 +22,7 @@ import { useReadOnly } from "@agrogea/core";
 /**
  * Scheda dati fissa (Modulo UI §3): si apre automaticamente a fine disegno e
  * mostra il form contestuale al tipo di geometria appena tracciata.
- *   * Poligono → appezzamento (con area geodetica pre-calcolata, sola lettura);
+ *   * Poligono → plot (con area geodetica pre-calcolata, sola lettura);
  *   * Linea/Punto → asset infrastrutturale / POI.
  * "Salva" scrive sul DAL (PGlite → outbox); "Annulla" scarta la geometria
  * provvisoria (lo sketch grezzo è già nascosto, quindi nulla resta sulla mappa).
@@ -78,7 +78,7 @@ export function DataEntrySheet({ pending }: { pending: PendingGeometry }) {
 }
 
 const SAVE_NO_TENANT_MSG =
-  "Nessuna azienda attiva: impossibile salvare nel database locale.";
+  "Nessuna company attiva: impossibile salvare nel database locale.";
 
 /** Estrae un messaggio leggibile da un errore di salvataggio. */
 function messaggioErrore(error: unknown, t: TFunction): string {

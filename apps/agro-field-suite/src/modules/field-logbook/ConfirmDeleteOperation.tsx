@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 /**
- * Banner/modal di sicurezza per la cancellazione di una singola operazione del
+ * Banner/modal di sicurezza per la cancellazione di una singola operation del
  * Quaderno di Campagna (FIX 1). A differenza del SafetyDeleteModal (che chiede di
  * digitare il nome esatto di un elemento geografico), qui l'operazione non ha un
  * nome stabile: lo sblocco passa da un TOGGLE di consenso esplicito che abilita
@@ -23,7 +23,7 @@ export function ConfirmDeleteOperation({
   label,
   onConfirm,
   onClose,
-  /** Titolo del modal (default: operazione colturale del QDC). */
+  /** Titolo del modal (default: operation colturale del QDC). */
   titolo,
   /** Messaggio del banner legale (default: invalidazione storico QDC). */
   messaggio,

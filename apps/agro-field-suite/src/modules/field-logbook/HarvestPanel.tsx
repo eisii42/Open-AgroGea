@@ -15,7 +15,7 @@ import { ConfirmDeleteOperation } from "./ConfirmDeleteOperation";
 import { HarvestDetailCard } from "./HarvestDetailCard";
 
 /**
- * Modulo Harvest: lista degli eventi di raccolta + form di registrazione. Ogni
+ * Modulo Harvest: lista degli eventi di harvest + form di registrazione. Ogni
  * insert passa da `saveHarvest` (PGlite + outbox nella stessa transazione) e
  * idrata lo store; il layer "Raccolte" e i grafici della tabella attributi
  * (Barre: somma/media di `quantita_kg` per `cultivar`/`destinazione`) si
@@ -109,7 +109,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
   const [chiudi, setChiudi] = useState(false);
 
   // Al cambio campo: proponi la chiusura per le annuali e precompila la
-  // cultivar dalla coltura di campagna (se il campo cultivar è ancora vuoto).
+  // cultivar dalla crop di campagna (se il campo cultivar è ancora vuoto).
   useEffect(() => {
     setChiudi(isAnnuale);
     if (fieldCrop) {
@@ -414,7 +414,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
       ) : (
         <ul className="flex flex-col gap-2">
           {harvests.map((r) => {
-            const appezzamento = plots.find(
+            const plot = plots.find(
               (a) => a.id === r.plot_id,
             );
             return (
@@ -437,7 +437,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
                   </p>
                   <p className="truncate text-xs text-[var(--ink-3)]">
                     {[
-                      appezzamento?.user_plot_name ?? t("raccoltaPanel.wholeFarmLower"),
+                      plot?.user_plot_name ?? t("raccoltaPanel.wholeFarmLower"),
                       r.destination_logistics,
                       r.quantity_kg != null
                         ? `${r.quantity_kg.toLocaleString("it-IT")} kg`
@@ -459,7 +459,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
                     <span className="text-xs text-[var(--ok)]">✓</span>
                   )}
                 </div>
-                {/* Cancellazione protetta della singola raccolta. */}
+                {/* Cancellazione protetta della singola harvest. */}
                 <button
                   type="button"
                   onClick={() => setDaEliminare(r)}
@@ -487,7 +487,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
 
       {dettaglio && (
         <HarvestDetailCard
-          raccolta={dettaglio}
+          harvest={dettaglio}
           appezzamentoNome={
             plots.find((a) => a.id === dettaglio.plot_id)?.user_plot_name ??
             null

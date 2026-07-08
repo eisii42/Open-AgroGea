@@ -11,13 +11,13 @@ import {
 } from "@agrogea/tools";
 
 /**
- * Bilancio idrico colturale (refactor §3, comune ai moduli coltura).
+ * Bilancio idrico colturale (refactor §3, comune ai moduli crop).
  *
  * Compone gli engine puri senza duplicarli:
  *   * `et0PenmanMonteith` (agrometeo) → ET0 di riferimento per ogni day;
  *   * Kc della phase fenologica dalla matrice della **specie** (`fenologia`);
  *   * `cropEt` = ET0·Kc → ETc giornaliera;
- *   * `irrigationPlan` (agrometeo) → bilancio idrico del suolo e piano irriguo.
+ *   * `irrigationPlan` (agrometeo) → bilancio idrico del soil e piano irriguo.
  *
  * Il Kc "declinato per phase fenologica della coltura" è quello di `fenologia`:
  * qui si seleziona solo quello giusto per specie+phase e si proietta il bilancio.
@@ -30,8 +30,8 @@ export interface CropBalanceInput {
   meteo: WeatherDataDay[];
   /** Pioggia giornaliera (mm), allineata a `meteo`. */
   pioggiaSerie: number[];
-  suolo: SoilParameters;
-  /** Deplezione iniziale del suolo (mm). */
+  soil: SoilParameters;
+  /** Deplezione iniziale del soil (mm). */
   deplezioneIniziale?: number;
 }
 
@@ -54,7 +54,7 @@ export function cropWaterBalance(
     cropEt(et0PenmanMonteith(day), kc),
   );
   const { series, autonomyDays } = irrigationPlan(
-    input.suolo,
+    input.soil,
     etcSeries,
     input.pioggiaSerie,
     input.deplezioneIniziale ?? 0,

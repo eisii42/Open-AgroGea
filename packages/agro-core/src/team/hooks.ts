@@ -26,7 +26,7 @@ function getCurrentEmail(): string | null {
   return s.session?.user?.email ?? s.profile?.email ?? null;
 }
 
-/** Membership (non eliminate) di una specifica azienda. */
+/** Membership (non eliminate) di una specifica company. */
 export function useCompanyMemberships(
   companyId: string | null,
 ): TenantMembership[] {
@@ -70,7 +70,7 @@ export function useInviteDecision(
   );
 }
 
-/** Ruolo dell'utente corrente in una specifica azienda (o null se esterno/owner). */
+/** Ruolo dell'utente corrente in una specifica company (o null se esterno/owner). */
 export function useCurrentRole(companyId: string | null): TeamRole | null {
   const memberships = useAgroStore((s) => s.memberships);
   const email = useAgroStore(

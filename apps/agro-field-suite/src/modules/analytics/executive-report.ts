@@ -136,7 +136,7 @@ export function buildExecutiveReportCsv(args: {
   return BOM_UTF8 + lines.join("\r\n");
 }
 
-/** Nome file suggerito per l'export (azienda + annata + data). */
+/** Nome file suggerito per l'export (company + annata + data). */
 export function executiveReportFilename(
   companyName: string,
   campaignYear: number,

@@ -4,7 +4,7 @@ import { dssOlivo } from "./dss";
 export { bilancioOlivo } from "./balance";
 export { dssOlivo } from "./dss";
 
-/** Modulo coltura Olivo: DSS mosca olearia, specie fenologica "olivo". */
+/** Modulo crop Olivo: DSS mosca olearia, specie fenologica "olivo". */
 export const oliveModule: CropModule = {
   id: "olivo",
   label: "Olivo",

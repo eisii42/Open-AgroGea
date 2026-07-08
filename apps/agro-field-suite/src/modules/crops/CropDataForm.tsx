@@ -11,13 +11,13 @@ import { allCropFormSchemas, cropFormSchema } from "./cropFormSchema";
 
 /**
  * Scheda "Dati coltura" del modulo CropType. Sistema smart e semplice per
- * registrare la coltura di un appezzamento per la Campagna Agraria attiva:
+ * registrare la crop di un plot per la Campagna Agraria attiva:
  *   * scheda dedicata per ogni tipo (vite/olivo/frutteto/seminativo/orticoltura),
  *     con i campi di filiera specifici (clone, sesto, portainnesto, ciclo…);
  *   * scrive su DUE tabelle normalizzate — la specie/varietà in `crops`
  *     (campi di filiera in `crop_metadata`) e lo stato annuale in `plots_campaign`;
  *   * in MODIFICA ricarica i valori dell'annata; se l'annata è VUOTA ma esiste un
- *     anno precedente per lo stesso appezzamento, precompila con quei dati
+ *     anno precedente per lo stesso plot, precompila con quei dati
  *     (perenni: vite/olivo/frutteto) creando però righe nuove al salvataggio.
  *
  * La categoria scelta finisce in `crop_metadata.category`: è ciò che la scheda
@@ -42,10 +42,10 @@ function metaStr(meta: Record<string, unknown>, key: string): string | null {
 }
 
 export function CropDataForm({
-  appezzamento,
+  plot,
   onSaved,
 }: {
-  appezzamento: Plot;
+  plot: Plot;
   onSaved?: () => void;
 }) {
   const { t } = useTranslation();
@@ -64,21 +64,21 @@ export function CropDataForm({
   const { voci: varietyCatalog } = useCountryCatalog("variety");
 
   // Tutte le campagne dell'appezzamento (ogni annata), per modifica + copia anno
-  // precedente. Ricaricate al cambio appezzamento e dopo ogni salvataggio.
+  // precedente. Ricaricate al cambio plot e dopo ogni salvataggio.
   const [plotCampaigns, setPlotCampaigns] = useState<PlotCampaign[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
     let vivo = true;
     if (!dal) return;
     void dal
-      .listCampiCampagna({ plotId: appezzamento.id })
+      .listCampiCampagna({ plotId: plot.id })
       .then((rows) => {
         if (vivo) setPlotCampaigns(rows);
       });
     return () => {
       vivo = false;
     };
-  }, [dal, appezzamento.id, reloadKey]);
+  }, [dal, plot.id, reloadKey]);
 
   // Data dell'ultima SEMINA/TRAPIANTO dal Quaderno di Campagna (fonte di verità
   // per le annuali; alimenta il biofix GDD del DSS). Sola lettura qui.
@@ -87,7 +87,7 @@ export function CropDataForm({
     let vivo = true;
     if (!dal || !activeCompanyId) return;
     void dal
-      .listTreatments(activeCompanyId, { plotId: appezzamento.id, limit: 200 })
+      .listTreatments(activeCompanyId, { plotId: plot.id, limit: 200 })
       .then((rows) => {
         if (!vivo) return;
         const semina = rows.find((t) => t.operation_type === "sowing");
@@ -96,7 +96,7 @@ export function CropDataForm({
     return () => {
       vivo = false;
     };
-  }, [dal, activeCompanyId, appezzamento.id, reloadKey]);
+  }, [dal, activeCompanyId, plot.id, reloadKey]);
 
   const [category, setCategory] = useState<string>("");
   const [commonName, setCommonName] = useState("");
@@ -117,7 +117,7 @@ export function CropDataForm({
   const [esito, setEsito] = useState<"idle" | "ok" | "errore">("idle");
   const [erroreMsg, setErroreMsg] = useState<string>();
 
-  // Prefill quando cambia appezzamento, annata attiva o l'elenco campagne.
+  // Prefill quando cambia plot, annata attiva o l'elenco campagne.
   useEffect(() => {
     const current =
       plotCampaigns.find((c) => c.campaign_year === activeCampaign) ?? null;
@@ -143,14 +143,14 @@ export function CropDataForm({
     setVarietyName(crop?.variety_name ?? "");
     setMeta(crop ? metaToStrings(crop.crop_metadata) : {});
     setDeclaredArea(
-      String(source?.declared_area_ha ?? appezzamento.area_ha ?? ""),
+      String(source?.declared_area_ha ?? plot.area_ha ?? ""),
     );
     setRefParcel(source?.reference_parcel_external_id ?? "");
     setAgriParcel(source?.agricultural_parcel_external_id ?? "");
     setCropCode(source?.crop_external_code ?? "");
     setVarietyCode(source?.variety_external_code ?? "");
     setEsito("idle");
-  }, [appezzamento.id, appezzamento.area_ha, activeCampaign, plotCampaigns, crops]);
+  }, [plot.id, plot.area_ha, activeCampaign, plotCampaigns, crops]);
 
   const schema = cropFormSchema(t, category);
   // Annuali (semina/trapianto ogni campagna) vs perenni (anno d'impianto).
@@ -232,7 +232,7 @@ export function CropDataForm({
 
       const camp = await savePlotCampaign({
         id: editCampaignId,
-        plot_id: appezzamento.id,
+        plot_id: plot.id,
         crop_id: crop.id,
         campaign_year: activeCampaign,
         declared_area_ha: areaNum as number,
@@ -317,7 +317,7 @@ export function CropDataForm({
         </div>
       )}
 
-      {/* Tipo coltura: una scheda diversa per tipo */}
+      {/* Tipo crop: una scheda diversa per tipo */}
       <div>
         <Label>{t("cropDataForm.cropType")}</Label>
         <div className="mt-1 grid grid-cols-3 gap-1.5">

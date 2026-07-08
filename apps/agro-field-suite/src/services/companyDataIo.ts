@@ -2,7 +2,7 @@
  * Orchestratore Import/Export dei dati aziendali (GeoJSON Esteso).
  *
  * Compone il motore PURO di `@agrogea/core` (serialize/parse) con il DAL PGlite:
- *   - EXPORT: legge le righe del perimetro azienda dai metodi tipati del DAL
+ *   - EXPORT: legge le righe del perimetro company dai metodi tipati del DAL
  *     (la geometria è già GeoJSON in `jsonb`, nessuna funzione PostGIS) e le
  *     serializza nel documento.
  *   - IMPORT: ripristina via le upsert tipate del DAL, che scrivono dato +
@@ -25,7 +25,7 @@ import {
   useAgroStore,
 } from "@agrogea/core";
 
-// Nessun limite pratico: l'export è un backup completo del perimetro azienda.
+// Nessun limite pratico: l'export è un backup completo del perimetro company.
 const FULL = 1_000_000;
 
 type WithPlot = { plot_id: string | null };
@@ -70,19 +70,19 @@ export async function buildCompanySnapshot(
     dal.listSoilSamples(id),
     dal.listHarvests(id, { limit: FULL }),
     // Infrastrutture (POI puntuali, geometrie CAD) e rilievi GPS di campo:
-    // entità a livello azienda, senza legame con un singolo appezzamento.
+    // entità a livello company, senza legame con un singolo plot.
     dal.listAssets(id),
     dal.listOsservazioniScouting(id, { limit: FULL }),
     // plots_campaign e crops sono a livello tenant: si filtrano sugli
-    // plots/colture di QUESTA azienda.
+    // plots/colture di QUESTA company.
     dal.listCampiCampagna(),
     dal.listCrops(),
   ]);
   const t = groupByPlot(treatments);
   const s = groupByPlot(soilSamples);
   const h = groupByPlot(harvests);
-  // Campagne agrarie (associazione coltura↔appezzamento) dei soli plots
-  // dell'azienda, raggruppate per appezzamento.
+  // Campagne agrarie (associazione crop↔plot) dei soli plots
+  // dell'azienda, raggruppate per plot.
   const plotIds = new Set(plots.map((p) => p.id));
   const campaigns = allCampaigns.filter((cc) => plotIds.has(cc.plot_id));
   const c = groupByPlot(campaigns);
@@ -202,7 +202,7 @@ export async function importCompanyData(
       company_id: targetCompanyId,
     });
     summary.plots++;
-    // Campagne agrarie dell'appezzamento (associazione coltura↔appezzamento per
+    // Campagne agrarie dell'appezzamento (associazione crop↔plot per
     // annata). `plot_id`/`crop_id` restano: puntano a plot e crop appena
     // ripristinati con lo stesso id.
     for (const camp of bundle.campaigns) {
@@ -211,10 +211,10 @@ export async function importCompanyData(
     }
     await restoreLogs(bundle);
   }
-  // Log non legati ad alcun appezzamento (plot_id resta null).
+  // Log non legati ad alcun plot (plot_id resta null).
   await restoreLogs(snapshot.unassigned);
 
-  // Infrastrutture / POI puntuali (geometria propria, livello azienda).
+  // Infrastrutture / POI puntuali (geometria propria, livello company).
   for (const asset of snapshot.assets) {
     await dal.upsertAsset({ ...stripEnv(asset), company_id: targetCompanyId });
     summary.assets++;
@@ -237,7 +237,7 @@ export async function importCompanyData(
 // File I/O (browser/Tauri webview): Blob download + input file picker.
 // --------------------------------------------------------------------------
 
-/** Nome file suggerito: `agrogea_<slug-azienda>_<data>.geojson`. */
+/** Nome file suggerito: `agrogea_<slug-company>_<data>.geojson`. */
 export function exportFilename(company: Company): string {
   const slug =
     (company.business_name || "azienda")

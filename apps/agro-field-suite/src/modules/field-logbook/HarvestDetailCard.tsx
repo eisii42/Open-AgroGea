@@ -1,6 +1,6 @@
 /**
- * Scheda dettaglio di una raccolta: modale centrale in sola lettura con TUTTE le
- * informazioni registrate (cultivar, destinazione, quantità, lotto, note).
+ * Scheda dettaglio di una harvest: modale centrale in sola lettura con TUTTE le
+ * informazioni registrate (cultivar, destinazione, quantità, lot, note).
  * Speculare a {@link OperationDetailCard} del Quaderno; si apre al tap/click
  * su una voce della lista del registro harvests.
  */
@@ -22,23 +22,23 @@ function dataEstesa(value: string | Date): string {
 }
 
 export function HarvestDetailCard({
-  raccolta,
+  harvest,
   appezzamentoNome,
   onClose,
   onDelete,
 }: {
-  raccolta: Harvest;
+  harvest: Harvest;
   appezzamentoNome: string | null;
   onClose: () => void;
   onDelete: () => void | Promise<void>;
 }) {
   const { t } = useTranslation();
-  const r = raccolta;
+  const r = harvest;
   const quantita =
     r.quantity_kg != null
       ? `${(r.quantity_kg / 100).toLocaleString("it-IT")} q · ${r.quantity_kg.toLocaleString("it-IT")} kg`
       : null;
-  const lotto =
+  const lot =
     typeof r.metadata?.destinazione_lotto === "string"
       ? r.metadata.destinazione_lotto
       : null;
@@ -81,7 +81,7 @@ export function HarvestDetailCard({
 
           <Section title={t("raccoltaDettaglioCard.section.delivery")}>
             <Row label={t("raccoltaDettaglioCard.field.destination")} value={r.destination_logistics} />
-            <Row label={t("raccoltaDettaglioCard.field.lotCode")} value={lotto} />
+            <Row label={t("raccoltaDettaglioCard.field.lotCode")} value={lot} />
             <Row label={t("raccoltaDettaglioCard.field.quantity")} value={quantita} num />
           </Section>
 

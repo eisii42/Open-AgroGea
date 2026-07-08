@@ -82,7 +82,7 @@ function prettyModel(modelName: string): string {
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
-/** Mappa plot_id → nome appezzamento. */
+/** Mappa plot_id → nome plot. */
 function plotNames(data: DashboardData): Map<string, string> {
   return new Map(data.plots.map((a) => [a.id, a.user_plot_name]));
 }
@@ -92,7 +92,7 @@ function plotAreas(data: DashboardData): Map<string, number> {
   return new Map(data.plots.map((a) => [a.id, a.area_ha]));
 }
 
-/** Mappa plot_campaign_id → nome appezzamento (per il bilancio idrico). */
+/** Mappa plot_campaign_id → nome plot (per il bilancio idrico). */
 function campaignPlotNames(data: DashboardData): Map<string, string> {
   const byPlot = plotNames(data);
   const m = new Map<string, string>();
@@ -124,7 +124,7 @@ export const ENTITIES: EntityDef[] = [
       for (const c of d.campaigns) plotCrop.set(c.plot_id, cropName.get(c.crop_id) ?? "—");
       return d.plots.map((a) => ({
         nome: a.user_plot_name,
-        coltura: plotCrop.get(a.id) ?? "—",
+        crop: plotCrop.get(a.id) ?? "—",
         irrigazione: a.irrigation_type ?? "—",
         anno: a.planting_year ?? "—",
         area_ha: a.area_ha,
@@ -153,10 +153,10 @@ export const ENTITIES: EntityDef[] = [
         .filter((t) => t.deleted_at == null)
         .map((t) => ({
           tipo: OP_LABEL[t.operation_type] ?? t.operation_type,
-          prodotto: t.product_name ?? "—",
+          product: t.product_name ?? "—",
           avversita: t.target_disease ?? "—",
           mese: monthKey(t.executed_at),
-          appezzamento: t.plot_id ? names.get(t.plot_id) ?? "—" : "Intera azienda",
+          plot: t.plot_id ? names.get(t.plot_id) ?? "—" : "Intera azienda",
           dose: t.dose_value,
           quantita: t.total_quantity,
           acqua_l: t.water_volume_l,
@@ -184,7 +184,7 @@ export const ENTITIES: EntityDef[] = [
           cultivar: r.cultivar ?? "—",
           destinazione: r.destination_logistics ?? "—",
           mese: monthKey(r.harvested_at),
-          appezzamento: r.plot_id ? names.get(r.plot_id) ?? "—" : "—",
+          plot: r.plot_id ? names.get(r.plot_id) ?? "—" : "—",
           kg: r.quantity_kg,
           area_ha: r.plot_id ? areas.get(r.plot_id) ?? null : null,
         }));
@@ -208,7 +208,7 @@ export const ENTITIES: EntityDef[] = [
       const names = campaignPlotNames(d);
       return d.soilIndices.map((s) => ({
         data: dayKey(s.date),
-        appezzamento: s.plot_campaign_id ? names.get(s.plot_campaign_id) ?? "—" : "—",
+        plot: s.plot_campaign_id ? names.get(s.plot_campaign_id) ?? "—" : "—",
         et0: s.et0,
         etc: s.etc,
         dr: s.depletion_mm,
@@ -250,7 +250,7 @@ export const ENTITIES: EntityDef[] = [
       const names = plotNames(d);
       return d.dssRisultati.map((r) => ({
         modello: prettyModel(r.model_name),
-        appezzamento: r.plot_id ? names.get(r.plot_id) ?? "—" : "—",
+        plot: r.plot_id ? names.get(r.plot_id) ?? "—" : "—",
         valore: r.output_value,
       }));
     },

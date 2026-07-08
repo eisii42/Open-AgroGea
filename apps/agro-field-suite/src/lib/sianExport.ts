@@ -38,11 +38,11 @@ function csvCell(value: unknown, separatore: SeparatoreCsv): string {
  */
 /**
  * Contesto passato agli estrattori di colonna: risolutori dipendenti dalla UI
- * (es. l'etichetta localizzata del tipo operazione) che il modulo puro non può
+ * (es. l'etichetta localizzata del tipo operation) che il modulo puro non può
  * conoscere. Opzionale: senza, gli estrattori usano i default italiani.
  */
 export interface SianColumnContext {
-  /** Etichetta localizzata del tipo operazione (default: italiano). */
+  /** Etichetta localizzata del tipo operation (default: italiano). */
   resolveOperationType?: (op: OperationType) => string;
 }
 
@@ -58,7 +58,7 @@ export interface SianColumn {
 }
 
 /**
- * Etichette italiane di default del tipo operazione: il CSV NON deve mai
+ * Etichette italiane di default del tipo operation: il CSV NON deve mai
  * riportare il codice interno inglese (`phytosanitary`, `harvest`…). La UI
  * sovrascrive con la lingua attiva via {@link SianColumnContext}.
  */
@@ -161,7 +161,7 @@ export const COLONNE_SIAN: SianColumn[] = [
   },
   {
     id: "crop_external_code",
-    label: "Codice coltura SIAN",
+    label: "Codice crop SIAN",
     value: (_t, _a, c) => c?.crop_external_code ?? "",
   },
   {
@@ -188,14 +188,14 @@ export const COLONNE_SIAN: SianColumn[] = [
   // -- colonne del Modulo Harvest (righe con tipo_operazione = harvest) --
   {
     id: "raccolta_kg",
-    label: "Quantità raccolta (kg)",
+    label: "Quantità harvest (kg)",
     value: (t) =>
       t.operation_type === "harvest" ? t.total_quantity ?? "" : "",
   },
   {
     id: "destinazione",
     label: "Destinazione raccolta",
-    // La destinazione della raccolta è congelata in metadata.destinazione (vedi
+    // La destinazione della harvest è congelata in metadata.destinazione (vedi
     // raccolteToOperazioni); vuota per le altre operazioni.
     value: (t) =>
       t.operation_type === "harvest"
@@ -207,7 +207,7 @@ export const COLONNE_SIAN: SianColumn[] = [
 
 /**
  * Selezione di colonne predefinita: tracciato SIAN/PAN con i riferimenti
- * ministeriali (id isola/appezzamento + codice coltura) sempre inclusi.
+ * ministeriali (id isola/plot + codice crop) sempre inclusi.
  */
 export const COLONNE_SIAN_DEFAULT: string[] = [
   "data",
@@ -248,9 +248,9 @@ export interface SianFiltri {
   appezzamentoIds?: string[];
   /** Colture ammesse (vuoto = tutte). */
   colture?: string[];
-  /** Tipi di operazione ammessi (vuoto = tutti). */
+  /** Tipi di operation ammessi (vuoto = tutti). */
   tipiOperazione?: OperationType[];
-  /** Includi le operazioni "intera azienda" (senza appezzamento). Default true. */
+  /** Includi le operazioni "intera azienda" (senza plot). Default true. */
   includiSenzaAppezzamento?: boolean;
 }
 
@@ -273,8 +273,8 @@ export const CONFIG_SIAN_DEFAULT: SianExportConfig = {
 
 /**
  * Applica i filtri temporali e spaziali al registro. Le operazioni "intera
- * azienda" (senza appezzamento) sono escluse quando si filtra per appezzamento
- * o coltura, perché non hanno un riferimento spaziale da confrontare.
+ * azienda" (senza plot) sono escluse quando si filtra per plot
+ * o crop, perché non hanno un riferimento spaziale da confrontare.
  */
 export function filterSianTreatments(
   treatments: TreatmentLog[],
@@ -300,7 +300,7 @@ export function filterSianTreatments(
     if (tipoSet && !tipoSet.has(t.operation_type)) return false;
 
     if (!t.plot_id) {
-      // Operazione intera azienda: nessun riferimento spaziale.
+      // Operazione intera company: nessun riferimento spaziale.
       if (!includiSenza) return false;
       return !appSet;
     }
@@ -321,8 +321,8 @@ export function risolviColonne(ids: string[]): SianColumn[] {
  * Risolve la campagna agraria di un'operazione per popolare i riferimenti
  * ministeriali (codici SIAN/SIEX). Prima cerca l'aggancio diretto
  * (`plot_campaign_id`); se manca — o punta a una riga non caricata — ricade sul
- * match per appezzamento + anno dell'operazione. Così i codici compilati nella
- * scheda coltura DOPO la registrazione (o su operazioni non agganciate, come la
+ * match per plot + anno dell'operazione. Così i codici compilati nella
+ * scheda crop DOPO la registrazione (o su operazioni non agganciate, come la
  * semina con auto-assegnazione) compaiono comunque nell'export.
  */
 function resolveField(
@@ -346,7 +346,7 @@ function resolveField(
 /**
  * Genera il testo CSV dal registro (già filtrato) secondo la config. La
  * campagna agraria si risolve via `plot_campaign_id` con FALLBACK per
- * appezzamento+anno (vedi {@link resolveField}): i codici ministeriali seguono
+ * plot+anno (vedi {@link resolveField}): i codici ministeriali seguono
  * lo stato di campagna corrente, non una fotografia al momento dell'operazione.
  */
 export function buildSianCsv(
@@ -361,7 +361,7 @@ export function buildSianCsv(
 ): string {
   const perId = new Map(plots.map((a) => [a.id, a]));
   const perCampo = new Map(campaignFields.map((c) => [c.id, c]));
-  // Indice appezzamento+anno per il fallback di risoluzione campagna.
+  // Indice plot+anno per il fallback di risoluzione campagna.
   const perPlotAnno = new Map<string, PlotCampaign[]>();
   for (const c of campaignFields) {
     if (c.deleted_at != null) continue;
@@ -384,9 +384,9 @@ export function buildSianCsv(
 }
 
 /**
- * Mappa gli eventi di raccolta (`harvest_logs`) in operazioni sintetiche del
+ * Mappa gli eventi di harvest (`harvest_logs`) in operazioni sintetiche del
  * Quaderno (`operation_type = "harvest"`), così confluiscono nello STESSO
- * export del registro treatments (requisito QDCA: la raccolta è parte del
+ * export del registro treatments (requisito QDCA: la harvest è parte del
  * Quaderno di Campagna). La cultivar diventa il "prodotto", i kg la quantità
  * totale, la destinazione è congelata in `weather_conditions.destinazione` (bag
  * di metadati in memoria, mai persistito). L'aggancio alla campagna (`plot_id`,

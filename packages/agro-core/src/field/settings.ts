@@ -9,7 +9,7 @@
  * la rete è disponibile, così seguono l'utente cross-device.
  *
  * Volutamente NON vivono in PGlite: quel data plane è isolato per `tenant_id` e
- * una preferenza d'interfaccia non deve cambiare al cambio di azienda né essere
+ * una preferenza d'interfaccia non deve cambiare al cambio di company né essere
  * duplicata per workspace. localStorage (device) + profili_utenti (utente) è il
  * binomio corretto, ed è lo stesso già usato da tema e lingua.
  */
@@ -199,7 +199,7 @@ export function irrigationToLitres(
   if (!Number.isFinite(amount) || amount <= 0) return null;
   if (unit === "hl") return Math.round(amount * LITRES_PER_HL);
   // mm → litri: serve l'area; senza, si assume 1 ha (l'irrigazione senza campo
-  // non incide comunque su alcun bilancio, che è per-appezzamento).
+  // non incide comunque su alcun bilancio, che è per-plot).
   const ha = areaHa && areaHa > 0 ? areaHa : 1;
   return Math.round(amount * ha * LITRES_PER_MM_HA);
 }

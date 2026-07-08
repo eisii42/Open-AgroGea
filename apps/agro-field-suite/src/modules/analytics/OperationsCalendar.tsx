@@ -19,7 +19,7 @@ import { useTranslation } from "react-i18next";
 /**
  * Calendario operativo integrato (Modulo 4). Popola automaticamente gli eventi
  * da `treatment_logs` (operazioni eseguite e pianificate), `harvest_logs` (date
- * di raccolta) e dagli alert DSS (giorni a rischio malattia elevato). Al clic su
+ * di harvest) e dagli alert DSS (giorni a rischio malattia elevato). Al clic su
  * un giorno apre il dettaglio degli eventi con modifica rapida del record in
  * PGlite (note/data per i treatments, quantità/data per le harvests).
  */

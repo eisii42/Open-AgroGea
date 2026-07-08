@@ -58,7 +58,7 @@ function viewers(n: number): TenantMembership[] {
 // ---------------------------------------------------------------------------
 
 describe("subscription-limits / schema dei piani", () => {
-  it("base: 1 azienda, single user", () => {
+  it("base: 1 company, single user", () => {
     assert.deepEqual(PLAN_LIMITS.base, {
       max_companies: 1,
       max_owners_per_company: 1,
@@ -132,7 +132,7 @@ describe("Company Creation Guard / quota companies", () => {
     assert.equal(canCreateCompany("base", 1), false);
   });
 
-  it("assertCanCreateCompany respinge la sesta azienda nel piano standard", () => {
+  it("assertCanCreateCompany respinge la sesta company nel piano standard", () => {
     assert.doesNotThrow(() => assertCanCreateCompany("standard", 4));
     assert.throws(
       () => assertCanCreateCompany("standard", 5),
@@ -155,13 +155,13 @@ describe("Company Creation Guard / quota companies", () => {
 // ---------------------------------------------------------------------------
 
 describe("MembershipGuard / conteggio posti", () => {
-  it("conta solo i posti occupati (active|invited) della stessa azienda e ruolo", () => {
+  it("conta solo i posti occupati (active|invited) della stessa company e ruolo", () => {
     const memberships = [
       member({ role: "MANAGER", status: "active" }),
       member({ role: "MANAGER", status: "invited" }),
       member({ role: "MANAGER", status: "revoked" }), // non conta
       member({ role: "VIEWER", status: "active" }), // ruolo diverso
-      member({ role: "MANAGER", company_id: OTHER_COMPANY }), // altra azienda
+      member({ role: "MANAGER", company_id: OTHER_COMPANY }), // altra company
     ];
     assert.equal(countSeats(memberships, COMPANY, "MANAGER"), 2);
     assert.equal(countSeats(memberships, COMPANY, "VIEWER"), 1);
@@ -180,7 +180,7 @@ describe("MembershipGuard / inviti respinti oltre la quota per azienda", () => {
     assert.equal(decision.allowed, false);
     assert.equal(
       decision.reason,
-      "Quota Manager raggiunta per questa azienda (Massimo 1 per azienda nel piano Standard)",
+      "Quota Manager raggiunta per questa company (Massimo 1 per company nel piano Standard)",
     );
     assert.throws(
       () =>
@@ -230,7 +230,7 @@ describe("MembershipGuard / inviti respinti oltre la quota per azienda", () => {
     assert.equal(decision.max, 3);
     assert.equal(
       decision.reason,
-      "Quota Viewer esaurita per questa azienda (Massimo 3 per azienda nel piano Plus)",
+      "Quota Viewer esaurita per questa company (Massimo 3 per company nel piano Plus)",
     );
   });
 
@@ -269,7 +269,7 @@ describe("MembershipGuard / inviti respinti oltre la quota per azienda", () => {
     assert.equal(decision.max, 0);
   });
 
-  it("il limite è PER AZIENDA: i posti di un'altra azienda non contano", () => {
+  it("il limite è PER AZIENDA: i posti di un'altra company non contano", () => {
     const memberships = [
       member({ role: "MANAGER", company_id: OTHER_COMPANY }),
     ];

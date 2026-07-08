@@ -1,10 +1,10 @@
 /**
  * Simboli delle operazioni del Quaderno sulla mappa (toggle "Mostra sulla
- * mappa"). Crea marker HTML (icone lucide per tipo operazione) SOLO quando il
+ * mappa"). Crea marker HTML (icone lucide per tipo operation) SOLO quando il
  * toggle è attivo (`mapOperationIds !== null`) e li rimuove allo spegnimento.
  *
  * Renderizza unicamente le operazioni VISIBILI nel registro (gli ID arrivano già
- * filtrati dal LogbookPanel). Più operazioni sullo stesso appezzamento NON si
+ * filtrati dal LogbookPanel). Più operazioni sullo stesso plot NON si
  * sovrappongono: vengono disposte ad anello (offset in pixel, stabile a ogni
  * zoom) attorno al centroid dell'appezzamento.
  */
@@ -79,7 +79,7 @@ interface MarkerEntry {
 
 // Le icone hanno dimensione fissa RISPETTO ALL'APPEZZAMENTO (geografica), non in
 // pixel: senza questo, lo zoom-out rimpicciolisce il campo ma non l'icona, che
-// appare enorme. Scaliamo come un oggetto al suolo (× 2^(zoom-rif)), con clamp
+// appare enorme. Scaliamo come un oggetto al soil (× 2^(zoom-rif)), con clamp
 // per restare leggibili/cliccabili agli estremi.
 const REF_ZOOM = 16;
 const MIN_SCALE = 0.3;
@@ -100,7 +100,7 @@ export function OperationMarkers({
   const treatments = useAgroStore((s) => s.treatments);
   const plots = useAgroStore((s) => s.plots);
 
-  // Posizioni: una per operazione visibile, raggruppate per appezzamento e
+  // Posizioni: una per operation visibile, raggruppate per plot e
   // disposte ad anello attorno al centroid (offset in pixel → niente overlap).
   const placements = useMemo<Placement[]>(() => {
     if (!ids) return [];

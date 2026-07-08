@@ -33,7 +33,7 @@ export interface RegionalExportInput {
   aziendaName?: string;
 }
 
-/** Record neutro EU-agnostico per una singola operazione (base di ES/EU). */
+/** Record neutro EU-agnostico per una singola operation (base di ES/EU). */
 export interface NeutralOperation {
   operation_date: string; // ISO YYYY-MM-DD
   plot_name: string;
@@ -250,7 +250,7 @@ export function getRegionalExporter(countryCode: CountryCode): RegionalExporter 
   }
 }
 
-/** Scarica nel browser l'export prodotto dall'adapter regionale. Ritorna il nome file. */
+/** Scarica nel browser l'export product dall'adapter regionale. Ritorna il nome file. */
 export function scaricaExport(
   exporter: RegionalExporter,
   input: RegionalExportInput,

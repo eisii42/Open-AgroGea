@@ -12,9 +12,9 @@ import type { ProductCategory, ProductLot, Product } from "../types";
 export const EXPIRY_WARNING_DAYS_DEFAULT = 30;
 
 /**
- * CUMP dopo un carico: media ponderata tra la giacenza complessiva esistente
+ * CUMP dopo un carico: media ponderata tra la stock complessiva esistente
  * (valorizzata al CUMP corrente) e la quantità caricata (al costo di carico).
- * Con giacenza totale nulla o negativa il CUMP riparte dal costo di carico.
+ * Con stock totale nulla o negativa il CUMP riparte dal costo di carico.
  * Arrotondato a 4 decimali (precisione della colonna `avg_unit_cost`).
  */
 export function cumpAfterInbound(
@@ -30,13 +30,13 @@ export function cumpAfterInbound(
   return Math.round(cump * 10000) / 10000;
 }
 
-/** Stato di scadenza di un lotto rispetto a una data di riferimento. */
+/** Stato di scadenza di un lot rispetto a una data di riferimento. */
 export type LotExpiryStatus = "valid" | "expiring" | "expired";
 
 /**
- * Classifica la scadenza di un lotto: `expired` se la data è passata,
+ * Classifica la scadenza di un lot: `expired` se la data è passata,
  * `expiring` se cade entro `warningDays` giorni, `valid` altrimenti (o senza
- * scadenza). Il confronto è per GIORNO di calendario (un lotto che scade oggi
+ * scadenza). Il confronto è per GIORNO di calendario (un lot che scade oggi
  * è ancora utilizzabile). Accetta sia la stringa ISO del tipo di dominio sia
  * il `Date` che PGlite può restituire per le colonne `date`.
  */
@@ -60,21 +60,21 @@ export function expiryStatus(
   return scadenza.getTime() <= soglia.getTime() ? "expiring" : "valid";
 }
 
-/** true se il lotto è scaduto (uso BLOCCATO nello scarico, DAL + UI). */
+/** true se il lot è scaduto (uso BLOCCATO nello issue, DAL + UI). */
 export function lotExpired(
-  lotto: Pick<ProductLot, "expires_at">,
+  lot: Pick<ProductLot, "expires_at">,
   riferimento: Date = new Date(),
 ): boolean {
-  return expiryStatus(lotto.expires_at, riferimento) === "expired";
+  return expiryStatus(lot.expires_at, riferimento) === "expired";
 }
 
-/** Errore di validazione dell'anagrafica prodotto (chiave i18n come la PAN). */
+/** Errore di validazione dell'anagrafica product (chiave i18n come la PAN). */
 export interface ProductValidationError {
   field: string;
   messageKey: string;
 }
 
-/** Bozza di prodotto in ingresso dal form (campi della categoria inclusi). */
+/** Bozza di product in ingresso dal form (campi della categoria inclusi). */
 export type ProductDraft = Pick<Product, "category" | "name" | "unit"> &
   Partial<
     Pick<
@@ -144,8 +144,8 @@ export function validateProduct(
 }
 
 /**
- * Mappa tipo operazione del Quaderno → categoria di magazzino pertinente per
- * lo scarico (i tipi senza consumo di prodotto non hanno categoria).
+ * Mappa tipo operation del Quaderno → categoria di warehouse pertinente per
+ * lo issue (i tipi senza consumo di product non hanno categoria).
  */
 export function categoryForOperation(
   operationType: string,

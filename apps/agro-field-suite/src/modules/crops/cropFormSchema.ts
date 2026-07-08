@@ -1,7 +1,7 @@
 import type { TFunction } from "i18next";
 
 /**
- * Schemi dichiarativi del form "Dati coltura" (una scheda per tipo di coltura).
+ * Schemi dichiarativi del form "Dati coltura" (una scheda per tipo di crop).
  *
  * Ogni categoria (allineata a `CropModule.categories` → `cropForPlot`)
  * definisce i campi di filiera SPECIFICI che finiscono in `crops.crop_metadata`
@@ -180,12 +180,12 @@ function resolveSchema(t: TFunction, def: CropFormSchemaDef): CropFormSchema {
   };
 }
 
-/** Tutte le schede coltura, tradotte, per il selettore di categoria. */
+/** Tutte le schede crop, tradotte, per il selettore di categoria. */
 export function allCropFormSchemas(t: TFunction): CropFormSchema[] {
   return CROP_FORM_SCHEMA_DEFS.map((def) => resolveSchema(t, def));
 }
 
-/** Scheda coltura per una categoria, tradotta a runtime. */
+/** Scheda crop per una categoria, tradotta a runtime. */
 export function cropFormSchema(
   t: TFunction,
   category: string | null | undefined,

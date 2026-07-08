@@ -20,8 +20,8 @@ import type {
 
 /**
  * Pipeline indici del modulo Suolo (refactor STAC). Orchestrazione main-thread
- * della ricerca STAC (multi-index, multi-appezzamento, filtro cloud cover,
- * strategie temporali) e del worker di calcolo. Per ogni appezzamento:
+ * della ricerca STAC (multi-index, multi-plot, filtro cloud cover,
+ * strategie temporali) e del worker di calcolo. Per ogni plot:
  *
  *   1. bbox del poligono → `searchSceneSeries` (series storica filtrata);
  *   2. worker `soil.worker` → medie per index e per data + overlay RGBA
@@ -271,7 +271,7 @@ export function useSoilPipeline() {
           if (overlay) iniettaOverlay(apz.id, overlay);
 
           // Cache offline della media NDVI più recente (series crescente: ultimo
-          // = più recente), così la scheda appezzamento la mostra offline.
+          // = più recente), così la scheda plot la mostra offline.
           const ndviRecente = series.at(-1)?.medie.ndvi;
           if (ndviRecente != null && !Number.isNaN(ndviRecente)) {
             await saveMeanNdvi(apz.id, Math.round(ndviRecente * 1000) / 1000);

@@ -18,11 +18,11 @@ import type {
  */
 
 /**
- * Risolve la coltura corrente di un appezzamento FISICO tramite il suo record di
+ * Risolve la crop corrente di un plot FISICO tramite il suo record di
  * Campagna Agraria (`plots_campaign` → `crops`). Restituisce la categoria DSS
  * (`crop_metadata.category`, es. "viticoltura") se presente, altrimenti il nome
- * comune della coltura. Coerente con la normalizzazione: un plot ha una coltura
- * solo nel contesto di un'annata. `null` se l'appezzamento non ha campagna/coltura.
+ * comune della crop. Coerente con la normalizzazione: un plot ha una crop
+ * solo nel contesto di un'annata. `null` se l'appezzamento non ha campagna/crop.
  */
 export function cropForPlot(
   plotId: string,
@@ -30,7 +30,7 @@ export function cropForPlot(
   crops: Crop[],
 ): string | null {
   // Le campagne CHIUSE (raccolto delle annuali, v17) non contano: il campo è
-  // tornato libero e la mappa/DSS lo trattano come senza coltura.
+  // tornato libero e la mappa/DSS lo trattano come senza crop.
   const camp = campaignFields.find(
     (c) => c.plot_id === plotId && c.deleted_at == null && c.closed_at == null,
   );
@@ -41,7 +41,7 @@ export function cropForPlot(
   return typeof category === "string" ? category : crop.common_name;
 }
 
-/** CropType (record `crops`) associata a un appezzamento nell'annata attiva. */
+/** CropType (record `crops`) associata a un plot nell'annata attiva. */
 function cropPerPlot(
   plotId: string,
   campaignFields: PlotCampaign[],
@@ -55,11 +55,11 @@ function cropPerPlot(
 }
 
 /**
- * Etichetta leggibile della coltura associata a un appezzamento nella Campagna
+ * Etichetta leggibile della crop associata a un plot nella Campagna
  * attiva (`plots_campaign` → `crops`): nome comune con varietà tra parentesi se
- * presente (es. "Vite (Sangiovese)"). `null` se non c'è coltura per l'annata.
+ * presente (es. "Vite (Sangiovese)"). `null` se non c'è crop per l'annata.
  * A differenza di {@link cropForPlot} (che ritorna la categoria DSS),
- * qui si privilegia il nome reale della coltura, più informativo nel tooltip.
+ * qui si privilegia il nome reale della crop, più informativo nel tooltip.
  */
 export function cropLabelPerPlot(
   plotId: string,
@@ -84,7 +84,7 @@ export function plotsToFeatureCollection(
     features: plots.map((a) => {
       const crop = cropPerPlot(a.id, campaignFields, crops);
       const kind = crop?.common_name ?? null;
-      // Colore ad hoc per specie (grigio neutro se senza coltura). Iniettato
+      // Colore ad hoc per specie (grigio neutro se senza crop). Iniettato
       // come proprietà simplestyle per-feature → onorato dal renderer GeoLibre.
       const { color } = cropStyle(kind);
       const label = crop
@@ -174,10 +174,10 @@ export function harvestsToFeatureCollection(
 
 /**
  * FeatureCollection del Registro operazioni (Quaderno di Campagna). Le properties
- * (tipo_operazione, prodotto, dose, quantità, avversità) alimentano la tabella
+ * (tipo_operazione, product, dose, quantità, avversità) alimentano la tabella
  * attributi e i suoi grafici. Geometria puntuale al centroid dell'appezzamento
  * collegato (se disponibile in `centroidi`); le operazioni "intera azienda" senza
- * appezzamento restano fuori dal layer cartografico ma nei dati via store.
+ * plot restano fuori dal layer cartografico ma nei dati via store.
  */
 export function treatmentsToFeatureCollection(
   treatments: TreatmentLog[],
@@ -211,7 +211,7 @@ export function treatmentsToFeatureCollection(
 
 /**
  * FeatureCollection dei Punti di Interesse. Qui i POI sono i soilSamples
- * suolo georeferenziati più gli asset puntuali (pozzi, trappole, sensori)
+ * soil georeferenziati più gli asset puntuali (pozzi, trappole, sensori)
  * disegnati come Point: entrambi hanno geometria puntuale.
  */
 export function poiToFeatureCollection(

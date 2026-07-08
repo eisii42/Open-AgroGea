@@ -5,16 +5,16 @@ import { buildDueDiligenceReport } from "./due-diligence";
 import { useComplianceVincoli } from "./useGeoCompliance";
 
 /**
- * Badge condizionali di geo-compliance per un appezzamento (Modulo 4):
+ * Badge condizionali di geo-compliance per un plot (Modulo 4):
  *   * ZVN → badge arancione (il tetto azoto è applicato nel form QDC);
  *   * SIC/ZPS → badge ambra (area protetta);
  *   * EUDR → alert rosso + download del report di due diligence georeferenziato.
  * Si nasconde se non ci sono vincoli (o nessun layer di compliance caricato).
  */
 export function ComplianceBadges({
-  appezzamento,
+  plot,
 }: {
-  appezzamento: Plot;
+  plot: Plot;
 }) {
   const valuta = useComplianceVincoli();
   const companies = useAgroStore((s) => s.companies);
@@ -22,24 +22,24 @@ export function ComplianceBadges({
   const recordTransfer = useAgroStore((s) => s.recordTransfer);
 
   const esito = useMemo(
-    () => valuta(appezzamento.geometry),
-    [valuta, appezzamento.geometry],
+    () => valuta(plot.geometry),
+    [valuta, plot.geometry],
   );
 
   if (!esito || esito.vincoli.length === 0) return null;
 
   const scaricaReport = () => {
     const report = buildDueDiligenceReport({
-      appezzamentoNome: appezzamento.user_plot_name,
+      appezzamentoNome: plot.user_plot_name,
       aziendaNome: companies.find((a) => a.id === activeCompanyId)?.business_name,
-      geometria: appezzamento.geometry,
-      areaHa: appezzamento.area_ha,
+      geometria: plot.geometry,
+      areaHa: plot.area_ha,
       vincoli: esito.vincoli,
     });
     const url = URL.createObjectURL(
       new Blob([report], { type: "application/geo+json" }),
     );
-    const nomeFile = `due-diligence_${appezzamento.user_plot_name.replace(/[^\p{L}\p{N}_-]+/gu, "_")}.geojson`;
+    const nomeFile = `due-diligence_${plot.user_plot_name.replace(/[^\p{L}\p{N}_-]+/gu, "_")}.geojson`;
     const a = document.createElement("a");
     a.href = url;
     a.download = nomeFile;

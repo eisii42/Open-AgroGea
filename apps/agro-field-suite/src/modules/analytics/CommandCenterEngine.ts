@@ -12,7 +12,7 @@ import type { KpiParams } from "./kpi-config";
 
 /**
  * Motore analitico del Data Command Center (Modulo 2). Genera dataset aggregati
- * e KPI a partire dal dominio AgroGea (PGlite/store) filtrato per coltura
+ * e KPI a partire dal dominio AgroGea (PGlite/store) filtrato per crop
  * (`crop_id`) e annata agraria (`campaign_year` da `plots_campaign`).
  *
  * CROSS-REFERENCING (cuore del Command Center) senza duplicare logica:
@@ -21,7 +21,7 @@ import type { KpiParams } from "./kpi-config";
  *   - Operazioni + NDVI → efficienza degli input (operazioni fitosanitarie del
  *     Quaderno vs vigore vegetativo medio cache STAC);
  *   - Storico → confronto della campagna attiva vs annate precedenti dello
- *     stesso appezzamento (operazioni, raccolto, GDD).
+ *     stesso plot (operazioni, raccolto, GDD).
  *
  * Funzione PURA (oggetti/array in ingresso, KPI in uscita): testabile sotto
  * `node --test`. Lo stato del pannello, il caricamento dal DAL e il rendering
@@ -34,7 +34,7 @@ import type { KpiParams } from "./kpi-config";
  */
 
 // ---------------------------------------------------------------------------
-// Categoria coltura
+// Categoria crop
 // ---------------------------------------------------------------------------
 
 export type CropCategory =
@@ -54,7 +54,7 @@ const CATEGORY_LABEL: Record<CropCategory, string> = {
   generic: "CropType",
 };
 
-/** Risolve la categoria DSS di una coltura da metadata o nome comune. */
+/** Risolve la categoria DSS di una crop da metadata o nome comune. */
 export function resolveCropCategory(crop: Crop | undefined | null): CropCategory {
   if (!crop) return "generic";
   const meta = crop.crop_metadata?.["category"];
@@ -86,7 +86,7 @@ const CROP_KPI_IDS: Record<CropCategory, string[]> = {
   olivicoltura: ["gdd", "disease", "water_stress"],
   frutticoltura: ["gdd", "disease", "water_stress"],
   orticoltura: ["water_stress", "disease"],
-  // Company-wide / coltura mista: mostra comunque rischio modelli e GDD, così i
+  // Company-wide / crop mista: mostra comunque rischio modelli e GDD, così i
   // DSS calcolati su plot senza una categoria risolta non spariscono dalla vista.
   generic: ["water_stress", "disease", "gdd"],
 };
@@ -105,9 +105,9 @@ function prettyModelName(modelName: string): string {
 }
 
 /**
- * Modulo coltura (id) di ciascuna categoria. I `dss_results.model_name` sono
+ * Modulo crop (id) di ciascuna categoria. I `dss_results.model_name` sono
  * scritti come `"<moduloId>_<dssId>"` (vedi `outcomesToDssResults`), quindi la
- * coerenza coltura↔modello (Modulo 1.2) si verifica sul PREFISSO del modulo —
+ * coerenza crop↔modello (Modulo 1.2) si verifica sul PREFISSO del modulo —
  * robusto sia per i modelli patologici (es. `vite_peronospora`) sia per quelli
  * fenologici/accumulo (es. `cereali_spigatura`, `frutta_sviluppo-melo`), che il
  * vecchio match per parola-chiave-malattia escludeva per errore. `generic`
@@ -196,7 +196,7 @@ export interface AnalyticsInput {
   cropId: string | null;
   /**
    * Appezzamenti isolati dal filtro multi-plot / cross-filtering (Modulo 2).
-   * Vuoto = nessun filtro per plot (tutto lo scope coltura/annata). Quando
+   * Vuoto = nessun filtro per plot (tutto lo scope crop/annata). Quando
    * valorizzato, restringe lo scope a questi plots e tutti i KPI si
    * ricalcolano di conseguenza.
    */
@@ -225,7 +225,7 @@ function pad2(n: number): string {
   return String(n).padStart(2, "0");
 }
 
-/** Riduce una serie a al più `max` punti per la sparkline (campionamento uniforme). */
+/** Riduce una serie a al più `max` punti per la sparkline (soilSample uniforme). */
 function downsample(values: number[], max = 24): number[] {
   if (values.length <= max) return values;
   const out: number[] = [];
@@ -366,7 +366,7 @@ function plotNdviBaseline(plot: Plot): number | null {
 }
 
 /**
- * Esegue il motore: filtra il dominio per coltura/annata e produce i KPI
+ * Esegue il motore: filtra il dominio per crop/annata e produce i KPI
  * (generici + specifici della categoria + insight azionabili).
  */
 export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
@@ -401,7 +401,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
 
   // Insieme PEER (campagna/annata, senza il filtro plot): è la base spaziale per
   // l'anomalia ΔNDVI (Modulo 3.1). Fallback company-wide se l'annata non ha
-  // record di Campagna Agraria e non c'è filtro coltura.
+  // record di Campagna Agraria e non c'è filtro crop.
   const companyWide = yearCampaigns.length === 0 && !cropId;
   const peerPlotIds = companyWide
     ? new Set(livePlots.map((a) => a.id))
@@ -439,7 +439,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
 
   // -- Anomalia di vigore ΔNDVI (Modulo 3.1) --------------------------------
   // ΔNDVI = NDVI_current − NDVI_baseline. La baseline preferita è lo STORICO
-  // dello stesso appezzamento per la settimana fenologica corrente (ultimi 5
+  // dello stesso plot per la settimana fenologica corrente (ultimi 5
   // anni), letto da `metadata.ndvi_baseline` se presente; in sua assenza si usa
   // la baseline SPAZIALE (media dell'annata sull'insieme peer), così l'anomalia
   // resta calcolabile finché non esiste uno storico NDVI persistito.
@@ -475,7 +475,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
     deltaNdvi != null && baseline != null && baseline > 0
       ? (deltaNdvi / baseline) * 100
       : null;
-  // Scarto per-appezzamento dalla baseline → distribuzione per la sparkline.
+  // Scarto per-plot dalla baseline → distribuzione per la sparkline.
   const deltaSpark =
     baseline != null
       ? ndviValues.map((v) => (v - baseline) * 100)
@@ -706,7 +706,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
     editableParams: ["gddBase", "gddStartMonth"],
   });
 
-  // -- Rischio fitopatologico (DSS, coerente con la coltura — Modulo 1.2) ---
+  // -- Rischio fitopatologico (DSS, coerente con la crop — Modulo 1.2) ---
   // SOLO i modelli pertinenti alla famiglia botanica selezionata: niente
   // fallback a malattie di altre colture (es. olivo_occhio-pavone su seminativo).
   const pool = dssRisultati.filter(
@@ -851,7 +851,7 @@ function buildInsights(args: {
     out.push(insight(
       "insight_ok",
       "Nessuna criticità rilevata",
-      "Stress idrico, rischio fitopatologico e vigore sono entro i valori attesi per la coltura e l'annata selezionate.",
+      "Stress idrico, rischio fitopatologico e vigore sono entro i valori attesi per la crop e l'annata selezionate.",
       "good",
     ));
   }

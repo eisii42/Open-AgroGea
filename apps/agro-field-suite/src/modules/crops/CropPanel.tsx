@@ -15,14 +15,14 @@ import { DssRiskCard } from "./shared/DssRiskCard";
 
 /**
  * Modulo CropType, a DUE pannelli indipendenti nella colonna destra:
- *   * {@link ColturaDatiPanel} — form smart per inserire la coltura (singolo
- *     appezzamento) su `crops` + `plots_campaign`;
+ *   * {@link ColturaDatiPanel} — form smart per inserire la crop (singolo
+ *     plot) su `crops` + `plots_campaign`;
  *   * {@link ColturaDssPanel} — modelli previsionali (DSS) su UNO O PIÙ
  *     plots (come la pipeline indici), con scheda di risk colorata.
- * La coltura del DSS è risolta dalla Campagna Agraria attiva (→ crops).
+ * La crop del DSS è risolta dalla Campagna Agraria attiva (→ crops).
  */
 
-/** Selettore d'appezzamento SINGOLO (pannello Dati coltura). */
+/** Selettore d'appezzamento SINGOLO (pannello Dati crop). */
 function PlotSelect({
   value,
   onChange,
@@ -59,7 +59,7 @@ function PlotSelect({
 }
 
 function useSelectedPlot(): {
-  appezzamento: Plot | null;
+  plot: Plot | null;
   scelto: string;
   setScelto: (id: string) => void;
   vuoto: boolean;
@@ -83,14 +83,14 @@ function useSelectedPlot(): {
     }
   }, [cropOpenPlotId, consumeCropOpen]);
 
-  const appezzamento = plots.find((a) => a.id === scelto) ?? null;
-  return { appezzamento, scelto, setScelto, vuoto: plots.length === 0 };
+  const plot = plots.find((a) => a.id === scelto) ?? null;
+  return { plot, scelto, setScelto, vuoto: plots.length === 0 };
 }
 
-/** Pannello "Dati coltura": inserimento smart della coltura per Campagna. */
+/** Pannello "Dati coltura": inserimento smart della crop per Campagna. */
 export function ColturaDatiPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
-  const { appezzamento, scelto, setScelto, vuoto } = useSelectedPlot();
+  const { plot, scelto, setScelto, vuoto } = useSelectedPlot();
   return (
     <FieldSheet title={t("colturaPanel.dataTitle")} onClose={onClose}>
       <div className="flex flex-col gap-4">
@@ -101,7 +101,7 @@ export function ColturaDatiPanel({ onClose }: { onClose: () => void }) {
         ) : (
           <>
             <PlotSelect value={scelto} onChange={setScelto} />
-            {appezzamento && <CropDataForm appezzamento={appezzamento} />}
+            {plot && <CropDataForm plot={plot} />}
           </>
         )}
       </div>
@@ -137,7 +137,7 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
       return next;
     });
 
-  // Target = plots selezionati con una coltura/modulo DSS risolvibile.
+  // Target = plots selezionati con una crop/modulo DSS risolvibile.
   const targets = useMemo<DssTarget[]>(() => {
     const out: DssTarget[] = [];
     for (const a of plots) {
@@ -145,13 +145,13 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
       const modulo = cropModuleForCrop(
         cropForPlot(a.id, campaignFields, crops),
       );
-      if (modulo) out.push({ appezzamento: a, modulo });
+      if (modulo) out.push({ plot: a, modulo });
     }
     return out;
   }, [plots, sel, campaignFields, crops]);
 
   const senzaModulo = [...sel].filter(
-    (id) => !targets.some((t) => t.appezzamento.id === id),
+    (id) => !targets.some((t) => t.plot.id === id),
   );
   const inCorso = stato.phase === "calcolo";
 
@@ -224,7 +224,7 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
               </div>
             )}
 
-            {/* Risultati per appezzamento: scheda di risk colorata. */}
+            {/* Risultati per plot: scheda di risk colorata. */}
             {stato.phase === "completato" && (
               <div className="flex flex-col gap-3">
                 {stato.risultati.map((r) => (

@@ -9,7 +9,7 @@ export function bilancioVite(
   phase: PhenologicalPhase,
   meteo: WeatherDataDay[],
   pioggiaSerie: number[],
-  suolo: SoilParameters,
+  soil: SoilParameters,
   deplezioneIniziale = 0,
 ): CropBalanceOutput {
   return cropWaterBalance({
@@ -17,7 +17,7 @@ export function bilancioVite(
     phase,
     meteo,
     pioggiaSerie,
-    suolo,
+    soil,
     deplezioneIniziale,
   });
 }

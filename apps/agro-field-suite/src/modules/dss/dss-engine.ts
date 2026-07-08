@@ -44,7 +44,7 @@ export interface FieldWaterStatus {
 
 /**
  * Fattori di risposta della resa Ky (FAO-33, stagionali) come default editabili
- * per coltura — non costanti regolatorie. Valori indicativi da letteratura.
+ * per crop — non costanti regolatorie. Valori indicativi da letteratura.
  */
 export const KY_DEFAULT: Record<CropType, number> = {
   vite: 0.85,
@@ -55,14 +55,14 @@ export const KY_DEFAULT: Record<CropType, number> = {
   pomodoro: 1.05,
 };
 
-/** Ky di default della coltura (fallback prudente 1.0). */
-export function cropKy(coltura: CropType): number {
-  return KY_DEFAULT[coltura] ?? 1.0;
+/** Ky di default della crop (fallback prudente 1.0). */
+export function cropKy(crop: CropType): number {
+  return KY_DEFAULT[crop] ?? 1.0;
 }
 
 /**
  * Rischio idrico normalizzato 0..1 dalla depletion: cresce linearmente da 0
- * (suolo a capacità di campo) a 0.5 alla soglia RAW (inizio stress), e da 0.5 a
+ * (soil a capacità di campo) a 0.5 alla soglia RAW (inizio stress), e da 0.5 a
  * 1 fino al punto di appassimento (AWC). Lo 0.5 marca quindi l'ingresso in
  * stress idrico, coerentemente con la legenda della mappa DSS.
  */
@@ -85,10 +85,10 @@ export function underWaterStress(stato: FieldWaterStatus): boolean {
 /** Costruisce il vettore di stress idrico (riduzione resa via Ky, FAO 66). */
 export function waterStressVector(
   stato: FieldWaterStatus,
-  coltura: CropType,
+  crop: CropType,
 ): VettoreRischioDss {
   const rischio01 = waterRisk01(stato);
-  const ky = cropKy(coltura);
+  const ky = cropKy(crop);
   const perditaResa = yieldReductionFao66(stato.depletion, stato.raw, stato.awc, ky);
   const stress = underWaterStress(stato);
   return {
@@ -125,7 +125,7 @@ export interface EsitoDssEngine {
 }
 
 /**
- * Esegue il motore DSS unificato: i modelli patologici del modulo coltura più,
+ * Esegue il motore DSS unificato: i modelli patologici del modulo crop più,
  * se fornito lo stato idrico, il vettore di stress idrico. Il risk
  * complessivo è il massimo dei vettori (il fattore limitante guida la decisione).
  */

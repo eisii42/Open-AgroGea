@@ -46,7 +46,7 @@ type CommandCenterPage = "crops" | "company";
  * disaccoppiato dalla vista mappa (la mappa MapLibre è smontata dall'App quando
  * questa vista è attiva, liberando risorse hardware). Diviso in DUE pagine:
  *   * «Colture e plots» — l'analisi agronomica: filtri gerarchici
- *     (annata → coltura → plots), griglia KPI configurabile, dashboard
+ *     (annata → crop → plots), griglia KPI configurabile, dashboard
  *     editabile, calendario operativo e Raw Data Inspector con cross-filtering;
  *   * «Company» — l'andamento generale: superficie/operazioni/raccolto
  *     dell'annata, stato del Magazzino (valore giacenze a CUMP, lots scaduti e
@@ -68,14 +68,14 @@ export function CommandCenter() {
   // il database (DSS, indici, bilancio idrico). L'export resta consentito.
   const readOnly = useReadOnly(activeCompanyId);
 
-  // Pagina attiva: analisi colturale (default) o andamento generale azienda.
+  // Pagina attiva: analisi colturale (default) o andamento generale company.
   const [page, setPage] = useState<CommandCenterPage>("crops");
   const [campaignYear, setCampaignYear] = useState(activeCampaign);
   const [cropId, setCropId] = useState<string | null>(null);
   const [selectedPlotIds, setSelectedPlotIds] = useState<string[]>([]);
   const [params, setParams] = useState<KpiParams>(() => loadKpiParams());
 
-  // Cambiare annata o coltura ridefinisce l'insieme dei campi: azzera la
+  // Cambiare annata o crop ridefinisce l'insieme dei campi: azzera la
   // selezione multi-plot per non trascinare un filtro fuori scope.
   useEffect(() => {
     setSelectedPlotIds([]);
@@ -104,7 +104,7 @@ export function CommandCenter() {
     return crops.filter((c) => ids.has(c.id));
   }, [data.allCampaigns, crops, campaignYear]);
 
-  // Scope BASE (annata/coltura), prima del filtro multi-plot: campagne dell'anno,
+  // Scope BASE (annata/crop), prima del filtro multi-plot: campagne dell'anno,
   // con fallback company-wide se l'annata non ha record di campagna.
   const scopePlotIds = useMemo<Set<string> | null>(() => {
     const scoped = data.allCampaigns.filter(
@@ -132,7 +132,7 @@ export function CommandCenter() {
   );
 
   // Scope EFFETTIVO per calendario e KPI: il filtro multi-plot vince sullo scope
-  // base; vuoto = intero scope annata/coltura.
+  // base; vuoto = intero scope annata/crop.
   const effectivePlotIds = useMemo<Set<string> | null>(
     () => (selectedPlotIds.length > 0 ? new Set(selectedPlotIds) : scopePlotIds),
     [selectedPlotIds, scopePlotIds],
@@ -248,7 +248,7 @@ export function CommandCenter() {
     <div className="flex h-full flex-col">
       <AppHeader />
 
-      {/* Tab di pagina: analisi colturale vs andamento generale azienda. */}
+      {/* Tab di pagina: analisi colturale vs andamento generale company. */}
       <div className="flex items-end gap-1 border-b border-[var(--line)] bg-[var(--panel)] px-4">
         {(
           [
@@ -292,7 +292,7 @@ export function CommandCenter() {
             {!STANDALONE && <TeamPanel readOnly={readOnly} />}
 
             {/* Edizione standalone/OSS: backup/ripristino dei dati locali in
-                GeoJSON (Disaster Recovery locale) — operazione di AZIENDA. */}
+                GeoJSON (Disaster Recovery locale) — operation di AZIENDA. */}
             {STANDALONE && <CompanyDataIo />}
           </div>
         )}
@@ -475,7 +475,7 @@ export function CommandCenter() {
 }
 
 // ---------------------------------------------------------------------------
-// Selettore multi-appezzamento (Modulo 2 — filtraggio gerarchico)
+// Selettore multi-plot (Modulo 2 — filtraggio gerarchico)
 // ---------------------------------------------------------------------------
 
 function PlotMultiSelect({

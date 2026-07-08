@@ -145,7 +145,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
   const [mostraOverlay, setMostraOverlay] = useState(false);
   const [esportando, setEsportando] = useState(false);
 
-  // Mappa custom del suolo (Tier 1): layer esterni caricati via «Aggiungi dati».
+  // Mappa custom del soil (Tier 1): layer esterni caricati via «Aggiungi dati».
   const layers = useAppStore((s) => s.layers);
   const [mappaSuoloId, setMappaSuoloId] = useState("");
   const soilLayer = useMemo(
@@ -157,7 +157,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
       | FeatureCollection
       | undefined) ?? null;
 
-  // Target = plots selezionati con coltura/modulo (serve il Kc per l'ETc).
+  // Target = plots selezionati con crop/modulo (serve il Kc per l'ETc).
   const targets = useMemo<DssTarget[]>(() => {
     const out: DssTarget[] = [];
     for (const a of plots) {
@@ -165,27 +165,27 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
       const modulo = cropModuleForCrop(
         cropForPlot(a.id, campaignFields, crops),
       );
-      if (modulo) out.push({ appezzamento: a, modulo });
+      if (modulo) out.push({ plot: a, modulo });
     }
     return out;
   }, [plots, sel, campaignFields, crops]);
 
   const senzaModulo = [...sel].filter(
-    (id) => !targets.some((t) => t.appezzamento.id === id),
+    (id) => !targets.some((t) => t.plot.id === id),
   );
   const inCorso = stato.phase === "calcolo";
   const completato = stato.phase === "completato";
 
   const esporta = async (r: DssPlotResult, formato: MoistureHistoryFormat) => {
-    const appezzamento = plots.find((a) => a.id === r.plotId);
-    if (!appezzamento || r.bilancioSerie.length === 0) return;
+    const plot = plots.find((a) => a.id === r.plotId);
+    if (!plot || r.bilancioSerie.length === 0) return;
     setEsportando(true);
     try {
       const fc = buildMoistureHistoryFc(
-        appezzamento,
+        plot,
         seriesToMoistureHistory(r.bilancioSerie),
       );
-      const base = `umidita_${appezzamento.user_plot_name || appezzamento.id}`.replace(
+      const base = `umidita_${plot.user_plot_name || plot.id}`.replace(
         /[^\w.-]+/g,
         "_",
       );
@@ -238,7 +238,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
   useDssOverlayLayer({
     plots: plotsOverlay,
     summaryPerField,
-    coltura: stato.risultati[0]?.modulo.mainSpecies ?? "vite",
+    crop: stato.risultati[0]?.modulo.mainSpecies ?? "vite",
     attivo: mostraOverlay && completato,
   });
 
@@ -310,7 +310,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
               </p>
             )}
 
-            {/* Tier 1 — sorgente suolo opzionale: layer EC_a/tessitura. */}
+            {/* Tier 1 — sorgente soil opzionale: layer EC_a/tessitura. */}
             {soilLayer.length > 0 && (
               <label className="flex flex-col gap-1 text-xs">
                 <span className="flex items-center gap-1.5 font-medium text-[var(--ink-3)]">
@@ -374,7 +374,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** Scheda risultato del bilancio idrico per UN appezzamento. */
+/** Scheda risultato del bilancio idrico per UN plot. */
 function WaterResultCard({
   risultato,
   esportando,
@@ -385,7 +385,7 @@ function WaterResultCard({
   onExport: (formato: MoistureHistoryFormat) => void;
 }) {
   const { t } = useTranslation();
-  const { name, bilancio, suolo, bilancioSerie, message } = risultato;
+  const { name, bilancio, soil, bilancioSerie, message } = risultato;
   const etichetteSorgente = useMemo(() => getEtichetteSorgente(t), [t]);
 
   // La series copre ~430 giorni: su un grafico stretto un singolo day d'irrigation
@@ -450,27 +450,27 @@ function WaterResultCard({
           </div>
 
           {/* Sorgente dei parametri idro-pedologici (qualità del dato). */}
-          {suolo && (
+          {soil && (
             <div className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] px-2.5 py-1.5 text-[11px]">
               <span className="font-semibold text-[var(--ink-3)]">
                 {t("bilancioIdricoPanel.soilLabel", {
-                  source: etichetteSorgente[suolo.sorgente],
+                  source: etichetteSorgente[soil.sorgente],
                 })}
               </span>
-              {suolo.tessitura && (
+              {soil.tessitura && (
                 <span className="agro-num text-[var(--ink-4)]">
                   {" · "}
                   {t("bilancioIdricoPanel.textureBreakdown", {
-                    sand: Math.round(suolo.tessitura.sabbia * 100),
-                    silt: Math.round(suolo.tessitura.limo * 100),
-                    clay: Math.round(suolo.tessitura.argilla * 100),
+                    sand: Math.round(soil.tessitura.sabbia * 100),
+                    silt: Math.round(soil.tessitura.limo * 100),
+                    clay: Math.round(soil.tessitura.argilla * 100),
                   })}
                 </span>
               )}
-              {suolo.campioniUsati > 0 && (
+              {soil.campioniUsati > 0 && (
                 <span className="text-[var(--ink-4)]">
                   {" · "}
-                  {t("bilancioIdricoPanel.samplesUsed", { count: suolo.campioniUsati })}
+                  {t("bilancioIdricoPanel.samplesUsed", { count: soil.campioniUsati })}
                 </span>
               )}
             </div>

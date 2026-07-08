@@ -17,7 +17,7 @@ import i18n from "../../i18n";
  *   * in entrambi i casi → popola/aggiorna `campi_campagna` sull'anno indicato
  *     con i codici ministeriali e la superficie dichiarata.
  *
- * I record CSV privi di geometria che non trovano un appezzamento esistente
+ * I record CSV privi di geometria che non trovano un plot esistente
  * vengono saltati (non si può creare un'entità fisica senza poligono).
  */
 
@@ -52,8 +52,8 @@ export async function importaFascicoloSian(
   const esito: EsitoImportSian = { creati: 0, aggiornati: 0, saltati: 0 };
 
   // Cache delle colture (crops) create durante l'import: una specie per chiave
-  // naturale (codice coltura + codice varietà ministeriali), così righe diverse
-  // della stessa coltura condividono la stessa entità normalizzata.
+  // naturale (codice crop + codice varietà ministeriali), così righe diverse
+  // della stessa crop condividono la stessa entità normalizzata.
   const cropPerChiave = new Map<string, string>();
   const risolviCropId = async (campo: SianCampoMappato): Promise<string> => {
     const chiave = `${campo.crop_external_code ?? ""}|${campo.variety_external_code ?? ""}`;
@@ -93,7 +93,7 @@ export async function importaFascicoloSian(
       const creato = await dal.upsertPlot({
         id: crypto.randomUUID(),
         company_id: activeCompanyId,
-        // L'appezzamento è l'entità FISICA: la coltura vive in plots_campaign/crops.
+        // L'appezzamento è l'entità FISICA: la crop vive in plots_campaign/crops.
         user_plot_name: nome,
         cadastral_sheet: null,
         cadastral_parcel: null,

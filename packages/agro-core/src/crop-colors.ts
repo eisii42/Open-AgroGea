@@ -1,17 +1,17 @@
 /**
- * Mappatura colore + icona per tipo di coltura.
+ * Mappatura colore + icona per tipo di crop.
  *
  * Modulo PURO (zero dipendenze React): l'app risolve la `CropIconKey` in un
- * componente icona concreto (lucide). Gli plots senza coltura associata
+ * componente icona concreto (lucide). Gli plots senza crop associata
  * ricevono un colore neutro (grigio); ogni specie coltivata ha un colore ad hoc
  * stabile, così la mappa è leggibile a colpo d'occhio.
  *
- * La chiave di abbinamento è il `common_name` della coltura (la SPECIE, non la
+ * La chiave di abbinamento è il `common_name` della crop (la SPECIE, non la
  * varietà): tutti i "Vite (Sangiovese)" e "Vite (Merlot)" condividono lo stesso
  * colore/icona perché entrambi sono "Vite".
  */
 
-/** Colore neutro per gli plots privi di coltura nell'annata attiva. */
+/** Colore neutro per gli plots privi di crop nell'annata attiva. */
 export const NO_CROP_COLOR = "#9ca3af";
 
 /** Chiave icona simbolica, risolta dall'app in un componente lucide concreto. */
@@ -45,14 +45,14 @@ export interface CropStyle {
 }
 
 interface CropGroup {
-  /** Parole-chiave (già normalizzate) che identificano il gruppo coltura. */
+  /** Parole-chiave (già normalizzate) che identificano il gruppo crop. */
   keywords: string[];
   color: string;
   icon: CropIconKey;
 }
 
 /**
- * Gruppi coltura in ordine di priorità (il primo che matcha vince). Le parole
+ * Gruppi crop in ordine di priorità (il primo che matcha vince). Le parole
  * sono normalizzate (minuscolo, senza accenti). I colori sono scelti distinti e
  * coerenti con la cultura visiva agronomica (vite=viola, oliveto=verde oliva,
  * cereali=oro, ecc.).
@@ -118,14 +118,14 @@ const CROP_GROUPS: CropGroup[] = [
 
 /**
  * Palette di fallback per colture non riconosciute: tinte distinte e separabili,
- * scelte deterministicamente dal nome (stessa coltura → sempre stesso colore).
+ * scelte deterministicamente dal nome (stessa crop → sempre stesso colore).
  */
 const FALLBACK_PALETTE = [
   "#2563eb", "#0d9488", "#c026d3", "#ea580c", "#4f46e5",
   "#0284c7", "#9333ea", "#ca8a04", "#059669", "#e11d48",
 ];
 
-/** Normalizza un nome coltura: minuscolo, accenti rimossi, spazi compatti. */
+/** Normalizza un nome crop: minuscolo, accenti rimossi, spazi compatti. */
 function normalize(value: string): string {
   return value
     .toLowerCase()
@@ -145,8 +145,8 @@ function hashString(value: string): number {
 }
 
 /**
- * Colore + icona per una coltura dato il suo nome comune. `null`/vuoto →
- * grigio neutro (appezzamento senza coltura).
+ * Colore + icona per una crop dato il suo nome comune. `null`/vuoto →
+ * grigio neutro (plot senza crop).
  */
 export function cropStyle(commonName: string | null | undefined): CropStyle {
   if (!commonName || !commonName.trim()) {

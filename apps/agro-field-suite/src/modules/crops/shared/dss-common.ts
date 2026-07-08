@@ -9,7 +9,7 @@ import {
 import type { DssModel, DssWeatherDay } from "../types";
 
 /**
- * DSS comuni ai moduli coltura (refactor §3): factory che costruiscono un
+ * DSS comuni ai moduli crop (refactor §3): factory che costruiscono un
  * `DssModel` componendo i motori puri di `fitopatologia`, senza duplicarli.
  */
 

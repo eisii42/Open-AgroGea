@@ -17,7 +17,7 @@ import type { UndoRedoApi } from "../../hooks/useGeometryUndoRedo";
 
 /**
  * Command Palette globale (Ctrl/Cmd+K): navigazione headless della suite.
- * Digitando il nome di un appezzamento si esegue il flyTo sul suo poligono;
+ * Digitando il nome di un plot si esegue il flyTo sul suo poligono;
  * digitando un'azione si apre il pannello / si attiva lo strumento. Annulla e
  * ripristina geometria compaiono durante una sessione di editing.
  */
@@ -198,13 +198,13 @@ export function CommandPalette({
     }
 
     const navigazione: Comando[] = plots.map((apz) => {
-      const coltura = cropForPlot(apz.id, campaignFields, crops);
+      const crop = cropForPlot(apz.id, campaignFields, crops);
       return {
       id: `apz-${apz.id}`,
       titolo: apz.user_plot_name,
-      sottotitolo: coltura ?? undefined,
+      sottotitolo: crop ?? undefined,
       categoria: "appezzamento",
-      paroleChiave: [coltura ?? "", "vai", "mappa"].filter(Boolean),
+      paroleChiave: [crop ?? "", "vai", "mappa"].filter(Boolean),
       esegui: () => {
         const bounds = boundingBox(apz.geometry);
         mapControllerRef.current?.fitBounds(bounds);

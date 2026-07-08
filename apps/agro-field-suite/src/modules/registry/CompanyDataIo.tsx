@@ -16,7 +16,7 @@ import { STANDALONE } from "../../standalone";
  * Import/Export dei dati aziendali in GeoJSON Esteso. Componente unico, ma con
  * comportamento e copy diversi per edizione:
  *   - Cloud (SaaS): scope vincolato all'azienda attiva; in import i record sono
- *     riassegnati al tenant corrente (data protection cross-azienda).
+ *     riassegnati al tenant corrente (data protection cross-company).
  *   - Standalone (OSS): backup/restore dell'istanza locale; l'import è un
  *     ripristino che sovrascrive lo stato corrente, previa conferma.
  *

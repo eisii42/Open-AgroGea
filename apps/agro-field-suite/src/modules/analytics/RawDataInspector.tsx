@@ -71,7 +71,7 @@ export function RawDataInspector({
   campaignYear: number;
   /** Plot attualmente isolato dal cross-filtering (riga evidenziata). */
   focusedPlotId?: string | null;
-  /** Innesca il cross-filtering su un appezzamento (clic sul focus di riga). */
+  /** Innesca il cross-filtering su un plot (clic sul focus di riga). */
   onFocusPlot?: (plotId: string) => void;
 }) {
   const { t } = useTranslation();

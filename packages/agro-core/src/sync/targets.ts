@@ -228,7 +228,7 @@ export class OnPremiseSyncTarget implements SyncTarget {
  * locale. La `push` è un no-op che dichiara l'intero batch "applicato", così il
  * router marca le righe come sincronizzate e l'outbox non cresce all'infinito;
  * nessuna `pull` è esposta, quindi il drain non tocca mai la rete. Garantisce
- * che il salvataggio di un campionamento suolo o di un trattamento scriva
+ * che il salvataggio di un soilSample soil o di un treatment scriva
  * direttamente sul locale senza alcuna dipendenza remota.
  */
 export class LocalOnlySyncTarget implements SyncTarget {

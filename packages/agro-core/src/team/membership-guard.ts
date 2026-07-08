@@ -1,7 +1,7 @@
 /**
  * Modulo 3 — Seat Enforcement Engine (MembershipGuard).
  *
- * Servizio PURO di gestione dei posti (seat) del team per singola azienda.
+ * Servizio PURO di gestione dei posti (seat) del team per singola company.
  * Valida gli inviti in `tenant_memberships` contro i limiti del piano
  * ({@link ../auth/subscription-limits}) e produce i contatori per i badge UE.
  * Nessuna dipendenza da React/DB: opera su array di membership già caricati,
@@ -41,7 +41,7 @@ function normEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-/** Conta i posti OCCUPATI per un ruolo in una specifica azienda. */
+/** Conta i posti OCCUPATI per un ruolo in una specifica company. */
 export function countSeats(
   memberships: TenantMembership[],
   companyId: string,
@@ -88,11 +88,11 @@ export function seatExhaustedMessage(
   const label = planLabel(plan);
   switch (role) {
     case "MANAGER":
-      return `Quota Manager raggiunta per questa azienda (Massimo ${max} per azienda nel piano ${label})`;
+      return `Quota Manager raggiunta per questa company (Massimo ${max} per company nel piano ${label})`;
     case "VIEWER":
-      return `Quota Viewer esaurita per questa azienda (Massimo ${max} per azienda nel piano ${label})`;
+      return `Quota Viewer esaurita per questa company (Massimo ${max} per company nel piano ${label})`;
     case "OWNER":
-      return `Quota Owner raggiunta per questa azienda (Massimo ${max} per azienda nel piano ${label})`;
+      return `Quota Owner raggiunta per questa company (Massimo ${max} per company nel piano ${label})`;
   }
 }
 
@@ -133,7 +133,7 @@ export function assertCanInvite(req: InviteRequest): InviteDecision {
   const decision = evaluateInvite(req);
   if (!decision.allowed) {
     throw new QuotaExceededError(
-      decision.reason ?? "Quota posti esaurita per questa azienda.",
+      decision.reason ?? "Quota posti esaurita per questa company.",
       { kind: "seat", plan: req.plan, role: req.role },
     );
   }
@@ -151,7 +151,7 @@ export interface SeatUsage {
   unlimited: boolean;
 }
 
-/** Calcola l'uso dei posti per OGNI ruolo in una specifica azienda. */
+/** Calcola l'uso dei posti per OGNI ruolo in una specifica company. */
 export function seatUsageForCompany(
   plan: string | null | undefined,
   companyId: string,
@@ -175,7 +175,7 @@ export function seatUsageForCompany(
 // Read-only / ruolo dell'utente corrente
 // ---------------------------------------------------------------------------
 
-/** Ruolo dell'utente (per email) in una specifica azienda, o null se esterno. */
+/** Ruolo dell'utente (per email) in una specifica company, o null se esterno. */
 export function roleInCompany(
   memberships: TenantMembership[],
   companyId: string,

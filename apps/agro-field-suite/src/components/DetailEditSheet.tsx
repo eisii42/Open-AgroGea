@@ -190,7 +190,7 @@ function AppezzamentoEdit({ record }: { record: Plot }) {
 
   const [nome, setNome] = useState(record.user_plot_name);
   const [irrigazione, setIrrigazione] = useState(record.irrigation_type ?? "");
-  const [suolo, setSuolo] = useState<SuoloForm>(() =>
+  const [soil, setSuolo] = useState<SuoloForm>(() =>
     readSoilForm(record.metadata),
   );
   const [saving, setSaving] = useState(false);
@@ -208,7 +208,7 @@ function AppezzamentoEdit({ record }: { record: Plot }) {
       await aggiorna(record.id, {
         user_plot_name: nome.trim() || record.user_plot_name,
         irrigation_type: irrigazione.trim() || null,
-        metadata: mergeSoilMetadata(record.metadata, suolo),
+        metadata: mergeSoilMetadata(record.metadata, soil),
       });
     } finally {
       setSaving(false);
@@ -238,7 +238,7 @@ function AppezzamentoEdit({ record }: { record: Plot }) {
     >
       <div className="flex flex-col gap-3">
         {/* Badge geo-compliance (ZVN / aree protette / EUDR) dell'appezzamento. */}
-        <ComplianceBadges appezzamento={record} />
+        <ComplianceBadges plot={record} />
         <div>
           <Label>{t("dataEntrySheet.areaGeodetic")}</Label>
           <div className="agro-num rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2 text-sm text-[var(--ink-2)]">
@@ -262,14 +262,14 @@ function AppezzamentoEdit({ record }: { record: Plot }) {
             onChange={(e) => setIrrigazione(e.target.value)}
           />
         </div>
-        <SuoloComposizioneSection suolo={suolo} onChange={setSoilField} />
+        <SuoloComposizioneSection soil={soil} onChange={setSoilField} />
       </div>
     </FieldSheet>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Composizione del suolo (inserimento manuale → metadata.suolo, Tier 3 del
+// Composizione del soil (inserimento manuale → metadata.soil, Tier 3 del
 // SoilDataResolver). La tessitura (classe o percentuali) alimenta Saxton-Rawls.
 // ---------------------------------------------------------------------------
 
@@ -301,7 +301,7 @@ const SUOLO_FORM_VUOTO: SuoloForm = {
 
 /**
  * Classi tessiturali USDA riconosciute dal resolver. Gli id sono le stringhe
- * originali italiane persistite in `metadata.suolo.tessitura` (invariate per
+ * originali italiane persistite in `metadata.soil.tessitura` (invariate per
  * compatibilità dati); l'etichetta mostrata viene tradotta a runtime tramite
  * `detailEditSheet.textureClass.<id>` (vedi `textureClassLabel`).
  */
@@ -383,16 +383,16 @@ function mergeSoilMetadata(
   metadata: Record<string, unknown>,
   form: SuoloForm,
 ): Record<string, unknown> {
-  const suolo: Record<string, unknown> = {};
-  if (form.tessitura.trim()) suolo.tessitura = form.tessitura.trim();
+  const soil: Record<string, unknown> = {};
+  if (form.tessitura.trim()) soil.tessitura = form.tessitura.trim();
   for (const campo of CAMPI_NUMERICI) {
     const grezzo = form[campo].trim().replace(",", ".");
     if (grezzo === "") continue;
     const n = Number(grezzo);
-    if (Number.isFinite(n)) suolo[campo] = n;
+    if (Number.isFinite(n)) soil[campo] = n;
   }
   const next = { ...metadata };
-  if (Object.keys(suolo).length > 0) next.suolo = suolo;
+  if (Object.keys(soil).length > 0) next.suolo = soil;
   else delete next.suolo;
   return next;
 }
@@ -429,10 +429,10 @@ function SuoloNumber({
 }
 
 function SuoloComposizioneSection({
-  suolo,
+  soil,
   onChange,
 }: {
-  suolo: SuoloForm;
+  soil: SuoloForm;
   onChange: (campo: keyof SuoloForm, valore: string) => void;
 }) {
   const { t } = useTranslation();
@@ -448,10 +448,10 @@ function SuoloComposizioneSection({
       </div>
 
       <div>
-        <Label htmlFor="ed-suolo-tess">{t("detailEditSheet.textureClassLabel")}</Label>
+        <Label htmlFor="ed-soil-tess">{t("detailEditSheet.textureClassLabel")}</Label>
         <Select
-          id="ed-suolo-tess"
-          value={suolo.tessitura}
+          id="ed-soil-tess"
+          value={soil.tessitura}
           onChange={(e) => onChange("tessitura", e.target.value)}
         >
           <option value="">{t("detailEditSheet.notSpecified")}</option>
@@ -465,56 +465,56 @@ function SuoloComposizioneSection({
 
       <div className="grid grid-cols-3 gap-2">
         <SuoloNumber
-          id="ed-suolo-sabbia"
+          id="ed-soil-sabbia"
           label={t("detailEditSheet.sandPercent")}
-          value={suolo.sabbia}
+          value={soil.sabbia}
           onChange={(v) => onChange("sabbia", v)}
         />
         <SuoloNumber
-          id="ed-suolo-limo"
+          id="ed-soil-limo"
           label={t("detailEditSheet.siltPercent")}
-          value={suolo.limo}
+          value={soil.limo}
           onChange={(v) => onChange("limo", v)}
         />
         <SuoloNumber
-          id="ed-suolo-argilla"
+          id="ed-soil-argilla"
           label={t("detailEditSheet.clayPercent")}
-          value={suolo.argilla}
+          value={soil.argilla}
           onChange={(v) => onChange("argilla", v)}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <SuoloNumber
-          id="ed-suolo-so"
+          id="ed-soil-so"
           label={t("detailEditSheet.organicMatterPercent")}
           step="0.1"
-          value={suolo.sostanza_organica}
+          value={soil.sostanza_organica}
           onChange={(v) => onChange("sostanza_organica", v)}
         />
         <SuoloNumber
-          id="ed-suolo-ph"
+          id="ed-soil-ph"
           label={t("detailEditSheet.ph")}
           step="0.1"
-          value={suolo.ph}
+          value={soil.ph}
           onChange={(v) => onChange("ph", v)}
         />
         <SuoloNumber
-          id="ed-suolo-n"
+          id="ed-soil-n"
           label={t("detailEditSheet.nitrogenMgKg")}
-          value={suolo.azoto}
+          value={soil.azoto}
           onChange={(v) => onChange("azoto", v)}
         />
         <SuoloNumber
-          id="ed-suolo-p"
+          id="ed-soil-p"
           label={t("detailEditSheet.phosphorusMgKg")}
-          value={suolo.fosforo}
+          value={soil.fosforo}
           onChange={(v) => onChange("fosforo", v)}
         />
         <SuoloNumber
-          id="ed-suolo-k"
+          id="ed-soil-k"
           label={t("detailEditSheet.potassiumMgKg")}
-          value={suolo.potassio}
+          value={soil.potassio}
           onChange={(v) => onChange("potassio", v)}
         />
       </div>

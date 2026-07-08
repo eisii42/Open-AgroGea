@@ -26,8 +26,8 @@ const TREATMENT_FIELD_KEY: Record<string, string> = {
 /**
  * Form di registrazione del Quaderno di Campagna (Design.md → QDCForm), allineato
  * agli obblighi PAN/SIAN per i treatments fitosanitari:
- *   * selettore del campo per Campagna Agraria (nome utente + codice coltura SIAN);
- *   * data trattamento, avversità (dropdown rigorosa), prodotto commerciale,
+ *   * selettore del campo per Campagna Agraria (nome utente + codice crop SIAN);
+ *   * data treatment, avversità (dropdown rigorosa), product commerciale,
  *     n. registrazione ministeriale, sostanza attiva, dose+unità, volume acqua,
  *     CF operatore e numero di patentino.
  * Tutti i target touch sono ≥ 44px.
@@ -90,14 +90,14 @@ export interface TrattamentoFormProps {
   defaultAppezzamentoId?: string | null;
   /**
    * Campi validi per la Campagna Agraria attiva. Se forniti, il selettore mostra
-   * questi (nome + codice coltura SIAN) e l'operazione aggancia `plot_campaign_id`.
+   * questi (nome + codice crop SIAN) e l'operazione aggancia `plot_campaign_id`.
    */
   campaignFields?: CampoCampagnaOption[];
   /**
    * Valuta i vincoli geografici dell'appezzamento (iniettata dall'app, che
    * legge i layer ZVN/SIC-ZPS). Tiene @agrogea/ui disaccoppiato dal motore.
    */
-  valutaCompliance?: (appezzamento: Plot) => ComplianceTreatment | null;
+  valutaCompliance?: (plot: Plot) => ComplianceTreatment | null;
   /**
    * Catalogo fitosanitari filtrato per `country_code` (iniettato dall'app via
    * `useCountryCatalog`). Se fornito, il campo "Product" diventa un dropdown del
@@ -139,7 +139,7 @@ export function TreatmentForm({
   const [data, setData] = useState<string>(
     () => new Date().toISOString().slice(0, 10),
   );
-  const [prodotto, setProdotto] = useState("");
+  const [product, setProdotto] = useState("");
   const [prodottoCodice, setProdottoCodice] = useState("");
   const [numeroRegistrazione, setNumeroRegistrazione] = useState("");
   const [sostanzaAttiva, setSostanzaAttiva] = useState("");
@@ -151,7 +151,7 @@ export function TreatmentForm({
   const [target, setTarget] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const appezzamento = useMemo(
+  const plot = useMemo(
     () => plots.find((a) => a.id === plotId) ?? null,
     [plots, plotId],
   );
@@ -162,7 +162,7 @@ export function TreatmentForm({
   );
 
   // Superficie autorevole per i calcoli: dichiarata di campagna o quella fisica.
-  const superficie = campoSel?.superficieHa ?? appezzamento?.area_ha ?? null;
+  const superficie = campoSel?.superficieHa ?? plot?.area_ha ?? null;
 
   // Totale automatico: dose × superficie (solo per unità riferite all'ettaro).
   const quantitaTotale = useMemo(() => {
@@ -175,8 +175,8 @@ export function TreatmentForm({
 
   // Geo-compliance dell'appezzamento selezionato (vincoli + massimale azoto).
   const compliance = useMemo(
-    () => (appezzamento && valutaCompliance ? valutaCompliance(appezzamento) : null),
-    [appezzamento, valutaCompliance],
+    () => (plot && valutaCompliance ? valutaCompliance(plot) : null),
+    [plot, valutaCompliance],
   );
   const superaAzoto =
     tipo === "fertilization" &&
@@ -193,7 +193,7 @@ export function TreatmentForm({
         ? validateTreatmentLog({
             operation_date: data,
             target_disease: target,
-            product_name: prodotto,
+            product_name: product,
             registration_number: numeroRegistrazione,
             active_substance: sostanzaAttiva,
             applied_dose: doseValore ? Number.parseFloat(doseValore) : null,
@@ -205,7 +205,7 @@ export function TreatmentForm({
       fito,
       data,
       target,
-      prodotto,
+      product,
       numeroRegistrazione,
       sostanzaAttiva,
       doseValore,
@@ -240,7 +240,7 @@ export function TreatmentForm({
         operation_type: tipo,
         plot_id: plotId || null,
         plot_campaign_id: campoCampagnaId || null,
-        product_name: prodotto || null,
+        product_name: product || null,
         registration_number: numeroRegistrazione || null,
         dose_value: doseValore ? Number.parseFloat(doseValore) : null,
         dose_unit: doseValore ? doseUnita : null,
@@ -378,7 +378,7 @@ export function TreatmentForm({
           ) : (
             <Input
               id="qdc-prodotto"
-              value={prodotto}
+              value={product}
               onChange={(e) => setProdotto(e.target.value)}
               placeholder={t("logbook.treatment.productPlaceholder")}
               required={fito}

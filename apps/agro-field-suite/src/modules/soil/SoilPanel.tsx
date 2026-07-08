@@ -84,7 +84,7 @@ function getStrategie(
   ];
 }
 
-// Variabili chimiche selezionabili come asse X dello scatter NDVI↔suolo.
+// Variabili chimiche selezionabili come asse X dello scatter NDVI↔soil.
 const VARIABILI_SCATTER: SoilVariable[] = [
   "ph",
   "organic_matter",
@@ -117,8 +117,8 @@ function isoDate(offsetGiorni = 0): string {
 }
 
 /**
- * Dati per il line chart. Con un solo appezzamento: una linea per index. Con
- * più plots: una linea per appezzamento sull'index primario.
+ * Dati per il line chart. Con un solo plot: una linea per index. Con
+ * più plots: una linea per plot sull'index primario.
  */
 function buildChartData(
   risultati: PlotResult[],
@@ -138,7 +138,7 @@ function buildChartData(
     return { rows, series: indici };
   }
 
-  // Multi-appezzamento: unione delle date, index primario per ciascuno.
+  // Multi-plot: unione delle date, index primario per ciascuno.
   const byDate = new Map<string, Record<string, number | string>>();
   for (const r of risultati) {
     for (const p of r.series) {
@@ -163,7 +163,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
   const selezionatoId = useAgroStore((s) => s.selectedPlotId);
   const { stato, calcola, reset } = useSoilPipeline();
 
-  // Pannello Charts: scatter NDVI (Y) ↔ variabile chimica del suolo (X).
+  // Pannello Charts: scatter NDVI (Y) ↔ variabile chimica del soil (X).
   const [varX, setVarX] = useState<SoilVariable>("ph");
   const scatter = useMemo(
     () => buildNdviScatter(plots, soilSamples, varX),
@@ -457,7 +457,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {/* Risultati: medie più recenti per appezzamento + index */}
+        {/* Risultati: medie più recenti per plot + index */}
         {stato.phase === "completato" && (
           <section className="flex flex-col gap-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
@@ -563,7 +563,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
           </section>
         )}
 
-        {/* Charts · scatter NDVI ↔ chimica del suolo (indipendente dal calcolo
+        {/* Charts · scatter NDVI ↔ chimica del soil (indipendente dal calcolo
             STAC: usa l'NDVI in cache e i soilSamples già a DB). */}
         <section className="flex flex-col gap-2 border-t border-[var(--line)] pt-3">
           <div className="flex items-center justify-between">

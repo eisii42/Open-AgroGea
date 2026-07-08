@@ -4,11 +4,11 @@ import type { PlotCampaign } from "../types";
  * Compliance DICHIARATIVA della Campagna Agraria: i campi di `plots_campaign`
  * richiesti perché l'export ministeriale della stagione sia completo. Unica
  * fonte di verità per i punti UI che segnalano/gateano la compilazione (badge
- * nei selettori, banner alla raccolta, contatore nella pagina Company).
+ * nei selettori, banner alla harvest, contatore nella pagina Company).
  *
  * I sistemi nazionali coperti condividono la STESSA terna di colonne (il
  * modello è EU-agnostico), cambia solo la semantica:
- *   * IT — SIAN (AGEA): codice coltura ministeriale, Isola (reference parcel),
+ *   * IT — SIAN (AGEA): codice crop ministeriale, Isola (reference parcel),
  *     Plot SIAN — consumati da `buildSianCsv`;
  *   * ES — SIEX/CUE (FEGA): código de cultivo, parcela de referencia e recinto
  *     SIGPAC — consumati da `buildSiexJson` (cultivo/parcela_referencia/recinto).

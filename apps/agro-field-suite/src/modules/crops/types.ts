@@ -5,17 +5,17 @@ import type {
 } from "@agrogea/tools";
 
 /**
- * Contratti dei moduli per coltura (refactor architetturale §3).
+ * Contratti dei moduli per crop (refactor architetturale §3).
  *
- * Ogni coltura ha un suo modulo verticale sotto `src/modules/crops/<coltura>/`
+ * Ogni crop ha un suo modulo verticale sotto `src/modules/crops/<crop>/`
  * che **compone** gli engine puri di `@agrogea/tools` (fenologia, fitopatologia,
  * agrometeo) — la logica di calcolo NON viene duplicata né spostata: i pacchetti
  * restano isolati e testati. Il modulo dichiara solo cosa è specifico della
- * coltura: i suoi DSS patologici, la specie fenologica di riferimento (da cui
+ * crop: i suoi DSS patologici, la specie fenologica di riferimento (da cui
  * derivano Kc per phase, soglie GDD e soil-mask) e i widget UI di dettaglio.
  */
 
-/** Categoria coltura a livello di appezzamento (campo `coltura` del dominio). */
+/** Categoria crop a livello di plot (campo `coltura` del dominio). */
 export type CropCategory =
   | "viticoltura"
   | "seminativo"
@@ -60,7 +60,7 @@ export interface DssContext {
 }
 
 /**
- * Descrittore di un DSS patologico/fenologico della coltura. `evaluate` compone un
+ * Descrittore di un DSS patologico/fenologico della crop. `evaluate` compone un
  * motore puro di `fitopatologia` su una series meteo e ritorna l'alert (o null).
  */
 export interface DssModel {
@@ -75,23 +75,23 @@ export interface DssModel {
   ) => PhytopathologyAlert | null;
 }
 
-/** Modulo verticale di una coltura. */
+/** Modulo verticale di una crop. */
 export interface CropModule {
   /** Id stabile del modulo (es. "vite"). */
   id: string;
   /** Etichetta UI (es. "Vite"). */
   label: string;
-  /** Categorie di appezzamento gestite da questo modulo. */
+  /** Categorie di plot gestite da questo modulo. */
   categories: CropCategory[];
   /**
    * Specie fenologica di riferimento per Kc/soil-mask/GDD (chiave delle matrici
    * di `fenologia`). Es. la viticoltura usa la specie "vite".
    */
   mainSpecies: PhenologicalSpecies;
-  /** DSS patologici/fenologici disponibili per la coltura. */
+  /** DSS patologici/fenologici disponibili per la crop. */
   dss: DssModel[];
   /**
-   * true se la coltura ha modelli ad accumulo termico STAGIONALE (gradi-day
+   * true se la crop ha modelli ad accumulo termico STAGIONALE (gradi-day
    * che maturano su mesi: spigatura cereali, generazioni d'insetto…). Abilita il
    * backfill dello storico meteo via Archive API, così l'accumulo parte dal
    * biofix e non dai pochi giorni di previsione. Le colture con soli modelli

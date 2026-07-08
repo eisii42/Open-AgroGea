@@ -128,10 +128,10 @@ export function useVraGenerator() {
   );
 
   const genera = useCallback(
-    async (appezzamento: Plot, opzioni: OpzioniGeneraVra) => {
+    async (plot: Plot, opzioni: OpzioniGeneraVra) => {
       try {
         setStato({ fase: "lavorazione", label: "Ricerca scena satellitare…" });
-        const bbox = boundingBox(appezzamento.geometry);
+        const bbox = boundingBox(plot.geometry);
         const scene = await searchSceneSeries(bbox, {
           indici: [opzioni.indice],
           cloudCoverMax: opzioni.cloudCoverMax ?? 20,
@@ -151,7 +151,7 @@ export function useVraGenerator() {
           scene: [scene[0]],
           indici: [opzioni.indice],
           indicePrimario: opzioni.indice,
-          geometria: appezzamento.geometry,
+          geometria: plot.geometry,
           bbox,
           vra: { step: opzioni.step },
         });
@@ -168,7 +168,7 @@ export function useVraGenerator() {
           lavorazione: opzioni.lavorazione,
           ratei: opzioni.ratei,
         });
-        iniettaVraLayer(appezzamento.id, risultato);
+        iniettaVraLayer(plot.id, risultato);
         setStato({ fase: "completato", risultato });
       } catch (error) {
         setStato({

@@ -82,7 +82,7 @@ function bboxDisgiunti(a: Bbox, b: Bbox): boolean {
 
 /** True se l'appezzamento interseca almeno una feature del layer. */
 function intersecaLayer(
-  appezzamento: Feature<Polygon | MultiPolygon>,
+  plot: Feature<Polygon | MultiPolygon>,
   appBbox: Bbox,
   fc: FeatureCollection,
 ): boolean {
@@ -90,7 +90,7 @@ function intersecaLayer(
     if (!feature.geometry) continue;
     // Prefiltro bbox: salta le feature lontane senza il test costoso.
     if (bboxDisgiunti(appBbox, geometriaBbox(feature.geometry))) continue;
-    if (booleanIntersects(appezzamento, feature)) return true;
+    if (booleanIntersects(plot, feature)) return true;
   }
   return false;
 }
@@ -103,7 +103,7 @@ export function verificaCompliance(
   geometria: Polygon | MultiPolygon,
   layers: LayerCompliance[],
 ): RisultatoCompliance {
-  const appezzamento: Feature<Polygon | MultiPolygon> = {
+  const plot: Feature<Polygon | MultiPolygon> = {
     type: "Feature",
     geometry: geometria,
     properties: {},
@@ -112,7 +112,7 @@ export function verificaCompliance(
 
   const colpiti = new Set<TipoVincolo>();
   for (const layer of layers) {
-    if (intersecaLayer(appezzamento, appBbox, layer.fc)) colpiti.add(layer.tipo);
+    if (intersecaLayer(plot, appBbox, layer.fc)) colpiti.add(layer.tipo);
   }
 
   const ordine: TipoVincolo[] = ["zvn", "sic", "zps", "eudr"];

@@ -12,9 +12,9 @@
  *   - i dati STATICI dell'azienda stanno alla radice del documento, nel membro
  *     esteso `agrogea` (RFC 7946 consente membri aggiuntivi a livello root);
  *   - ogni `Feature` porta `properties.kind` che la discrimina:
- *       · "plot"     → appezzamento (`plots_registry`) con i log del Quaderno di
- *                      Campagna (treatments, suolo, harvests) annidati;
- *       · "asset"    → infrastruttura (`infrastructure_assets`: pozzi, trappole,
+ *       · "plot"     → plot (`plots_registry`) con i log del Quaderno di
+ *                      Campagna (treatments, soil, harvests) annidati;
+ *       · "asset"    → infrastructure (`infrastructure_assets`: pozzi, trappole,
  *                      sensori, fabbricati…) — i POI puntuali e le geometrie CAD;
  *       · "scouting" → rilievo GPS di campo (`scouting_observations`).
  *   La geometria di ogni Feature è già GeoJSON in PGlite (niente PostGIS): viene
@@ -45,7 +45,7 @@ export const COMPANY_TRANSFER_FORMAT = "agrogea.company-transfer" as const;
 /** Versione dello schema del documento (bump → migrazione in parse). */
 export const COMPANY_TRANSFER_VERSION = 1 as const;
 
-/** Log agronomici associati a un perimetro (appezzamento o azienda). */
+/** Log agronomici associati a un perimetro (plot o company). */
 export interface AgronomicLogs {
   treatments: TreatmentLog[];
   soilSamples: SoilSample[];
@@ -53,9 +53,9 @@ export interface AgronomicLogs {
 }
 
 /**
- * Un appezzamento con i suoi log e le campagne agrarie (unità di una Feature
+ * Un plot con i suoi log e le campagne agrarie (unità di una Feature
  * "plot"). `campaigns` (`plots_campaign`) lega l'appezzamento alle COLTURE per
- * annata: senza queste righe l'associazione appezzamento↔coltura andrebbe persa.
+ * annata: senza queste righe l'associazione plot↔crop andrebbe persa.
  */
 export interface PlotBundle extends AgronomicLogs {
   plot: Plot;
@@ -66,7 +66,7 @@ export interface PlotBundle extends AgronomicLogs {
  * Istantanea completa dei dati di un'azienda: input dell'export, output del
  * parse. `crops` è il catalogo (a livello tenant) delle colture referenziate
  * dalle campagne dell'azienda. `unassigned` raccoglie i log non legati ad alcun
- * appezzamento (`plot_id` null), per non perderli nel backup.
+ * plot (`plot_id` null), per non perderli nel backup.
  */
 export interface CompanySnapshot {
   company: Company;
@@ -86,19 +86,19 @@ export interface CompanyTransferMeta {
   company: Company;
   /** Catalogo colture referenziate (livello tenant). */
   crops: Crop[];
-  /** Log non associati ad alcun appezzamento. */
+  /** Log non associati ad alcun plot. */
   unassigned: AgronomicLogs;
 }
 
-/** Properties di una Feature appezzamento: anagrafica + campagne + log annidati. */
+/** Properties di una Feature plot: anagrafica + campagne + log annidati. */
 export interface PlotFeatureProperties extends AgronomicLogs {
   kind: "plot";
   plot: Omit<Plot, "geometry">;
-  /** Campagne agrarie (associazione coltura↔appezzamento per annata). */
+  /** Campagne agrarie (associazione crop↔plot per annata). */
   campaigns: PlotCampaign[];
 }
 
-/** Properties di una Feature infrastruttura/POI puntuale. */
+/** Properties di una Feature infrastructure/POI puntuale. */
 export interface AssetFeatureProperties {
   kind: "asset";
   asset: Omit<InfrastructureAsset, "geometry">;
@@ -116,7 +116,7 @@ export type TransferFeatureProperties =
   | AssetFeatureProperties
   | ScoutingFeatureProperties;
 
-/** Documento GeoJSON Esteso prodotto/consumato dal motore. */
+/** Documento GeoJSON Esteso product/consumato dal motore. */
 export interface CompanyTransferDocument
   extends FeatureCollection<Geometry, TransferFeatureProperties> {
   agrogea: CompanyTransferMeta;
@@ -247,7 +247,7 @@ export function parseCompanyTransfer(raw: unknown): CompanySnapshot {
       const assetProps = (props as AssetFeatureProperties).asset;
       if (!assetProps || !feature.geometry) {
         throw new CompanyTransferError(
-          `Feature #${i + 1} (infrastruttura) incompleta.`,
+          `Feature #${i + 1} (infrastructure) incompleta.`,
         );
       }
       assets.push({

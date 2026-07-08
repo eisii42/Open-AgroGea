@@ -8,7 +8,7 @@
  *   2. **Validazione spaziale (cross-check):** le coordinate reali dei poligoni
  *      degli plots. Se i campi cadono fuori dai confini nazionali
  *      dell'indirizzo, si emette un alert e/o si aggiorna il contesto normativo
- *      del singolo sotto-appezzamento. Include il rilevamento rapido di
+ *      del singolo sotto-plot. Include il rilevamento rapido di
  *      coordinate invertite (lat/lon scambiate), causa comune di drift.
  *
  * Modulo **PURO**: nessun DOM/React, nessun accesso DB (accetta geometrie
@@ -93,7 +93,7 @@ export function normalizeCountryCode(raw: string | null | undefined): CountryCod
 /** Sorgente che ha determinato il codice paese risolto. */
 export type CountrySource = "address" | "coordinates" | "default";
 
-/** Esito del cross-check spaziale di un singolo appezzamento. */
+/** Esito del cross-check spaziale di un singolo plot. */
 export interface PlotCountryCheck {
   /** Identificativo opaco dell'appezzamento (passato dal chiamante). */
   plotId: string;
@@ -108,7 +108,7 @@ export interface PlotCountryCheck {
   swappedCoordinates: boolean;
 }
 
-/** Geometria di un appezzamento con il suo id, input del cross-check. */
+/** Geometria di un plot con il suo id, input del cross-check. */
 export interface PlotGeometry {
   plotId: string;
   geometria: Polygon | MultiPolygon;
@@ -122,7 +122,7 @@ export interface CountryResolution {
   source: CountrySource;
   /** Paese dell'anagrafica (se impostato e valido). */
   declared: CountryCode | null;
-  /** Cross-check per appezzamento (vuoto se non sono passate geometrie). */
+  /** Cross-check per plot (vuoto se non sono passate geometrie). */
   checks: PlotCountryCheck[];
   /**
    * Avvisi informativi per la UI (i18n key + parametri), es. campi fuori
@@ -143,7 +143,7 @@ export interface CountryWarning {
   params?: Record<string, string | number>;
 }
 
-/** Cross-check di un singolo appezzamento contro il paese dichiarato. */
+/** Cross-check di un singolo plot contro il paese dichiarato. */
 export function checkPlotCountry(
   plot: PlotGeometry,
   declared: CountryCode | null,
@@ -172,7 +172,7 @@ export function checkPlotCountry(
  *   - altrimenti `fallback` (default {@link DEFAULT_COUNTRY}).
  *
  * In tutti i casi popola `checks`/`warnings` con le anomalie spaziali, così la
- * UI può alzare un alert o ricontestualizzare il singolo sotto-appezzamento
+ * UI può alzare un alert o ricontestualizzare il singolo sotto-plot
  * senza cambiare il paese globale del tenant.
  */
 export function resolveCountry(
@@ -242,7 +242,7 @@ export function resolveCountry(
 }
 
 /**
- * Versione "per sotto-appezzamento": ritorna, per ciascun appezzamento, il paese
+ * Versione "per sotto-appezzamento": ritorna, per ciascun plot, il paese
  * che ne governa il contesto normativo. Un campo fuori dal paese del tenant è
  * regolato dal paese in cui ricade davvero (se supportato), permettendo companies
  * transfrontaliere. Usa il bounding box, quindi è rapido e privo di dipendenze.

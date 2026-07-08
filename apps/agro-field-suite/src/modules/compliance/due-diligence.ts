@@ -32,8 +32,8 @@ export function buildDueDiligenceReport(dati: DatiDueDiligence): string {
     properties: {
       documento: "EUDR Due Diligence Statement",
       generato_il: dati.generatoIl ?? new Date().toISOString(),
-      azienda: dati.aziendaNome ?? null,
-      appezzamento: dati.appezzamentoNome,
+      company: dati.aziendaNome ?? null,
+      plot: dati.appezzamentoNome,
       area_ha: dati.areaHa,
       eudr_cutoff: EUDR_CUTOFF,
       vincoli_rilevati: dati.vincoli.map((v) => ETICHETTE_VINCOLO[v]),

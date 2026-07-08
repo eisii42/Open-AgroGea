@@ -3,7 +3,7 @@ import { AlertTriangle } from "lucide-react";
 import type { DssPlotResult } from "../../../hooks/useDssCalculation";
 
 /**
- * Scheda DSS per appezzamento. Sostituisce il vecchio grafico a barre con una
+ * Scheda DSS per plot. Sostituisce il vecchio grafico a barre con una
  * SEMPLICE CARD che cambia colore in base al risk complessivo (il livello
  * peggiore tra i modelli). Sotto, l'elenco dei modelli con il rispettivo livello
  * e gli alert testuali. Nessun bilancio idrico qui: vive nel pannello «Acqua».
@@ -62,7 +62,7 @@ export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
 
       {noData ? (
         <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] p-2 text-xs text-[var(--ink-3)]">
-          {message ?? "Nessun model disponibile per questo appezzamento."}
+          {message ?? "Nessun model disponibile per questo plot."}
         </p>
       ) : (
         <>

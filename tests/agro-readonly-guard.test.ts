@@ -70,7 +70,7 @@ describe("isViewerReadOnly — decisione pura", () => {
     );
   });
 
-  it("VIEWER ma di un'altra azienda ⇒ NON read-only", () => {
+  it("VIEWER ma di un'altra company ⇒ NON read-only", () => {
     assert.equal(
       isViewerReadOnly({
         memberships: [
@@ -96,7 +96,7 @@ describe("isViewerReadOnly — decisione pura", () => {
     );
   });
 
-  it("senza azienda attiva o senza email ⇒ NON read-only (Master/self-service)", () => {
+  it("senza company attiva o senza email ⇒ NON read-only (Master/self-service)", () => {
     const m = [membership({ role: "VIEWER", email: "v@x.it" })];
     assert.equal(isViewerReadOnly({ memberships: m, activeCompanyId: null, email: "v@x.it" }), false);
     assert.equal(isViewerReadOnly({ memberships: m, activeCompanyId: COMPANY, email: null }), false);
@@ -124,7 +124,7 @@ describe("store — guard centralizzato sulle mutazioni", () => {
       session: { user: { email: "owner@x.it" } } as never,
       profile: null,
     });
-    // Senza DAL la mutazione fallisce con un ALTRO errore (azienda non attiva):
+    // Senza DAL la mutazione fallisce con un ALTRO errore (company non attiva):
     // l'importante è che NON sia il blocco read-only.
     await assert.rejects(
       () => useAgroStore.getState().updateCompany({ business_name: "Ok" }),

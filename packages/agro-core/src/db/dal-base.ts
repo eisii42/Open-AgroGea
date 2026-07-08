@@ -36,14 +36,14 @@ export class AgroDalBase {
   /**
    * Accoda la mutazione in `sync_outbox` DENTRO la transazione passata: è il
    * mattone condiviso tra la scrittura singola ({@link writeWithOutbox}) e le
-   * scritture multi-riga atomiche del Magazzino (carico lotto con CUMP,
-   * scarico attività), dove più righe di dominio e le loro voci di outbox
+   * scritture multi-riga atomiche del Magazzino (carico lot con CUMP,
+   * issue attività), dove più righe di dominio e le loro voci di outbox
    * devono confermarsi o fallire insieme.
    */
   protected async enqueueOutbox(
     tx: Transaction,
     tabella: SyncTable,
-    operazione: MutationOperation,
+    operation: MutationOperation,
     row: Row & { id: string },
   ): Promise<void> {
     await tx.query(
@@ -54,8 +54,8 @@ export class AgroDalBase {
         uuidv4(),
         tabella,
         row.id,
-        operazione,
-        operazione === "delete" ? null : JSON.stringify(row),
+        operation,
+        operation === "delete" ? null : JSON.stringify(row),
         row.updated_at,
         this.deviceId,
       ],
@@ -64,11 +64,11 @@ export class AgroDalBase {
 
   protected async writeWithOutbox(
     tabella: SyncTable,
-    operazione: MutationOperation,
+    operation: MutationOperation,
     row: Row & { id: string },
   ): Promise<void> {
     await this.db.transaction(async (tx: Transaction) => {
-      if (operazione === "delete") {
+      if (operation === "delete") {
         await tx.query(
           `update ${tabella} set deleted_at = $2, updated_at = $2 where id = $1`,
           [row.id, row.updated_at],
@@ -77,7 +77,7 @@ export class AgroDalBase {
         const { sql, values } = upsertSql(tabella, row);
         await tx.query(sql, values);
       }
-      await this.enqueueOutbox(tx, tabella, operazione, row);
+      await this.enqueueOutbox(tx, tabella, operation, row);
     });
   }
 

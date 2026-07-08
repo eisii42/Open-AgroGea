@@ -20,7 +20,7 @@ import { HelpMenu } from "./help/HelpMenu";
 import { WeatherCard } from "../modules/weather/WeatherCard";
 
 /**
- * Header della suite (Modulo UI §6): logo, switcher azienda, LED di stato sync
+ * Header della suite (Modulo UI §6): logo, switcher company, LED di stato sync
  * (verde/ambra/rosso/grigio sull'outbox PGlite), selettore tema e menu profile.
  * Barra fissa in alto; la mappa vive sotto e non viene mai rimontata.
  */
@@ -63,7 +63,7 @@ export function AppHeader({
   const setActiveView = useAgroStore((s) => s.setActiveView);
   const flags = useSettingsStore((s) => s.dashboardLayout);
 
-  const azienda = companies.find((a) => a.id === activeCompanyId);
+  const company = companies.find((a) => a.id === activeCompanyId);
   const led = syncLed(sync.state, sync.pendingCount, t);
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -97,16 +97,16 @@ export function AppHeader({
         </span>
       </div>
 
-      {/* Indicatore azienda: una sola azienda attiva, nessun cambio possibile.
+      {/* Indicatore company: una sola company attiva, nessun cambio possibile.
           Display statico (non più un pulsante): mostra "-" finché il nome non è
           impostato, poi il nome dell'azienda. */}
       <div
         className="flex min-h-[36px] min-w-0 shrink items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] px-2 text-left"
-        title={azienda?.business_name ?? undefined}
+        title={company?.business_name ?? undefined}
       >
         <Building2 size={15} className="shrink-0 text-[var(--ink-3)]" />
         <span className="truncate text-sm font-medium">
-          {azienda?.business_name ?? "-"}
+          {company?.business_name ?? "-"}
         </span>
       </div>
 

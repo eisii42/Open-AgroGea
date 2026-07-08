@@ -33,11 +33,11 @@ import { useTranslation } from "react-i18next";
 import i18n from "../../i18n";
 
 /**
- * Form UNICO e ADATTIVO del Quaderno di Campagna: a partire dal tipo operazione
+ * Form UNICO e ADATTIVO del Quaderno di Campagna: a partire dal tipo operation
  * scelto, mostra SOLO i campi pertinenti (es. la lavorazione non chiede il
  * patentino; il rilievo solo data/operatore/note). I tipi "di registro" scrivono
  * nella stessa tabella `treatment_logs` (colonne nullable): nessuna modifica di
- * schema. Il campionamento di SUOLO è un caso speciale: scrive sulla tabella
+ * schema. Il soilSample di SUOLO è un caso speciale: scrive sulla tabella
  * dedicata `soil_samples` (via `onSubmitSoil`), con posizione = centroid del
  * campo.
  */
@@ -81,7 +81,7 @@ export interface OperazioneSpec {
 }
 
 /**
- * Registro dei tipi operazione e dei campi pertinenti a ciascuno. `label` e
+ * Registro dei tipi operation e dei campi pertinenti a ciascuno. `label` e
  * `descr` sono getter che risolvono la traduzione al momento della lettura
  * (tramite l'istanza `i18n` condivisa, non un hook React): così i consumer
  * esterni che leggono `OPERAZIONI` come semplice array di dati (es.
@@ -175,32 +175,32 @@ export function operazioneSpec(type: OperationType): OperazioneSpec {
   return OPERAZIONI.find((o) => o.type === type) ?? OPERAZIONI[0];
 }
 
-/** Input del campionamento suolo emesso dal form (verso `soil_samples`). */
+/** Input del soilSample soil emesso dal form (verso `soil_samples`). */
 export type SoilSampleInput = Omit<
   SoilSample,
   "id" | "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
 >;
 
-/** Riga di scarico magazzino in compilazione nel form. */
+/** Riga di issue warehouse in compilazione nel form. */
 interface ScaricoRow {
   productId: string;
   lotId: string;
   quantity: string;
   /**
    * true dopo un edit manuale della quantità: la riconciliazione automatica
-   * dose → scarico smette di sovrascriverla (l'utente ha preso il controllo).
+   * dose → issue smette di sovrascriverla (l'utente ha preso il controllo).
    */
   manual?: boolean;
 }
 
 /**
- * Proposta di assegnazione coltura al campo generata da una SEMINA con scarico
+ * Proposta di assegnazione crop al campo generata da una SEMINA con issue
  * di una semente (automazione v17): il chiamante (LogbookPanel) crea
  * `crops` + `plots_campaign` dopo la registrazione dell'operazione.
  */
 export interface CropAssignment {
   plotId: string;
-  /** Nome comune della specie (dall'anagrafica semente o dal nome prodotto). */
+  /** Nome comune della specie (dall'anagrafica semente o dal nome product). */
   species: string;
   scientificName: string | null;
   varietyName: string | null;
@@ -237,7 +237,7 @@ function persistOperatorMemory(memory: OperatorMemory) {
   }
 }
 
-/** Stringa da numero nullable (per i default della ripetizione operazione). */
+/** Stringa da numero nullable (per i default della ripetizione operation). */
 const numStr = (v: number | null | undefined) => (v == null ? "" : String(v));
 
 export interface OperazioneFormProps {
@@ -248,26 +248,26 @@ export interface OperazioneFormProps {
   concimiCatalogo?: CatalogEntry[];
   /**
    * Anagrafica e lots del Magazzino (0.2.0). Se ci sono products della
-   * categoria pertinente al tipo operazione, il form mostra la sezione
-   * "Scarico da magazzino": prodotto → lotto → quantità. I lots SCADUTI sono
+   * categoria pertinente al tipo operation, il form mostra la sezione
+   * "Scarico da magazzino": product → lot → quantità. I lots SCADUTI sono
    * mostrati ma NON selezionabili (uso bloccato, §5.1).
    */
   prodottiMagazzino?: Product[];
   lottiMagazzino?: ProductLot[];
-  valutaCompliance?: (appezzamento: Plot) => ComplianceTreatment | null;
+  valutaCompliance?: (plot: Plot) => ComplianceTreatment | null;
   defaultAppezzamentoId?: string | null;
   /**
-   * Salvataggio dell'operazione; `scarichi` non vuoto attiva lo scarico
-   * ATOMICO dei lots (§5.2): un errore (giacenza/lotto scaduto) annulla tutto
+   * Salvataggio dell'operazione; `scarichi` non vuoto attiva lo issue
+   * ATOMICO dei lots (§5.2): un errore (stock/lot scaduto) annulla tutto
    * e risale qui, dove il form lo mostra senza chiudersi. `assegnazione` è la
-   * proposta di coltura da una semina (automazione v17), null se disattivata.
+   * proposta di crop da una semina (automazione v17), null se disattivata.
    */
   onSubmit: (
     values: TrattamentoFormValues,
     scarichi?: IssueRequest[],
     assegnazione?: CropAssignment | null,
   ) => Promise<void> | void;
-  /** Salvataggio del campionamento di suolo (tabella dedicata). */
+  /** Salvataggio del soilSample di soil (tabella dedicata). */
   onSubmitSoil?: (input: SoilSampleInput) => Promise<void> | void;
   onCancel?: () => void;
   /**
@@ -304,7 +304,7 @@ export function OperationForm({
         : undefined;
   const usaCatalogo = (catalogo?.length ?? 0) > 0;
 
-  // Precompilazioni: appezzamento dal contesto (o dal record da ripetere),
+  // Precompilazioni: plot dal contesto (o dal record da ripetere),
   // ultimo operatore usato sul device, e — con `defaults` — i campi del record
   // da ripetere (la data resta oggi).
   const opMemory = useMemo(loadOperatorMemory, []);
@@ -318,7 +318,7 @@ export function OperationForm({
     );
   });
   const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
-  const [prodotto, setProdotto] = useState(
+  const [product, setProdotto] = useState(
     f.tillageType ? "" : defaults?.product_name ?? "",
   );
   const [prodottoCodice, setProdottoCodice] = useState("");
@@ -364,7 +364,7 @@ export function OperationForm({
   const [rientro, setRientro] = useState(numStr(defaults?.reentry_interval_h));
   const [carenza, setCarenza] = useState(numStr(defaults?.safety_period_days));
   const [note, setNote] = useState("");
-  // Campionamento: matrice + analisi del suolo.
+  // Campionamento: matrice + analisi del soil.
   const [matrice, setMatrice] = useState<"suolo" | "altro">("suolo");
   const [profondita, setProfondita] = useState("");
   const [ph, setPh] = useState("");
@@ -374,12 +374,12 @@ export function OperationForm({
   const [sostanzaOrganica, setSostanzaOrganica] = useState("");
   const [tessitura, setTessitura] = useState("");
   const [saving, setSaving] = useState(false);
-  // Scarico da magazzino (0.2.0): righe prodotto → lotto → quantità.
+  // Scarico da warehouse (0.2.0): righe product → lot → quantità.
   const [scarichiRows, setScarichiRows] = useState<ScaricoRow[]>([]);
-  // Errore del salvataggio (es. giacenza insufficiente): il form resta aperto.
+  // Errore del salvataggio (es. stock insufficiente): il form resta aperto.
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const appezzamento = useMemo(
+  const plot = useMemo(
     () => plots.find((a) => a.id === plotId) ?? null,
     [plots, plotId],
   );
@@ -387,7 +387,7 @@ export function OperationForm({
     () => campaignFields?.find((c) => c.campoCampagnaId === campoCampagnaId) ?? null,
     [campaignFields, campoCampagnaId],
   );
-  const superficie = campoSel?.superficieHa ?? appezzamento?.area_ha ?? null;
+  const superficie = campoSel?.superficieHa ?? plot?.area_ha ?? null;
   const isSampling = operationType === "sampling";
   const soilMode = isSampling && matrice === "suolo";
 
@@ -413,8 +413,8 @@ export function OperationForm({
     totaleManuale.trim() === "" ? null : Number(totaleManuale);
 
   const compliance = useMemo(
-    () => (appezzamento && valutaCompliance ? valutaCompliance(appezzamento) : null),
-    [appezzamento, valutaCompliance],
+    () => (plot && valutaCompliance ? valutaCompliance(plot) : null),
+    [plot, valutaCompliance],
   );
   const totalePerAzoto = totaleAutomatico ?? totaleManualeNum;
   const superaAzoto =
@@ -428,7 +428,7 @@ export function OperationForm({
       return validateTreatmentLog({
         operation_date: data,
         target_disease: target,
-        product_name: prodotto,
+        product_name: product,
         registration_number: numeroRegistrazione,
         active_substance: sostanzaAttiva,
         applied_dose: doseValore ? Number.parseFloat(doseValore) : null,
@@ -440,7 +440,7 @@ export function OperationForm({
       return validateFertilizationLog({
         operation_date: data,
         fertilizer_type: tipoConcime,
-        commercial_name: prodotto,
+        commercial_name: product,
         total_amount_kg: totaleManualeNum,
         npk_ratio: titoloNpk,
       });
@@ -450,7 +450,7 @@ export function OperationForm({
     f.validate,
     data,
     target,
-    prodotto,
+    product,
     numeroRegistrazione,
     sostanzaAttiva,
     doseValore,
@@ -461,10 +461,10 @@ export function OperationForm({
     totaleManualeNum,
   ]);
   const mancano = panErrors.length > 0;
-  // Per il campione di suolo serve un campo georeferenziato (centroid = posizione).
-  const soilWithoutField = soilMode && !appezzamento;
+  // Per il campione di soil serve un campo georeferenziato (centroid = posizione).
+  const soilWithoutField = soilMode && !plot;
 
-  // -- Magazzino (0.2.0): categoria pertinente e validazione righe scarico ----
+  // -- Magazzino (0.2.0): categoria pertinente e validazione righe issue ----
   const categoriaMagazzino = categoryForOperation(operationType);
   const prodottiCategoria = useMemo(
     () =>
@@ -482,18 +482,18 @@ export function OperationForm({
     return map;
   }, [lottiMagazzino]);
 
-  // -- riconciliazione dose ⇄ scarico (v17) -----------------------------------
+  // -- riconciliazione dose ⇄ issue (v17) -----------------------------------
   // Unità di base della quantità prevista: il prefisso della dose (kg/l) o kg
-  // per il totale manuale delle fertilizzazioni. La quantità di scarico segue
+  // per il totale manuale delle fertilizzazioni. La quantità di issue segue
   // il totale calcolato finché l'utente non la modifica a mano (row.manual).
   const baseDose = f.totalManual ? "kg" : doseUnita.split("/")[0];
   const totalePrevisto =
     totaleAutomatico ?? (f.totalManual ? totaleManualeNum : null);
-  /** true se l'unità del prodotto può riconciliarsi con la quantità prevista. */
+  /** true se l'unità del product può riconciliarsi con la quantità prevista. */
   const unitaCompatibile = (unit: string) =>
     totalePrevisto == null || unit === baseDose;
 
-  /** Lotti utilizzabili del prodotto (giacenza > 0, non scaduti) in ordine FEFO. */
+  /** Lotti utilizzabili del product (stock > 0, non scaduti) in ordine FEFO. */
   const lottiUtilizzabili = (productId: string): ProductLot[] =>
     (lottiMagazzino ?? []).filter(
       (l) =>
@@ -502,17 +502,17 @@ export function OperationForm({
         expiryStatus(l.expires_at) !== "expired",
     );
 
-  /** Riga compilata per intero e coerente: quantità > 0 e ≤ giacenza, lotto non scaduto. */
+  /** Riga compilata per intero e coerente: quantità > 0 e ≤ stock, lot non scaduto. */
   const rowValida = (row: ScaricoRow): boolean => {
     const qty = Number.parseFloat(row.quantity);
-    const lotto = lottoById.get(row.lotId);
+    const lot = lottoById.get(row.lotId);
     return Boolean(
       row.productId &&
-        lotto &&
+        lot &&
         Number.isFinite(qty) &&
         qty > 0 &&
-        qty <= Number(lotto.quantity_on_hand) &&
-        expiryStatus(lotto.expires_at) !== "expired",
+        qty <= Number(lot.quantity_on_hand) &&
+        expiryStatus(lot.expires_at) !== "expired",
     );
   };
   const scarichiValidi: IssueRequest[] = scarichiRows
@@ -528,7 +528,7 @@ export function OperationForm({
       !rowValida(row),
   );
 
-  // Auto-fill (v17): con UNA riga di scarico non modificata a mano, la quantità
+  // Auto-fill (v17): con UNA riga di issue non modificata a mano, la quantità
   // segue il totale previsto (dose × superficie, o totale manuale in kg).
   useEffect(() => {
     if (totalePrevisto == null || totalePrevisto <= 0) return;
@@ -543,14 +543,14 @@ export function OperationForm({
     });
   }, [totalePrevisto, baseDose, prodottiCategoria]);
 
-  // -- automazione semina → coltura di campagna (v17) -------------------------
+  // -- automazione semina → crop di campagna (v17) -------------------------
   const activeCampaign = useAgroStore((s) => s.activeCampaign);
   const seedProduct =
     operationType === "sowing"
       ? prodottiCategoria.find((p) => p.id === scarichiRows[0]?.productId) ?? null
       : null;
   // Il campo scelto non ha una campagna APERTA per l'annata: la semina può
-  // assegnargli la coltura (crops + plots_campaign) automaticamente.
+  // assegnargli la crop (crops + plots_campaign) automaticamente.
   const plotWithoutCampaign = Boolean(
     plotId &&
       !(campaignFields ?? []).some((c) => c.plotId === plotId),
@@ -602,17 +602,17 @@ export function OperationForm({
 
   const num = (s: string) => (s.trim() === "" ? null : Number(s));
 
-  // -- righe scarico magazzino ------------------------------------------------
+  // -- righe issue warehouse ------------------------------------------------
 
   function updateIssue(index: number, patch: Partial<ScaricoRow>) {
     setScarichiRows((rows) =>
       rows.map((row, i) => {
         if (i !== index) return row;
         if (patch.productId !== undefined && patch.productId !== row.productId) {
-          // Cambio prodotto: lotto ripreselezionato in FEFO (scadenza valida
+          // Cambio product: lot ripreselezionato in FEFO (scadenza valida
           // più vicina); quantità riproposta dal totale previsto se l'utente
           // non l'ha ancora modificata a mano.
-          const lotto = patch.productId
+          const lot = patch.productId
             ? lottiUtilizzabili(patch.productId)[0] ?? null
             : null;
           const p = prodottiCategoria.find((x) => x.id === patch.productId);
@@ -622,7 +622,7 @@ export function OperationForm({
               : row.quantity;
           return {
             productId: patch.productId,
-            lotId: lotto?.id ?? "",
+            lotId: lot?.id ?? "",
             quantity: auto,
             manual: row.manual,
           };
@@ -635,7 +635,7 @@ export function OperationForm({
         return { ...row, ...patch };
       }),
     );
-    // Prima riga: auto-compila il nome prodotto (fallback testuale del registro)
+    // Prima riga: auto-compila il nome product (fallback testuale del registro)
     // e i default dell'anagrafica (registrazione, sostanza attiva, carenza e
     // rientro, v17) se i campi sono ancora vuoti.
     if (index === 0 && patch.productId) {
@@ -667,8 +667,8 @@ export function OperationForm({
 
   /**
    * Divide la quantità della riga su più lots in ordine FEFO (v17): la riga
-   * viene sostituita da una riga per lotto finché la quantità è coperta.
-   * No-op se la giacenza complessiva del prodotto non basta.
+   * viene sostituita da una riga per lot finché la quantità è coperta.
+   * No-op se la stock complessiva del product non basta.
    */
   function dividiFefo(index: number) {
     setScarichiRows((rows) => {
@@ -677,12 +677,12 @@ export function OperationForm({
       if (!row || !Number.isFinite(qty) || qty <= 0) return rows;
       const nuove: ScaricoRow[] = [];
       let resto = qty;
-      for (const lotto of lottiUtilizzabili(row.productId)) {
+      for (const lot of lottiUtilizzabili(row.productId)) {
         if (resto <= 0) break;
-        const presa = Math.min(resto, Number(lotto.quantity_on_hand));
+        const presa = Math.min(resto, Number(lot.quantity_on_hand));
         nuove.push({
           productId: row.productId,
-          lotId: lotto.id,
+          lotId: lot.id,
           quantity: String(Math.round(presa * 1000) / 1000),
           manual: true,
         });
@@ -698,11 +698,11 @@ export function OperationForm({
     setSubmitError(null);
     setSaving(true);
     try {
-      if (soilMode && appezzamento) {
-        const [lon, lat] = centroid(appezzamento.geometry);
+      if (soilMode && plot) {
+        const [lon, lat] = centroid(plot.geometry);
         const position: Point = { type: "Point", coordinates: [lon, lat] };
         await onSubmitSoil?.({
-          plot_id: appezzamento.id,
+          plot_id: plot.id,
           sampled_at: new Date(`${data}T12:00:00`).toISOString(),
           sampling_position: position,
           depth_cm: profondita ? Number.parseInt(profondita, 10) : null,
@@ -722,7 +722,7 @@ export function OperationForm({
         plot_id: plotId || null,
         plot_campaign_id: campoCampagnaId || null,
         product_name: f.product
-          ? prodotto || null
+          ? product || null
           : f.tillageType
             ? tipoLavorazione.trim() || null
             : null,
@@ -763,7 +763,7 @@ export function OperationForm({
         });
       }
     } catch (e) {
-      // Scarico atomico fallito (giacenza insufficiente, lotto scaduto…): la
+      // Scarico atomico fallito (stock insufficiente, lot scaduto…): la
       // transazione è stata annullata per intero; il form resta aperto con il
       // messaggio, l'utente corregge e riprova.
       setSubmitError(e instanceof Error ? e.message : String(e));
@@ -791,7 +791,7 @@ export function OperationForm({
         {spec.descr}
       </p>
 
-      {/* Data + appezzamento/campagna (comuni a tutti i tipi) */}
+      {/* Data + plot/campagna (comuni a tutti i tipi) */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="op-data">{t("operazioneForm.date")}</Label>
@@ -850,7 +850,7 @@ export function OperationForm({
         </p>
       )}
 
-      {/* Campi analisi suolo → soil_samples */}
+      {/* Campi analisi soil → soil_samples */}
       {soilMode && (
         <section className="flex flex-col gap-2">
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
@@ -926,12 +926,12 @@ export function OperationForm({
               ))}
             </Select>
           ) : (
-            <Input id="op-prod" value={prodotto} onChange={(e) => setProdotto(e.target.value)} />
+            <Input id="op-prod" value={product} onChange={(e) => setProdotto(e.target.value)} />
           )}
         </div>
       )}
 
-      {/* Scarico da magazzino (0.2.0): prodotto → lotto → quantità. Lotti
+      {/* Scarico da warehouse (0.2.0): product → lot → quantità. Lotti
           scaduti visibili ma NON selezionabili (uso bloccato §5.1). */}
       {usaMagazzino && !isSampling && (
         <section className="flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2">
@@ -987,11 +987,11 @@ export function OperationForm({
                     </Select>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor={`op-mag-lotto-${index}`}>
+                    <Label htmlFor={`op-mag-lot-${index}`}>
                       {t("operazioneForm.warehouseLot")}
                     </Label>
                     <Select
-                      id={`op-mag-lotto-${index}`}
+                      id={`op-mag-lot-${index}`}
                       value={row.lotId}
                       onChange={(e) =>
                         updateIssue(index, { lotId: e.target.value })
@@ -1066,8 +1066,8 @@ export function OperationForm({
                   </Button>
                 </div>
 
-                {/* Riconciliazione dose ⇄ scarico: dose effettiva, scostamento
-                    dal totale previsto e split FEFO quando il lotto non basta. */}
+                {/* Riconciliazione dose ⇄ issue: dose effettiva, scostamento
+                    dal totale previsto e split FEFO quando il lot non basta. */}
                 {(() => {
                   const qty = Number.parseFloat(row.quantity);
                   if (!Number.isFinite(qty) || qty <= 0) return null;
@@ -1136,8 +1136,8 @@ export function OperationForm({
         </section>
       )}
 
-      {/* Automazione v17: la semina di una semente su un campo senza coltura
-          propone di creare scheda coltura + campagna agraria in automatico. */}
+      {/* Automazione v17: la semina di una semente su un campo senza crop
+          propone di creare scheda crop + campagna agraria in automatico. */}
       {proposeAssignment && (
         <label className="flex items-start gap-2 rounded-[var(--r-2)] border border-[var(--accent-bd)] bg-[var(--accent-l)] px-3 py-2">
           <input
@@ -1154,7 +1154,7 @@ export function OperationForm({
                   (metaSeedStr("variety_name")
                     ? ` (${metaSeedStr("variety_name")})`
                     : ""),
-                plot: appezzamento?.user_plot_name ?? "",
+                plot: plot?.user_plot_name ?? "",
                 year: activeCampaign,
               })}
             </span>

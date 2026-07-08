@@ -4,7 +4,7 @@
  *
  *   * {@link useTenantCountry} — paese risolto (anagrafica + cross-check spaziale
  *     sulle geometrie degli plots) con eventuali warning per la UI.
- *   * {@link useCountryCatalog} — voci di catalogo (coltura/fitosanitario/concime/
+ *   * {@link useCountryCatalog} — voci di catalogo (crop/fitosanitario/concime/
  *     varietà) del solo paese del tenant, per i dropdown dei form dinamici.
  */
 import {
@@ -23,9 +23,9 @@ export function useTenantCountry(): CountryResolution {
   const plots = useAgroStore((s) => s.plots);
 
   return useMemo(() => {
-    const azienda = companies.find((a) => a.id === activeCompanyId);
+    const company = companies.find((a) => a.id === activeCompanyId);
     return resolveCountry({
-      addressCountry: azienda?.country ?? null,
+      addressCountry: company?.country ?? null,
       plots: plots.map((a) => ({ plotId: a.id, geometria: a.geometry })),
     });
   }, [companies, activeCompanyId, plots]);

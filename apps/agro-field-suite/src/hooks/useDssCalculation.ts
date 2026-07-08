@@ -33,8 +33,8 @@ import i18n from "../i18n";
  * Orchestratore del ciclo on-demand "Calcola Modelli" (Modulo Meteo §4), ora
  * MULTI-APPEZZAMENTO (come la pipeline indici del modulo Suolo):
  *
- *   per ogni appezzamento target →
- *   Fetch meteo (lucchetto orario, azienda) → series da PGlite → run DSS locale →
+ *   per ogni plot target →
+ *   Fetch meteo (lucchetto orario, company) → series da PGlite → run DSS locale →
  *   (opz.) bilancio idrico FAO 56/66 → scrittura `dss_results`/`soil_water_indices`.
  *
  * Tutto imperativo via `getState()`: il ciclo NON sottoscrive lo store globale,
@@ -68,7 +68,7 @@ export interface BalanceSummary {
   persistito: boolean;
 }
 
-/** Esito del calcolo per UN appezzamento. */
+/** Esito del calcolo per UN plot. */
 export interface DssPlotResult {
   plotId: string;
   name: string;
@@ -79,7 +79,7 @@ export interface DssPlotResult {
   /** Sintesi del bilancio idrico (null se non calcolato/calcolabile). */
   bilancio: BalanceSummary | null;
   /** Parametri idro-pedologici risolti (null se non calcolati). */
-  suolo: ResolvedSoilParameters | null;
+  soil: ResolvedSoilParameters | null;
   /** Serie giornaliera del bilancio idrico (vuota se non calcolata). */
   bilancioSerie: WaterIndexDay[];
   series: DssWeatherDay[];
@@ -87,14 +87,14 @@ export interface DssPlotResult {
   message?: string;
 }
 
-/** Plot + modulo coltura da calcolare. */
+/** Plot + modulo crop da calcolare. */
 export interface DssTarget {
-  appezzamento: Plot;
+  plot: Plot;
   modulo: CropModule;
 }
 
 export interface OpzioniCalcoloDss {
-  /** Mappa custom del suolo (Tier 1) per il bilancio idrico. */
+  /** Mappa custom del soil (Tier 1) per il bilancio idrico. */
   mappaCustom?: FeatureCollection | null;
   /**
    * Salta il bilancio idrico: i DSS patologici non lo calcolano più (è stato
@@ -105,7 +105,7 @@ export interface OpzioniCalcoloDss {
 
 export interface StatoDssCalcolo {
   phase: FaseDss;
-  /** Esiti per appezzamento, nell'ordine dei target. */
+  /** Esiti per plot, nell'ordine dei target. */
   risultati: DssPlotResult[];
   /** ISO del momento del calcolo (per la timeline). */
   calcolatoIl: string | null;
@@ -127,8 +127,8 @@ const FASI_VALIDE: readonly PhenologicalPhase[] = [
 ];
 
 /** Fase fenologica dal metadata (override), default "piena" (piena stagione). */
-function phenologicalPhase(appezzamento: Plot): PhenologicalPhase {
-  const meta = (appezzamento.metadata ?? {}) as Record<string, unknown>;
+function phenologicalPhase(plot: Plot): PhenologicalPhase {
+  const meta = (plot.metadata ?? {}) as Record<string, unknown>;
   const phase = meta.phase;
   return typeof phase === "string" && FASI_VALIDE.includes(phase as PhenologicalPhase)
     ? (phase as PhenologicalPhase)
@@ -151,12 +151,12 @@ function numeroMeta(value: unknown): number | undefined {
 /**
  * Biofix dell'accumulo termico per l'appezzamento. La fonte di verità della
  * SEMINA/TRAPIANTO è il Quaderno di Campagna: si usa la data dell'ultimo evento
- * `sowing` registrato. In ordine: ultima semina/trapianto del quaderno → override
+ * `sowing` registrato. In ordine: ultima semina/trapianto del logbook → override
  * esplicito nei metadata (`data_inizio_gdd`/`data_semina`) → 1° gennaio dell'anno
  * corrente (convenzione per i gradi-day stagionali).
  */
 function biofixGdd(
-  appezzamento: Plot,
+  plot: Plot,
   treatments: TreatmentLog[],
 ): string {
   const ultimaSemina = treatments
@@ -164,7 +164,7 @@ function biofixGdd(
     .sort((a, b) => b.executed_at.localeCompare(a.executed_at))[0];
   if (ultimaSemina) return ultimaSemina.executed_at.slice(0, 10);
 
-  const meta = (appezzamento.metadata ?? {}) as Record<string, unknown>;
+  const meta = (plot.metadata ?? {}) as Record<string, unknown>;
   const override = meta.data_inizio_gdd ?? meta.data_semina;
   if (typeof override === "string" && /^\d{4}-\d{2}-\d{2}/.test(override)) {
     return override.slice(0, 10);
@@ -172,7 +172,7 @@ function biofixGdd(
   return `${new Date().getUTCFullYear()}-01-01`;
 }
 
-/** Contesto azienda condiviso dal ciclo multi-plot (risolto una volta sola). */
+/** Contesto company condiviso dal ciclo multi-plot (risolto una volta sola). */
 interface ContestoCalcolo {
   dal: AgroDal;
   activeCompanyId: string;
@@ -181,7 +181,7 @@ interface ContestoCalcolo {
 }
 
 /**
- * Esegue l'intero ciclo DSS per UN appezzamento e ritorna l'esito (nessun
+ * Esegue l'intero ciclo DSS per UN plot e ritorna l'esito (nessun
  * setState: lo aggrega il chiamante). Il bilancio idrico è calcolato solo se
  * `!skipWaterBalance`.
  */
@@ -191,23 +191,23 @@ async function calcolaPlot(
   opzioni: OpzioniCalcoloDss,
 ): Promise<DssPlotResult> {
   const { dal, activeCompanyId, weatherConfig, crops } = ctx;
-  const { appezzamento, modulo } = target;
+  const { plot, modulo } = target;
   const base: DssPlotResult = {
-    plotId: appezzamento.id,
-    name: appezzamento.user_plot_name,
+    plotId: plot.id,
+    name: plot.user_plot_name,
     modulo,
     esiti: [],
     vettori: [],
     bilancio: null,
-    suolo: null,
+    soil: null,
     bilancioSerie: [],
     series: [],
     meteo: null,
   };
 
-  // Campagna attiva, coltura e operazioni: biofix (semina), profondità radicale
-  // (tratto coltura) e apporti irrigui.
-  const campi = await dal.listCampiCampagna({ plotId: appezzamento.id });
+  // Campagna attiva, crop e operazioni: biofix (semina), profondità radicale
+  // (tratto crop) e apporti irrigui.
+  const campi = await dal.listCampiCampagna({ plotId: plot.id });
   const campagna = campi[0];
   const cropRecord = campagna
     ? crops.find((c) => c.id === campagna.crop_id) ?? null
@@ -216,11 +216,11 @@ async function calcolaPlot(
     cropRecord?.crop_metadata?.profondita_radici,
   );
   const treatments = await dal.listTreatments(activeCompanyId, {
-    plotId: appezzamento.id,
+    plotId: plot.id,
     limit: 1000,
   });
 
-  const biofix = biofixGdd(appezzamento, treatments);
+  const biofix = biofixGdd(plot, treatments);
 
   // 0) Storico stagionale (colture ad accumulo): backfill gated via Archive API.
   if (modulo.seasonalAccumulation) {
@@ -228,7 +228,7 @@ async function calcolaPlot(
       await WeatherSyncService.assicuraStoricoGdd({
         dal,
         companyId: activeCompanyId,
-        appezzamentoPrincipale: appezzamento,
+        appezzamentoPrincipale: plot,
         dataInizio: biofix,
       });
     } catch {
@@ -236,7 +236,7 @@ async function calcolaPlot(
     }
   }
 
-  // 1) Meteo: lucchetto orario (azienda) → fetch solo se stantio. Offline →
+  // 1) Meteo: lucchetto orario (company) → fetch solo se stantio. Offline →
   //    fallback sulle letture già in PGlite.
   let series: DssWeatherDay[];
   let meteo: DssWeatherInfo;
@@ -245,7 +245,7 @@ async function calcolaPlot(
     const res = await WeatherSyncService.assicuraDatiMeteo({
       dal,
       companyId: activeCompanyId,
-      appezzamentoPrincipale: appezzamento,
+      appezzamentoPrincipale: plot,
       config: weatherConfig,
     });
     lettureRaw = res.letture;
@@ -281,19 +281,19 @@ async function calcolaPlot(
   let bilancio: BalanceSummary | null = null;
   let bilancioSerie: WaterIndexDay[] = [];
   let statoIdrico: FieldWaterStatus | undefined;
-  let suolo: ResolvedSoilParameters | null = null;
+  let soil: ResolvedSoilParameters | null = null;
   if (!opzioni.skipWaterBalance && lettureRaw.length > 0) {
     const soilSamples = await dal.listSoilSamples(activeCompanyId);
-    suolo = await new SoilDataResolver().risolvi(appezzamento, soilSamples, {
+    soil = await new SoilDataResolver().risolvi(plot, soilSamples, {
       mappaCustom: opzioni.mappaCustom,
       profonditaRadiciM: profonditaRadiciCrop,
     });
     const out = computeWaterBalance({
       letture: lettureRaw,
-      irrigazioni: irrigationInputsFromTreatments(treatments, appezzamento.area_ha),
-      coltura: modulo.mainSpecies,
-      phase: phenologicalPhase(appezzamento),
-      suolo: suolo.parametri,
+      irrigazioni: irrigationInputsFromTreatments(treatments, plot.area_ha),
+      crop: modulo.mainSpecies,
+      phase: phenologicalPhase(plot),
+      soil: soil.parametri,
       altitude: 0,
     });
     bilancioSerie = out.series;
@@ -358,7 +358,7 @@ async function calcolaPlot(
 
   // 3) Motore DSS unificato (engine puri composti dal modulo + eventuale vettore
   //    di stress idrico). Il biofix ancora l'accumulo GDD.
-  const germogli = ((appezzamento.metadata ?? {}) as Record<string, unknown>)
+  const germogli = ((plot.metadata ?? {}) as Record<string, unknown>)
     .lunghezza_germogli_cm;
   const context = {
     gddStartDate: biofix,
@@ -368,7 +368,7 @@ async function calcolaPlot(
 
   // 4) Persistenza cache dei modelli patologici (ultimo valore per model).
   if (series.length > 0) {
-    await dal.saveDssResults(appezzamento.id, outcomesToDssResults(esiti));
+    await dal.saveDssResults(plot.id, outcomesToDssResults(esiti));
   }
 
   return {
@@ -376,7 +376,7 @@ async function calcolaPlot(
     esiti,
     vettori,
     bilancio,
-    suolo,
+    soil,
     bilancioSerie,
     series,
     meteo,
@@ -417,13 +417,13 @@ export function useDssCalculation() {
             // Un errore su un campo non blocca gli altri: si registra come esito
             // vuoto con message dedicato.
             risultati.push({
-              plotId: target.appezzamento.id,
-              name: target.appezzamento.user_plot_name,
+              plotId: target.plot.id,
+              name: target.plot.user_plot_name,
               modulo: target.modulo,
               esiti: [],
               vettori: [],
               bilancio: null,
-              suolo: null,
+              soil: null,
               bilancioSerie: [],
               series: [],
               meteo: null,

@@ -28,7 +28,7 @@ function isArrowTargetReserved(target: EventTarget | null): boolean {
  * Router dell'edizione **Open Source** (standalone, offline).
  *
  * Nessun login né onboarding: si avvia una sessione locale (claims sintetiche
- * + azienda di default) e si entra dritti nella dashboard. Un'eventuale
+ * + company di default) e si entra dritti nella dashboard. Un'eventuale
  * edizione con servizi remoti fornirebbe il proprio router al posto di questo
  * file (e il proprio `edition.ts`); il layer funzionale (mappa, moduli
  * agronomici, Quaderno, DSS, import/export, auto-update) resta lo stesso.

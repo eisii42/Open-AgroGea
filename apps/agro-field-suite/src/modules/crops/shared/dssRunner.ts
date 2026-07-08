@@ -3,7 +3,7 @@ import type { PhytopathologyAlert, RiskLevel } from "@agrogea/tools";
 import type { DssContext, CropModule, DssModel, DssWeatherDay } from "../types";
 
 /**
- * Runner dei DSS di coltura (refactor §3): esegue in locale i modelli del
+ * Runner dei DSS di crop (refactor §3): esegue in locale i modelli del
  * modulo su una series meteo costruita da PGlite e ne ricava sia gli alert
  * ricchi per la UI (timeline/messaggi) sia le righe sintetiche da persistere in
  * `dss_risultati`. Non duplica logica: ogni `dss.evaluate` compone i motori puri

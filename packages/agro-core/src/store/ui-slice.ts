@@ -55,7 +55,7 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
       if (!id) return;
       const dal = get().dal;
       if (!dal) return;
-      // Inietta l'ultima operazione del quaderno per la scheda di dettaglio.
+      // Inietta l'ultima operation del logbook per la scheda di dettaglio.
       const ultima = await dal.lastOperation(id);
       // Evita race: l'utente potrebbe aver già cambiato selezione.
       if (get().selectedPlotId === id) {

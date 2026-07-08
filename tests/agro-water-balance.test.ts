@@ -174,9 +174,9 @@ describe("computeWaterBalance — composizione end-to-end", () => {
     const out = computeWaterBalance({
       letture,
       irrigazioni: [{ data: "2026-06-03", mm: 4 }],
-      coltura: "vite",
+      crop: "vite",
       phase: "piena",
-      suolo: SUOLO,
+      soil: SUOLO,
       altitude: 100,
     });
 

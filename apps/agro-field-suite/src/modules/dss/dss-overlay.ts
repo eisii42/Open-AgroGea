@@ -11,8 +11,8 @@ import type { Feature, FeatureCollection } from "geojson";
 /**
  * Sintesi spaziale del risk DSS (Modulo 3): combina la phase IDROLOGICA
  * (stress idrico dal bilancio FAO 66), il dato SPETTRALE (`last_ndvi_mean`) e i
- * CAMPIONAMENTI fisici del suolo in un unico punteggio 0..1 per appezzamento,
- * **bilanciato per coltura** (pesi e banda NDVI attesa dipendono da coltura e
+ * CAMPIONAMENTI fisici del soil in un unico punteggio 0..1 per plot,
+ * **bilanciato per crop** (pesi e banda NDVI attesa dipendono da crop e
  * phase). Da qui l'overlay coropletico verde→giallo→rosso e la legenda colorbar.
  *
  * Tutto puro: niente React/MapLibre. Il rendering del layer e la legenda vivono
@@ -39,14 +39,14 @@ export interface SummaryCalibration {
   pesoSuolo: number;
   /** Banda NDVI attesa per la phase (da `fenologia`): scala di vigore relativa. */
   ndviAtteso: [number, number];
-  /** Azoto target (mg/kg) per la coltura: sotto = deficit nutrizionale. */
+  /** Azoto target (mg/kg) per la crop: sotto = deficit nutrizionale. */
   azotoTarget: number;
   /** Sostanza organica target (%). */
   sostanzaOrganicaTarget: number;
 }
 
 /**
- * Pesi di default per coltura (editabili): quanto ciascun fattore conta nel
+ * Pesi di default per crop (editabili): quanto ciascun fattore conta nel
  * punteggio sintetico. Le arboree pesano di più il vigore/patologie; i
  * seminativi a copertura continua pesano di più lo stress idrico. Valori
  * indicativi, non costanti regolatorie.
@@ -72,15 +72,15 @@ const AZOTO_TARGET: Record<CropType, number> = {
   pomodoro: 30,
 };
 
-/** Calibrazione della sintesi per coltura e phase (banda NDVI dalla fenologia). */
+/** Calibrazione della sintesi per crop e phase (banda NDVI dalla fenologia). */
 export function summaryCalibration(
-  coltura: CropType,
+  crop: CropType,
   phase: PhenologicalPhase,
 ): SummaryCalibration {
   return {
-    ...PESI_COLTURA[coltura],
-    ndviAtteso: getPhaseCalibration(coltura, phase).ndviAtteso,
-    azotoTarget: AZOTO_TARGET[coltura] ?? 25,
+    ...PESI_COLTURA[crop],
+    ndviAtteso: getPhaseCalibration(crop, phase).ndviAtteso,
+    azotoTarget: AZOTO_TARGET[crop] ?? 25,
     sostanzaOrganicaTarget: 2,
   };
 }
@@ -113,7 +113,7 @@ function soilDeficit(
 
 /**
  * Punteggio di risk sintetico 0..1 (0 ottimale, 1 critico), bilanciato per
- * coltura. I fattori non disponibili (NDVI o suolo assenti) vengono esclusi e i
+ * crop. I fattori non disponibili (NDVI o soil assenti) vengono esclusi e i
  * pesi rinormalizzati sui fattori presenti, così il punteggio resta in [0,1].
  */
 export function summarizeFieldRisk(
@@ -130,8 +130,8 @@ export function summarizeFieldRisk(
       valore: deficitVigore(ingressi.ndvi, cal.ndviAtteso),
     });
   }
-  const suolo = soilDeficit(ingressi.azoto, ingressi.sostanzaOrganica, cal);
-  if (suolo != null) termini.push({ peso: cal.pesoSuolo, valore: suolo });
+  const soil = soilDeficit(ingressi.azoto, ingressi.sostanzaOrganica, cal);
+  if (soil != null) termini.push({ peso: cal.pesoSuolo, valore: soil });
 
   const pesoTot = termini.reduce((a, t) => a + t.peso, 0);
   if (pesoTot <= 0) return 0;
@@ -150,13 +150,13 @@ const ROSSO = "#d73027";
 
 /**
  * Rampa del risk DSS verde→giallo→rosso sul dominio 0..1, calibrata per
- * coltura: la posizione del giallo (ingresso in allerta) si sposta in base alla
- * sensibilità della coltura — le più sensibili allertano prima. Il rosso marca
+ * crop: la posizione del giallo (ingresso in allerta) si sposta in base alla
+ * sensibilità della crop — le più sensibili allertano prima. Il rosso marca
  * lo stato critico (≥ soglia rossa).
  */
-export function dssRiskRamp(coltura: CropType): ColorRamp {
+export function dssRiskRamp(crop: CropType): ColorRamp {
   // Sensibilità ≈ peso combinato di stress+patologie: più alta ⇒ allerta prima.
-  const pesi = PESI_COLTURA[coltura];
+  const pesi = PESI_COLTURA[crop];
   const sensibilita = pesi.pesoStress + pesi.pesoPatologico; // ~0.5..0.6
   const sogliaGialla = clamp01(0.45 - (sensibilita - 0.5) * 0.4);
   const sogliaRossa = clamp01(0.72 - (sensibilita - 0.5) * 0.3);
@@ -196,7 +196,7 @@ export interface FieldSummary {
 }
 
 /**
- * Costruisce l'overlay coropletico: ogni appezzamento diventa una feature
+ * Costruisce l'overlay coropletico: ogni plot diventa una feature
  * poligonale colorata in base al punteggio sintetico. Gli plots senza
  * sintesi disponibile sono omessi (nessun colore arbitrario).
  */

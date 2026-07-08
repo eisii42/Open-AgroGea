@@ -79,7 +79,7 @@ export function createGeometrySlice(
 
     selectFeatureOnMap: async (ref) => {
       set({ selectedFeature: ref });
-      // L'appezzamento selezionato pilota anche le schede analitiche (NDVI/coltura).
+      // L'appezzamento selezionato pilota anche le schede analitiche (NDVI/crop).
       if (ref?.kind === "appezzamento") {
         await get().selectPlot(ref.id);
       }

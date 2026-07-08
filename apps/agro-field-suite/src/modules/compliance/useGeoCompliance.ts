@@ -58,14 +58,14 @@ export function useGeoCompliance() {
   const complianceLayers = useComplianceLayers();
 
   return useCallback(
-    (appezzamento: Plot): ComplianceTreatment | null => {
+    (plot: Plot): ComplianceTreatment | null => {
       if (complianceLayers.length === 0) return null;
 
-      const esito = verificaCompliance(appezzamento.geometry, complianceLayers);
+      const esito = verificaCompliance(plot.geometry, complianceLayers);
       if (esito.vincoli.length === 0) return null;
 
       // Superficie autorevole: area geodetica del DAL.
-      const superficie = appezzamento.area_ha;
+      const superficie = plot.area_ha;
       return {
         note: esito.note,
         azotoMaxTotaleKg: azotoTotaleMax(superficie, esito.azotoMaxKgHa),

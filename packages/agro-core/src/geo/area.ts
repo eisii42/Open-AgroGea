@@ -93,7 +93,7 @@ export function lengthMeters(
 
 /**
  * Tipo di geometria per il workflow di data-entry su disegno: poligono →
- * appezzamento, linea → infrastruttura, punto → POI/asset puntuale.
+ * plot, linea → infrastructure, punto → POI/asset puntuale.
  */
 export type DrawnGeometry = "polygon" | "line" | "point";
 

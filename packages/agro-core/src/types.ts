@@ -65,7 +65,7 @@ export type LicenseStatus = "active" | "inactive";
 
 /**
  * Piano licenza: governa quote di companies e posti collaboratore (lineup unico a
- * 3 livelli: `base` single-user/1 azienda, `standard` 5 companies+team, `plus`
+ * 3 livelli: `base` single-user/1 company, `standard` 5 companies+team, `plus`
  * companies illimitate+team ampio). I codici legacy (`free`/`flat_3`/`enterprise`)
  * restano accettati a runtime e ricondotti dal client (`normalizePlan`).
  */
@@ -222,9 +222,9 @@ export interface Plot {
 }
 
 /**
- * Stato BUROCRATICO annuale di un appezzamento per una Campagna Agraria
- * (`plots_campaign`, SIAN/AGEA, LPIS/IACS). Associa un appezzamento fisico a una
- * coltura ({@link Crop}) per una determinata annata.
+ * Stato BUROCRATICO annuale di un plot per una Campagna Agraria
+ * (`plots_campaign`, SIAN/AGEA, LPIS/IACS). Associa un plot fisico a una
+ * crop ({@link Crop}) per una determinata annata.
  */
 export interface PlotCampaign {
   id: string;
@@ -238,7 +238,7 @@ export interface PlotCampaign {
   reference_parcel_external_id: string | null;
   /** Identificativo Plot SIAN (agricultural parcel). */
   agricultural_parcel_external_id: string | null;
-  /** Codifica rigida ministeriale della coltura. */
+  /** Codifica rigida ministeriale della crop. */
   crop_external_code: string | null;
   /** Codifica rigida ministeriale della varietà. */
   variety_external_code: string | null;
@@ -256,7 +256,7 @@ export interface PlotCampaign {
   deleted_at: string | null;
 }
 
-/** Sintesi dell'ultima operazione di campagna su un appezzamento (vista dettaglio). */
+/** Sintesi dell'ultima operation di campagna su un plot (vista dettaglio). */
 export interface LastOperation {
   plot_id: string;
   operation_type: OperationType;
@@ -291,7 +291,7 @@ export interface TreatmentLog {
   registration_number: string | null;
   dose_value: number | null;
   dose_unit: DoseUnit | null;
-  /** dose × superficie appezzamento, congelata al momento della registrazione. */
+  /** dose × superficie plot, congelata al momento della registrazione. */
   total_quantity: number | null;
   /** Avversità/patogeno bersaglio (ex avversita_target). */
   target_disease: string | null;
@@ -420,7 +420,7 @@ export interface SoilWaterIndex {
   calculated_at: string;
 }
 
-/** Evento di raccolta (`harvest_logs`, Modulo Harvest). */
+/** Evento di harvest (`harvest_logs`, Modulo Harvest). */
 export interface Harvest {
   id: string;
   tenant_id: string;
@@ -428,11 +428,11 @@ export interface Harvest {
   plot_id: string | null;
   /** Aggancio allo stato di Campagna Agraria del campo (FK plots_campaign). */
   plot_campaign_id: string | null;
-  /** Cultivar/varietà raccolta (categoria primaria dei grafici). */
+  /** Cultivar/varietà harvest (categoria primaria dei grafici). */
   cultivar: string | null;
-  /** Destinazione/logistica del prodotto (ex destinazione). */
+  /** Destinazione/logistica del product (ex destinazione). */
   destination_logistics: string | null;
-  /** Quantità raccolta in kg (metrica numerica aggregata: Somma/Media). */
+  /** Quantità harvest in kg (metrica numerica aggregata: Somma/Media). */
   quantity_kg: number | null;
   harvested_at: string;
   /** Posizione del conferimento; di norma il centroid dell'appezzamento. */
@@ -444,7 +444,7 @@ export interface Harvest {
   deleted_at: string | null;
 }
 
-/** Analisi di laboratorio georeferenziata del suolo (`soil_samples`). */
+/** Analisi di laboratorio georeferenziata del soil (`soil_samples`). */
 export interface SoilSample {
   id: string;
   tenant_id: string;
@@ -533,7 +533,7 @@ export interface CatalogEntry {
   name: string;
   /** Sostanza attiva (per i fitosanitari) (ex sostanza_attiva). */
   active_substance: string | null;
-  /** Numero di registrazione nazionale del prodotto (ex numero_registrazione). */
+  /** Numero di registrazione nazionale del product (ex numero_registrazione). */
   registration_number: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
@@ -545,7 +545,7 @@ export interface CatalogEntry {
 // ---------------------------------------------------------------------------
 
 /**
- * Categoria RIGIDA del prodotto di magazzino: determina i campi obbligatori
+ * Categoria RIGIDA del product di warehouse: determina i campi obbligatori
  * dell'anagrafica (vedi `validateProduct` nel modulo warehouse). `other` è la
  * categoria residuale (lubrificanti, materiali di consumo) senza campi extra.
  */
@@ -557,7 +557,7 @@ export type ProductCategory =
   | "other";
 
 /**
- * Anagrafica prodotto di magazzino (`products`). I campi specifici di categoria
+ * Anagrafica product di warehouse (`products`). I campi specifici di categoria
  * sono nullable a schema; l'obbligatorietà per categoria è enforced lato TS:
  * agrofarmaci → {@link Product.registration_number} (registro PAN); concimi →
  * titoli N-P-K; carburante → {@link Product.uma_code} (assegnazione UMA).
@@ -569,7 +569,7 @@ export interface Product {
   category: ProductCategory;
   /** Denominazione commerciale. */
   name: string;
-  /** Unità di misura della giacenza (es. "kg", "l"). */
+  /** Unità di misura della stock (es. "kg", "l"). */
   unit: string;
   /** N. di registrazione ministeriale PAN (obbligatorio per gli agrofarmaci). */
   registration_number: string | null;
@@ -587,17 +587,17 @@ export interface Product {
   supplier: string | null;
   /**
    * CUMP corrente (Costo Unitario Medio Ponderato): media ponderata mobile
-   * sulle giacenze, aggiornata in transazione a ogni carico lotto.
+   * sulle giacenze, aggiornata in transazione a ogni carico lot.
    */
   avg_unit_cost: number;
   notes: string | null;
   /**
    * Proprietà estensibili per categoria (JSONB). Chiavi convenzionali:
    * sementi → `species`, `scientific_name`, `variety_name`, `crop_category`
-   * ("seminativo"|"orticoltura", alimenta l'auto-assegnazione coltura alla
+   * ("seminativo"|"orticoltura", alimenta l'auto-assegnazione crop alla
    * semina); agrofarmaci → `safety_period_days`, `reentry_interval_h` (default
    * precompilati nel Quaderno); comune → `min_stock` (soglia di riordino
-   * nell'unità del prodotto).
+   * nell'unità del product).
    */
   metadata: Record<string, unknown>;
   created_at: string;
@@ -605,18 +605,18 @@ export interface Product {
   deleted_at: string | null;
 }
 
-/** Lotto di magazzino (`product_lots`): scadenza, giacenza e costo di carico. */
+/** Lotto di warehouse (`product_lots`): scadenza, stock e costo di carico. */
 export interface ProductLot {
   id: string;
   tenant_id: string;
   product_id: string;
-  /** Numero lotto di produzione. */
+  /** Numero lot di produzione. */
   lot_number: string | null;
   /** Data di scadenza (ISO "YYYY-MM-DD"), null se non deperibile. */
   expires_at: string | null;
-  /** Quantità caricata all'origine (nell'unità del prodotto). */
+  /** Quantità caricata all'origine (nell'unità del product). */
   initial_quantity: number;
-  /** Giacenza corrente; il CHECK `>= 0` a DB è la guardia atomica dello scarico. */
+  /** Giacenza corrente; il CHECK `>= 0` a DB è la guardia atomica dello issue. */
   quantity_on_hand: number;
   /** Costo unitario di carico (input del CUMP). */
   unit_cost: number;
@@ -626,17 +626,17 @@ export interface ProductLot {
 }
 
 /**
- * Scarico di un lotto in un'attività di campo (`activity_products`): quantità
- * e costo imputato con CUMP congelato al momento dello scarico.
+ * Scarico di un lot in un'attività di campo (`activity_products`): quantità
+ * e costo imputato con CUMP congelato al momento dello issue.
  */
 export interface ActivityProduct {
   id: string;
   tenant_id: string;
   treatment_log_id: string;
   product_lot_id: string;
-  /** Quantità scaricata (nell'unità del prodotto). */
+  /** Quantità scaricata (nell'unità del product). */
   quantity: number;
-  /** CUMP del prodotto al momento dello scarico (congelato). */
+  /** CUMP del product al momento dello issue (congelato). */
   unit_cost: number;
   /** Costo imputato = quantity × unit_cost. */
   total_cost: number;
@@ -645,7 +645,7 @@ export interface ActivityProduct {
   deleted_at: string | null;
 }
 
-/** Richiesta di scarico emessa dal form attività (lotto + quantità). */
+/** Richiesta di issue emessa dal form attività (lot + quantità). */
 export interface IssueRequest {
   product_lot_id: string;
   quantity: number;
@@ -659,10 +659,10 @@ export interface FieldProductCost {
 }
 
 // ---------------------------------------------------------------------------
-// Multiutente — posti collaboratore per azienda (`tenant_memberships`)
+// Multiutente — posti collaboratore per company (`tenant_memberships`)
 // ---------------------------------------------------------------------------
 
-/** Ruolo di un membro all'interno di una singola azienda. */
+/** Ruolo di un membro all'interno di una singola company. */
 export type MemberRole = "OWNER" | "MANAGER" | "VIEWER";
 
 /** Stato del posto: un invito pendente occupa il posto quanto un membro attivo. */
@@ -804,17 +804,17 @@ export type PlotsFeatureCollection = FeatureCollection<
     /**
      * CropType associata nella Campagna Agraria attiva (`plots_campaign` →
      * `crops`), pronta per il tooltip hover. `null` se l'appezzamento non ha una
-     * coltura associata per l'annata corrente.
+     * crop associata per l'annata corrente.
      */
     crop: string | null;
     /**
-     * Specie (nome comune, senza varietà) della coltura associata: chiave per la
-     * mappatura colore/icona (`cropStyle`). `null` se senza coltura.
+     * Specie (nome comune, senza varietà) della crop associata: chiave per la
+     * mappatura colore/icona (`cropStyle`). `null` se senza crop.
      */
     crop_kind: string | null;
     /**
      * Colore di riempimento per-feature (simplestyle-spec `fill`): grigio neutro
-     * se l'appezzamento non ha coltura, colore ad hoc della specie altrimenti.
+     * se l'appezzamento non ha crop, colore ad hoc della specie altrimenti.
      * Onorato dal renderer quando `simpleStyleEnabled` è attivo sul layer.
      */
     fill: string;

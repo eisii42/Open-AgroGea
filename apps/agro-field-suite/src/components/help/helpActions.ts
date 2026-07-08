@@ -21,7 +21,7 @@ export const FEEDBACK_EMAIL = "gea.watcher@gmail.com";
 export interface FeedbackMetadata {
   /** Lingua UI attiva (es. "it"). */
   language: string;
-  /** Tenant/azienda corrente, se in sessione. */
+  /** Tenant/company corrente, se in sessione. */
   tenantId: string | null;
 }
 

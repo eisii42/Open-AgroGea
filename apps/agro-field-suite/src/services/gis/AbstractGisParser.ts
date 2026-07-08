@@ -33,7 +33,7 @@ import {
   type SianProperties,
 } from "./sian-mapping";
 
-/** Record EU-agnostico prodotto da ogni adapter (allineato a `plots_campaign`). */
+/** Record EU-agnostico product da ogni adapter (allineato a `plots_campaign`). */
 export type MappedParcel = SianCampoMappato;
 
 /** Strategia di decodifica delle properties per una specifica nazione. */

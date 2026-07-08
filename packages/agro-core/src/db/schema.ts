@@ -16,7 +16,7 @@
  *   * la specie/varietà coltivata è ISOLATA nella nuova tabella `crops`
  *     (proprietà di filiera dentro `crop_metadata` JSONB), referenziata da
  *     `plots_campaign.crop_id`: l'appezzamento fisico (`plots_registry`) non
- *     porta più colonne colturali hardcoded (coltura/varieta/vite_*);
+ *     porta più colonne colturali hardcoded (crop/varieta/vite_*);
  *   * superficie: un'unica colonna `area_ha NUMERIC(10,4)` (eliminati i
  *     duplicati `superficie_ha`/`area_ettari`), autocompilata dal calcolo
  *     geometrico nel DAL.
@@ -33,33 +33,33 @@
  * v14 — additiva: tabella `scouting_observations` (rilievi GPS multidispositivo
  * sincronizzati via outbox). Foto via URL dello storage remoto dell'edizione.
  * Formato `gpkg` aggiunto al CHECK di `data_transfer_logs.file_format`.
- * Rimozione tipo operazione `survey` dai CHECK di `treatment_logs`.
+ * Rimozione tipo operation `survey` dai CHECK di `treatment_logs`.
  *
  * v15 — additiva: tabella `tenant_memberships` (multiutente: posti collaboratore
- * per azienda — owner/manager/viewer). Sincronizzata via outbox come le altre
+ * per company — owner/manager/viewer). Sincronizzata via outbox come le altre
  * tabelle di dominio; `tenant_memberships` aggiunta al CHECK di `sync_outbox`.
  *
  * v16 — additiva: Magazzino (0.2.0). Tre tabelle sincronizzate:
  *   * `products` — anagrafica products a categorie RIGIDE (agrofarmaci, concimi,
  *     sementi, carburante) con i campi specifici di categoria e il CUMP corrente
  *     (`avg_unit_cost`, media ponderata mobile aggiornata a ogni carico);
- *   * `product_lots` — lots con scadenza, giacenza corrente e costo di carico.
- *     Il CHECK `quantity_on_hand >= 0` è la guardia ATOMICA dello scarico: uno
- *     scarico che porterebbe la giacenza sotto zero fa fallire l'intera
- *     transazione (nessuno scarico parziale);
- *   * `activity_products` — giunzione attività (`treatment_logs`) ↔ lotto, con
+ *   * `product_lots` — lots con scadenza, stock corrente e costo di carico.
+ *     Il CHECK `quantity_on_hand >= 0` è la guardia ATOMICA dello issue: uno
+ *     issue che porterebbe la stock sotto zero fa fallire l'intera
+ *     transazione (nessuno issue parziale);
+ *   * `activity_products` — giunzione attività (`treatment_logs`) ↔ lot, con
  *     quantità scaricata e costo imputato (CUMP congelato al momento dello
- *     scarico): è la base del costo colturale per campo (0.4.0).
+ *     issue): è la base del costo colturale per campo (0.4.0).
  *   I campi testo libero di `treatment_logs` (`product_name`,
  *   `machinery_equipment`, …) restano INTATTI come fallback per i record non
- *   collegati a un lotto reale.
+ *   collegati a un lot reale.
  *   Rollback logico v16 (se serve annullare gli effetti): le tre tabelle sono
  *   solo-additive e nessuna colonna esistente è cambiata; basta 1) `delete from
  *   sync_outbox where table_name in ('products','product_lots',
  *   'activity_products')`, 2) `drop table activity_products, product_lots,
  *   products` (in quest'ordine per le FK). I dati pre-v16 non sono toccati.
  *
- * v17 — additiva: automazioni del ciclo colturale (semina → coltura → raccolto).
+ * v17 — additiva: automazioni del ciclo colturale (semina → crop → raccolto).
  *   * `products.metadata` JSONB: proprietà estensibili per categoria (sementi:
  *     identità colturale species/scientific_name/variety_name/crop_category;
  *     agrofarmaci: carenza/rientro di default; comune: scorta minima);
@@ -161,7 +161,7 @@ create index if not exists plots_registry_company_idx
   on plots_registry (company_id);
 
 -- plots_campaign — stato BUROCRATICO annuale del campo per Campagna Agraria,
--- LPIS/IACS compliant. Associa un appezzamento fisico a una coltura (crops) per
+-- LPIS/IACS compliant. Associa un plot fisico a una crop (crops) per
 -- una determinata annata; relazione 1:N su (plot_id, campaign_year).
 create table if not exists plots_campaign (
   id                              uuid primary key default gen_random_uuid(),
@@ -263,7 +263,7 @@ create table if not exists weather_readings (
 create index if not exists weather_readings_station_idx
   on weather_readings (company_id, station_id, measured_at desc);
 
--- soil_samples — analisi di laboratorio georeferenziate del suolo.
+-- soil_samples — analisi di laboratorio georeferenziate del soil.
 create table if not exists soil_samples (
   id                uuid primary key,
   tenant_id         uuid not null,
@@ -307,7 +307,7 @@ create table if not exists infrastructure_assets (
 create index if not exists infrastructure_assets_company_idx
   on infrastructure_assets (company_id, category);
 
--- harvest_logs — eventi di raccolto/conferimento per appezzamento (Modulo Harvest).
+-- harvest_logs — eventi di raccolto/conferimento per plot (Modulo Harvest).
 create table if not exists harvest_logs (
   id                   uuid primary key,
   tenant_id            uuid not null,
@@ -355,9 +355,9 @@ create index if not exists sync_outbox_pending_idx
   on sync_outbox (sync_status, created_at)
   where sync_status in ('pending', 'error');
 
--- weather_config — configurazione per-azienda della fonte meteo. Tabella
+-- weather_config — configurazione per-company della fonte meteo. Tabella
 -- LOCAL-ONLY: non transita dall'outbox (la api_key non lascia il device, ed è
--- stato di installazione). Una riga per azienda.
+-- stato di installazione). Una riga per company.
 create table if not exists weather_config (
   company_id           uuid primary key references companies (id) on delete cascade,
   tenant_id            uuid not null,
@@ -468,7 +468,7 @@ create index if not exists scouting_observations_tenant_idx
 alter table sync_outbox
   drop constraint if exists sync_outbox_table_name_check;
 
--- tenant_memberships — multiutente: posti collaboratore per singola azienda
+-- tenant_memberships — multiutente: posti collaboratore per singola company
 -- (company_id). Una riga = un membro (per email) con un ruolo. Sincronizzata via
 -- outbox come le altre tabelle di dominio (LWW su updated_at). I limiti per
 -- ruolo/piano sono enforced lato client (subscription-limits/MembershipGuard).
@@ -513,13 +513,13 @@ create index if not exists product_catalogs_country_idx
 
 -- v16 — Magazzino (0.2.0) ----------------------------------------------------
 
--- products — anagrafica products di magazzino a categorie RIGIDE. La categoria
+-- products — anagrafica products di warehouse a categorie RIGIDE. La categoria
 -- determina i campi obbligatori (enforced lato TS in validateProduct, come
 -- la validazione PAN; qui le colonne restano nullable per non irrigidire le
 -- migrazioni): agrofarmaci → registration_number (registro PAN); concimi →
 -- titoli N-P-K; carburante → codice assegnazione UMA. avg_unit_cost è il
 -- CUMP corrente (Costo Unitario Medio Ponderato, media ponderata mobile),
--- aggiornato in transazione a ogni carico lotto.
+-- aggiornato in transazione a ogni carico lot.
 create table if not exists products (
   id                  uuid primary key,
   tenant_id           uuid not null,
@@ -561,9 +561,9 @@ alter table products
 create index if not exists products_company_idx
   on products (company_id, category);
 
--- product_lots — lots di magazzino: numero lotto, scadenza, giacenza corrente
+-- product_lots — lots di warehouse: numero lot, scadenza, stock corrente
 -- e costo unitario di carico (input del CUMP). Il CHECK "quantity_on_hand >= 0"
--- è la guardia ATOMICA dello scarico: la transazione che porterebbe la giacenza
+-- è la guardia ATOMICA dello issue: la transazione che porterebbe la stock
 -- sotto zero fallisce per intero (nessuno stato parziale/inconsistente).
 create table if not exists product_lots (
   id               uuid primary key,
@@ -583,9 +583,9 @@ create table if not exists product_lots (
 create index if not exists product_lots_product_idx
   on product_lots (product_id, expires_at);
 
--- activity_products — giunzione attività ↔ lotto: quantità scaricata e costo
--- imputato, con unit_cost = CUMP del prodotto CONGELATO al momento dello
--- scarico (il CUMP successivo non riscrive la storia). Il costo confluisce sul
+-- activity_products — giunzione attività ↔ lot: quantità scaricata e costo
+-- imputato, con unit_cost = CUMP del product CONGELATO al momento dello
+-- issue (il CUMP successivo non riscrive la storia). Il costo confluisce sul
 -- campo trattato via treatment_logs.plot_id (bilancio di campo 0.4.0).
 create table if not exists activity_products (
   id               uuid primary key,

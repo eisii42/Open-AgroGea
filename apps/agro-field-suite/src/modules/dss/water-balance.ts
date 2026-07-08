@@ -39,9 +39,9 @@ export interface WaterBalanceParams {
   letture: WeatherReading[];
   /** Apporti irrigui giornalieri (mm), dai log gestionali. */
   irrigazioni?: ApportoIrriguo[];
-  coltura: CropType;
+  crop: CropType;
   phase: PhenologicalPhase;
-  suolo: SoilParameters;
+  soil: SoilParameters;
   /** Quota della stazione (m s.l.m.) per il termine altimetrico di ET0. */
   altitude?: number;
   /** Deplezione radicale iniziale Dr,0 (mm). */
@@ -220,7 +220,7 @@ function irrigazionePerGiorno(
 export function computeWaterBalance(
   params: WaterBalanceParams,
 ): WaterBalanceOutput {
-  const kc = getPhaseCalibration(params.coltura, params.phase).kc;
+  const kc = getPhaseCalibration(params.crop, params.phase).kc;
   const { meteo, rain, date } = serieAgrometeoDaLetture(
     params.letture,
     params.altitude ?? 0,
@@ -234,7 +234,7 @@ export function computeWaterBalance(
     series: WaterBalanceDay[];
     autonomyDays: number;
   } = waterBalanceFao66(
-    params.suolo,
+    params.soil,
     etcSeries,
     rain,
     irrSeries,

@@ -16,7 +16,7 @@ import type { PlotCampaign, Crop } from "../packages/agro-core/src/types";
  * Ciclo colturale v17: chiusura della campagna al raccolto (closed_at),
  * secondo raccolto nello stesso anno (indice unico parziale sulle campagne
  * aperte), metadata estensibile dei products (identità colturale sementi) e
- * risoluzione coltura→appezzamento che ignora le campagne chiuse.
+ * risoluzione crop→plot che ignora le campagne chiuse.
  */
 
 const TENANT = "11111111-1111-1111-1111-111111111111";
@@ -122,7 +122,7 @@ describe("v17 / metadata products (identità colturale sementi)", () => {
   it("upsertProduct persiste e preserva il metadata jsonb", async () => {
     const dal = await TestDal.create();
     const { companyId } = await seedPlot(dal);
-    const prodotto = await dal.upsertProduct({
+    const product = await dal.upsertProduct({
       company_id: companyId,
       category: "seed",
       name: "Frumento Bologna",
@@ -141,14 +141,14 @@ describe("v17 / metadata products (identità colturale sementi)", () => {
         min_stock: 50,
       },
     });
-    const riletto = await dal.getProduct(prodotto.id);
+    const riletto = await dal.getProduct(product.id);
     assert.equal(riletto?.metadata?.["species"], "Frumento tenero");
     assert.equal(riletto?.metadata?.["crop_category"], "seminativo");
     assert.equal(riletto?.metadata?.["min_stock"], 50);
 
     // Update anagrafico SENZA metadata: il jsonb esistente sopravvive.
     await dal.upsertProduct({
-      id: prodotto.id,
+      id: product.id,
       company_id: companyId,
       category: "seed",
       name: "Frumento Bologna (rinominato)",
@@ -160,7 +160,7 @@ describe("v17 / metadata products (identità colturale sementi)", () => {
       uma_code: null,
       notes: null,
     });
-    const dopo = await dal.getProduct(prodotto.id);
+    const dopo = await dal.getProduct(product.id);
     assert.equal(dopo?.metadata?.["variety_name"], "Bologna");
   });
 });

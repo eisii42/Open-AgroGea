@@ -97,7 +97,7 @@ function campo(
   };
 }
 
-function raccolta(
+function harvest(
   id: string,
   plot_id: string | null,
   harvested_at: string,
@@ -145,7 +145,7 @@ describe("filterSianTreatments · temporale", () => {
 });
 
 describe("filterSianTreatments · spaziale", () => {
-  it("filtra per appezzamento ed esclude le operazioni intera azienda", () => {
+  it("filtra per plot ed esclude le operazioni intera azienda", () => {
     const out = filterSianTreatments(TRATT, APPS, { appezzamentoIds: ["a1"] });
     assert.deepEqual(out.map((t) => t.id), ["t1"]);
   });
@@ -228,14 +228,14 @@ describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
     const [header, riga] = csv.split("\n");
     assert.equal(
       header,
-      "ID Isola SIAN;ID Plot SIAN;Codice coltura SIAN;Anno campagna",
+      "ID Isola SIAN;ID Plot SIAN;Codice crop SIAN;Anno campagna",
     );
     assert.equal(riga, "IS-1;AP-9;060;2026");
   });
 
   it("lascia vuoti i riferimenti senza campagna agganciata", () => {
     const csv = buildSianCsv(
-      [TRATT[2]], // operazione intera azienda, plot_campaign_id null e plot_id null
+      [TRATT[2]], // operation intera company, plot_campaign_id null e plot_id null
       APPS,
       {
         colonne: ["tipo_operazione", "crop_external_code"],
@@ -245,11 +245,11 @@ describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
       },
       [campo("a1", 2026)],
     );
-    // Tipo operazione in italiano (mai il codice interno "tillage"); ref vuoto.
+    // Tipo operation in italiano (mai il codice interno "tillage"); ref vuoto.
     assert.equal(csv, "Lavorazione;");
   });
 
-  it("FALLBACK: risolve i codici per appezzamento+anno se plot_campaign_id è null", () => {
+  it("FALLBACK: risolve i codici per plot+anno se plot_campaign_id è null", () => {
     // Operazione su a1 senza aggancio diretto (es. semina auto-assegnata):
     // i codici SIAN vengono comunque dalla campagna del plot per quell'anno.
     const senzaAggancio = { ...tratt("t9", "a1", "2026-04-01T08:00:00.000Z"), plot_campaign_id: null };
@@ -290,7 +290,7 @@ describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
   });
 });
 
-describe("buildSianCsv · tipo operazione localizzato", () => {
+describe("buildSianCsv · tipo operation localizzato", () => {
   it("default italiano leggibile, mai il codice interno", () => {
     const csv = buildSianCsv([TRATT[1]], APPS, {
       colonne: ["tipo_operazione"],
@@ -315,9 +315,9 @@ describe("buildSianCsv · tipo operazione localizzato", () => {
 });
 
 describe("raccolteToOperazioni · le harvests rientrano nel QDCA", () => {
-  it("mappa cultivar→prodotto, kg→quantità, destinazione e tipo harvest", () => {
+  it("mappa cultivar→product, kg→quantità, destinazione e tipo harvest", () => {
     const ops = raccolteToOperazioni([
-      raccolta("r1", "a1", "2026-09-15T08:00:00.000Z", {
+      harvest("r1", "a1", "2026-09-15T08:00:00.000Z", {
         plot_campaign_id: "cc-a1",
       }),
     ]);
@@ -337,7 +337,7 @@ describe("raccolteToOperazioni · le harvests rientrano nel QDCA", () => {
     assert.equal(csv, "Harvest;Sangiovese;3200;Cantina Sociale;060");
   });
 
-  it("le colonne raccolta restano vuote sulle operazioni non-harvest", () => {
+  it("le colonne harvest restano vuote sulle operazioni non-harvest", () => {
     const csv = buildSianCsv([TRATT[0]], APPS, {
       colonne: ["raccolta_kg", "destinazione"],
       separatore: ";",
@@ -349,7 +349,7 @@ describe("raccolteToOperazioni · le harvests rientrano nel QDCA", () => {
 
   it("esclude le harvests cancellate (tombstone)", () => {
     const ops = raccolteToOperazioni([
-      raccolta("r1", "a1", "2026-09-15T08:00:00.000Z", {
+      harvest("r1", "a1", "2026-09-15T08:00:00.000Z", {
         deleted_at: "2026-10-01T00:00:00.000Z",
       }),
     ]);

@@ -1,6 +1,6 @@
 /**
  * Scheda dettaglio di un'operazione del Quaderno di Campagna: modale centrale
- * in sola lettura con TUTTE le informazioni registrate (anagrafica trattamento,
+ * in sola lettura con TUTTE le informazioni registrate (anagrafica treatment,
  * dosi, operatore, sicurezza, note). Si apre al tap/click su una voce della
  * lista del Quaderno.
  */
@@ -27,18 +27,18 @@ function dataEstesa(value: string): string {
 }
 
 export function OperationDetailCard({
-  operazione,
+  operation,
   appezzamentoNome,
   onClose,
   onDelete,
 }: {
-  operazione: TreatmentLog;
+  operation: TreatmentLog;
   appezzamentoNome: string | null;
   onClose: () => void;
   onDelete: () => void | Promise<void>;
 }) {
   const { t } = useTranslation();
-  const o = operazione;
+  const o = operation;
   const dose =
     o.dose_value != null ? `${o.dose_value} ${o.dose_unit ?? ""}`.trim() : null;
 

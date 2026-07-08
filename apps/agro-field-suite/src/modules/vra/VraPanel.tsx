@@ -13,7 +13,7 @@ import {
 
 /**
  * Modulo "Mappe a rateo variabile" (VRA). Scheda separata da "Analisi indici":
- * l'agronomo sceglie appezzamento, indice di base, tipo di lavorazione, numero
+ * l'agronomo sceglie plot, indice di base, tipo di lavorazione, numero
  * di zone e i ratei (quantità) per zona; la mappa è zonata via K-means ed
  * esportabile per i terminali dei trattori (ISO-XML / GeoJSON).
  */
