@@ -33,7 +33,7 @@ function shortDate(iso: string): string {
 }
 
 export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
-  const { name, modulo, esiti, series, meteo, message } = risultato;
+  const { name, module, esiti, series, meteo, message } = risultato;
 
   // Livello complessivo = il peggiore tra i modelli patologici.
   const peggiore = esiti.reduce<DssRiskLevel | null>((acc, e) => {
@@ -49,14 +49,14 @@ export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
     <section className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-3">
       <div className="mb-2 flex items-baseline justify-between gap-2">
         <p className="text-sm font-semibold">{name}</p>
-        <p className="text-[11px] text-[var(--ink-4)]">{modulo.label}</p>
+        <p className="text-[11px] text-[var(--ink-4)]">{module.label}</p>
       </div>
 
       {meteo && (
         <p className="mb-2 text-[11px] text-[var(--ink-4)]">
           Meteo:{" "}
           {meteo.fonte === "private_station" ? "centralina aziendale" : "Open-Meteo"}
-          {meteo.fetched ? ` · aggiornato (${meteo.inserite} righe)` : " · da cache locale"}
+          {meteo.fetched ? ` · aggiornato (${meteo.inserite} rows)` : " · da cache locale"}
         </p>
       )}
 
@@ -104,7 +104,7 @@ export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
                   {ETICHETTA_RISCHIO[e.livello]}
                 </span>
                 <span className="agro-num w-6 text-right text-xs text-[var(--ink-3)]">
-                  {e.valore}
+                  {e.value}
                 </span>
               </div>
             ))}

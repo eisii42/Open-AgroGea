@@ -8,7 +8,7 @@
  *   * file `.csv` / tabellari di interscambio esportati dai portali CAA (parsing
  *     in JS, senza geometria: popolano solo lo stato burocratico).
  *
- * La decodifica dei campi rigidi ministeriali è delegata al modulo PURO
+ * La decodifica dei campi rigidi ministeriali è delegata al module PURO
  * {@link ./sian-mapping}, testabile sotto Node.
  */
 import { areaHectares } from "@agrogea/core";
@@ -30,13 +30,13 @@ function isPoligono(g: Geometry | null): g is Polygon | MultiPolygon {
   return g != null && (g.type === "Polygon" || g.type === "MultiPolygon");
 }
 
-/** Estensione (minuscola, senza punto) del nome file. */
-function estensione(nome: string): string {
-  const m = /\.([^.\\/]+)$/.exec(nome.trim().toLowerCase());
+/** Estensione (minuscola, senza punto) del name file. */
+function estensione(name: string): string {
+  const m = /\.([^.\\/]+)$/.exec(name.trim().toLowerCase());
   return m ? m[1] : "";
 }
 
-/** Mappa una FeatureCollection ministeriale in record di campo-campagna. */
+/** Mappa una FeatureCollection ministeriale in record di field-campagna. */
 export function mapFeatureCollection(
   fc: FeatureCollection,
 ): SianCampoMappato[] {

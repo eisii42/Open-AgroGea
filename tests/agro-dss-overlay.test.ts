@@ -4,7 +4,7 @@ import type { Plot } from "@agrogea/core";
 import {
   summaryCalibration,
   dssRiskColor,
-  costruisciOverlayDss,
+  buildDssOverlay,
   dssRiskLevelFn,
   dssRiskRamp,
   type FieldSummary,
@@ -97,7 +97,7 @@ describe("dssRiskColor / dssRiskLevelFn", () => {
   });
 });
 
-function apz(id: string): Plot {
+function plot(id: string): Plot {
   return {
     id,
     tenant_id: "t",
@@ -121,14 +121,14 @@ function apz(id: string): Plot {
 }
 
 describe("costruisciOverlayDss", () => {
-  it("colora gli plots con sintesi e omette gli altri", () => {
-    const plots = [apz("a"), apz("b"), apz("c")];
-    const sintesi = new Map<string, FieldSummary>([
+  it("colora gli plots con summary e omette gli altri", () => {
+    const plots = [plot("a"), plot("b"), plot("c")];
+    const summary = new Map<string, FieldSummary>([
       ["a", { rischio01: 0.05 }],
       ["c", { rischio01: 0.9 }],
     ]);
-    const fc = costruisciOverlayDss(plots, sintesi, dssRiskRamp("vite"));
-    assert.equal(fc.features.length, 2); // b è omesso (niente sintesi)
+    const fc = buildDssOverlay(plots, summary, dssRiskRamp("vite"));
+    assert.equal(fc.features.length, 2); // b è omesso (niente summary)
     const a = fc.features.find((f) => f.properties?.id === "a");
     const c = fc.features.find((f) => f.properties?.id === "c");
     assert.equal(a?.properties?.livello, "ottimale");

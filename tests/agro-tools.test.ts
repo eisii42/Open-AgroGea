@@ -81,7 +81,7 @@ describe("indici spettrali", () => {
     assert.ok(veg[0] > 0 && veg[0] <= 1);
   });
 
-  it("soil-mask azzera i pixel sotto soglia e calcola la copertura", () => {
+  it("soil-mask azzera i pixel sotto soglia e compute la copertura", () => {
     const idx = f32([0.1, 0.5, 0.2, 0.8]);
     const masked = applySoilMask(idx, 0.3);
     assert.ok(Number.isNaN(masked[0]) && Number.isNaN(masked[2]));
@@ -144,7 +144,7 @@ describe("zonazione VRA", () => {
   it("dose conservativa: più dose dove il vigore è basso", () => {
     const res = kmeansZoning(f32([0.2, 0.21, 0.8, 0.81]), 2);
     const dosi = dosesPerClass(res.classi, 100, "conservativa", 0.3);
-    // ordinate per centroid crescente: la prima (vigore basso) ha dose maggiore
+    // sortedList per centroid crescente: la prima (vigore basso) ha dose maggiore
     assert.ok(dosi[0].dose > dosi[1].dose);
   });
 
@@ -403,7 +403,7 @@ describe("pipeline STAC multi-index e series temporale", () => {
     assert.deepEqual([...requiredBandsForIndices(["ndvi"])].sort(), ["B04", "B08"]);
   });
 
-  it("extractSceneSeries tiene solo le scene complete, ordinate per data desc", () => {
+  it("extractSceneSeries tiene solo le scene complete, sortedList per data desc", () => {
     const collection: StacItemCollection = {
       features: [
         {
@@ -508,7 +508,7 @@ describe("pipeline STAC multi-index e series temporale", () => {
   });
 
   it("filterWindowFromLatest ancora la finestra all'ultima scena, non a oggi", () => {
-    // Scene ordinate desc; l'ultima utile è 40 gg fa (passaggi recenti nuvolosi).
+    // Scene sortedList desc; l'ultima utile è 40 gg fa (passaggi recenti nuvolosi).
     const mk = (giorniFa: number) => ({
       itemId: `s${giorniFa}`,
       datetime: new Date(Date.now() - giorniFa * 86400000).toISOString(),

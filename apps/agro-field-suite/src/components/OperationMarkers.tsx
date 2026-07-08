@@ -78,7 +78,7 @@ interface MarkerEntry {
 }
 
 // Le icone hanno dimensione fissa RISPETTO ALL'APPEZZAMENTO (geografica), non in
-// pixel: senza questo, lo zoom-out rimpicciolisce il campo ma non l'icona, che
+// pixel: senza questo, lo zoom-out rimpicciolisce il field ma non l'icona, che
 // appare enorme. Scaliamo come un oggetto al soil (× 2^(zoom-rif)), con clamp
 // per restare leggibili/cliccabili agli estremi.
 const REF_ZOOM = 16;
@@ -158,7 +158,7 @@ export function OperationMarkers({
     markersRef.current = entries;
     setSlots(created);
 
-    // Scaling geografico: a ogni zoom aggiorna la dimensione dell'icona (via CSS
+    // Scaling geografico: a ogni zoom update la dimensione dell'icona (via CSS
     // var letta dal badge) e il raggio dell'anello (offset del marker), così i
     // simboli restano proporzionati all'appezzamento.
     const updateScale = () => {
@@ -190,7 +190,7 @@ function OpBadge({ op }: { op: TreatmentLog }) {
   const Icon = OP_ICON[op.operation_type] ?? Leaf;
   const color = OP_COLOR[op.operation_type] ?? "#64748b";
   const data = new Date(op.executed_at).toLocaleDateString("it-IT");
-  const titolo = [
+  const title = [
     OP_LABEL[op.operation_type] ?? op.operation_type,
     op.product_name,
     data,
@@ -199,7 +199,7 @@ function OpBadge({ op }: { op: TreatmentLog }) {
     .join(" · ");
   return (
     <span
-      title={titolo}
+      title={title}
       className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white shadow-[var(--sh-1)]"
       style={{
         background: color,

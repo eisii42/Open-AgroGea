@@ -133,7 +133,7 @@ function media(valori: number[], fallback: number): number {
  * canali assenti ricadono su default agronomici editabili (RH 50/90 %, vento
  * 2 m/s, radiation 0) così ET0 non riceve mai NaN. Ordina per data crescente.
  */
-export function serieAgrometeoDaLetture(
+export function agrometeoSeriesFromReadings(
   letture: WeatherReading[],
   altitude = 0,
 ): { meteo: WeatherDataDay[]; rain: number[]; date: string[] } {
@@ -221,7 +221,7 @@ export function computeWaterBalance(
   params: WaterBalanceParams,
 ): WaterBalanceOutput {
   const kc = getPhaseCalibration(params.crop, params.phase).kc;
-  const { meteo, rain, date } = serieAgrometeoDaLetture(
+  const { meteo, rain, date } = agrometeoSeriesFromReadings(
     params.letture,
     params.altitude ?? 0,
   );

@@ -38,7 +38,7 @@ function csvCell(value: unknown, separatore: SeparatoreCsv): string {
  */
 /**
  * Contesto passato agli estrattori di colonna: risolutori dipendenti dalla UI
- * (es. l'etichetta localizzata del tipo operation) che il modulo puro non può
+ * (es. l'etichetta localizzata del tipo operation) che il module puro non può
  * conoscere. Opzionale: senza, gli estrattori usano i default italiani.
  */
 export interface SianColumnContext {
@@ -52,7 +52,7 @@ export interface SianColumn {
   value: (
     t: TreatmentLog,
     app: Plot | undefined,
-    campo: PlotCampaign | undefined,
+    field: PlotCampaign | undefined,
     ctx?: SianColumnContext,
   ) => unknown;
 }
@@ -185,7 +185,7 @@ export const COLONNE_SIAN: SianColumn[] = [
     label: "Carenza (gg)",
     value: (t) => t.safety_period_days ?? "",
   },
-  // -- colonne del Modulo Harvest (righe con tipo_operazione = harvest) --
+  // -- colonne del Modulo Harvest (rows con tipo_operazione = harvest) --
   {
     id: "raccolta_kg",
     label: "Quantità harvest (kg)",
@@ -226,7 +226,7 @@ export const COLONNE_SIAN_DEFAULT: string[] = [
   "operatore_cf",
   "num_patentino",
   "carenza_giorni",
-  // Harvest (QDCA): valorizzate solo sulle righe harvest, vuote altrove.
+  // Harvest (QDCA): valorizzate solo sulle rows harvest, vuote altrove.
   "raccolta_kg",
   "destinazione",
 ];
@@ -310,7 +310,7 @@ export function filterSianTreatments(
 }
 
 /** Risolve gli id colonna della config nelle definizioni effettive (ordine config). */
-export function risolviColonne(ids: string[]): SianColumn[] {
+export function resolveColumns(ids: string[]): SianColumn[] {
   const perId = new Map(COLONNE_SIAN.map((c) => [c.id, c]));
   return ids
     .map((id) => perId.get(id))
@@ -355,7 +355,7 @@ export function buildSianCsv(
   config: SianExportConfig = CONFIG_SIAN_DEFAULT,
   campaignFields: PlotCampaign[] = [],
   // Risolve l'etichetta di intestazione per colonna; default = etichetta IT
-  // hardcoded (usata dai test e da chi consuma il modulo fuori dalla UI).
+  // hardcoded (usata dai test e da chi consuma il module fuori dalla UI).
   resolveLabel: (col: SianColumn) => string = (col) => col.label,
   ctx: SianColumnContext = {},
 ): string {
@@ -370,16 +370,16 @@ export function buildSianCsv(
     list.push(c);
     perPlotAnno.set(key, list);
   }
-  const cols = risolviColonne(config.colonne);
+  const cols = resolveColumns(config.colonne);
   const sep = config.separatore;
-  const righe = treatments.map((t) => {
+  const rows = treatments.map((t) => {
     const app = t.plot_id ? perId.get(t.plot_id) : undefined;
-    const campo = resolveField(t, perCampo, perPlotAnno);
-    return cols.map((c) => csvCell(c.value(t, app, campo, ctx), sep)).join(sep);
+    const field = resolveField(t, perCampo, perPlotAnno);
+    return cols.map((c) => csvCell(c.value(t, app, field, ctx), sep)).join(sep);
   });
   const lines = config.includiIntestazioni
-    ? [cols.map((c) => csvCell(resolveLabel(c), sep)).join(sep), ...righe]
-    : righe;
+    ? [cols.map((c) => csvCell(resolveLabel(c), sep)).join(sep), ...rows]
+    : rows;
   return lines.join("\n");
 }
 
@@ -432,16 +432,16 @@ export function raccolteToOperazioni(
 }
 
 /** Nome file deterministico per l'export. */
-export function nomeFileSian(nomeAzienda = "azienda"): string {
+export function sianFileName(nomeAzienda = "azienda"): string {
   const slug = nomeAzienda.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "azienda";
   return `quaderno-sian-${slug}-${new Date().toISOString().slice(0, 10)}.csv`;
 }
 
 /**
- * Scarica il CSV nel browser. Ritorna il nome file usato (per il giornale
+ * Scarica il CSV nel browser. Ritorna il name file usato (per il giornale
  * trasferimenti). Separata dalla logica pura per restare testabile.
  */
-export function scaricaSianCsv(
+export function downloadSianCsv(
   csv: string,
   config: SianExportConfig,
   nomeAzienda = "azienda",
@@ -449,18 +449,18 @@ export function scaricaSianCsv(
   const contenuto = config.bom ? `﻿${csv}` : csv;
   const blob = new Blob([contenuto], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
-  const nomeFile = nomeFileSian(nomeAzienda);
+  const fileName = sianFileName(nomeAzienda);
   const a = document.createElement("a");
   a.href = url;
-  a.download = nomeFile;
+  a.download = fileName;
   a.click();
   URL.revokeObjectURL(url);
-  return nomeFile;
+  return fileName;
 }
 
 /**
  * Esporta il CSV con la config corrente (filtri già applicati a monte). Comodità
- * usata dal dialog di export. Ritorna il nome del file scaricato.
+ * usata dal dialog di export. Ritorna il name del file scaricato.
  */
 export function esportaSianCsv(
   treatments: TreatmentLog[],
@@ -479,5 +479,5 @@ export function esportaSianCsv(
     resolveLabel,
     ctx,
   );
-  return scaricaSianCsv(csv, config, nomeAzienda);
+  return downloadSianCsv(csv, config, nomeAzienda);
 }

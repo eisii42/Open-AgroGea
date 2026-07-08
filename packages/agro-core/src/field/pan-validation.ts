@@ -7,7 +7,7 @@
  * `validation`), risolta dalla UI con `t()`. Testabile sotto `node --test`.
  */
 
-/** Errore di validazione: campo + chiave i18n del messaggio. */
+/** Errore di validazione: field + chiave i18n del messaggio. */
 export interface ValidationError {
   field: string;
   messageKey: string;

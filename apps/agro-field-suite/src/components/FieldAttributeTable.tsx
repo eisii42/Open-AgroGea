@@ -20,7 +20,7 @@ import { DetachedWindow } from "./DetachedWindow";
  * gestione del territorio). Inseriti nel calcolatore come chip cliccabili via
  * `insertExpressionSnippet`, così l'agronomo applica una formula validata senza
  * digitarla. Usano l'accesso `props["campo"]` per essere robusti a nomi con
- * spazi/maiuscole e per non dipendere dalla validità del campo come identificatore.
+ * spazi/maiuscole e per non dipendere dalla validità del field come identificatore.
  */
 function getAgroExpressionSnippets(t: TFunction): ExpressionSnippet[] {
   return [
@@ -56,7 +56,7 @@ function getTableOptions(t: TFunction): { layerId: string; label: string }[] {
 }
 
 /**
- * Host campo della tabella attributi condivisa (`@geolibre/attribute-table`).
+ * Host field della tabella attributi condivisa (`@geolibre/attribute-table`).
  * Sceglie le opzioni specifiche di AgroGea:
  *  - selettore esplicito tra le 3 tabelle ammesse (non auto-attivazione per layer);
  *  - schema bloccato: niente add/rename/move/delete colonne né dati — solo
@@ -79,7 +79,7 @@ export function FieldAttributeTable({
 
   const tableOptions = getTableOptions(t);
 
-  // All'apertura (o se la selezione non è una delle tabelle ammesse) seleziona la
+  // All'apertura (o se la selezione non è una delle tabelle ammesse) select la
   // prima tabella disponibile, così la vista parte popolata invece che vuota.
   useEffect(() => {
     const ids = tableOptions.map((o) => o.layerId);
@@ -110,7 +110,7 @@ export function FieldAttributeTable({
         if (format === "csv" || format === "geojson") {
           return downloadTextVectorLayer(geojson, format, baseName);
         }
-        // Shapefile (.zip): writer puro condiviso col modulo VRA.
+        // Shapefile (.zip): writer puro condiviso col module VRA.
         if (format === "shapefile") {
           const artifact = serializzaVettoriale(geojson, "shapefile", baseName);
           downloadArtifact(artifact);

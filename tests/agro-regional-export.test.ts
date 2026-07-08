@@ -16,12 +16,12 @@ import {
   type RegionalExportInput,
 } from "../apps/agro-field-suite/src/lib/regionalExport";
 
-function plot(id: string, nome: string): Plot {
+function plot(id: string, name: string): Plot {
   return {
     id,
     tenant_id: "t",
     company_id: "az",
-    user_plot_name: nome,
+    user_plot_name: name,
     cadastral_sheet: null,
     cadastral_parcel: null,
     area_ha: 2,

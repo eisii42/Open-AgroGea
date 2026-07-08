@@ -104,7 +104,7 @@ export function useCommandCenterData(
   // Appezzamenti dello scope da cui caricare i `dss_results`. ALLINEATO al motore:
   // se l'annata non ha record di Campagna Agraria e non c'è filtro crop, il
   // fallback è company-wide (TUTTI gli plots) — così i DSS calcolati su
-  // plot senza campagna vengono comunque caricati e il Command Center si aggiorna.
+  // plot senza campagna vengono comunque caricati e il Command Center si update.
   const companyWide = scopedCampaigns.length === 0 && !cropId;
   const scopePlotIds = useMemo(
     () =>

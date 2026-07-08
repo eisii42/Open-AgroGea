@@ -7,8 +7,8 @@
  * dispositivo) e lo storage è marcato `local`, così il Sync Engine adotta il
  * {@link LocalOnlySyncTarget} e non tocca mai la rete.
  *
- * Questo modulo NON dipende da alcun control plane: è consumabile sia dall'app
- * di campo in modalità standalone sia, in futuro, dalla shell OSS.
+ * Questo module NON dipende da alcun control plane: è consumabile sia dall'app
+ * di field in modalità standalone sia, in futuro, dalla shell OSS.
  */
 
 import type { NewCompanyInput } from "./store";

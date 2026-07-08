@@ -320,11 +320,11 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       syncRouter?.notifyLocalWrite();
       // L'ultima operation mostrata nella scheda dettaglio può essere quella
       // appena eliminata: la si ricalcola per l'appezzamento selezionato.
-      const apzId = get().selectedPlotId;
-      if (apzId) {
-        const ultima = await dal.lastOperation(apzId);
-        if (get().selectedPlotId === apzId) {
-          set({ lastOperation: ultima });
+      const plotId = get().selectedPlotId;
+      if (plotId) {
+        const last = await dal.lastOperation(plotId);
+        if (get().selectedPlotId === plotId) {
+          set({ lastOperation: last });
         }
       }
     },
@@ -344,11 +344,11 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       syncRouter?.notifyLocalWrite();
       // L'ultima operation mostrata nella scheda dettaglio può essere quella
       // appena modificata: la si ricalcola per l'appezzamento selezionato.
-      const apzId = get().selectedPlotId;
-      if (apzId && (record.plot_id === apzId || existing.plot_id === apzId)) {
-        const ultima = await dal.lastOperation(apzId);
-        if (get().selectedPlotId === apzId) {
-          set({ lastOperation: ultima });
+      const plotId = get().selectedPlotId;
+      if (plotId && (record.plot_id === plotId || existing.plot_id === plotId)) {
+        const last = await dal.lastOperation(plotId);
+        if (get().selectedPlotId === plotId) {
+          set({ lastOperation: last });
         }
       }
       return record;
@@ -422,7 +422,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       const { dal, syncRouter } = get();
       if (!dal || !get().activeCompanyId) return null;
       const record = await dal.upsertCampoCampagna(input);
-      // Idrata solo se appartiene alla campagna attiva (evita righe fuori anno).
+      // Idrata solo se appartiene alla campagna attiva (evita rows fuori anno).
       if (record.campaign_year === get().activeCampaign) {
         set((s) => ({
           campaignFields: [
@@ -528,7 +528,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       const { dal, activeCompanyId, syncRouter } = get();
       if (!dal || !activeCompanyId) return null;
       const record = await dal.receiveLot(input);
-      // Il carico aggiorna anche il CUMP del product: si riidratano entrambi.
+      // Il carico update anche il CUMP del product: si riidratano entrambi.
       const [products, lots] = await Promise.all([
         dal.listProducts(activeCompanyId),
         dal.listLotti(activeCompanyId),

@@ -7,15 +7,15 @@ import type {
 /**
  * Contratti dei moduli per crop (refactor architetturale §3).
  *
- * Ogni crop ha un suo modulo verticale sotto `src/modules/crops/<crop>/`
+ * Ogni crop ha un suo module verticale sotto `src/modules/crops/<crop>/`
  * che **compone** gli engine puri di `@agrogea/tools` (fenologia, fitopatologia,
  * agrometeo) — la logica di calcolo NON viene duplicata né spostata: i pacchetti
- * restano isolati e testati. Il modulo dichiara solo cosa è specifico della
+ * restano isolati e testati. Il module dichiara solo cosa è specifico della
  * crop: i suoi DSS patologici, la specie fenologica di riferimento (da cui
  * derivano Kc per phase, soglie GDD e soil-mask) e i widget UI di dettaglio.
  */
 
-/** Categoria crop a livello di plot (campo `coltura` del dominio). */
+/** Categoria crop a livello di plot (field `coltura` del dominio). */
 export type CropCategory =
   | "viticoltura"
   | "seminativo"
@@ -25,7 +25,7 @@ export type CropCategory =
 
 /**
  * Record meteo giornaliero unificato per i DSS (superset dei campi richiesti
- * dai singoli motori di `fitopatologia`). Ogni modulo adatta questa series alla
+ * dai singoli motori di `fitopatologia`). Ogni module adatta questa series alla
  * forma attesa dall'engine che compone.
  */
 export interface DssWeatherDay {
@@ -77,11 +77,11 @@ export interface DssModel {
 
 /** Modulo verticale di una crop. */
 export interface CropModule {
-  /** Id stabile del modulo (es. "vite"). */
+  /** Id stabile del module (es. "vite"). */
   id: string;
   /** Etichetta UI (es. "Vite"). */
   label: string;
-  /** Categorie di plot gestite da questo modulo. */
+  /** Categorie di plot gestite da questo module. */
   categories: CropCategory[];
   /**
    * Specie fenologica di riferimento per Kc/soil-mask/GDD (chiave delle matrici

@@ -184,7 +184,7 @@ function profonditaCoordinate(value: unknown): number {
  * Z/M. Il GeoEditor su mappa con terreno/globo può emettere coordinate 3D
  * `[lng, lat, z]`; la colonna PostGIS lato server è 2D (`geometry(…, 4326)`),
  * quindi un upsert con la Z fallisce con «Geometry has Z dimensions but column
- * does not». Si tronca a 2 ordinate prima di persistere.
+ * does not». Si tronca a 2 sortedList prima di persistere.
  */
 function coord2D(value: unknown): unknown {
   if (!Array.isArray(value)) return value;

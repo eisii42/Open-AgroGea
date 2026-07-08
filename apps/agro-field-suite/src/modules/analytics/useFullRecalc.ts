@@ -10,7 +10,7 @@ import { cropModuleForCrop } from "../crops";
 /**
  * Orchestratore "Calcola tutto" del Command Center: per OGNI plot esegue
  * in sequenza gli indici satellitari (NDVI, pipeline STAC) e, se la crop ha un
- * modulo DSS, i modelli previsionali + il bilancio idrico FAO 56/66. Persiste
+ * module DSS, i modelli previsionali + il bilancio idrico FAO 56/66. Persiste
  * `last_ndvi_mean`, `dss_results` e `soil_water_indices` (riusa i due hook
  * esistenti) e riporta un avanzamento granulare per la barra di caricamento.
  *
@@ -23,7 +23,7 @@ export interface FullRecalcState {
   total: number;
   /** Appezzamenti completati. */
   done: number;
-  /** Etichetta della fase corrente (campo + cosa si sta calcolando). */
+  /** Etichetta della fase corrente (field + cosa si sta calcolando). */
   label: string;
   /** Numero di errori non bloccanti incontrati. */
   errors: number;
@@ -38,7 +38,7 @@ const IDLE: FullRecalcState = {
 };
 
 // "Calcola tutto" rinfresca l'NDVI (vigore) sull'ultima scena utile: sufficiente
-// per l'anomalia ΔNDVI e per i KPI; l'utente può poi approfondire dal modulo Suolo.
+// per l'anomalia ΔNDVI e per i KPI; l'utente può poi approfondire dal module Suolo.
 const SUOLO_OPZIONI: SoilOptions = {
   indici: ["ndvi"],
   indicePrimario: "ndvi",
@@ -71,22 +71,22 @@ export function useFullRecalc(onDone?: () => void) {
         label: `Indici satellitari · ${plot.user_plot_name}`,
       }));
       try {
-        await soil.calcola([plot], SUOLO_OPZIONI);
+        await soil.compute([plot], SUOLO_OPZIONI);
       } catch {
         errors++;
       }
 
-      // 2) DSS patologici + bilancio idrico (solo se la crop ha un modulo).
-      const modulo = cropModuleForCrop(
+      // 2) DSS patologici + bilancio idrico (solo se la crop ha un module).
+      const module = cropModuleForCrop(
         cropForPlot(plot.id, campaignFields, crops),
       );
-      if (modulo) {
+      if (module) {
         setState((s) => ({
           ...s,
           label: `DSS & bilancio idrico · ${plot.user_plot_name}`,
         }));
         try {
-          await dss.calcola([{ plot: plot, modulo }], {
+          await dss.compute([{ plot: plot, module }], {
             skipWaterBalance: false,
           });
         } catch {

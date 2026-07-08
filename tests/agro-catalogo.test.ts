@@ -37,7 +37,7 @@ describe("Modulo 3 / cataloghi filtrati per country_code", () => {
     assert.equal(es.rows.length, 2);
     assert.deepEqual(
       es.rows.map((r) => (r as { code: string }).code),
-      ["ES-778", "ES-777"], // ordinati per nome: Azufre… poi Caldo…
+      ["ES-778", "ES-777"], // sorted per name: Azufre… poi Caldo…
     );
   });
 

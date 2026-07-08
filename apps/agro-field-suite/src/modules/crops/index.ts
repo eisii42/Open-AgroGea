@@ -7,7 +7,7 @@ import { grapevineModule } from "./grapevine";
 
 /**
  * Registro dei moduli per crop (refactor §3). Punto unico da cui la UI
- * risolve il modulo verticale di un plot a partire dalla sua categoria
+ * risolve il module verticale di un plot a partire dalla sua categoria
  * crop. Aggiungere una crop = creare la cartella e registrarla qui.
  */
 export const CROP_MODULES: CropModule[] = [
@@ -19,8 +19,8 @@ export const CROP_MODULES: CropModule[] = [
 ];
 
 const PER_CATEGORIA = new Map<string, CropModule>(
-  CROP_MODULES.flatMap((modulo) =>
-    modulo.categories.map((categoria) => [categoria, modulo] as const),
+  CROP_MODULES.flatMap((module) =>
+    module.categories.map((categoria) => [categoria, module] as const),
   ),
 );
 
@@ -34,7 +34,7 @@ export function cropModuleForCrop(
 
 /** Modulo crop per id stabile (es. "vite"). */
 export function cropModuleById(id: string): CropModule | undefined {
-  return CROP_MODULES.find((modulo) => modulo.id === id);
+  return CROP_MODULES.find((module) => module.id === id);
 }
 
 export { cropWaterBalance } from "./shared/balance";

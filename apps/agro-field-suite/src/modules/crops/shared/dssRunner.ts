@@ -4,8 +4,8 @@ import type { DssContext, CropModule, DssModel, DssWeatherDay } from "../types";
 
 /**
  * Runner dei DSS di crop (refactor §3): esegue in locale i modelli del
- * modulo su una series meteo costruita da PGlite e ne ricava sia gli alert
- * ricchi per la UI (timeline/messaggi) sia le righe sintetiche da persistere in
+ * module su una series meteo costruita da PGlite e ne ricava sia gli alert
+ * ricchi per la UI (timeline/messaggi) sia le rows sintetiche da persistere in
  * `dss_risultati`. Non duplica logica: ogni `dss.evaluate` compone i motori puri
  * di `@agrogea/tools`.
  */
@@ -19,7 +19,7 @@ export interface DssOutcome {
   modelloNome: string;
   livello: DssRiskLevel;
   /** Indice numerico salvato in `valore_output` (0 se nessun alert). */
-  valore: number;
+  value: number;
 }
 
 /** Riduce i 4 livelli del motore ai 3 della cache DSS ('nullo' → 'low'). */
@@ -34,13 +34,13 @@ function normalizzaLivello(risk: RiskLevel): DssRiskLevel {
   }
 }
 
-/** Esegue tutti i DSS del modulo sulla series, con guardia anti-crash per model. */
+/** Esegue tutti i DSS del module sulla series, con guardia anti-crash per model. */
 export function runDssModule(
-  modulo: CropModule,
+  module: CropModule,
   series: DssWeatherDay[],
   context?: DssContext,
 ): DssOutcome[] {
-  return modulo.dss.map((dss) => {
+  return module.dss.map((dss) => {
     let alert: PhytopathologyAlert | null = null;
     try {
       alert = series.length > 0 ? dss.evaluate(series, context) : null;
@@ -51,14 +51,14 @@ export function runDssModule(
     return {
       dss,
       alert,
-      modelloNome: `${modulo.id}_${dss.id}`,
+      modelloNome: `${module.id}_${dss.id}`,
       livello: alert ? normalizzaLivello(alert.risk) : "low",
-      valore: alert?.index ?? 0,
+      value: alert?.index ?? 0,
     };
   });
 }
 
-/** Proietta gli esiti nelle righe accettate da `AgroDal.saveDssResults`. */
+/** Proietta gli esiti nelle rows accettate da `AgroDal.saveDssResults`. */
 export function outcomesToDssResults(
   esiti: DssOutcome[],
 ): Array<{
@@ -69,6 +69,6 @@ export function outcomesToDssResults(
   return esiti.map((e) => ({
     model_name: e.modelloNome,
     risk_level: e.livello,
-    output_value: e.valore,
+    output_value: e.value,
   }));
 }

@@ -8,7 +8,7 @@ import type { GeoLibreLayer } from "@geolibre/core";
 
 export interface VoceLegenda {
   id: string;
-  nome: string;
+  name: string;
   colore: string;
 }
 
@@ -38,13 +38,13 @@ export function buildLegenda(layers: GeoLibreLayer[]): VoceLegenda[] {
     })
     .map((layer) => ({
       id: layer.id,
-      nome: layer.name,
+      name: layer.name,
       colore: coloreLayer(layer),
     }));
 }
 
 export interface PrintOptions {
-  titolo: string;
+  title: string;
   note?: string;
   legenda: VoceLegenda[];
   mostraScala: boolean;
@@ -94,7 +94,7 @@ export function buildPrintSvg(opts: PrintOptions): string {
   for (const voce of opts.legenda) {
     blocchi.push(
       `<rect x="${panelX}" y="${y - 11}" width="14" height="14" rx="3" fill="${esc(voce.colore)}" stroke="#ffffff"/>`,
-      `<text x="${panelX + 22}" y="${y}" font-size="12" fill="#333d47">${esc(voce.nome)}</text>`,
+      `<text x="${panelX + 22}" y="${y}" font-size="12" fill="#333d47">${esc(voce.name)}</text>`,
     );
     y += 22;
   }
@@ -129,7 +129,7 @@ export function buildPrintSvg(opts: PrintOptions): string {
       `<text x="${panelX}" y="${y}" font-size="11" font-weight="700" fill="#1a2733">Note</text>`,
     );
     y += 18;
-    // Spezza le note su più righe (~38 caratteri).
+    // Spezza le note su più rows (~38 caratteri).
     for (const riga of spezza(opts.note, 38)) {
       blocchi.push(
         `<text x="${panelX}" y="${y}" font-size="11" fill="#333d47">${esc(riga)}</text>`,
@@ -145,7 +145,7 @@ export function buildPrintSvg(opts: PrintOptions): string {
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">` +
     `<rect width="${W}" height="${H}" fill="#ffffff"/>` +
-    `<text x="${margine}" y="40" font-size="20" font-weight="800" fill="#1a2733">${esc(opts.titolo)}</text>` +
+    `<text x="${margine}" y="40" font-size="20" font-weight="800" fill="#1a2733">${esc(opts.title)}</text>` +
     mappa +
     `<rect x="${mapX}" y="${mapY}" width="${mapW}" height="${mapH}" fill="none" stroke="#cdd6df"/>` +
     blocchi.join("") +
@@ -154,19 +154,19 @@ export function buildPrintSvg(opts: PrintOptions): string {
   );
 }
 
-/** Spezza un testo in righe di al più `max` caratteri, senza tagliare le parole. */
+/** Spezza un testo in rows di al più `max` caratteri, senza tagliare le parole. */
 export function spezza(testo: string, max: number): string[] {
   const parole = testo.split(/\s+/).filter(Boolean);
-  const righe: string[] = [];
+  const rows: string[] = [];
   let corrente = "";
   for (const parola of parole) {
     if (corrente.length + parola.length + 1 > max && corrente) {
-      righe.push(corrente);
+      rows.push(corrente);
       corrente = parola;
     } else {
       corrente = corrente ? `${corrente} ${parola}` : parola;
     }
   }
-  if (corrente) righe.push(corrente);
-  return righe;
+  if (corrente) rows.push(corrente);
+  return rows;
 }

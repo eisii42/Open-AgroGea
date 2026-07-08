@@ -62,7 +62,7 @@ export function cropKy(crop: CropType): number {
 
 /**
  * Rischio idrico normalizzato 0..1 dalla depletion: cresce linearmente da 0
- * (soil a capacità di campo) a 0.5 alla soglia RAW (inizio stress), e da 0.5 a
+ * (soil a capacità di field) a 0.5 alla soglia RAW (inizio stress), e da 0.5 a
  * 1 fino al punto di appassimento (AWC). Lo 0.5 marca quindi l'ingresso in
  * stress idrico, coerentemente con la legenda della mappa DSS.
  */
@@ -77,7 +77,7 @@ export function waterRisk01(stato: FieldWaterStatus): number {
   return Math.max(0.5, Math.min(1, 0.5 + ((depletion - raw) / (awc - raw)) * 0.5));
 }
 
-/** true se il campo è in stress idrico (Dr ≥ RAW). */
+/** true se il field è in stress idrico (Dr ≥ RAW). */
 export function underWaterStress(stato: FieldWaterStatus): boolean {
   return stato.depletion >= stato.raw;
 }
@@ -120,25 +120,25 @@ export interface EsitoDssEngine {
   esiti: DssOutcome[];
   /** Vettori normalizzati 0..1: patologici + idrico (se disponibile). */
   vettori: VettoreRischioDss[];
-  /** Rischio complessivo del campo = massimo dei vettori (0..1). */
+  /** Rischio complessivo del field = massimo dei vettori (0..1). */
   rischioComplessivo01: number;
 }
 
 /**
- * Esegue il motore DSS unificato: i modelli patologici del modulo crop più,
+ * Esegue il motore DSS unificato: i modelli patologici del module crop più,
  * se fornito lo stato idrico, il vettore di stress idrico. Il risk
  * complessivo è il massimo dei vettori (il fattore limitante guida la decisione).
  */
 export function runDssEngine(
-  modulo: CropModule,
+  module: CropModule,
   series: DssWeatherDay[],
   context?: DssContext,
   statoIdrico?: FieldWaterStatus,
 ): EsitoDssEngine {
-  const esiti = runDssModule(modulo, series, context);
+  const esiti = runDssModule(module, series, context);
   const vettori = vettoriPatologici(esiti);
   if (statoIdrico) {
-    vettori.push(waterStressVector(statoIdrico, modulo.mainSpecies));
+    vettori.push(waterStressVector(statoIdrico, module.mainSpecies));
   }
   const rischioComplessivo01 = vettori.reduce(
     (max, v) => Math.max(max, v.rischio01),

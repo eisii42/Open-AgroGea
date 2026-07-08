@@ -18,10 +18,10 @@ export interface SyncTarget {
   readonly kind: StorageConfig["kind"];
   push(batch: OutboxMutation[]): Promise<SyncPushResult>;
   /**
-   * Idratazione inversa: scarica le righe del tenant dal data plane remoto
+   * Idratazione inversa: download le rows del tenant dal data plane remoto
    * nel PGlite locale (primo avvio su un dispositivo nuovo, o riallineamento
    * dopo modifiche fatte altrove). Resta opzionale nell'interfaccia per i
-   * target che non la supportano. Ritorna il numero di righe applicate.
+   * target che non la supportano. Ritorna il numero di rows applicate.
    */
   pull?(dal: AgroDal): Promise<number>;
 }
@@ -42,8 +42,8 @@ export function toWirePayload(batch: OutboxMutation[]) {
 export const PULL_PAGE_SIZE = 1000;
 
 /**
- * Massimo `updated_at` (ISO) tra le righe di un pull: diventa il watermark
- * della tabella per il pull incrementale successivo. Ignora righe senza
+ * Massimo `updated_at` (ISO) tra le rows di un pull: diventa il watermark
+ * della tabella per il pull incrementale successivo. Ignora rows senza
  * timestamp o con timestamp non parsabile.
  */
 export function maxUpdatedAt(rows: Record<string, unknown>[]): string | null {
@@ -187,14 +187,14 @@ export class OnPremiseSyncTarget implements SyncTarget {
 
   /**
    * Idratazione inversa dal PostgreSQL privato: il comando Rust
-   * `agro_pull_mutations` ritorna `{ tabella: righe[] }` per il tenant (geom
-   * esclusa, tombstone inclusi). Le righe si applicano al PGlite locale con
+   * `agro_pull_mutations` ritorna `{ tabella: rows[] }` per il tenant (geom
+   * esclusa, tombstone inclusi). Le rows si applicano al PGlite locale con
    * LWW, in ordine parent → child per le foreign key. Rende l'on-premise
    * bidirezionale (multi-dispositivo).
    *
    * Pull INCREMENTALE: i watermark per tabella (ultimo `updated_at` visto,
-   * persistiti in `agro_meta`) sono passati al comando Rust, che scarica solo
-   * le righe più recenti. Al primo avvio (nessun watermark) il pull è totale.
+   * persistiti in `agro_meta`) sono passati al comando Rust, che download solo
+   * le rows più recenti. Al primo avvio (nessun watermark) il pull è totale.
    */
   async pull(dal: AgroDal): Promise<number> {
     if (!isTauriRuntime()) {
@@ -226,7 +226,7 @@ export class OnPremiseSyncTarget implements SyncTarget {
 /**
  * Data plane assente (edizione standalone/OSS): le mutazioni restano nel PGlite
  * locale. La `push` è un no-op che dichiara l'intero batch "applicato", così il
- * router marca le righe come sincronizzate e l'outbox non cresce all'infinito;
+ * router marca le rows come sincronizzate e l'outbox non cresce all'infinito;
  * nessuna `pull` è esposta, quindi il drain non tocca mai la rete. Garantisce
  * che il salvataggio di un soilSample soil o di un treatment scriva
  * direttamente sul locale senza alcuna dipendenza remota.

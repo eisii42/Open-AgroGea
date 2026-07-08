@@ -9,12 +9,12 @@ import i18n from "../../i18n";
 /**
  * Inserimento create-or-populate dei campi del Fascicolo SIAN in PGlite.
  *
- * Per ogni campo decodificato:
+ * Per ogni field decodificato:
  *   * se l'appezzamento FISICO non esiste (nessun match per id SIAN) e c'è una
  *     geometria poligonale → crea la riga immutabile in `plots`,
  *     marcandone l'id SIAN nei metadata per i re-import futuri;
  *   * se esiste già (perimetria immutata) → ne riusa l'identità;
- *   * in entrambi i casi → popola/aggiorna `campi_campagna` sull'anno indicato
+ *   * in entrambi i casi → popola/update `campi_campagna` sull'anno indicato
  *     con i codici ministeriali e la superficie dichiarata.
  *
  * I record CSV privi di geometria che non trovano un plot esistente
@@ -52,40 +52,40 @@ export async function importaFascicoloSian(
   const esito: EsitoImportSian = { creati: 0, aggiornati: 0, saltati: 0 };
 
   // Cache delle colture (crops) create durante l'import: una specie per chiave
-  // naturale (codice crop + codice varietà ministeriali), così righe diverse
+  // naturale (codice crop + codice varietà ministeriali), così rows diverse
   // della stessa crop condividono la stessa entità normalizzata.
   const cropPerChiave = new Map<string, string>();
-  const risolviCropId = async (campo: SianCampoMappato): Promise<string> => {
-    const chiave = `${campo.crop_external_code ?? ""}|${campo.variety_external_code ?? ""}`;
+  const resolveCropId = async (field: SianCampoMappato): Promise<string> => {
+    const chiave = `${field.crop_external_code ?? ""}|${field.variety_external_code ?? ""}`;
     const esistente = cropPerChiave.get(chiave);
     if (esistente) return esistente;
     const crop = await dal.upsertCrop({
-      common_name: campo.crop_external_code ?? i18n.t("importaFascicolo.sianCrop"),
+      common_name: field.crop_external_code ?? i18n.t("importaFascicolo.sianCrop"),
       scientific_name: null,
-      variety_name: campo.variety_external_code,
+      variety_name: field.variety_external_code,
       crop_metadata: {
         origine: "sian-import",
-        crop_external_code: campo.crop_external_code,
-        variety_external_code: campo.variety_external_code,
+        crop_external_code: field.crop_external_code,
+        variety_external_code: field.variety_external_code,
       },
     });
     cropPerChiave.set(chiave, crop.id);
     return crop.id;
   };
 
-  for (const campo of campi) {
-    let plotId = matchExistingPlot(campo, esistenti);
+  for (const field of campi) {
+    let plotId = matchExistingPlot(field, esistenti);
 
     if (!plotId) {
-      if (!isPoligono(campo.geometria)) {
+      if (!isPoligono(field.geometria)) {
         esito.saltati += 1;
         continue;
       }
-      const nome =
-        campo.agricultural_parcel_external_id != null
+      const name =
+        field.agricultural_parcel_external_id != null
           ? i18n.t("importaFascicolo.sianPlotName", {
-              reference: campo.reference_parcel_external_id ?? "?",
-              parcel: campo.agricultural_parcel_external_id,
+              reference: field.reference_parcel_external_id ?? "?",
+              parcel: field.agricultural_parcel_external_id,
             })
           : i18n.t("importaFascicolo.sianPlotFallbackName", {
               index: esistenti.length + 1,
@@ -94,18 +94,18 @@ export async function importaFascicoloSian(
         id: crypto.randomUUID(),
         company_id: activeCompanyId,
         // L'appezzamento è l'entità FISICA: la crop vive in plots_campaign/crops.
-        user_plot_name: nome,
+        user_plot_name: name,
         cadastral_sheet: null,
         cadastral_parcel: null,
         last_ndvi_mean: null,
-        geometry: campo.geometria,
+        geometry: field.geometria,
         irrigation_type: null,
         planting_year: null,
         historical_notes: null,
         metadata: {
           origine: "sian-import",
-          agricultural_parcel_external_id: campo.agricultural_parcel_external_id,
-          reference_parcel_external_id: campo.reference_parcel_external_id,
+          agricultural_parcel_external_id: field.agricultural_parcel_external_id,
+          reference_parcel_external_id: field.reference_parcel_external_id,
         },
       });
       plotId = creato.id;
@@ -117,13 +117,13 @@ export async function importaFascicoloSian(
 
     await dal.upsertCampoCampagna({
       plot_id: plotId,
-      crop_id: await risolviCropId(campo),
+      crop_id: await resolveCropId(field),
       campaign_year: anno,
-      reference_parcel_external_id: campo.reference_parcel_external_id,
-      agricultural_parcel_external_id: campo.agricultural_parcel_external_id,
-      crop_external_code: campo.crop_external_code,
-      variety_external_code: campo.variety_external_code,
-      declared_area_ha: campo.superficie_ha,
+      reference_parcel_external_id: field.reference_parcel_external_id,
+      agricultural_parcel_external_id: field.agricultural_parcel_external_id,
+      crop_external_code: field.crop_external_code,
+      variety_external_code: field.variety_external_code,
+      declared_area_ha: field.superficie_ha,
     });
   }
 

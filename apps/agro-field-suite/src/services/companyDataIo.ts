@@ -2,7 +2,7 @@
  * Orchestratore Import/Export dei dati aziendali (GeoJSON Esteso).
  *
  * Compone il motore PURO di `@agrogea/core` (serialize/parse) con il DAL PGlite:
- *   - EXPORT: legge le righe del perimetro company dai metodi tipati del DAL
+ *   - EXPORT: legge le rows del perimetro company dai metodi tipati del DAL
  *     (la geometria è già GeoJSON in `jsonb`, nessuna funzione PostGIS) e le
  *     serializza nel documento.
  *   - IMPORT: ripristina via le upsert tipate del DAL, che scrivono dato +
@@ -69,7 +69,7 @@ export async function buildCompanySnapshot(
     dal.listTreatments(id, { limit: FULL }),
     dal.listSoilSamples(id),
     dal.listHarvests(id, { limit: FULL }),
-    // Infrastrutture (POI puntuali, geometrie CAD) e rilievi GPS di campo:
+    // Infrastrutture (POI puntuali, geometrie CAD) e rilievi GPS di field:
     // entità a livello company, senza legame con un singolo plot.
     dal.listAssets(id),
     dal.listOsservazioniScouting(id, { limit: FULL }),
@@ -219,7 +219,7 @@ export async function importCompanyData(
     await dal.upsertAsset({ ...stripEnv(asset), company_id: targetCompanyId });
     summary.assets++;
   }
-  // Rilievi GPS di campo.
+  // Rilievi GPS di field.
   for (const obs of snapshot.scouting) {
     await dal.saveScoutingObservation({
       ...stripEnv(obs),

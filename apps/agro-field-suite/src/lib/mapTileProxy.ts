@@ -2,13 +2,13 @@ import { isTauriRuntime } from "@agrogea/core";
 import maplibregl from "maplibre-gl";
 
 /**
- * Proxy dei tile WMS per la mappa di campo. Risolve DUE problemi insieme:
+ * Proxy dei tile WMS per la mappa di field. Risolve DUE problemi insieme:
  *
  *  1. CRS — alcuni WMS (es. il Catasto dell'Agenzia delle Entrate) NON parlano
  *     EPSG:3857, l'unico CRS con cui MapLibre interroga i raster. Qui si
  *     riproietta il bbox del tile mercatore in EPSG:4258 (ETRS89 geografico,
  *     praticamente WGS84) prima di chiamare il server. La lieve distorsione
- *     mercatore→equirettangolare è trascurabile alle scale di campo.
+ *     mercatore→equirettangolare è trascurabile alle scale di field.
  *  2. CORS — quei server non espongono header CORS, quindi il fetch del tile
  *     deve passare da un proxy: il comando nativo Rust `agro_fetch_map_tile`
  *     sotto Tauri, il middleware del dev server Vite (`/__geolibre_wms_proxy`)

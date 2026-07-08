@@ -11,15 +11,15 @@ import {
   COLONNE_SIAN,
   filterSianTreatments,
   raccolteToOperazioni,
-  risolviColonne,
+  resolveColumns,
 } from "../apps/agro-field-suite/src/lib/sianExport";
 
-function app(id: string, nome: string): Plot {
+function app(id: string, name: string): Plot {
   return {
     id,
     tenant_id: "t",
     company_id: "az",
-    user_plot_name: nome,
+    user_plot_name: name,
     cadastral_sheet: null,
     cadastral_parcel: null,
     area_ha: 2,
@@ -73,7 +73,7 @@ function tratt(
   };
 }
 
-function campo(
+function field(
   plot_id: string,
   anno: number,
   over: Partial<PlotCampaign> = {},
@@ -200,7 +200,7 @@ describe("buildSianCsv · struttura", () => {
   });
 
   it("risolviColonne ignora gli id sconosciuti", () => {
-    const cols = risolviColonne(["data", "inesistente", "prodotto"]);
+    const cols = resolveColumns(["data", "inesistente", "prodotto"]);
     assert.deepEqual(cols.map((c) => c.id), ["data", "prodotto"]);
     assert.ok(COLONNE_SIAN.length >= cols.length);
   });
@@ -208,7 +208,7 @@ describe("buildSianCsv · struttura", () => {
 
 describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
   it("popola i codici ministeriali dal join per plot_campaign_id", () => {
-    const campi = [campo("a1", 2026)];
+    const campi = [field("a1", 2026)];
     const csv = buildSianCsv(
       [TRATT[0]],
       APPS,
@@ -243,7 +243,7 @@ describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
         includiIntestazioni: false,
         bom: false,
       },
-      [campo("a1", 2026)],
+      [field("a1", 2026)],
     );
     // Tipo operation in italiano (mai il codice interno "tillage"); ref vuoto.
     assert.equal(csv, "Lavorazione;");
@@ -262,18 +262,18 @@ describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
         includiIntestazioni: false,
         bom: false,
       },
-      [campo("a1", 2026)],
+      [field("a1", 2026)],
     );
     assert.equal(csv, "060;IS-1");
   });
 
   it("il fallback preferisce la campagna APERTA su quella chiusa", () => {
-    const chiusa = campo("a1", 2026, {
+    const chiusa = field("a1", 2026, {
       id: "cc-old",
       crop_external_code: "999",
       closed_at: "2026-05-01T00:00:00.000Z",
     });
-    const aperta = campo("a1", 2026, { id: "cc-new", crop_external_code: "060" });
+    const aperta = field("a1", 2026, { id: "cc-new", crop_external_code: "060" });
     const op = { ...tratt("t10", "a1", "2026-07-01T08:00:00.000Z"), plot_campaign_id: null };
     const csv = buildSianCsv(
       [op],
@@ -331,7 +331,7 @@ describe("raccolteToOperazioni · le harvests rientrano nel QDCA", () => {
         includiIntestazioni: false,
         bom: false,
       },
-      [campo("a1", 2026)],
+      [field("a1", 2026)],
     );
     // Tipo "Harvest", cultivar, kg, destinazione e codice SIAN dalla campagna.
     assert.equal(csv, "Harvest;Sangiovese;3200;Cantina Sociale;060");

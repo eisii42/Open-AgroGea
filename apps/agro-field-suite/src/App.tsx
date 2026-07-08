@@ -9,7 +9,7 @@ const CommandCenter = lazy(() =>
   import("./screens/CommandCenter").then((m) => ({ default: m.CommandCenter })),
 );
 
-/** true se il tasto premuto "appartiene" a un campo editabile o alla mappa. */
+/** true se il tasto premuto "appartiene" a un field editabile o alla mappa. */
 function isArrowTargetReserved(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
   if (!el) return false;

@@ -1,5 +1,5 @@
 /**
- * Encoder Shapefile (ESRI) puro per poligoni: genera `.shp`, `.shx`, `.dbf`
+ * Encoder Shapefile (ESRI) puro per poligoni: generate `.shp`, `.shx`, `.dbf`
  * (+ `.prj` WGS84) e li impacchetta in un `.zip` via fflate. Serve l'export VRA
  * "legacy" per i terminali che non leggono ISOXML.
  *
@@ -20,8 +20,8 @@ interface Record {
 interface CampoDbf {
   /** Chiave originale nelle properties della feature. */
   chiave: string;
-  /** Nome del campo DBF (ASCII ≤ 10, maiuscolo). */
-  nome: string;
+  /** Nome del field DBF (ASCII ≤ 10, maiuscolo). */
+  name: string;
   tipo: "N" | "C";
   lunghezza: number;
   decimali: number;
@@ -67,14 +67,14 @@ function dedussiSchema(features: Feature[]): CampoDbf[] {
   return [...tipi].map(([chiave, tipo]) => ({
     chiave,
     // I nomi dei campi DBF sono ≤ 10 caratteri ASCII maiuscoli.
-    nome: chiave.replace(/[^a-z0-9_]/gi, "_").slice(0, 10).toUpperCase(),
+    name: chiave.replace(/[^a-z0-9_]/gi, "_").slice(0, 10).toUpperCase(),
     tipo,
     lunghezza: tipo === "N" ? 19 : 64,
     decimali: tipo === "N" ? 6 : 0,
   }));
 }
 
-function scriviAscii(dv: DataView, offset: number, testo: string, lunghezza: number): void {
+function writeAscii(dv: DataView, offset: number, testo: string, lunghezza: number): void {
   for (let i = 0; i < lunghezza; i += 1) {
     dv.setUint8(offset + i, i < testo.length ? testo.charCodeAt(i) & 0xff : 0);
   }
@@ -153,14 +153,14 @@ function buildShpShx(records: Record[]): { shp: Uint8Array; shx: Uint8Array } {
   return { shp: new Uint8Array(shp), shx: new Uint8Array(shx) };
 }
 
-function formattaValore(value: unknown, campo: CampoDbf): string {
-  if (campo.tipo === "N") {
+function formattaValore(value: unknown, field: CampoDbf): string {
+  if (field.tipo === "N") {
     const n = typeof value === "number" ? value : Number(value);
-    const testo = Number.isFinite(n) ? n.toFixed(campo.decimali) : "";
-    return testo.slice(0, campo.lunghezza).padStart(campo.lunghezza, " ");
+    const testo = Number.isFinite(n) ? n.toFixed(field.decimali) : "";
+    return testo.slice(0, field.lunghezza).padStart(field.lunghezza, " ");
   }
   const testo = value == null ? "" : String(value);
-  return testo.slice(0, campo.lunghezza).padEnd(campo.lunghezza, " ");
+  return testo.slice(0, field.lunghezza).padEnd(field.lunghezza, " ");
 }
 
 function buildDbf(features: Feature[], schema: CampoDbf[]): Uint8Array {
@@ -179,12 +179,12 @@ function buildDbf(features: Feature[], schema: CampoDbf[]): Uint8Array {
   dv.setUint16(8, headerLength, true);
   dv.setUint16(10, recordLength, true);
 
-  schema.forEach((campo, i) => {
+  schema.forEach((field, i) => {
     const base = 32 + i * 32;
-    scriviAscii(dv, base, campo.nome, 11);
-    dv.setUint8(base + 11, campo.tipo.charCodeAt(0));
-    dv.setUint8(base + 16, campo.lunghezza);
-    dv.setUint8(base + 17, campo.decimali);
+    writeAscii(dv, base, field.name, 11);
+    dv.setUint8(base + 11, field.tipo.charCodeAt(0));
+    dv.setUint8(base + 16, field.lunghezza);
+    dv.setUint8(base + 17, field.decimali);
   });
   dv.setUint8(headerLength - 1, 0x0d); // terminatore descrittori
 
@@ -192,14 +192,14 @@ function buildDbf(features: Feature[], schema: CampoDbf[]): Uint8Array {
   for (const f of features) {
     dv.setUint8(off, 0x20); // record non cancellato
     off += 1;
-    for (const campo of schema) {
-      scriviAscii(
+    for (const field of schema) {
+      writeAscii(
         dv,
         off,
-        formattaValore(f.properties?.[campo.chiave], campo),
-        campo.lunghezza,
+        formattaValore(f.properties?.[field.chiave], field),
+        field.lunghezza,
       );
-      off += campo.lunghezza;
+      off += field.lunghezza;
     }
   }
   dv.setUint8(totale - 1, 0x1a); // EOF
@@ -208,7 +208,7 @@ function buildDbf(features: Feature[], schema: CampoDbf[]): Uint8Array {
 
 /**
  * Genera l'archivio ZIP Shapefile (.shp/.shx/.dbf/.prj) da una FeatureCollection
- * di poligoni. `nomeBase` è il nome dei file dentro lo zip.
+ * di poligoni. `nomeBase` è il name dei file dentro lo zip.
  */
 export function geojsonToShapefileZip(
   fc: FeatureCollection,

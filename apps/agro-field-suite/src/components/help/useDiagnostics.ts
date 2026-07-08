@@ -14,9 +14,9 @@ export type DiagnosticSeverity = "error" | "warn";
 export interface DiagnosticIssue {
   id: string;
   severity: DiagnosticSeverity;
-  /** Chiave i18n del titolo dell'avviso. */
+  /** Chiave i18n del title dell'avviso. */
   titleKey: "help.diagnosticsModal.syncError" | "help.diagnosticsModal.pendingQueue" | "help.diagnosticsModal.weatherMissing";
-  /** Valore di interpolazione `{{count}}` per il titolo (es. coda outbox). */
+  /** Valore di interpolazione `{{count}}` per il title (es. coda outbox). */
   count?: number;
   /** Riga di dettaglio in testo libero (es. messaggio d'errore di sync). */
   detail?: string;

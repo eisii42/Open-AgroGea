@@ -1,5 +1,5 @@
 /**
- * Edizione standalone dell'app di campo (build OSS, solo dati locali).
+ * Edizione standalone dell'app di field (build OSS, solo dati locali).
  *
  * Attivata a build-time dalla flag `VITE_STANDALONE_MODE`. Quando è attiva:
  *   - il router a stadi (App.tsx) salta i gate cloud (login / licenza / tenant)

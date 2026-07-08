@@ -13,9 +13,9 @@ import type { FeatureCollection } from "geojson";
 /** Marcatore di metadata che identifica un layer caricato via Add Data. */
 export const EXTERNAL_LAYER_FLAG = "agrogeaExternal";
 
-/** Estensione (senza punto, minuscola) di un nome file. */
-export function estensioneFile(nome: string): string {
-  const m = /\.([^.\\/]+)$/.exec(nome.trim().toLowerCase());
+/** Estensione (senza punto, minuscola) di un name file. */
+export function fileExtension(name: string): string {
+  const m = /\.([^.\\/]+)$/.exec(name.trim().toLowerCase());
   return m ? m[1] : "";
 }
 
@@ -24,8 +24,8 @@ export function estensioneFile(nome: string): string {
  * shapefile). Ritorna null per le estensioni non riconosciute, così il chiamante
  * può rifiutare il file invece di registrare un formato errato nel giornale.
  */
-export function formatoDaNomeFile(nome: string): FileFormat | null {
-  const ext = estensioneFile(nome);
+export function formatFromFileName(name: string): FileFormat | null {
+  const ext = fileExtension(name);
   switch (ext) {
     case "geojson":
     case "json":
@@ -55,8 +55,8 @@ export function formatoDaNomeFile(nome: string): FileFormat | null {
 export const LARGE_FILE_THRESHOLD_BYTES = 50 * 1024 * 1024; // 50 MB
 
 /** True se il file va interpretato come GeoJSON testuale (parse diretto in JS). */
-export function isGeoJson(nome: string): boolean {
-  return formatoDaNomeFile(nome) === "geojson";
+export function isGeoJson(name: string): boolean {
+  return formatFromFileName(name) === "geojson";
 }
 
 /**

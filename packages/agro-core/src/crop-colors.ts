@@ -118,14 +118,14 @@ const CROP_GROUPS: CropGroup[] = [
 
 /**
  * Palette di fallback per colture non riconosciute: tinte distinte e separabili,
- * scelte deterministicamente dal nome (stessa crop → sempre stesso colore).
+ * scelte deterministicamente dal name (stessa crop → sempre stesso colore).
  */
 const FALLBACK_PALETTE = [
   "#2563eb", "#0d9488", "#c026d3", "#ea580c", "#4f46e5",
   "#0284c7", "#9333ea", "#ca8a04", "#059669", "#e11d48",
 ];
 
-/** Normalizza un nome crop: minuscolo, accenti rimossi, spazi compatti. */
+/** Normalizza un name crop: minuscolo, accenti rimossi, spazi compatti. */
 function normalize(value: string): string {
   return value
     .toLowerCase()
@@ -145,7 +145,7 @@ function hashString(value: string): number {
 }
 
 /**
- * Colore + icona per una crop dato il suo nome comune. `null`/vuoto →
+ * Colore + icona per una crop dato il suo name comune. `null`/vuoto →
  * grigio neutro (plot senza crop).
  */
 export function cropStyle(commonName: string | null | undefined): CropStyle {

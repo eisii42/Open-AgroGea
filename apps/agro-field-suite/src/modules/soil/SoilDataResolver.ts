@@ -9,7 +9,7 @@ import {
 import type { Feature, FeatureCollection } from "geojson";
 
 /**
- * SoilDataResolver — risoluzione idro-pedologica del campo (Modulo Suolo §2).
+ * SoilDataResolver — risoluzione idro-pedologica del field (Modulo Suolo §2).
  *
  * Ricava i {@link SoilParameters} (θFC, θPWP, profondità, depletion) necessari
  * al bilancio idrico FAO 66 applicando una GERARCHIA CONDIZIONALE basata SOLO su
@@ -26,7 +26,7 @@ import type { Feature, FeatureCollection } from "geojson";
  *
  * Le funzioni di mappatura attributi e aggregazione sono PURE (testabili sotto
  * Node). La parte spaziale importa {@link SpatialAnalysisEngine} dinamicamente,
- * così il grafo statico del modulo resta privo di DuckDB-WASM.
+ * così il grafo statico del module resta privo di DuckDB-WASM.
  */
 
 /** Sorgente effettiva dei parametri risolti (per diagnostica/UI). */
@@ -116,7 +116,7 @@ function numero(value: unknown): number | null {
   return null;
 }
 
-/** Primo valore numerico tra più chiavi candidate (case-insensitive). */
+/** Primo value numerico tra più chiavi candidate (case-insensitive). */
 function primoNumero(
   props: Record<string, unknown>,
   chiavi: string[],
@@ -132,7 +132,7 @@ function primoNumero(
 }
 
 /** Prima stringa non vuota tra più chiavi candidate (case-insensitive). */
-function primaStringa(
+function firstString(
   props: Record<string, unknown>,
   chiavi: string[],
 ): string | null {
@@ -162,7 +162,7 @@ export function frazioniDaProprieta(
     const fr = normalizeFractions(sabbia ?? 0, limo ?? 0, argilla ?? 0);
     if (fr) return fr;
   }
-  const classe = primaStringa(props, ["tessitura", "texture", "textura", "classe", "soil_texture"]);
+  const classe = firstString(props, ["tessitura", "texture", "textura", "classe", "soil_texture"]);
   return fractionsFromTexture(classe);
 }
 

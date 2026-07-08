@@ -77,13 +77,13 @@ export function buildNdviScatter(
 ): SoilScatterPoint[] {
   const medie = meanSoilSamplesPerPlot(soilSamples, variabile);
   const punti: SoilScatterPoint[] = [];
-  for (const apz of plots) {
-    const ndvi = apz.last_ndvi_mean;
-    const chim = medie.get(apz.id);
+  for (const plot of plots) {
+    const ndvi = plot.last_ndvi_mean;
+    const chim = medie.get(plot.id);
     if (ndvi == null || Number.isNaN(ndvi) || !chim) continue;
     punti.push({
-      plotId: apz.id,
-      name: apz.user_plot_name,
+      plotId: plot.id,
+      name: plot.user_plot_name,
       x: Math.round(chim.media * 1000) / 1000,
       y: Math.round(ndvi * 1000) / 1000,
       n: chim.n,

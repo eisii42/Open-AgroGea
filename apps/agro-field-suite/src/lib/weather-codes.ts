@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 /**
- * Traduzione dei codici meteo WMO (campo `weather_code` di Open-Meteo) in
+ * Traduzione dei codici meteo WMO (field `weather_code` di Open-Meteo) in
  * icona (lucide) ed etichetta italiana per la scheda meteo dell'header. I codici
  * sono raggruppati per famiglia (sereno/nuvoloso/pioggia/neve/temporale) come da
  * tabella WMO 4677 usata da Open-Meteo.

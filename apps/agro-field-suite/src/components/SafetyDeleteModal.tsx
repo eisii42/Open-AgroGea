@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 /**
  * Modal di cancellazione protetta (Modulo 5). Procedura blindata: il pulsante
  * di conferma resta disabilitato finché il testo digitato non corrisponde al
- * 100% al nome esatto dell'elemento. Solo allora esegue il DELETE (via il
+ * 100% al name esatto dell'elemento. Solo allora esegue il DELETE (via il
  * callback `onConfirm`, che chiama il DAL) e chiude.
  */
 export function SafetyDeleteModal({
@@ -33,7 +33,7 @@ export function SafetyDeleteModal({
   const [text, setText] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  // Azzera il campo a ogni apertura: nessun residuo dalla sessione precedente.
+  // Azzera il field a ogni apertura: nessun residuo dalla sessione precedente.
   useEffect(() => {
     if (open) {
       setText("");

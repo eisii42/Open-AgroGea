@@ -15,7 +15,7 @@ import { weatherCodeInfo } from "../../lib/weather-codes";
  *
  * Sorgente: `WeatherSyncService.previsioneDashboard` (Open-Meteo, endpoint
  * daily/current), localizzata sul centroid dell'azienda — la sede se nota,
- * altrimenti il primo plot con geometria. Si aggiorna all'avvio dell'app
+ * altrimenti il primo plot con geometria. Si update all'avvio dell'app
  * (montaggio) e ogni ora (lucchetto orario condiviso con il resto del meteo).
  */
 
@@ -93,7 +93,7 @@ export function WeatherCard() {
     void carica(false);
   }, [carica]);
 
-  // Aggiornamento automatico orario (timeout come nel resto del modulo meteo).
+  // Aggiornamento automatico orario (timeout come nel resto del module meteo).
   useEffect(() => {
     const id = window.setInterval(() => void carica(true), 60 * 60 * 1000);
     return () => window.clearInterval(id);
@@ -140,7 +140,7 @@ export function WeatherCard() {
 
       {aperto && (
         <div className="absolute left-0 top-11 z-50 w-[300px] overflow-hidden rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--sh-pop)]">
-          {/* Intestazione: stato + aggiorna */}
+          {/* Intestazione: stato + update */}
           <div className="mb-2 flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
               {infoCorrente.label}

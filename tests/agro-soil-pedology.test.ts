@@ -154,7 +154,7 @@ function campione(over: Partial<SoilSample>): SoilSample {
 }
 
 describe("frazioniDaCampione / aggregaTessitura", () => {
-  it("legge la tessitura dal campo texture o dalle percentuali in metadata", () => {
+  it("legge la tessitura dal field texture o dalle percentuali in metadata", () => {
     const daTexture = frazioniDaCampione(campione({ texture: "sandy loam" }));
     assert.ok(daTexture && daTexture.sabbia > daTexture.argilla);
 

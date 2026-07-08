@@ -34,11 +34,11 @@ function scalaPerBarra(map: ReturnType<MapController["getMap"]>): string | undef
   return formatDistanza(metriPerPixel * 120);
 }
 
-function scarica(nome: string, contenuto: BlobPart, mime: string) {
+function download(name: string, contenuto: BlobPart, mime: string) {
   const url = URL.createObjectURL(new Blob([contenuto], { type: mime }));
   const a = document.createElement("a");
   a.href = url;
-  a.download = nome;
+  a.download = name;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -50,7 +50,7 @@ export function PrintComposer({ onClose, mapControllerRef }: Props) {
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const company = companies.find((a) => a.id === activeCompanyId);
 
-  const [titolo, setTitolo] = useState(
+  const [title, setTitolo] = useState(
     `${company?.business_name ?? "AgroGea"} · ${new Date().toLocaleDateString("it-IT")}`,
   );
   const [note, setNote] = useState("");
@@ -81,7 +81,7 @@ export function PrintComposer({ onClose, mapControllerRef }: Props) {
   const svg = useMemo(
     () =>
       buildPrintSvg({
-        titolo,
+        title,
         note: note || undefined,
         legenda,
         mostraScala,
@@ -92,11 +92,11 @@ export function PrintComposer({ onClose, mapControllerRef }: Props) {
         mostraLogo,
         mappaDataUrl,
       }),
-    [titolo, note, legenda, mostraScala, mostraNord, mostraLogo, mappaDataUrl, mapControllerRef],
+    [title, note, legenda, mostraScala, mostraNord, mostraLogo, mappaDataUrl, mapControllerRef],
   );
 
   const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  const nomeFile = titolo.replace(/[^\p{L}\p{N}_-]+/gu, "_") || "mappa";
+  const fileName = title.replace(/[^\p{L}\p{N}_-]+/gu, "_") || "mappa";
 
   const esportaPng = useCallback(() => {
     const img = new Image();
@@ -111,23 +111,23 @@ export function PrintComposer({ onClose, mapControllerRef }: Props) {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       canvas.toBlob((blob) => {
-        if (blob) scarica(`${nomeFile}.png`, blob, "image/png");
+        if (blob) download(`${fileName}.png`, blob, "image/png");
       }, "image/png");
     };
     img.src = svgDataUrl;
-  }, [svgDataUrl, nomeFile]);
+  }, [svgDataUrl, fileName]);
 
   const stampaPdf = useCallback(() => {
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(
-      `<!doctype html><title>${titolo}</title>` +
+      `<!doctype html><title>${title}</title>` +
         `<body style="margin:0">${svg}</body>`,
     );
     win.document.close();
     win.focus();
     win.print();
-  }, [svg, titolo]);
+  }, [svg, title]);
 
   const toggleOptions = [
     { id: "scala", labelKey: "printComposer.toggle.scale", value: mostraScala, set: setMostraScala },
@@ -149,7 +149,7 @@ export function PrintComposer({ onClose, mapControllerRef }: Props) {
           </Button>
           <Button
             className="min-h-[var(--touch-min)]"
-            onClick={() => scarica(`${nomeFile}.svg`, svg, "image/svg+xml")}
+            onClick={() => download(`${fileName}.svg`, svg, "image/svg+xml")}
           >
             SVG
           </Button>
@@ -162,7 +162,7 @@ export function PrintComposer({ onClose, mapControllerRef }: Props) {
             {t("printComposer.titleLabel")}
           </label>
           <input
-            value={titolo}
+            value={title}
             onChange={(e) => setTitolo(e.target.value)}
             className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-2 text-sm"
           />

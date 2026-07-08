@@ -124,7 +124,7 @@ export async function exportSqlDump(tenantId: string): Promise<string> {
     );
     if (result.rows.length === 0) continue;
     const columns = Object.keys(result.rows[0]);
-    parts.push(`\n-- ${table} (${result.rows.length} righe)`);
+    parts.push(`\n-- ${table} (${result.rows.length} rows)`);
     for (const row of result.rows) {
       const values = columns.map((column) => sqlLiteral(row[column]));
       parts.push(

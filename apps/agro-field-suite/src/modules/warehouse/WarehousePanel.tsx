@@ -118,7 +118,7 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
     [lots, warningDays],
   );
 
-  function aggiornaSoglia(value: string) {
+  function updateThreshold(value: string) {
     const n = Number.parseInt(value, 10);
     const days = Number.isFinite(n) && n > 0 ? n : EXPIRY_WARNING_DAYS_DEFAULT;
     setWarningDays(days);
@@ -165,7 +165,7 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
         <ProdottoForm
           onSubmit={async (input, lottoIniziale) => {
             // Product + carico del lot iniziale (stock di partenza): il
-            // carico aggiorna anche il CUMP dal costo unitario indicato.
+            // carico update anche il CUMP dal costo unitario indicato.
             await conErrore(async () => {
               const record = await saveProduct(input);
               if (record) {
@@ -210,7 +210,7 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
                   inputMode="numeric"
                   min="1"
                   value={warningDays}
-                  onChange={(e) => aggiornaSoglia(e.target.value)}
+                  onChange={(e) => updateThreshold(e.target.value)}
                   className="agro-num"
                 />
               </div>
@@ -343,7 +343,7 @@ function ProdottoForm({
 }) {
   const { t } = useTranslation();
   const [categoria, setCategoria] = useState<ProductCategory>("phytosanitary");
-  const [nome, setNome] = useState("");
+  const [name, setNome] = useState("");
   const [unita, setUnita] = useState("kg");
   const [numeroRegistrazione, setNumeroRegistrazione] = useState("");
   const [sostanzaAttiva, setSostanzaAttiva] = useState("");
@@ -354,7 +354,7 @@ function ProdottoForm({
   const [fornitore, setFornitore] = useState("");
   const [note, setNote] = useState("");
   // Identità colturale della semente (v17): alimenta l'auto-assegnazione della
-  // crop al campo quando la semente viene seminata dal Quaderno.
+  // crop al field quando la semente viene seminata dal Quaderno.
   const [specie, setSpecie] = useState("");
   const [nomeScientifico, setNomeScientifico] = useState("");
   const [varieta, setVarieta] = useState("");
@@ -391,7 +391,7 @@ function ProdottoForm({
 
   const draft: ProdottoFormInput = {
     category: categoria,
-    name: nome,
+    name: name,
     unit: unita,
     registration_number: numeroRegistrazione.trim() || null,
     active_substance: sostanzaAttiva.trim() || null,
@@ -408,9 +408,9 @@ function ProdottoForm({
   // La stock iniziale è FONDAMENTALE: quantità > 0 e costo >= 0 richiesti.
   const qtaNum = Number.parseFloat(quantita);
   const costoNum = Number.parseFloat(costo);
-  const caricoValido =
+  const validInbound =
     Number.isFinite(qtaNum) && qtaNum > 0 && Number.isFinite(costoNum) && costoNum >= 0;
-  const mancano = errors.length > 0 || !caricoValido;
+  const mancano = errors.length > 0 || !validInbound;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -453,7 +453,7 @@ function ProdottoForm({
           <Label htmlFor="mag-nome">{t("warehouse.productName")}</Label>
           <Input
             id="mag-nome"
-            value={nome}
+            value={name}
             onChange={(e) => setNome(e.target.value)}
             required
           />
@@ -524,7 +524,7 @@ function ProdottoForm({
       )}
 
       {/* Identità colturale della semente (v17): con questi dati la SEMINA dal
-          Quaderno assegna automaticamente la crop al campo. */}
+          Quaderno assegna automaticamente la crop al field. */}
       {categoria === "seed" && (
         <section className="flex flex-col gap-3 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2">
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
@@ -719,7 +719,7 @@ function ProdottoForm({
         />
       </div>
 
-      {mancano && nome.trim() !== "" && (
+      {mancano && name.trim() !== "" && (
         <p className="rounded-[var(--r-2)] bg-[var(--warn-l)] px-3 py-2 text-xs text-[var(--warn)]">
           {t("warehouse.requiredByCategory")}
         </p>
@@ -784,12 +784,12 @@ function ProdottoDettaglio({
   const stock = lots.reduce((s, l) => s + Number(l.quantity_on_hand), 0);
   const qtaNum = Number.parseFloat(quantita);
   const costoNum = Number.parseFloat(costo);
-  const caricoValido =
+  const validInbound =
     Number.isFinite(qtaNum) && qtaNum > 0 && Number.isFinite(costoNum) && costoNum >= 0;
 
   async function handleCarica(event: FormEvent) {
     event.preventDefault();
-    if (saving || !caricoValido) return;
+    if (saving || !validInbound) return;
     setSaving(true);
     try {
       await onCarica({
@@ -913,7 +913,7 @@ function ProdottoDettaglio({
           </div>
           <Button
             type="submit"
-            disabled={saving || !caricoValido}
+            disabled={saving || !validInbound}
             className="min-h-[var(--touch-min)]"
           >
             {saving ? t("logbook.common.saving") : t("warehouse.loadLot")}

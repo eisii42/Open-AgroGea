@@ -94,7 +94,7 @@ const isPct = (v: number | null | undefined) =>
   typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 100;
 
 /**
- * Validazione RIGIDA per categoria (Design 0.2.0 §4): nome e unità sempre
+ * Validazione RIGIDA per categoria (Design 0.2.0 §4): name e unità sempre
  * obbligatori; agrofarmaci → n. registrazione PAN; concimi → titoli N-P-K in
  * percentuale (0–100); carburante → codice assegnazione UMA. Le sementi non
  * hanno campi aggiuntivi obbligatori.

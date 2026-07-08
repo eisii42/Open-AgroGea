@@ -28,7 +28,7 @@ export function ComplianceBadges({
 
   if (!esito || esito.vincoli.length === 0) return null;
 
-  const scaricaReport = () => {
+  const downloadReport = () => {
     const report = buildDueDiligenceReport({
       appezzamentoNome: plot.user_plot_name,
       aziendaNome: companies.find((a) => a.id === activeCompanyId)?.business_name,
@@ -39,17 +39,17 @@ export function ComplianceBadges({
     const url = URL.createObjectURL(
       new Blob([report], { type: "application/geo+json" }),
     );
-    const nomeFile = `due-diligence_${plot.user_plot_name.replace(/[^\p{L}\p{N}_-]+/gu, "_")}.geojson`;
+    const fileName = `due-diligence_${plot.user_plot_name.replace(/[^\p{L}\p{N}_-]+/gu, "_")}.geojson`;
     const a = document.createElement("a");
     a.href = url;
-    a.download = nomeFile;
+    a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
     // Tracciabilità: tag di export nel giornale dei trasferimenti.
     void recordTransfer({
       operation_type: "export",
       file_format: "geojson",
-      file_name: nomeFile,
+      file_name: fileName,
     });
   };
 
@@ -70,7 +70,7 @@ export function ComplianceBadges({
           <span className="font-semibold">⛔ Verifica Compliance EUDR</span>
           <button
             type="button"
-            onClick={scaricaReport}
+            onClick={downloadReport}
             className="self-start rounded-[var(--r-2)] border border-[var(--danger)] px-2 py-1 font-medium"
           >
             Scarica report due diligence

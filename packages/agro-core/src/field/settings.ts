@@ -19,7 +19,7 @@
 // ---------------------------------------------------------------------------
 
 /**
- * Identificatore di un modulo, strumento o pannello la cui visibilità è
+ * Identificatore di un module, strumento o pannello la cui visibilità è
  * governata da un flag booleano in {@link DashboardLayoutConfig}. Raggruppati
  * per area (vedi {@link DASHBOARD_MODULE_GROUPS} lato UI) ma qui tenuti piatti
  * per una persistenza/serializzazione semplice.
@@ -85,7 +85,7 @@ export const DASHBOARD_MODULE_IDS: readonly DashboardModuleId[] = [
   "mapSplitScreen",
 ];
 
-/** Mappa flag → visibilità. `true` = modulo mostrato a schermo. */
+/** Mappa flag → visibilità. `true` = module mostrato a schermo. */
 export type DashboardLayoutConfig = Record<DashboardModuleId, boolean>;
 
 /**
@@ -126,7 +126,7 @@ export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayoutConfig = {
 /**
  * Normalizza una configurazione (parziale o legacy) contro i default: ogni id
  * mancante eredita il default, ogni chiave sconosciuta viene scartata. Così
- * aggiungere un nuovo modulo non rompe le preferenze già salvate dall'utente.
+ * aggiungere un nuovo module non rompe le preferenze già salvate dall'utente.
  */
 export function mergeDashboardLayout(
   partial: Partial<Record<string, unknown>> | null | undefined,
@@ -198,7 +198,7 @@ export function irrigationToLitres(
 ): number | null {
   if (!Number.isFinite(amount) || amount <= 0) return null;
   if (unit === "hl") return Math.round(amount * LITRES_PER_HL);
-  // mm → litri: serve l'area; senza, si assume 1 ha (l'irrigazione senza campo
+  // mm → litri: serve l'area; senza, si assume 1 ha (l'irrigazione senza field
   // non incide comunque su alcun bilancio, che è per-plot).
   const ha = areaHa && areaHa > 0 ? areaHa : 1;
   return Math.round(amount * ha * LITRES_PER_MM_HA);
@@ -216,7 +216,7 @@ export function litresToIrrigation(
   return litres / (ha * LITRES_PER_MM_HA);
 }
 
-/** Formatta un valore in ettari nell'unità scelta (2 decimali). */
+/** Formatta un value in ettari nell'unità scelta (2 decimali). */
 export function formatArea(
   hectares: number | null | undefined,
   unit: AreaUnit = DEFAULT_UNITS.area,

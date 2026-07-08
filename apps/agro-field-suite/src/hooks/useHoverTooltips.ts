@@ -13,7 +13,7 @@ import { type RefObject, useEffect, useState } from "react";
  * Si aggancia ai layer nativi resi da GeoLibre (fill/line/circle derivati dagli
  * id dei layer agro) tramite le API MapLibre esposte da `getMap()`. Nessun
  * popup riscritto: si leggono le `properties` della feature sotto il cursore e
- * si calcola la posizione schermo. Il tooltip sparisce su mouse-leave, con un
+ * si compute la posizione schermo. Il tooltip sparisce su mouse-leave, con un
  * micro-debounce per evitare lo sfarfallio tra feature contigue.
  */
 

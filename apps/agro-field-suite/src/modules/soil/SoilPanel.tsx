@@ -36,12 +36,12 @@ import {
 } from "./soil-analytics";
 
 /**
- * Pannello del modulo Suolo (refactor pipeline indici STAC). Riprogetta la
+ * Pannello del module Suolo (refactor pipeline indici STAC). Riprogetta la
  * vecchia "Analisi NDVI" in un'analisi multi-criterio:
  *   * checkbox degli indici calcolabili via STAC (NDVI/NDRE/MSAVI2/SAVI/NDWI);
  *   * multi-selezione degli plots su cui calcolare;
  *   * filtro cloud cover (slider %);
- *   * strategia temporale: ultima immagine, ultimi 15/30 gg o intervallo
+ *   * strategia temporale: last immagine, ultimi 15/30 gg o intervallo
  *     personalizzato (con grafico di trend dell'index nel tempo).
  * L'overlay raster dell'index primario è renderizzato sulla mappa dal hook.
  */
@@ -160,8 +160,8 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
   const soilSamples = useAgroStore((s) => s.soilSamples);
   const crops = useAgroStore((s) => s.crops);
   const campaignFields = useAgroStore((s) => s.campaignFields);
-  const selezionatoId = useAgroStore((s) => s.selectedPlotId);
-  const { stato, calcola, reset } = useSoilPipeline();
+  const selectedId = useAgroStore((s) => s.selectedPlotId);
+  const { stato, compute, reset } = useSoilPipeline();
 
   // Pannello Charts: scatter NDVI (Y) ↔ variabile chimica del soil (X).
   const [varX, setVarX] = useState<SoilVariable>("ph");
@@ -177,7 +177,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
   const [indicePrimario, setIndicePrimario] =
     useState<VegetationIndex>("ndvi");
   const [apzSel, setApzSel] = useState<Set<string>>(
-    new Set(selezionatoId ? [selezionatoId] : []),
+    new Set(selectedId ? [selectedId] : []),
   );
   const [cloudCover, setCloudCover] = useState(20);
   const [strategiaId, setStrategiaId] = useState("ultima");
@@ -241,7 +241,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
       strategia,
     };
     const target = plots.filter((a) => apzSel.has(a.id));
-    void calcola(target, opzioni);
+    void compute(target, opzioni);
   };
 
   const chart =

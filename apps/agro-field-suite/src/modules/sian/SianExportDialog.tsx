@@ -33,10 +33,10 @@ import {
 
 /**
  * Dialog di configurazione dell'export SIAN (CSV). Espone TUTTI i filtri
- * (temporali e spaziali) e la struttura del tracciato (colonne ordinate,
+ * (temporali e spaziali) e la struttura del tracciato (colonne sortedList,
  * separatore, intestazioni, BOM), così l'export è adattabile a cambiamenti
  * normativi o richieste particolari senza modifiche al codice. Al conferma:
- * filtra → costruisce → scarica → registra il tag di export nel giornale.
+ * filtra → costruisce → download → registra il tag di export nel giornale.
  */
 
 const TIPI_OPERAZIONE: OperationType[] = [
@@ -186,7 +186,7 @@ export function SianExportDialog({
       includiIntestazioni: intestazioni,
       bom,
     };
-    const nomeFile = esportaSianCsv(
+    const fileName = esportaSianCsv(
       filteredRows,
       plots,
       company?.business_name,
@@ -199,7 +199,7 @@ export function SianExportDialog({
     void recordTransfer({
       operation_type: "export",
       file_format: "csv",
-      file_name: nomeFile,
+      file_name: fileName,
     });
     onClose();
   }

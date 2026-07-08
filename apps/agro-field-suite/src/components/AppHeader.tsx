@@ -98,8 +98,8 @@ export function AppHeader({
       </div>
 
       {/* Indicatore company: una sola company attiva, nessun cambio possibile.
-          Display statico (non più un pulsante): mostra "-" finché il nome non è
-          impostato, poi il nome dell'azienda. */}
+          Display statico (non più un pulsante): mostra "-" finché il name non è
+          impostato, poi il name dell'azienda. */}
       <div
         className="flex min-h-[36px] min-w-0 shrink items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] px-2 text-left"
         title={company?.business_name ?? undefined}
@@ -112,7 +112,7 @@ export function AppHeader({
 
       {/* Add Data globale (GeoLibre 1.2): ingresso unico dei file esterni.
           Nascosto sotto sm: sui telefoni la barra si affollava troppo, e
-          l'import dati esterni non è un'azione da campo di prima necessità. */}
+          l'import dati esterni non è un'azione da field di prima necessità. */}
       {flags.headerAddData && (
         <div className="hidden shrink-0 sm:block">
           <AddDataControl />

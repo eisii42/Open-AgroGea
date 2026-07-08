@@ -130,7 +130,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
   }
 
   /**
-   * Crea o aggiorna la configurazione meteo dell'azienda (upsert sull'azienda).
+   * Crea o update la configurazione meteo dell'azienda (upsert sull'azienda).
    * Preserva `last_weather_pull_at` se non passato esplicitamente.
    */
   async upsertConfigMeteo(
@@ -213,7 +213,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
 
   /**
    * Sostituisce in transazione i risultati cache dei modelli passati per un
-   * plot: semantica "ultimo valore per modello".
+   * plot: semantica "ultimo value per modello".
    */
   async saveDssResults(
     plotId: string,
@@ -224,7 +224,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
     >,
   ): Promise<DssResult[]> {
     const ts = nowIso();
-    const righe: DssResult[] = risultati.map((r) => ({
+    const rows: DssResult[] = risultati.map((r) => ({
       id: uuidv4(),
       plot_id: plotId,
       model_name: r.model_name,
@@ -241,7 +241,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
           [plotId, modelli],
         );
       }
-      for (const r of righe) {
+      for (const r of rows) {
         await tx.query(
           `insert into dss_results
              (id, plot_id, model_name, risk_level, output_value, calculated_at)
@@ -257,7 +257,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
         );
       }
     });
-    return righe;
+    return rows;
   }
 
   async listDssRisultati(
@@ -278,20 +278,20 @@ export class AgroDalLocal extends AgroDalWarehouse {
 
   /**
    * Sostituisce in transazione l'INTERA serie del bilancio idrico di una
-   * campagna del campo: il calcolo è ricomputato per intero ad ogni run, quindi
+   * campagna del field: il calcolo è ricomputato per intero ad ogni run, quindi
    * la semantica è "rimpiazza tutto per plot_campaign_id" (come dss_results per
    * modello). Local-only: nessuna voce di outbox.
    */
   async saveWaterIndices(
     plotCampaignId: string,
-    righe: Array<
+    rows: Array<
       Omit<SoilWaterIndex, "id" | "plot_campaign_id" | "calculated_at"> & {
         calculated_at?: string;
       }
     >,
   ): Promise<SoilWaterIndex[]> {
     const ts = nowIso();
-    const out: SoilWaterIndex[] = righe.map((r) => ({
+    const out: SoilWaterIndex[] = rows.map((r) => ({
       id: uuidv4(),
       plot_campaign_id: plotCampaignId,
       date: r.date,
@@ -407,7 +407,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
   // -- cataloghi di stato multiregionali (Modulo 3, local-only) --------------
 
   /**
-   * Voci di catalogo del paese dato e del tipo dato, ordinate per nome.
+   * Voci di catalogo del paese dato e del tipo dato, sortedList per name.
    * Scrittura/lettura diretta, MAI dall'outbox: è reference data per nazione.
    */
   async listCatalogo(

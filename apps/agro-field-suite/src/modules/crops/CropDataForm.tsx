@@ -10,7 +10,7 @@ import { useCountryCatalog } from "../../hooks/useTenantCountry";
 import { allCropFormSchemas, cropFormSchema } from "./cropFormSchema";
 
 /**
- * Scheda "Dati coltura" del modulo CropType. Sistema smart e semplice per
+ * Scheda "Dati coltura" del module CropType. Sistema smart e semplice per
  * registrare la crop di un plot per la Campagna Agraria attiva:
  *   * scheda dedicata per ogni tipo (vite/olivo/frutteto/seminativo/orticoltura),
  *     con i campi di filiera specifici (clone, sesto, portainnesto, ciclo…);
@@ -18,10 +18,10 @@ import { allCropFormSchemas, cropFormSchema } from "./cropFormSchema";
  *     (campi di filiera in `crop_metadata`) e lo stato annuale in `plots_campaign`;
  *   * in MODIFICA ricarica i valori dell'annata; se l'annata è VUOTA ma esiste un
  *     anno precedente per lo stesso plot, precompila con quei dati
- *     (perenni: vite/olivo/frutteto) creando però righe nuove al salvataggio.
+ *     (perenni: vite/olivo/frutteto) creando però rows nuove al salvataggio.
  *
  * La categoria scelta finisce in `crop_metadata.category`: è ciò che la scheda
- * DSS legge per risolvere il modulo verticale dell'appezzamento.
+ * DSS legge per risolvere il module verticale dell'appezzamento.
  */
 
 type MetaState = Record<string, string>;
@@ -82,7 +82,7 @@ export function CropDataForm({
 
   // Data dell'ultima SEMINA/TRAPIANTO dal Quaderno di Campagna (fonte di verità
   // per le annuali; alimenta il biofix GDD del DSS). Sola lettura qui.
-  const [ultimaSemina, setUltimaSemina] = useState<string | null>(null);
+  const [lastSowing, setUltimaSemina] = useState<string | null>(null);
   useEffect(() => {
     let vivo = true;
     if (!dal || !activeCompanyId) return;
@@ -169,7 +169,7 @@ export function CropDataForm({
 
   // Quick-pick specie dal catalogo: auto-compila tipo (se mappato), name comune,
   // name scientifico e codice ministeriale.
-  function selezionaSpecieCatalogo(code: string) {
+  function selectCatalogSpecies(code: string) {
     const voce = cropCatalog.find((v) => v.code === code);
     if (!voce) {
       setCropCode("");
@@ -184,7 +184,7 @@ export function CropDataForm({
   }
 
   // Quick-pick varietà dal catalogo: auto-compila name varietà, codice e clone.
-  function selezionaVarietaCatalogo(code: string) {
+  function selectCatalogVariety(code: string) {
     setVarietyCode(code);
     const voce = varietyOptions.find((v) => v.code === code);
     if (!voce) return;
@@ -193,7 +193,7 @@ export function CropDataForm({
     if (clone) setMeta((m) => ({ ...m, clone }));
   }
 
-  function selezionaCategoria(cat: string) {
+  function selectCategory(cat: string) {
     setCategory(cat);
     const s = cropFormSchema(t, cat);
     if (!s) return;
@@ -208,7 +208,7 @@ export function CropDataForm({
   const areaValida = areaNum != null && Number.isFinite(areaNum);
   const canSave = Boolean(category && commonName.trim() && areaValida) && !saving;
 
-  async function salva() {
+  async function save() {
     if (!canSave) return;
     setSaving(true);
     setEsito("idle");
@@ -304,7 +304,7 @@ export function CropDataForm({
           <Select
             id="crop-catalog"
             value={cropCode}
-            onChange={(e) => selezionaSpecieCatalogo(e.target.value)}
+            onChange={(e) => selectCatalogSpecies(e.target.value)}
           >
             <option value="">{t("cropDataForm.selectFromNationalRegister")}</option>
             {cropCatalog.map((v) => (
@@ -325,7 +325,7 @@ export function CropDataForm({
             <button
               key={s.category}
               type="button"
-              onClick={() => selezionaCategoria(s.category)}
+              onClick={() => selectCategory(s.category)}
               className={
                 "flex flex-col items-center gap-1 rounded-[var(--r-2)] border px-2 py-2 text-xs font-medium " +
                 (category === s.category
@@ -367,7 +367,7 @@ export function CropDataForm({
                   <Select
                     aria-label={t("cropDataForm.varietyFromCatalog")}
                     value={varietyCode}
-                    onChange={(e) => selezionaVarietaCatalogo(e.target.value)}
+                    onChange={(e) => selectCatalogVariety(e.target.value)}
                   >
                     <option value="">{t("cropDataForm.fromCatalog")}</option>
                     {varietyOptions.map((v) => (
@@ -448,8 +448,8 @@ export function CropDataForm({
                 </span>
                 <span className="text-[var(--ink-4)]">
                   {": "}
-                  {ultimaSemina
-                    ? new Date(ultimaSemina).toLocaleDateString("it-IT")
+                  {lastSowing
+                    ? new Date(lastSowing).toLocaleDateString("it-IT")
                     : "—"}
                 </span>
                 <p className="mt-0.5 text-[10px] text-[var(--ink-4)]">
@@ -526,7 +526,7 @@ export function CropDataForm({
           <Button
             className="min-h-[var(--touch-min)]"
             disabled={!canSave}
-            onClick={() => void salva()}
+            onClick={() => void save()}
           >
             {saving
               ? t("logbook.common.saving")

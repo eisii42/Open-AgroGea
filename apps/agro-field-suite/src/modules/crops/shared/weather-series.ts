@@ -102,7 +102,7 @@ function enumeraGiorni(inizio: string, fine: string): string[] {
 /**
  * Interpolazione lineare dei `null` in un array numerico: ogni buco è stimato
  * sulla retta tra i due valori noti che lo racchiudono; i buchi alle estremità
- * sono riempiti col valore noto più vicino (forward/back fill).
+ * sono riempiti col value noto più vicino (forward/back fill).
  */
 function interpolaLineare(valori: (number | null)[]): number[] {
   const n = valori.length;

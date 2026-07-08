@@ -51,7 +51,7 @@ function syncLayer(layer: ManagedLayer): void {
     store.updateLayer(layer.id, {
       geojson: layer.geojson,
       // Visibilità NON forzata sugli update: è gestita dal Layer Manager nativo
-      // (e dal valore iniziale alla creazione). Così un layer creato nascosto
+      // (e dal value iniziale alla creazione). Così un layer creato nascosto
       // resta nascosto e una scelta dell'utente non viene sovrascritta a ogni
       // nuovo dato (es. inserendo un'operazione nel Quaderno).
       opacity: layer.opacity,

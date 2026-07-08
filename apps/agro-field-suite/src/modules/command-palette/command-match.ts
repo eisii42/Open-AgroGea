@@ -9,7 +9,7 @@ export type CategoriaComando = "azione" | "appezzamento";
 
 export interface ComandoBase {
   id: string;
-  titolo: string;
+  title: string;
   sottotitolo?: string;
   /** Termini extra per il match (sinonimi, sigle). */
   paroleChiave?: string[];
@@ -28,9 +28,9 @@ export function normalizza(testo: string): string {
 }
 
 function punteggioComando(comando: ComandoBase, tokens: string[]): number {
-  const titolo = normalizza(comando.titolo);
+  const title = normalizza(comando.title);
   const haystack = normalizza(
-    [comando.titolo, comando.sottotitolo, ...(comando.paroleChiave ?? [])]
+    [comando.title, comando.sottotitolo, ...(comando.paroleChiave ?? [])]
       .filter(Boolean)
       .join(" "),
   );
@@ -38,20 +38,20 @@ function punteggioComando(comando: ComandoBase, tokens: string[]): number {
   let punteggio = 0;
   for (const token of tokens) {
     if (!haystack.includes(token)) return -1; // AND: tutti i token devono esserci.
-    if (titolo.startsWith(token)) punteggio += 3;
-    else if (titolo.includes(token)) punteggio += 2;
+    if (title.startsWith(token)) punteggio += 3;
+    else if (title.includes(token)) punteggio += 2;
     else punteggio += 1; // match solo su sottotitolo/parole chiave.
   }
-  // Bonus se l'intera query è un prefisso del titolo (match "pieno").
-  if (titolo.startsWith(tokens.join(" "))) punteggio += 2;
+  // Bonus se l'intera query è un prefisso del title (match "pieno").
+  if (title.startsWith(tokens.join(" "))) punteggio += 2;
   return punteggio;
 }
 
 /**
  * Filtra e ordina i comandi per la query. Query vuota → tutti i comandi
  * nell'ordine originale (azioni prima, poi plots, come passati). Con
- * query → solo quelli che contengono TUTTI i token, ordinati per punteggio
- * decrescente; a parità, titolo più corto e poi ordine originale (stabile).
+ * query → solo quelli che contengono TUTTI i token, sorted per punteggio
+ * decrescente; a parità, title più corto e poi ordine originale (stabile).
  */
 export function filtraComandi<T extends ComandoBase>(
   comandi: T[],
@@ -70,7 +70,7 @@ export function filtraComandi<T extends ComandoBase>(
     .filter((entry) => entry.punteggio >= 0)
     .sort((a, b) => {
       if (b.punteggio !== a.punteggio) return b.punteggio - a.punteggio;
-      const lenDiff = a.comando.titolo.length - b.comando.titolo.length;
+      const lenDiff = a.comando.title.length - b.comando.title.length;
       if (lenDiff !== 0) return lenDiff;
       return a.indice - b.indice;
     })

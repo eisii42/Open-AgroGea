@@ -14,7 +14,7 @@ import type { TFunction } from "i18next";
  * tenant attivo, la sorgente meteo e le variabili visibili a schermo. Scrive su
  * `config_meteo_azienda` via store/DAL (local-only): nessuna delle credenziali
  * lascia il device. Anagrafica e GeoCompliance vivono in pannelli dedicati
- * sotto lo stesso modulo "Impostazioni Company". Lazy-loaded (peso bundle).
+ * sotto lo stesso module "Impostazioni Company". Lazy-loaded (peso bundle).
  */
 
 const VARIABILE_IDS: WeatherVariable[] = [
@@ -66,7 +66,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
       return next;
     });
 
-  const salva = async () => {
+  const save = async () => {
     setSalvataggio("salvo");
     setErroreMsg(undefined);
     try {
@@ -96,7 +96,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         <Button
           className="min-h-[var(--touch-min)] w-full"
           disabled={!activeCompanyId || salvataggio === "salvo"}
-          onClick={() => void salva()}
+          onClick={() => void save()}
         >
           {salvataggio === "salvo"
             ? t("logbook.common.saving")

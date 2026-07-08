@@ -53,7 +53,7 @@ export function MapTooltip({ hover }: { hover: HoverState | null }) {
 function AppezzamentoBody({ props }: { props: Record<string, unknown> }) {
   const { t } = useTranslation();
   const areaUnit = useSettingsStore((s) => s.units.area);
-  const nome = str(props.user_plot_name) ?? t("mapTooltip.plot");
+  const name = str(props.user_plot_name) ?? t("mapTooltip.plot");
   const crop = str(props.crop);
   const colturaKind = str(props.crop_kind);
   const area = num(props.area_ha);
@@ -62,7 +62,7 @@ function AppezzamentoBody({ props }: { props: Record<string, unknown> }) {
   const CropIcon = cropIcon(cropIconKey);
   return (
     <div className="flex flex-col gap-1">
-      <p className="text-[13px] font-semibold">{nome}</p>
+      <p className="text-[13px] font-semibold">{name}</p>
       {crop && (
         <Row
           label={t("mapTooltip.crop")}
@@ -102,13 +102,13 @@ function AppezzamentoBody({ props }: { props: Record<string, unknown> }) {
 
 function InfrastrutturaBody({ props }: { props: Record<string, unknown> }) {
   const { t } = useTranslation();
-  const nome = str(props.name) ?? str(props.asset_type) ?? t("mapTooltip.infrastructure");
+  const name = str(props.name) ?? str(props.asset_type) ?? t("mapTooltip.infrastructure");
   const tipo = str(props.asset_type);
   const categoria = str(props.category);
   const lunghezza = num(props.length_m);
   return (
     <div className="flex flex-col gap-1">
-      <p className="text-[13px] font-semibold">{nome}</p>
+      <p className="text-[13px] font-semibold">{name}</p>
       {tipo && <Row label={t("mapTooltip.type")} value={tipo} />}
       {lunghezza != null && (
         <Row

@@ -11,7 +11,7 @@ import { Button, cn, Input, Label, Select } from "@geolibre/ui";
 import { type FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-/** Mappa campo PAN → chiave i18n dell'etichetta (per i messaggi d'errore). */
+/** Mappa field PAN → chiave i18n dell'etichetta (per i messaggi d'errore). */
 const TREATMENT_FIELD_KEY: Record<string, string> = {
   operation_date: "logbook.treatment.date",
   target_disease: "logbook.treatment.target",
@@ -26,7 +26,7 @@ const TREATMENT_FIELD_KEY: Record<string, string> = {
 /**
  * Form di registrazione del Quaderno di Campagna (Design.md → QDCForm), allineato
  * agli obblighi PAN/SIAN per i treatments fitosanitari:
- *   * selettore del campo per Campagna Agraria (nome utente + codice crop SIAN);
+ *   * selettore del field per Campagna Agraria (name utente + codice crop SIAN);
  *   * data treatment, avversità (dropdown rigorosa), product commerciale,
  *     n. registrazione ministeriale, sostanza attiva, dose+unità, volume acqua,
  *     CF operatore e numero di patentino.
@@ -65,11 +65,11 @@ export type TrattamentoFormValues = Omit<
   "id" | "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
 >;
 
-/** Opzione di campo per la Campagna Agraria selezionata (nome + codice SIAN). */
+/** Opzione di field per la Campagna Agraria selezionata (name + codice SIAN). */
 export interface CampoCampagnaOption {
   campoCampagnaId: string;
   plotId: string;
-  nome: string;
+  name: string;
   codiceColturaSian: string | null;
   superficieHa: number | null;
 }
@@ -86,11 +86,11 @@ export interface TrattamentoFormProps {
   plots: Plot[];
   onSubmit: (values: TrattamentoFormValues) => Promise<void> | void;
   onCancel?: () => void;
-  /** Plot pre-selezionato (es. apertura dal popup del campo). */
+  /** Plot pre-selezionato (es. apertura dal popup del field). */
   defaultAppezzamentoId?: string | null;
   /**
    * Campi validi per la Campagna Agraria attiva. Se forniti, il selettore mostra
-   * questi (nome + codice crop SIAN) e l'operazione aggancia `plot_campaign_id`.
+   * questi (name + codice crop SIAN) e l'operazione aggancia `plot_campaign_id`.
    */
   campaignFields?: CampoCampagnaOption[];
   /**
@@ -100,7 +100,7 @@ export interface TrattamentoFormProps {
   valutaCompliance?: (plot: Plot) => ComplianceTreatment | null;
   /**
    * Catalogo fitosanitari filtrato per `country_code` (iniettato dall'app via
-   * `useCountryCatalog`). Se fornito, il campo "Product" diventa un dropdown del
+   * `useCountryCatalog`). Se fornito, il field "Product" diventa un dropdown del
    * registro nazionale che auto-compila sostanza attiva e n. registrazione.
    */
   prodottiCatalogo?: CatalogEntry[];
@@ -116,7 +116,7 @@ export function TreatmentForm({
   prodottiCatalogo,
 }: TrattamentoFormProps) {
   const { t } = useTranslation();
-  // t() per chiavi DINAMICHE (etichette campo + messaggi del validatore PAN):
+  // t() per chiavi DINAMICHE (etichette field + messaggi del validatore PAN):
   // bypassa il tipaggio stretto delle chiavi statiche di i18next.
   const td = t as unknown as (
     key: string,
@@ -311,7 +311,7 @@ export function TreatmentForm({
               <option value="">{t("logbook.common.wholeFarm")}</option>
               {campaignFields?.map((c) => (
                 <option key={c.campoCampagnaId} value={c.campoCampagnaId}>
-                  {c.nome}
+                  {c.name}
                   {c.codiceColturaSian ? ` · SIAN ${c.codiceColturaSian}` : ""}
                 </option>
               ))}

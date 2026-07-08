@@ -43,7 +43,7 @@ export class AgroDalRegistry extends AgroDalBase {
   // -- tenant_memberships (multiutente) --------------------------------------
 
   /**
-   * Crea o aggiorna un posto collaboratore (`tenant_memberships`). Percorso
+   * Crea o update un posto collaboratore (`tenant_memberships`). Percorso
    * transazionale dato+outbox come ogni mutazione di dominio. La quota per
    * ruolo/piano è verificata a monte (client-side); qui si persiste soltanto.
    */
@@ -94,7 +94,7 @@ export class AgroDalRegistry extends AgroDalBase {
   // -- crops -----------------------------------------------------------------
 
   /**
-   * Crea o aggiorna una specie/varietà coltivata (`crops`). Percorso
+   * Crea o update una specie/varietà coltivata (`crops`). Percorso
    * transazionale dato+outbox come ogni mutazione di dominio.
    */
   async upsertCrop(
@@ -216,7 +216,7 @@ export class AgroDalRegistry extends AgroDalBase {
   // -- campi campagna (stato burocratico annuale, SIAN/AGEA) -----------------
 
   /**
-   * Crea o aggiorna lo stato di Campagna Agraria di un plot per un'annata
+   * Crea o update lo stato di Campagna Agraria di un plot per un'annata
    * (upsert sul vincolo univoco plot_id+campaign_year). Percorso transazionale
    * dato+outbox come ogni mutazione di dominio.
    */
@@ -269,7 +269,7 @@ export class AgroDalRegistry extends AgroDalBase {
 
   /**
    * Chiude il ciclo colturale di una campagna (v17): imposta `closed_at` e
-   * il campo torna libero (mappa neutra, DSS spento, nuova semina possibile).
+   * il field torna libero (mappa neutra, DSS spento, nuova semina possibile).
    * Percorso transazionale dato+outbox; no-op se la riga non esiste o è già
    * chiusa. Ritorna la riga aggiornata o null.
    */

@@ -50,7 +50,7 @@ import { downloadArtifact } from "../../services/gis/geo-export";
  * di PGlite per gli plots scelti e ne mostra, per ciascuno, la depletion
  * radicale Dr day per day (con la soglia RAW), l'autonomia residua e lo
  * stato di stress. Compone gli engine puri via {@link useDssCalculation}; la series
- * giornaliera è persistita in `soil_water_indices` quando il campo ha una campagna
+ * giornaliera è persistita in `soil_water_indices` quando il field ha una campagna
  * attiva.
  */
 
@@ -120,14 +120,14 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
   const plots = useAgroStore((s) => s.plots);
   const crops = useAgroStore((s) => s.crops);
   const campaignFields = useAgroStore((s) => s.campaignFields);
-  const selezionatoId = useAgroStore((s) => s.selectedPlotId);
+  const selectedId = useAgroStore((s) => s.selectedPlotId);
   const recordTransfer = useAgroStore((s) => s.recordTransfer);
 
   const [sel, setSel] = useState<Set<string>>(
     () =>
       new Set(
-        selezionatoId
-          ? [selezionatoId]
+        selectedId
+          ? [selectedId]
           : plots[0]
             ? [plots[0].id]
             : [],
@@ -141,7 +141,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
       return next;
     });
 
-  const { stato, calcola } = useDssCalculation();
+  const { stato, compute } = useDssCalculation();
   const [mostraOverlay, setMostraOverlay] = useState(false);
   const [esportando, setEsportando] = useState(false);
 
@@ -157,15 +157,15 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
       | FeatureCollection
       | undefined) ?? null;
 
-  // Target = plots selezionati con crop/modulo (serve il Kc per l'ETc).
+  // Target = plots selezionati con crop/module (serve il Kc per l'ETc).
   const targets = useMemo<DssTarget[]>(() => {
     const out: DssTarget[] = [];
     for (const a of plots) {
       if (!sel.has(a.id)) continue;
-      const modulo = cropModuleForCrop(
+      const module = cropModuleForCrop(
         cropForPlot(a.id, campaignFields, crops),
       );
-      if (modulo) out.push({ plot: a, modulo });
+      if (module) out.push({ plot: a, module });
     }
     return out;
   }, [plots, sel, campaignFields, crops]);
@@ -200,7 +200,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
     }
   };
 
-  // Overlay coropletico del risk sintetico (stress idrico + NDVI) per campo,
+  // Overlay coropletico del risk sintetico (stress idrico + NDVI) per field,
   // aggregato su TUTTI gli plots calcolati.
   const plotsOverlay = useMemo(
     () =>
@@ -228,7 +228,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
           rischioPatologico01: patologico,
           ndvi: appz?.last_ndvi_mean ?? null,
         },
-        summaryCalibration(r.modulo.mainSpecies, "piena"),
+        summaryCalibration(r.module.mainSpecies, "piena"),
       );
       m.set(r.plotId, { rischio01: score });
     }
@@ -238,7 +238,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
   useDssOverlayLayer({
     plots: plotsOverlay,
     summaryPerField,
-    crop: stato.risultati[0]?.modulo.mainSpecies ?? "vite",
+    crop: stato.risultati[0]?.module.mainSpecies ?? "vite",
     attivo: mostraOverlay && completato,
   });
 
@@ -250,7 +250,7 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
         <Button
           className="min-h-[var(--touch-min)] w-full gap-2"
           disabled={targets.length === 0 || inCorso}
-          onClick={() => void calcola(targets, { mappaCustom })}
+          onClick={() => void compute(targets, { mappaCustom })}
         >
           <RefreshCw size={15} className={cn(inCorso && "animate-spin")} />
           {inCorso

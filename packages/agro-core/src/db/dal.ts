@@ -16,7 +16,7 @@ import { openTenantDb } from "./tenant-db";
  *                               watermark del pull incrementale;
  *   - {@link AgroDalRegistry} — anagrafiche (companies, posti, colture,
  *                               plots, campagne);
- *   - {@link AgroDalLogbook}  — registrazioni di campo (Quaderno, harvests,
+ *   - {@link AgroDalLogbook}  — registrazioni di field (Quaderno, harvests,
  *                               soil, scouting, asset);
  *   - {@link AgroDalWarehouse} — Magazzino (products, lots, carichi CUMP,
  *                               issue atomico agganciato alle attività);

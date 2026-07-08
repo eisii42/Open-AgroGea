@@ -73,7 +73,7 @@ describe("waterBalanceFao66 — equazione di depletion", () => {
 
   it("non scende sotto 0 né supera AWC (clamp fisico)", () => {
     const { series } = waterBalanceFao66(SUOLO, [500], [0], [0], 0);
-    // domanda non soddisfatta: Dr cappato ad AWC (≈200, modulo float).
+    // domanda non soddisfatta: Dr cappato ad AWC (≈200, module float).
     assert.ok(Math.abs(series[0].depletion - AWC) < 1e-6);
   });
 });

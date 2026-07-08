@@ -50,10 +50,10 @@ const LAVORAZIONE_I18N_KEY: Record<TipoLavorazione, string> = {
 export function VraPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const plots = useAgroStore((s) => s.plots);
-  const selezionatoId = useAgroStore((s) => s.selectedPlotId);
-  const { stato, genera, esporta, reset } = useVraGenerator();
+  const selectedId = useAgroStore((s) => s.selectedPlotId);
+  const { stato, generate, esporta, reset } = useVraGenerator();
 
-  const [apzId, setApzId] = useState(selezionatoId ?? "");
+  const [plotId, setApzId] = useState(selectedId ?? "");
   const [indice, setIndice] = useState<VegetationIndex>("ndvi");
   const [lavorazione, setLavorazione] = useState<TipoLavorazione>("concimazione");
   const [step, setStep] = useState(4);
@@ -71,10 +71,10 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
     });
   }, [zone]);
 
-  const apz = plots.find((a) => a.id === apzId);
+  const plot = plots.find((a) => a.id === plotId);
   const unita = UNITA_LAVORAZIONE[lavorazione];
   const inCorso = stato.fase === "lavorazione";
-  const canGenerate = apz != null && !inCorso;
+  const canGenerate = plot != null && !inCorso;
 
   return (
     <FieldSheet
@@ -85,9 +85,9 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
           className="min-h-[var(--touch-min)] w-full"
           disabled={!canGenerate}
           onClick={() => {
-            if (!apz) return;
+            if (!plot) return;
             reset();
-            void genera(apz, { indice, step, zone, lavorazione, ratei });
+            void generate(plot, { indice, step, zone, lavorazione, ratei });
           }}
         >
           {inCorso ? t("vraPanel.generating") : t("vraPanel.generateMap")}
@@ -106,7 +106,7 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
             </p>
           ) : (
             <select
-              value={apzId}
+              value={plotId}
               onChange={(e) => setApzId(e.target.value)}
               className="w-full rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-2 text-sm"
             >
@@ -202,7 +202,7 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
           <div className="flex flex-col gap-1.5">
             {ratei.map((rateo, i) => (
               <label
-                // L'indice è la chiave naturale: le zone sono ordinate e stabili.
+                // L'indice è la chiave naturale: le zone sono sortedList e stabili.
                 key={i}
                 className="flex items-center gap-2 text-sm"
               >
@@ -267,19 +267,19 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
             <div className="mt-1 grid grid-cols-3 gap-2">
               <Button
                 className="min-h-[var(--touch-min)]"
-                onClick={() => esporta("isoxml", apz?.user_plot_name ?? "vra")}
+                onClick={() => esporta("isoxml", plot?.user_plot_name ?? "vra")}
               >
                 ISO-XML
               </Button>
               <Button
                 className="min-h-[var(--touch-min)]"
-                onClick={() => esporta("shapefile", apz?.user_plot_name ?? "vra")}
+                onClick={() => esporta("shapefile", plot?.user_plot_name ?? "vra")}
               >
                 Shapefile
               </Button>
               <Button
                 className={cn("min-h-[var(--touch-min)]")}
-                onClick={() => esporta("geojson", apz?.user_plot_name ?? "vra")}
+                onClick={() => esporta("geojson", plot?.user_plot_name ?? "vra")}
               >
                 GeoJSON
               </Button>

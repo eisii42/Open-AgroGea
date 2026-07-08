@@ -7,7 +7,7 @@ import type { TFunction } from "i18next";
  * definisce i campi di filiera SPECIFICI che finiscono in `crops.crop_metadata`
  * (JSONB dinamico), oltre ai campi comuni (name comune/scientifico/varietà) e ai
  * campi annuali di `plots_campaign`. La `category` salvata in `crop_metadata`
- * è ciò che il DSS legge per risolvere il modulo verticale dell'appezzamento.
+ * è ciò che il DSS legge per risolvere il module verticale dell'appezzamento.
  *
  * Le etichette sono chiavi i18n risolte a runtime da `cropFormSchema()`/
  * `allCropFormSchemas()`: il name scientifico (binomio latino) resta invariato

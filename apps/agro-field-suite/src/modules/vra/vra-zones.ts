@@ -35,7 +35,7 @@ export const UNITA_LAVORAZIONE: Record<TipoLavorazione, string> = {
 };
 
 export interface ZonaVra {
-  /** Indice zona 0..k-1, crescente per valore medio dell'indice. */
+  /** Indice zona 0..k-1, crescente per value medio dell'indice. */
   zona: number;
   /** Valore medio dell'indice nella zona (centroid K-means). */
   valoreMedio: number;
@@ -52,7 +52,7 @@ export interface OpzioniZoneVra {
   lavorazione: TipoLavorazione;
   /**
    * Rateo per zona, allineato alle zone in ordine CRESCENTE di indice
-   * (rates[0] = zona a indice più basso). Se più corto, l'ultimo valore si
+   * (rates[0] = zona a indice più basso). Se più corto, l'ultimo value si
    * ripete; se assente, i ratei restano 0.
    */
   ratei: number[];
@@ -80,15 +80,15 @@ function rateoPerZona(ratei: number[], zona: number): number {
  * poi assegna il rateo di ogni zona. Le celle senza `valore` numerico sono
  * escluse dalla mappa di prescrizione.
  */
-export function generaZoneVra(
-  cells: FeatureCollection<Polygon, { valore?: number }>,
+export function generateVraZones(
+  cells: FeatureCollection<Polygon, { value?: number }>,
   opzioni: OpzioniZoneVra,
 ): RisultatoZoneVra {
   const unita = opzioni.unita ?? UNITA_LAVORAZIONE[opzioni.lavorazione];
   const validi = cells.features.filter(
-    (f): f is Feature<Polygon, { valore: number }> =>
-      typeof f.properties?.valore === "number" &&
-      Number.isFinite(f.properties.valore),
+    (f): f is Feature<Polygon, { value: number }> =>
+      typeof f.properties?.value === "number" &&
+      Number.isFinite(f.properties.value),
   );
 
   if (validi.length === 0) {
@@ -100,7 +100,7 @@ export function generaZoneVra(
     };
   }
 
-  const valori = validi.map((f) => f.properties.valore);
+  const valori = validi.map((f) => f.properties.value);
   const { assignments, centroids } = kmeans1d(valori, opzioni.zone);
 
   const conteggi = new Array<number>(centroids.length).fill(0);

@@ -19,7 +19,7 @@ export const useAgroStore = create<AgroState>((set, get) => ({
   ...createGeometrySlice(set, get),
 }));
 
-// Ri-esporta tipi e funzioni pure dal loro nuovo modulo: l'API pubblica di
+// Ri-esporta tipi e funzioni pure dal loro nuovo module: l'API pubblica di
 // `./store` resta identica a prima dello split in slice.
 export type {
   AgroState,

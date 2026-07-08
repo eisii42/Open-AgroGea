@@ -31,8 +31,8 @@ import type {
 
 /**
  * Tipi dello store Zustand agronomico. Lo stato è partizionato in QUATTRO
- * slice per dominio (sessione, dominio dati, UI di campo, disegno/geometrie),
- * ricomposte in {@link AgroState}: ogni slice vive nel proprio modulo
+ * slice per dominio (sessione, dominio dati, UI di field, disegno/geometrie),
+ * ricomposte in {@link AgroState}: ogni slice vive nel proprio module
  * (`session-slice.ts`, `domain-slice.ts`, `ui-slice.ts`, `geometry-slice.ts`)
  * ma condivide `set`/`get` sull'intero stato, quindi le azioni possono
  * attraversare i confini di slice quando serve (es. `endSession` azzera tutto).
@@ -92,7 +92,7 @@ export interface GeometrySnapshot {
 export type GeomEditRequest = "save" | "cancel" | null;
 
 /**
- * Vista di primo livello dell'app di campo. `map` è la Dashboard geocentrica
+ * Vista di primo livello dell'app di field. `map` è la Dashboard geocentrica
  * (mappa + moduli); `command-center` è il Data Command Center analitico, dove la
  * mappa MaplLibre viene smontata per liberare risorse. Il contesto aziendale
  * (company attiva, DAL, dati di dominio) vive nello store e SOPRAVVIVE allo
@@ -213,7 +213,7 @@ export interface DomainSlice {
   /**
    * Cambio di workspace (company) richiesto dalla pagina di selezione: pulisce
    * lo stato derivato, isola le tabelle locali PGlite sul nuovo `tenant_id`
-   * (sottoinsieme filtrato per company) e aggiorna lo stato React. La cache di
+   * (sottoinsieme filtrato per company) e update lo stato React. La cache di
    * rendering dei vettori della mappa sulla WebView viene azzerata dal remount
    * della dashboard (`key={activeCompanyId}` in App), che ricostruisce mappa e
    * sorgenti da zero.
@@ -228,7 +228,7 @@ export interface DomainSlice {
    */
   createCompany: (input: NewCompanyInput) => Promise<Company>;
   /**
-   * Crea/aggiorna un posto collaboratore (`tenant_memberships`) via DAL → outbox
+   * Crea/update un posto collaboratore (`tenant_memberships`) via DAL → outbox
    * e idrata lo store. La quota per ruolo/piano è verificata a monte dal
    * chiamante (field-suite `MembershipGuard`): qui si persiste soltanto.
    */
@@ -291,7 +291,7 @@ export interface DomainSlice {
   ) => Promise<TreatmentLog | null>;
   /** Salva la cache NDVI di un plot (pipeline STAC) e idrata lo store. */
   saveMeanNdvi: (plotId: string, meanNdvi: number) => Promise<void>;
-  /** Registra/aggiorna un evento di harvest (Modulo Harvest) e idrata lo store. */
+  /** Registra/update un evento di harvest (Modulo Harvest) e idrata lo store. */
   saveHarvest: (
     input: Partial<
       Omit<
@@ -308,7 +308,7 @@ export interface DomainSlice {
   deleteHarvest: (id: string) => Promise<void>;
   /**
    * Registra un trasferimento dati (import/export) nel giornale locale e
-   * aggiorna reattivamente il feed dei tag. Ritorna la voce creata (per un tag
+   * update reattivamente il feed dei tag. Ritorna la voce creata (per un tag
    * immediato) o null se non c'è un DAL attivo.
    */
   recordTransfer: (
@@ -320,7 +320,7 @@ export interface DomainSlice {
   /** Imposta l'anno della Campagna Agraria attiva e ricarica i campi di campagna. */
   setActiveCampaign: (anno: number) => Promise<void>;
   /**
-   * Crea/aggiorna lo stato di Campagna Agraria di un campo (SIAN/AGEA) e idrata
+   * Crea/update lo stato di Campagna Agraria di un field (SIAN/AGEA) e idrata
    * lo store. Ritorna la riga o null senza company attiva.
    */
   savePlotCampaign: (
@@ -332,12 +332,12 @@ export interface DomainSlice {
   ) => Promise<PlotCampaign | null>;
   /**
    * Chiude il ciclo colturale di una campagna (v17, raccolto delle annuali):
-   * il campo torna libero (mappa neutra, DSS spento) e una nuova semina può
+   * il field torna libero (mappa neutra, DSS spento) e una nuova semina può
    * ripartire nello stesso anno. Idrata lo store con la riga chiusa.
    */
   closeCampaign: (id: string) => Promise<void>;
   /**
-   * Crea/aggiorna una specie/varietà coltivata (`crops`) e idrata lo store.
+   * Crea/update una specie/varietà coltivata (`crops`) e idrata lo store.
    * Ritorna la riga o null senza DAL attivo.
    */
   saveCrop: (
@@ -347,7 +347,7 @@ export interface DomainSlice {
     > & { id?: string },
   ) => Promise<Crop | null>;
   /**
-   * Crea/aggiorna un product di warehouse (categorie rigide, validazione per
+   * Crea/update un product di warehouse (categorie rigide, validazione per
    * categoria nel DAL) e idrata lo store. Ritorna la riga o null senza DAL.
    */
   saveProduct: (
@@ -367,7 +367,7 @@ export interface DomainSlice {
   /** Soft-delete di un product di warehouse (i lots restano storicizzati). */
   deleteProduct: (id: string) => Promise<void>;
   /**
-   * CARICO di un nuovo lot: crea il lot e aggiorna il CUMP del product
+   * CARICO di un nuovo lot: crea il lot e update il CUMP del product
    * nella stessa transazione (§5.3), poi idrata products e lots nello store.
    */
   receiveLot: (
@@ -409,7 +409,7 @@ export interface UiSlice {
   lastOperation: LastOperation | null;
   /**
    * Plot per cui aprire il Quaderno filtrato sulle sue lavorazioni
-   * (click sul campo in mappa). `null` = nessuna richiesta pendente. Il
+   * (click sul field in mappa). `null` = nessuna richiesta pendente. Il
    * LogbookPanel lo consuma all'apertura impostando il filtro.
    */
   logbookOpenPlotId: string | null;
@@ -448,7 +448,7 @@ export interface UiSlice {
   togglePanel: (panel: FieldPanel) => void;
   setPanelMode: (mode: PanelMode) => void;
   selectPlot: (id: string | null) => Promise<void>;
-  /** Apre il Quaderno filtrato sulle lavorazioni dell'appezzamento (click sul campo). */
+  /** Apre il Quaderno filtrato sulle lavorazioni dell'appezzamento (click sul field). */
   openLogbookForPlot: (plotId: string | null) => void;
   /** Consuma la richiesta di apertura Quaderno (chiamata dal LogbookPanel). */
   consumeLogbookOpen: () => void;

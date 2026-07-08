@@ -31,7 +31,7 @@ import i18n from "../i18n";
 
 /**
  * Orchestratore del ciclo on-demand "Calcola Modelli" (Modulo Meteo §4), ora
- * MULTI-APPEZZAMENTO (come la pipeline indici del modulo Suolo):
+ * MULTI-APPEZZAMENTO (come la pipeline indici del module Suolo):
  *
  *   per ogni plot target →
  *   Fetch meteo (lucchetto orario, company) → series da PGlite → run DSS locale →
@@ -72,7 +72,7 @@ export interface BalanceSummary {
 export interface DssPlotResult {
   plotId: string;
   name: string;
-  modulo: CropModule;
+  module: CropModule;
   esiti: DssOutcome[];
   /** Vettori di risk normalizzati 0..1 (patologici + idrico se calcolato). */
   vettori: VettoreRischioDss[];
@@ -87,10 +87,10 @@ export interface DssPlotResult {
   message?: string;
 }
 
-/** Plot + modulo crop da calcolare. */
+/** Plot + module crop da calcolare. */
 export interface DssTarget {
   plot: Plot;
-  modulo: CropModule;
+  module: CropModule;
 }
 
 export interface OpzioniCalcoloDss {
@@ -151,7 +151,7 @@ function numeroMeta(value: unknown): number | undefined {
 /**
  * Biofix dell'accumulo termico per l'appezzamento. La fonte di verità della
  * SEMINA/TRAPIANTO è il Quaderno di Campagna: si usa la data dell'ultimo evento
- * `sowing` registrato. In ordine: ultima semina/trapianto del logbook → override
+ * `sowing` registrato. In ordine: last semina/trapianto del logbook → override
  * esplicito nei metadata (`data_inizio_gdd`/`data_semina`) → 1° gennaio dell'anno
  * corrente (convenzione per i gradi-day stagionali).
  */
@@ -159,10 +159,10 @@ function biofixGdd(
   plot: Plot,
   treatments: TreatmentLog[],
 ): string {
-  const ultimaSemina = treatments
+  const lastSowing = treatments
     .filter((t) => t.operation_type === "sowing" && t.executed_at)
     .sort((a, b) => b.executed_at.localeCompare(a.executed_at))[0];
-  if (ultimaSemina) return ultimaSemina.executed_at.slice(0, 10);
+  if (lastSowing) return lastSowing.executed_at.slice(0, 10);
 
   const meta = (plot.metadata ?? {}) as Record<string, unknown>;
   const override = meta.data_inizio_gdd ?? meta.data_semina;
@@ -185,17 +185,17 @@ interface ContestoCalcolo {
  * setState: lo aggrega il chiamante). Il bilancio idrico è calcolato solo se
  * `!skipWaterBalance`.
  */
-async function calcolaPlot(
+async function computePlot(
   ctx: ContestoCalcolo,
   target: DssTarget,
   opzioni: OpzioniCalcoloDss,
 ): Promise<DssPlotResult> {
   const { dal, activeCompanyId, weatherConfig, crops } = ctx;
-  const { plot, modulo } = target;
+  const { plot, module } = target;
   const base: DssPlotResult = {
     plotId: plot.id,
     name: plot.user_plot_name,
-    modulo,
+    module,
     esiti: [],
     vettori: [],
     bilancio: null,
@@ -223,7 +223,7 @@ async function calcolaPlot(
   const biofix = biofixGdd(plot, treatments);
 
   // 0) Storico stagionale (colture ad accumulo): backfill gated via Archive API.
-  if (modulo.seasonalAccumulation) {
+  if (module.seasonalAccumulation) {
     try {
       await WeatherSyncService.assicuraStoricoGdd({
         dal,
@@ -291,7 +291,7 @@ async function calcolaPlot(
     const out = computeWaterBalance({
       letture: lettureRaw,
       irrigazioni: irrigationInputsFromTreatments(treatments, plot.area_ha),
-      crop: modulo.mainSpecies,
+      crop: module.mainSpecies,
       phase: phenologicalPhase(plot),
       soil: soil.parametri,
       altitude: 0,
@@ -356,7 +356,7 @@ async function calcolaPlot(
       : null;
   }
 
-  // 3) Motore DSS unificato (engine puri composti dal modulo + eventuale vettore
+  // 3) Motore DSS unificato (engine puri composti dal module + eventuale vettore
   //    di stress idrico). Il biofix ancora l'accumulo GDD.
   const germogli = ((plot.metadata ?? {}) as Record<string, unknown>)
     .lunghezza_germogli_cm;
@@ -364,9 +364,9 @@ async function calcolaPlot(
     gddStartDate: biofix,
     ...(typeof germogli === "number" ? { shootLengthCm: germogli } : {}),
   };
-  const { esiti, vettori } = runDssEngine(modulo, series, context, statoIdrico);
+  const { esiti, vettori } = runDssEngine(module, series, context, statoIdrico);
 
-  // 4) Persistenza cache dei modelli patologici (ultimo valore per model).
+  // 4) Persistenza cache dei modelli patologici (ultimo value per model).
   if (series.length > 0) {
     await dal.saveDssResults(plot.id, outcomesToDssResults(esiti));
   }
@@ -392,7 +392,7 @@ export function useDssCalculation() {
 
   const reset = useCallback(() => setStato(STATO_INIZIALE), []);
 
-  const calcola = useCallback(
+  const compute = useCallback(
     async (targets: DssTarget[], opzioni: OpzioniCalcoloDss = {}) => {
       if (targets.length === 0) return;
       setStato((s) => ({ ...s, phase: "calcolo", message: undefined }));
@@ -412,14 +412,14 @@ export function useDssCalculation() {
         const risultati: DssPlotResult[] = [];
         for (const target of targets) {
           try {
-            risultati.push(await calcolaPlot(ctx, target, opzioni));
+            risultati.push(await computePlot(ctx, target, opzioni));
           } catch (errPlot) {
-            // Un errore su un campo non blocca gli altri: si registra come esito
+            // Un errore su un field non blocca gli altri: si registra come esito
             // vuoto con message dedicato.
             risultati.push({
               plotId: target.plot.id,
               name: target.plot.user_plot_name,
-              modulo: target.modulo,
+              module: target.module,
               esiti: [],
               vettori: [],
               bilancio: null,
@@ -452,5 +452,5 @@ export function useDssCalculation() {
     [],
   );
 
-  return { stato, calcola, reset };
+  return { stato, compute, reset };
 }

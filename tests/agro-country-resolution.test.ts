@@ -123,7 +123,7 @@ describe("country-resolution / cross-check spaziale", () => {
 });
 
 describe("country-resolution / contesto per sotto-appezzamento", () => {
-  it("un campo transfrontaliero è regolato dal paese in cui ricade", () => {
+  it("un field transfrontaliero è regolato dal paese in cui ricade", () => {
     const perPlot = resolvePerPlotCountry("IT", [
       plot("it", ...ROMA),
       plot("fr", ...PARIS),
@@ -132,7 +132,7 @@ describe("country-resolution / contesto per sotto-appezzamento", () => {
     assert.equal(perPlot.get("fr"), "FR");
   });
 
-  it("un campo fuori da ogni paese noto eredita il paese del tenant", () => {
+  it("un field fuori da ogni paese noto eredita il paese del tenant", () => {
     const perPlot = resolvePerPlotCountry("IT", [plot("sea", -40, 20)]);
     assert.equal(perPlot.get("sea"), "IT");
   });

@@ -12,7 +12,7 @@ import { useTranslation } from "react-i18next";
  * Raw Data Inspector (Modulo 5): sostituisce la vecchia analisi da tabelle,
  * spostata qui dal Command Center. Tabella ad alte prestazioni con ricerca
  * globale, filtri per colonna e ordinamento; la modifica INLINE dei field
- * attributes alfanumerici salva all'istante in PGlite (via store → outbox) e i
+ * attributes alfanumerici save all'istante in PGlite (via store → outbox) e i
  * KPI collegati si ricalcolano alla riscrittura del dominio.
  */
 

@@ -98,14 +98,14 @@ export class AgroDalLogbook extends AgroDalRegistry {
     );
     const t = result.rows[0];
     if (!t) return null;
-    const nomeOp = ETICHETTE_OPERAZIONE[t.operation_type] ?? t.operation_type;
+    const opName = ETICHETTE_OPERAZIONE[t.operation_type] ?? t.operation_type;
     const data = new Date(t.executed_at).toLocaleDateString("it-IT");
     return {
       plot_id: plotId,
       operation_type: t.operation_type,
       executed_at: t.executed_at,
       product_name: t.product_name,
-      etichetta: `${nomeOp} - ${data}`,
+      etichetta: `${opName} - ${data}`,
     };
   }
 

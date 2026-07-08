@@ -9,7 +9,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { SuoloJob, SuoloProgress, VraCells } from "../../workers/soil.worker";
 import {
-  generaZoneVra,
+  generateVraZones,
   type RisultatoZoneVra,
   type TipoLavorazione,
 } from "./vra-zones";
@@ -78,13 +78,13 @@ function iniettaVraLayer(plotId: string, risultato: RisultatoZoneVra) {
   }
 }
 
-function scarica(nome: string, contenuto: string | Uint8Array, mime: string) {
+function download(name: string, contenuto: string | Uint8Array, mime: string) {
   // Uint8Array (zip fflate) ha buffer ArrayBufferLike: cast a BlobPart, valido a runtime.
   const blob = new Blob([contenuto as BlobPart], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = nome;
+  a.download = name;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -106,7 +106,7 @@ export function useVraGenerator() {
     };
   }, []);
 
-  const eseguiJob = useCallback(
+  const runJob = useCallback(
     (job: SuoloJob) =>
       new Promise<VraCells | null>((resolve, reject) => {
         const worker = workerRef.current;
@@ -127,7 +127,7 @@ export function useVraGenerator() {
     [],
   );
 
-  const genera = useCallback(
+  const generate = useCallback(
     async (plot: Plot, opzioni: OpzioniGeneraVra) => {
       try {
         setStato({ fase: "lavorazione", label: "Ricerca scena satellitare…" });
@@ -146,7 +146,7 @@ export function useVraGenerator() {
         }
 
         setStato({ fase: "lavorazione", label: "Calcolo indice e celle…" });
-        const cells = await eseguiJob({
+        const cells = await runJob({
           tipo: "suolo",
           scene: [scene[0]],
           indici: [opzioni.indice],
@@ -163,7 +163,7 @@ export function useVraGenerator() {
           return;
         }
 
-        const risultato = generaZoneVra(cells, {
+        const risultato = generateVraZones(cells, {
           zone: opzioni.zone,
           lavorazione: opzioni.lavorazione,
           ratei: opzioni.ratei,
@@ -177,29 +177,29 @@ export function useVraGenerator() {
         });
       }
     },
-    [eseguiJob],
+    [runJob],
   );
 
   const esporta = useCallback(
     (formato: "geojson" | "isoxml" | "shapefile", nomeBase: string) => {
       if (stato.fase !== "completato") return;
       const base = nomeBase.replace(/[^\p{L}\p{N}_-]+/gu, "_") || "vra";
-      let nomeFile: string;
+      let fileName: string;
       if (formato === "geojson") {
-        nomeFile = `${base}.geojson`;
-        scarica(nomeFile, vraToGeoJson(stato.risultato), "application/geo+json");
+        fileName = `${base}.geojson`;
+        download(fileName, vraToGeoJson(stato.risultato), "application/geo+json");
       } else if (formato === "shapefile") {
         // Uint8Array → Blob; archivio .zip con shp/shx/dbf/prj.
-        nomeFile = `${base}_shapefile.zip`;
-        scarica(
-          nomeFile,
+        fileName = `${base}_shapefile.zip`;
+        download(
+          fileName,
           vraToShapefileZip(stato.risultato, base),
           "application/zip",
         );
       } else {
-        nomeFile = `${base}_TASKDATA.xml`;
-        scarica(
-          nomeFile,
+        fileName = `${base}_TASKDATA.xml`;
+        download(
+          fileName,
           vraToIsoXml(stato.risultato, { taskName: nomeBase }),
           "application/xml",
         );
@@ -208,7 +208,7 @@ export function useVraGenerator() {
       void recordTransfer({
         operation_type: "export",
         file_format: formato,
-        file_name: nomeFile,
+        file_name: fileName,
       });
     },
     [stato, recordTransfer],
@@ -216,5 +216,5 @@ export function useVraGenerator() {
 
   const reset = useCallback(() => setStato({ fase: "idle" }), []);
 
-  return { stato, genera, esporta, reset };
+  return { stato, generate, esporta, reset };
 }

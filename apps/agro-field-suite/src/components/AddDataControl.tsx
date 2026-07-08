@@ -13,8 +13,8 @@ import {
   ADD_DATA_ACCEPT,
   EXTERNAL_LAYER_FLAG,
   LARGE_FILE_THRESHOLD_BYTES,
-  estensioneFile,
-  formatoDaNomeFile,
+  fileExtension,
+  formatFromFileName,
   isGeoJson,
   toFeatureCollection,
 } from "../modules/add-data/add-data";
@@ -84,7 +84,7 @@ export function AddDataControl() {
   }, [open]);
 
   /** Legge il file → FeatureCollection (GeoJSON in JS, resto via DuckDB). */
-  async function leggiFeatureCollection(file: File): Promise<FeatureCollection> {
+  async function readFeatureCollection(file: File): Promise<FeatureCollection> {
     if (isGeoJson(file.name)) {
       const fc = toFeatureCollection(JSON.parse(await file.text()));
       if (!fc) {
@@ -98,7 +98,7 @@ export function AddDataControl() {
     );
     const data = new Uint8Array(await file.arrayBuffer());
     const fc = await SpatialAnalysisEngine.instance().loadVectorFileAsFeatureCollection(
-      { name: file.name, extension: estensioneFile(file.name), data },
+      { name: file.name, extension: fileExtension(file.name), data },
     );
     if (fc.features.length === 0) {
       throw new Error(t("addDataControl.noReadableGeometries"));
@@ -110,7 +110,7 @@ export function AddDataControl() {
     setErrore(null);
     setEsito(null);
     setWarnFile(null);
-    const formato = formatoDaNomeFile(file.name);
+    const formato = formatFromFileName(file.name);
     if (!formato) {
       setErrore(t("addDataControl.unrecognizedFormat", { name: file.name }));
       return;
@@ -122,7 +122,7 @@ export function AddDataControl() {
     }
     setBusy(true);
     try {
-      const fc = await leggiFeatureCollection(file);
+      const fc = await readFeatureCollection(file);
       const id = `external-${crypto.randomUUID()}`;
       const layer: GeoLibreLayer = {
         id,

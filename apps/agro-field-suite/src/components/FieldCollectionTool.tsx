@@ -1,11 +1,11 @@
 /**
- * FieldCollectionTool — Rilievo in campo (Scouting GPS).
+ * FieldCollectionTool — Rilievo in field (Scouting GPS).
  *
  * Punti di observation geotaggati (focolai di infezione, trappole,
  * anomalie colturali) salvati in `scouting_observations` (PGlite + outbox).
  * Le foto passano dall'adapter dell'edizione (`uploadScoutingPhoto`), che le
  * carica su uno storage remoto e ritorna l'URL; senza adapter (standalone)
- * il campo foto è nascosto e l'osservazione si salva senza immagine.
+ * il field foto è nascosto e l'osservazione si save senza immagine.
  */
 import { controlPlane, type ScoutingObservation, useAgroStore } from "@agrogea/core";
 import { FieldSheet } from "@agrogea/ui";
@@ -214,7 +214,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
     }
   }
 
-  async function salva() {
+  async function save() {
     if (!pendingPoint || !activeCompanyId || !dal) return;
     setSaving(true);
     setError(null);
@@ -258,7 +258,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
     }
   }
 
-  async function elimina(id: string) {
+  async function remove(id: string) {
     if (!dal) return;
     try {
       // Elimina l'eventuale foto dallo storage remoto (se l'edizione ne ha uno).
@@ -298,7 +298,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
               </button>
               <button
                 type="button"
-                onClick={() => void salva()}
+                onClick={() => void save()}
                 disabled={saving}
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--r-2)] bg-[var(--accent)] py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
               >
@@ -466,7 +466,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => void elimina(o.id)}
+                    onClick={() => void remove(o.id)}
                     className="shrink-0 rounded p-1 text-[var(--ink-4)] hover:bg-[var(--panel-3)] hover:text-[var(--danger)]"
                     title={t("fieldCollectionTool.deleteObservation")}
                   >
@@ -492,7 +492,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
           obs={detailObs}
           onClose={() => setDetailObs(null)}
           onDelete={async () => {
-            await elimina(detailObs.id);
+            await remove(detailObs.id);
             setDetailObs(null);
           }}
         />

@@ -177,7 +177,7 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
   const setCampo = (key: CampoChiave, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const salva = async () => {
+  const save = async () => {
     if (!company) return;
     setStato("salvo");
     setErroreMsg(undefined);
@@ -185,7 +185,7 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
       const patch: Record<string, string | null> = {};
       for (const k of CHIAVI) {
         const v = form[k].trim();
-        // business_name è NOT NULL: se svuotato si conserva il valore esistente.
+        // business_name è NOT NULL: se svuotato si conserva il value esistente.
         patch[k] =
           k === "business_name" ? v || company.business_name : v || null;
       }
@@ -210,7 +210,7 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
           <Button
             className="min-h-[var(--touch-min)] w-full"
             disabled={stato === "salvo" || readOnly}
-            onClick={() => void salva()}
+            onClick={() => void save()}
           >
             {readOnly
               ? t("anagraficaPanel.readOnly")

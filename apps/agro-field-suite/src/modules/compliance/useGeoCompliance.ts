@@ -8,7 +8,7 @@ import {
   type LayerCompliance,
   type RisultatoCompliance,
   type TipoVincolo,
-  verificaCompliance,
+  checkCompliance,
 } from "./geo-compliance";
 
 const TAG_VALIDI: TipoVincolo[] = ["zvn", "sic", "zps", "eudr"];
@@ -42,7 +42,7 @@ export function useComplianceVincoli() {
       if (geometria.type !== "Polygon" && geometria.type !== "MultiPolygon") {
         return null;
       }
-      return verificaCompliance(geometria, complianceLayers);
+      return checkCompliance(geometria, complianceLayers);
     },
     [complianceLayers],
   );
@@ -61,7 +61,7 @@ export function useGeoCompliance() {
     (plot: Plot): ComplianceTreatment | null => {
       if (complianceLayers.length === 0) return null;
 
-      const esito = verificaCompliance(plot.geometry, complianceLayers);
+      const esito = checkCompliance(plot.geometry, complianceLayers);
       if (esito.vincoli.length === 0) return null;
 
       // Superficie autorevole: area geodetica del DAL.

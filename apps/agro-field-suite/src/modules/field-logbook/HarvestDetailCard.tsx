@@ -126,7 +126,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-/** Riga etichetta/valore. Non renderizza nulla se il valore è vuoto. */
+/** Riga etichetta/value. Non renderizza nulla se il value è vuoto. */
 function Row({
   label,
   value,

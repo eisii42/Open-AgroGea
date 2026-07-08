@@ -46,9 +46,9 @@ export class AgroDalWarehouse extends AgroDalLogbook {
   // -- products (anagrafica) --------------------------------------------------
 
   /**
-   * Crea o aggiorna un product di warehouse. Valida i campi obbligatori della
+   * Crea o update un product di warehouse. Valida i campi obbligatori della
    * categoria (`validateProduct`); il CUMP (`avg_unit_cost`) NON si imposta da
-   * qui: lo aggiorna solo il carico lots ({@link receiveLot}).
+   * qui: lo update solo il carico lots ({@link receiveLot}).
    */
   async upsertProduct(
     input: Omit<
@@ -143,7 +143,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
   // -- product_lots (carichi e giacenze) --------------------------------------
 
   /**
-   * CARICO di un nuovo lot: inserisce il lot e aggiorna il CUMP del
+   * CARICO di un nuovo lot: inserisce il lot e update il CUMP del
    * product (media ponderata sulla stock complessiva corrente) nella
    * STESSA transazione, con entrambe le voci di outbox. §5.3.
    */
@@ -183,7 +183,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
         [input.product_id],
       );
       const giacenzaEsistente = Number(stock.rows[0]?.q ?? 0);
-      const nuovoCump = cumpAfterInbound(
+      const newCump = cumpAfterInbound(
         giacenzaEsistente,
         Number(product.avg_unit_cost),
         input.initial_quantity,
@@ -201,7 +201,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
 
       const prodottoAggiornato: Product = {
         ...product,
-        avg_unit_cost: nuovoCump,
+        avg_unit_cost: newCump,
         updated_at: ts,
       };
       const insProd = upsertSql("products", prodottoAggiornato as unknown as Row);
@@ -272,7 +272,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
   // -- issue atomico (attività ↔ lots) --------------------------------------
 
   /**
-   * Registra un'attività del Quaderno E scarica i lots richiesti in UN'UNICA
+   * Registra un'attività del Quaderno E download i lots richiesti in UN'UNICA
    * transazione (§5.2): se un lot è scaduto, inesistente o la stock
    * andrebbe sotto zero, l'INTERA operation fallisce (nessuno issue
    * parziale, nessuna attività orfana). Il costo imputato è quantità × CUMP
@@ -468,8 +468,8 @@ export class AgroDalWarehouse extends AgroDalLogbook {
   }
 
   /**
-   * Costo vivo dei products scaricati, aggregato per campo trattato (§5.4):
-   * base del bilancio di campo (0.4.0). `plot_id` null = operazioni "intera
+   * Costo vivo dei products scaricati, aggregato per field trattato (§5.4):
+   * base del bilancio di field (0.4.0). `plot_id` null = operazioni "intera
    * azienda".
    */
   async productCostsPerField(

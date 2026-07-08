@@ -41,11 +41,11 @@ describe("buildLegenda", () => {
 
 describe("buildPrintSvg", () => {
   const svg = buildPrintSvg({
-    titolo: "Vigna Nuova",
+    title: "Vigna Nuova",
     note: "Domanda PSR 2026",
     legenda: [
-      { id: "a", nome: "Appezzamenti", colore: "#11aa22" },
-      { id: "b", nome: "POI", colore: "#1f6feb" },
+      { id: "a", name: "Appezzamenti", colore: "#11aa22" },
+      { id: "b", name: "POI", colore: "#1f6feb" },
     ],
     mostraScala: true,
     scalaTesto: "200 m",
@@ -68,7 +68,7 @@ describe("buildPrintSvg", () => {
 
   it("shows a placeholder when no map image is provided", () => {
     const out = buildPrintSvg({
-      titolo: "T",
+      title: "T",
       legenda: [],
       mostraScala: false,
       mostraNord: false,
@@ -80,7 +80,7 @@ describe("buildPrintSvg", () => {
 
   it("escapes user text to keep the SVG well-formed", () => {
     const out = buildPrintSvg({
-      titolo: 'Campo <b> & "x"',
+      title: 'Campo <b> & "x"',
       legenda: [],
       mostraScala: false,
       mostraNord: false,

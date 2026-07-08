@@ -22,7 +22,7 @@ import { SafetyDeleteModal } from "./SafetyDeleteModal";
  *   * editing alfanumerico → UPDATE su PGlite (preserva i campi non toccati);
  *   * editing spaziale → "Modifica geometria" attiva il trascinamento dei
  *     vertici nell'engine, con area ricalcolata in tempo reale;
- *   * eliminazione → cancellazione protetta (digita il nome esatto).
+ *   * eliminazione → cancellazione protetta (digita il name esatto).
  */
 
 const TIPI_ASSET = [
@@ -182,15 +182,15 @@ function useCloseDetail(id: string) {
 
 function AppezzamentoEdit({ record }: { record: Plot }) {
   const { t } = useTranslation();
-  const aggiorna = useAgroStore((s) => s.updatePlot);
+  const update = useAgroStore((s) => s.updatePlot);
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const readOnly = useReadOnly(activeCompanyId);
   const close = useCloseDetail(record.id);
   const ctrl = useGeomEdit("appezzamento", record.id);
 
-  const [nome, setNome] = useState(record.user_plot_name);
+  const [name, setNome] = useState(record.user_plot_name);
   const [irrigazione, setIrrigazione] = useState(record.irrigation_type ?? "");
-  const [soil, setSuolo] = useState<SuoloForm>(() =>
+  const [soil, setSuolo] = useState<SoilForm>(() =>
     readSoilForm(record.metadata),
   );
   const [saving, setSaving] = useState(false);
@@ -199,14 +199,14 @@ function AppezzamentoEdit({ record }: { record: Plot }) {
   // "live" durante il trascinamento). Unico punto di verità: area_ha.
   const area = record.area_ha;
 
-  const setSoilField = (campo: keyof SuoloForm, valore: string) =>
-    setSuolo((s) => ({ ...s, [campo]: valore }));
+  const setSoilField = (field: keyof SoilForm, value: string) =>
+    setSuolo((s) => ({ ...s, [field]: value }));
 
   const submit = async () => {
     setSaving(true);
     try {
-      await aggiorna(record.id, {
-        user_plot_name: nome.trim() || record.user_plot_name,
+      await update(record.id, {
+        user_plot_name: name.trim() || record.user_plot_name,
         irrigation_type: irrigazione.trim() || null,
         metadata: mergeSoilMetadata(record.metadata, soil),
       });
@@ -250,7 +250,7 @@ function AppezzamentoEdit({ record }: { record: Plot }) {
           <Label htmlFor="ed-nome">{t("dataEntrySheet.plotName")}</Label>
           <Input
             id="ed-nome"
-            value={nome}
+            value={name}
             onChange={(e) => setNome(e.target.value)}
           />
         </div>
@@ -273,7 +273,7 @@ function AppezzamentoEdit({ record }: { record: Plot }) {
 // SoilDataResolver). La tessitura (classe o percentuali) alimenta Saxton-Rawls.
 // ---------------------------------------------------------------------------
 
-interface SuoloForm {
+interface SoilForm {
   tessitura: string;
   sabbia: string;
   limo: string;
@@ -286,7 +286,7 @@ interface SuoloForm {
   frazione_deplezione: string;
 }
 
-const SUOLO_FORM_VUOTO: SuoloForm = {
+const SOIL_FORM_EMPTY: SoilForm = {
   tessitura: "",
   sabbia: "",
   limo: "",
@@ -341,7 +341,7 @@ function textureClassLabel(t: TFunction, id: string): string {
   return key ? t(`detailEditSheet.textureClass.${key}` as never) : id;
 }
 
-const CAMPI_NUMERICI: (keyof SuoloForm)[] = [
+const NUMERIC_FIELDS: (keyof SoilForm)[] = [
   "sabbia",
   "limo",
   "argilla",
@@ -354,9 +354,9 @@ const CAMPI_NUMERICI: (keyof SuoloForm)[] = [
 ];
 
 /** Idrata il form dai metadata salvati (`metadata.suolo`). */
-function readSoilForm(metadata: Record<string, unknown>): SuoloForm {
+function readSoilForm(metadata: Record<string, unknown>): SoilForm {
   const raw = metadata?.suolo;
-  if (!raw || typeof raw !== "object") return { ...SUOLO_FORM_VUOTO };
+  if (!raw || typeof raw !== "object") return { ...SOIL_FORM_EMPTY };
   const s = raw as Record<string, unknown>;
   const str = (v: unknown) =>
     typeof v === "number" && Number.isFinite(v)
@@ -381,15 +381,15 @@ function readSoilForm(metadata: Record<string, unknown>): SuoloForm {
 /** Fonde il form nei metadata: rimuove `suolo` se l'utente ha svuotato tutto. */
 function mergeSoilMetadata(
   metadata: Record<string, unknown>,
-  form: SuoloForm,
+  form: SoilForm,
 ): Record<string, unknown> {
   const soil: Record<string, unknown> = {};
   if (form.tessitura.trim()) soil.tessitura = form.tessitura.trim();
-  for (const campo of CAMPI_NUMERICI) {
-    const grezzo = form[campo].trim().replace(",", ".");
+  for (const field of NUMERIC_FIELDS) {
+    const grezzo = form[field].trim().replace(",", ".");
     if (grezzo === "") continue;
     const n = Number(grezzo);
-    if (Number.isFinite(n)) soil[campo] = n;
+    if (Number.isFinite(n)) soil[field] = n;
   }
   const next = { ...metadata };
   if (Object.keys(soil).length > 0) next.suolo = soil;
@@ -432,8 +432,8 @@ function SuoloComposizioneSection({
   soil,
   onChange,
 }: {
-  soil: SuoloForm;
-  onChange: (campo: keyof SuoloForm, valore: string) => void;
+  soil: SoilForm;
+  onChange: (field: keyof SoilForm, value: string) => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -524,13 +524,13 @@ function SuoloComposizioneSection({
 
 function AssetEdit({ record }: { record: InfrastructureAsset }) {
   const { t } = useTranslation();
-  const aggiorna = useAgroStore((s) => s.updateAsset);
+  const update = useAgroStore((s) => s.updateAsset);
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const readOnly = useReadOnly(activeCompanyId);
   const close = useCloseDetail(record.id);
   const ctrl = useGeomEdit("infrastruttura", record.id);
 
-  const [nome, setNome] = useState(record.name ?? "");
+  const [name, setNome] = useState(record.name ?? "");
   const [tipo, setTipo] = useState(record.asset_type);
   const [categoria, setCategoria] = useState<"fixed" | "mobile">(
     record.category,
@@ -540,8 +540,8 @@ function AssetEdit({ record }: { record: InfrastructureAsset }) {
   const submit = async () => {
     setSaving(true);
     try {
-      await aggiorna(record.id, {
-        name: nome.trim() || null,
+      await update(record.id, {
+        name: name.trim() || null,
         asset_type: tipo,
         category: categoria,
       });
@@ -601,7 +601,7 @@ function AssetEdit({ record }: { record: InfrastructureAsset }) {
           <Label htmlFor="ed-as-nome">{t("dataEntrySheet.assetName")}</Label>
           <Input
             id="ed-as-nome"
-            value={nome}
+            value={name}
             onChange={(e) => setNome(e.target.value)}
           />
         </div>

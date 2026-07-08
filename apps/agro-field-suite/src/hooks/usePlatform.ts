@@ -25,7 +25,7 @@ function detect(): PlatformInfo {
 }
 
 /**
- * Restituisce info sulla piattaforma runtime e si aggiorna al resize della
+ * Restituisce info sulla piattaforma runtime e si update al resize della
  * finestra (utile per dev-tools che simulano viewport mobile).
  */
 export function usePlatform(): PlatformInfo {

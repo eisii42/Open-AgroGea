@@ -213,7 +213,7 @@ export interface Plot {
   irrigation_type: string | null;
   /** Anno d'impianto (ex anno_impianto). */
   planting_year: number | null;
-  /** Note storiche del campo come entità FISICA immutabile (ex note_storiche). */
+  /** Note storiche del field come entità FISICA immutabile (ex note_storiche). */
   historical_notes?: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
@@ -246,7 +246,7 @@ export interface PlotCampaign {
   declared_area_ha: number;
   /**
    * Chiusura del ciclo colturale (ISO): il raccolto di un'ANNUALE termina la
-   * campagna e il campo torna libero (mappa neutra, DSS spento, nuova semina
+   * campagna e il field torna libero (mappa neutra, DSS spento, nuova semina
    * possibile nello stesso anno). `null` = campagna aperta; le perenni non si
    * chiudono mai automaticamente.
    */
@@ -284,7 +284,7 @@ export interface TreatmentLog {
   tenant_id: string;
   company_id: string;
   plot_id: string | null;
-  /** Aggancio allo stato di Campagna Agraria del campo (FK plots_campaign). */
+  /** Aggancio allo stato di Campagna Agraria del field (FK plots_campaign). */
   plot_campaign_id: string | null;
   operation_type: OperationType;
   product_name: string | null;
@@ -426,7 +426,7 @@ export interface Harvest {
   tenant_id: string;
   company_id: string;
   plot_id: string | null;
-  /** Aggancio allo stato di Campagna Agraria del campo (FK plots_campaign). */
+  /** Aggancio allo stato di Campagna Agraria del field (FK plots_campaign). */
   plot_campaign_id: string | null;
   /** Cultivar/varietà harvest (categoria primaria dei grafici). */
   cultivar: string | null;
@@ -529,7 +529,7 @@ export interface CatalogEntry {
   type: CatalogType;
   /** Codice ministeriale rigido (ex codice). */
   code: string;
-  /** Denominazione leggibile da mostrare nei dropdown (ex nome). */
+  /** Denominazione leggibile da mostrare nei dropdown (ex name). */
   name: string;
   /** Sostanza attiva (per i fitosanitari) (ex sostanza_attiva). */
   active_substance: string | null;
@@ -546,7 +546,7 @@ export interface CatalogEntry {
 
 /**
  * Categoria RIGIDA del product di warehouse: determina i campi obbligatori
- * dell'anagrafica (vedi `validateProduct` nel modulo warehouse). `other` è la
+ * dell'anagrafica (vedi `validateProduct` nel module warehouse). `other` è la
  * categoria residuale (lubrificanti, materiali di consumo) senza campi extra.
  */
 export type ProductCategory =
@@ -626,7 +626,7 @@ export interface ProductLot {
 }
 
 /**
- * Scarico di un lot in un'attività di campo (`activity_products`): quantità
+ * Scarico di un lot in un'attività di field (`activity_products`): quantità
  * e costo imputato con CUMP congelato al momento dello issue.
  */
 export interface ActivityProduct {
@@ -651,7 +651,7 @@ export interface IssueRequest {
   quantity: number;
 }
 
-/** Costo vivo dei products imputato a un campo (aggregato per il bilancio 0.4.0). */
+/** Costo vivo dei products imputato a un field (aggregato per il bilancio 0.4.0). */
 export interface FieldProductCost {
   /** Plot trattato; null = operazioni "intera azienda". */
   plot_id: string | null;
@@ -673,7 +673,7 @@ export type MembershipStatus = "active" | "invited" | "revoked";
  * outbox. Mappa terminologica: la "singola azienda" della specifica multiutente
  * è `company_id` (riga di `companies`); il `tenant_id` è il workspace
  * dell'abbonato master. I limiti per ruolo/piano sono enforced lato client
- * (modulo `subscription-limits`/`MembershipGuard` della field-suite).
+ * (module `subscription-limits`/`MembershipGuard` della field-suite).
  */
 export interface TenantMembership {
   id: string;
@@ -777,7 +777,7 @@ export type FieldPanel =
   | "profile"
   | "scouting";
 
-/** Rilievo GPS in campo, sincronizzato via outbox come le altre tabelle. */
+/** Rilievo GPS in field, sincronizzato via outbox come le altre tabelle. */
 export interface ScoutingObservation {
   id: string;
   tenant_id: string;
@@ -808,7 +808,7 @@ export type PlotsFeatureCollection = FeatureCollection<
      */
     crop: string | null;
     /**
-     * Specie (nome comune, senza varietà) della crop associata: chiave per la
+     * Specie (name comune, senza varietà) della crop associata: chiave per la
      * mappatura colore/icona (`cropStyle`). `null` se senza crop.
      */
     crop_kind: string | null;

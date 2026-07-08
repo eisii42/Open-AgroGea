@@ -74,7 +74,7 @@ export function ModuleSidebar({
 }: {
   /**
    * true quando è annidato nel BottomSheet mobile "Moduli" (FieldDashboard),
-   * che fornisce già titolo, chiusura e larghezza piena: sopprime l'intestazione
+   * che fornisce già title, chiusura e larghezza piena: sopprime l'intestazione
    * e i vincoli di layout desktop (larghezza fissa, bordo, altezza piena) per
    * evitare la doppia intestazione "MODULI AGRONOMICI".
    */
@@ -291,7 +291,7 @@ export function ModuleSidebar({
         </p>
       )}
       {moduli.map((mod) => {
-        // I tool disattivati nel layout dell'utente spariscono; un modulo senza
+        // I tool disattivati nel layout dell'utente spariscono; un module senza
         // più tool visibili viene nascosto del tutto (UI pulita).
         const visibleTools = mod.tools.filter(
           (tool) =>
@@ -359,7 +359,7 @@ export function ModuleSidebar({
                         const action = tool.action;
                         if (action.kind === "panel") {
                           // Aprire il registro = entrare in modalità gestione:
-                          // si esce dal disegno così il tap seleziona gli elementi.
+                          // si esce dal disegno così il tap select gli elementi.
                           if (action.panel === "registro") {
                             setDrawIntent(null);
                             disableGeoEditorModes();

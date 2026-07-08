@@ -31,7 +31,7 @@ export function FeedbackModal({
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
 
-  // Azzera il campo a ogni apertura: nessun residuo dalla sessione precedente.
+  // Azzera il field a ogni apertura: nessun residuo dalla sessione precedente.
   useEffect(() => {
     if (open) {
       setMessage("");

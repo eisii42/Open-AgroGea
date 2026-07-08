@@ -18,7 +18,7 @@ import type { TFunction } from "i18next";
  * Registro di tutte le geometrie dell'azienda attiva (Modulo 4 §gestione).
  * Elenca plots, infrastrutture e POI: il tap su una voce inquadra
  * l'elemento sulla mappa e apre la sua scheda di dettaglio/editing (da cui si
- * modifica la geometria/i metadati o si elimina in sicurezza). È la superficie
+ * modifica la geometria/i metadati o si remove in sicurezza). È la superficie
  * di gestione dichiarata dalla voce "Modifica / Elimina" del menu disegno.
  */
 
@@ -73,7 +73,7 @@ interface Entry {
   geometry: Geometry;
 }
 
-function appezzamentoEntry(a: Plot, t: TFunction): Entry {
+function plotEntry(a: Plot, t: TFunction): Entry {
   const area = a.area_ha;
   return {
     id: a.id,
@@ -96,7 +96,7 @@ function assetEntry(a: InfrastructureAsset, t: TFunction): Entry {
   };
 }
 
-function campionamentoEntry(c: SoilSample, t: TFunction): Entry {
+function soilSampleEntry(c: SoilSample, t: TFunction): Entry {
   return {
     id: c.id,
     kind: "poi",
@@ -125,10 +125,10 @@ export function GeometryRegistry({
   const soilSamples = useAgroStore((s) => s.soilSamples);
   const selectFeatureOnMap = useAgroStore((s) => s.selectFeatureOnMap);
 
-  const groups: { titolo: string; entries: Entry[] }[] = [
-    { titolo: t("registroGeometrie.plots"), entries: plots.map((a) => appezzamentoEntry(a, t)) },
-    { titolo: t("registroGeometrie.infrastructures"), entries: assets.map((a) => assetEntry(a, t)) },
-    { titolo: t("registroGeometrie.pointsOfInterest"), entries: soilSamples.map((c) => campionamentoEntry(c, t)) },
+  const groups: { title: string; entries: Entry[] }[] = [
+    { title: t("registroGeometrie.plots"), entries: plots.map((a) => plotEntry(a, t)) },
+    { title: t("registroGeometrie.infrastructures"), entries: assets.map((a) => assetEntry(a, t)) },
+    { title: t("registroGeometrie.pointsOfInterest"), entries: soilSamples.map((c) => soilSampleEntry(c, t)) },
   ];
 
   const totale =
@@ -158,9 +158,9 @@ export function GeometryRegistry({
         {groups.map(
           (g) =>
             g.entries.length > 0 && (
-              <div key={g.titolo} className="flex flex-col gap-1">
+              <div key={g.title} className="flex flex-col gap-1">
                 <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-4)]">
-                  {g.titolo} ({g.entries.length})
+                  {g.title} ({g.entries.length})
                 </p>
                 {g.entries.map((entry) => {
                   const Icon = KIND_ICON[entry.kind];

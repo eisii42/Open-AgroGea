@@ -59,7 +59,7 @@ export function Colorbar() {
       {indici.map((indice) => (
         <ColorbarCard
           key={indice}
-          titolo={indice.toUpperCase()}
+          title={indice.toUpperCase()}
           model={buildColorbar(rampForIndex(indice))}
         />
       ))}
@@ -92,16 +92,16 @@ function DssLegendCard({ crop }: { crop: CropType }) {
 }
 
 function ColorbarCard({
-  titolo,
+  title,
   model,
 }: {
-  titolo: string;
+  title: string;
   model: ColorbarModel;
 }) {
   return (
     <div className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2 shadow-[var(--sh-1)]">
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-3)]">
-        {titolo}
+        {title}
       </p>
       <div className="flex gap-1.5">
         <div
@@ -111,11 +111,11 @@ function ColorbarCard({
         <div className="relative h-[120px] w-7 text-[9px] text-[var(--ink-3)]">
           {model.ticks.map((t) => (
             <span
-              key={t.valore}
+              key={t.value}
               className="agro-num absolute left-0 -translate-y-1/2"
               style={{ bottom: `${t.pos * 100}%` }}
             >
-              {t.valore}
+              {t.value}
             </span>
           ))}
         </div>

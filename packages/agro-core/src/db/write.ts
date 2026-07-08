@@ -2,9 +2,9 @@ import { v4 as uuidv4 } from "uuid";
 
 /**
  * Helper condivisi di scrittura del DAL: serializzazione riga → SQL e
- * costruzione dell'upsert idempotente. Unico punto in cui si genera la
+ * costruzione dell'upsert idempotente. Unico punto in cui si generate la
  * clausola `on conflict (id) do update`, usata da scritture con outbox,
- * ingestioni local-only e applicazione delle righe remote.
+ * ingestioni local-only e applicazione delle rows remote.
  */
 
 export type Row = Record<string, unknown>;

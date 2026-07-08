@@ -40,7 +40,7 @@ const TIPO_COLOR: Record<string, string> = {
  *
  * La lista è filtrabile per intervallo di date e per plot (geometria).
  * Il form può aprirsi pre-mirato a un plot tramite la scorciatoia "QDC"
- * del popup del campo (store: quadernoNuovoAppezzamentoId).
+ * del popup del field (store: quadernoNuovoAppezzamentoId).
  */
 export function LogbookPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
@@ -82,9 +82,9 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     useState<Partial<TrattamentoFormValues> | null>(null);
   const [formNonce, setFormNonce] = useState(0);
 
-  // Opzioni di campo per la Campagna Agraria attiva (nome + codice crop
+  // Opzioni di field per la Campagna Agraria attiva (name + codice crop
   // SIAN). Solo campagne APERTE: quelle chiuse dal raccolto (v17) non sono più
-  // un target valido per nuove operazioni, e il campo risulta "senza coltura"
+  // un target valido per nuove operazioni, e il field risulta "senza coltura"
   // (abilita l'auto-assegnazione alla semina).
   const campaignFieldOptions = useMemo<CampoCampagnaOption[]>(
     () =>
@@ -95,14 +95,14 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
             plots.find((a) => a.id === c.plot_id)?.user_plot_name ??
             t("quadernoPanel.fieldFallbackName", { id: c.plot_id.slice(0, 6) });
           // Badge compliance: dichiarativi incompleti per il sistema del paese
-          // (IT → SIAN, ES → SIEX), visibile a ogni selezione del campo.
+          // (IT → SIAN, ES → SIEX), visibile a ogni selezione del field.
           const sistema = declarativeSystem(countryCode);
           const dichiarativiKo =
             sistema != null && missingDeclarative(countryCode, c).length > 0;
           return {
             campoCampagnaId: c.id,
             plotId: c.plot_id,
-            nome: dichiarativiKo ? `${base} · ${sistema} ✗` : base,
+            name: dichiarativiKo ? `${base} · ${sistema} ✗` : base,
             codiceColturaSian: c.crop_external_code,
             superficieHa: c.declared_area_ha,
           };
@@ -162,7 +162,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   const [filtroDa, setFiltroDa] = useState<string>("");
   const [filtroA, setFiltroA] = useState<string>("");
 
-  // Apertura dal click sul campo in mappa: mostra la LISTA filtrata sulle
+  // Apertura dal click sul field in mappa: mostra la LISTA filtrata sulle
   // lavorazioni di quell'appezzamento (il "Nuovo record" qui sotto eredita il
   // filtro come default, così registrare resta a un tap di distanza).
   useEffect(() => {
@@ -174,10 +174,10 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     }
   }, [logbookOpenPlotId, consumeLogbookOpen]);
 
-  // Con `scarichi` valorizzato l'attività scarica i lots di warehouse nella
+  // Con `scarichi` valorizzato l'attività download i lots di warehouse nella
   // stessa transazione: un errore (stock/lot scaduto) risale al form, che
   // resta aperto e mostra il messaggio. `assegnazione` (semina di una semente
-  // su campo libero, v17) crea scheda crop + campagna agraria in automatico.
+  // su field libero, v17) crea scheda crop + campagna agraria in automatico.
   async function handleSubmit(
     values: TrattamentoFormValues,
     scarichi?: IssueRequest[],

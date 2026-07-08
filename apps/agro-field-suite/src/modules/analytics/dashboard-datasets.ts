@@ -228,7 +228,7 @@ function mean(v: number[]): number {
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0;
 }
 
-/** N% dal titolo NPK ("15-15-15" → 15). null se non interpretabile. */
+/** N% dal title NPK ("15-15-15" → 15). null se non interpretabile. */
 function nitrogenPct(npk: string | null): number | null {
   if (!npk) return null;
   const first = npk.split(/[-/\s]+/)[0]?.replace(",", ".");
@@ -356,7 +356,7 @@ function buildInfectionMeteo(d: DashboardData): ChartData {
   };
 }
 
-/** Azoto distribuito CUMULATO (kg) dalle fertilizzazioni (titolo NPK × quantità). */
+/** Azoto distribuito CUMULATO (kg) dalle fertilizzazioni (title NPK × quantità). */
 function buildNitrogenCumulative(d: DashboardData): ChartData {
   const byDay = new Map<string, number>();
   for (const t of d.treatments) {

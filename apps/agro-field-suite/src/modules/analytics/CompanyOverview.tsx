@@ -15,9 +15,9 @@ import { useTenantCountry } from "../../hooks/useTenantCountry";
 /**
  * Pagina "Company" del Data Command Center: andamento GENERALE dell'azienda
  * (superficie, campi, operazioni e raccolto dell'annata) e stato del Magazzino
- * (valore giacenze a CUMP, lots scaduti/in scadenza, costo products imputato
- * per campo). Complementare alla pagina "Colture e plots", che resta
- * focalizzata sull'analisi agronomica per crop/campo.
+ * (value giacenze a CUMP, lots scaduti/in scadenza, costo products imputato
+ * per field). Complementare alla pagina "Colture e plots", che resta
+ * focalizzata sull'analisi agronomica per crop/field.
  */
 export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
   const { t } = useTranslation();
@@ -35,7 +35,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
   const setActiveView = useAgroStore((s) => s.setActiveView);
   const { countryCode } = useTenantCountry();
 
-  // Costo products per campo dell'annata (aggregato DAL su activity_products).
+  // Costo products per field dell'annata (aggregato DAL su activity_products).
   const [costiCampo, setCostiCampo] = useState<FieldProductCost[]>([]);
   useEffect(() => {
     if (!dal || !activeCompanyId) return;
@@ -92,7 +92,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
   }, [lots]);
 
   // Valore delle giacenze valorizzate al CUMP corrente di ciascun product.
-  const valoreGiacenze = useMemo(
+  const stockValue = useMemo(
     () =>
       products.reduce(
         (sum, p) =>
@@ -130,7 +130,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
     v.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   // Compliance dichiarativa (IT → SIAN, ES → SIEX): campagne APERTE dell'annata
-  // con dati incompleti. Il click porta alla scheda Dati crop del primo campo.
+  // con dati incompleti. Il click porta alla scheda Dati crop del primo field.
   const sistema = declarativeSystem(countryCode);
   const campagneSianKo = useMemo(
     () =>
@@ -220,7 +220,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
           <KpiCard
             Icon={Euro}
             label={t("companyOverview.kpi.stockValue")}
-            value={`${euro(valoreGiacenze)} €`}
+            value={`${euro(stockValue)} €`}
             sub={t("companyOverview.kpi.stockValueSub")}
           />
           <KpiCard
@@ -242,7 +242,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
         </div>
       </section>
 
-      {/* Costo products imputato per campo (base del bilancio di campo 0.4.0) */}
+      {/* Costo products imputato per field (base del bilancio di field 0.4.0) */}
       <section className="rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] p-3">
         <h3 className="mb-2 text-sm font-semibold text-[var(--ink)]">
           {t("companyOverview.costsByField", { year: campaignYear })}

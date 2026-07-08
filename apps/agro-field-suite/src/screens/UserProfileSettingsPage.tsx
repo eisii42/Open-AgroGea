@@ -42,7 +42,7 @@ import { STANDALONE } from "../standalone";
 /**
  * Moduli proprietari/cloud nascosti dai toggle nelle build standalone/OSS.
  * L'export SIAN resta disponibile anche nell'edizione open (CSV puro da PGlite
- * locale): qui solo GeoCompliance (due diligence territoriale, modulo cloud).
+ * locale): qui solo GeoCompliance (due diligence territoriale, module cloud).
  */
 const CLOUD_MODULE_IDS: ReadonlySet<DashboardModuleId> = new Set<DashboardModuleId>([
   "panelGeoCompliance",
@@ -59,7 +59,7 @@ const CLOUD_MODULE_IDS: ReadonlySet<DashboardModuleId> = new Set<DashboardModule
  *
  * Edizione standalone/OSS, single-user locale: nessun account remoto, nessuna
  * autenticazione, nessuna gestione multi-utente o abbonamento. Le preferenze
- * sono governate da `useSettingsStore` (local-first): ogni toggle salva
+ * sono governate da `useSettingsStore` (local-first): ogni toggle save
  * all'istante nel DB locale del dispositivo.
  */
 
@@ -133,7 +133,7 @@ function moduleGroupTitle(t: TFunction, groupId: string): string {
   return GROUP_TITLE[groupId] ?? groupId;
 }
 
-/** Etichetta e descrizione di un modulo, tradotte a runtime a partire dall'id stabile. */
+/** Etichetta e descrizione di un module, tradotte a runtime a partire dall'id stabile. */
 function moduleItemText(t: TFunction, id: DashboardModuleId): { label: string; descr: string } {
   const MODULE_TEXT: Record<DashboardModuleId, { label: string; descr: string }> = {
     panelNdvi: { label: t("userProfileSettingsPage.module.panelNdvi.label"), descr: t("userProfileSettingsPage.module.panelNdvi.descr") },

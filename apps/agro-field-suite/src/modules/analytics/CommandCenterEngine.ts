@@ -54,7 +54,7 @@ const CATEGORY_LABEL: Record<CropCategory, string> = {
   generic: "CropType",
 };
 
-/** Risolve la categoria DSS di una crop da metadata o nome comune. */
+/** Risolve la categoria DSS di una crop da metadata o name comune. */
 export function resolveCropCategory(crop: Crop | undefined | null): CropCategory {
   if (!crop) return "generic";
   const meta = crop.crop_metadata?.["category"];
@@ -93,7 +93,7 @@ const CROP_KPI_IDS: Record<CropCategory, string[]> = {
 
 /**
  * Nome leggibile di un modello DSS dal `model_name` `"<moduloId>_<dssId>"`:
- * rimuove il prefisso del modulo e normalizza separatori (es. `vite_peronospora`
+ * rimuove il prefisso del module e normalizza separatori (es. `vite_peronospora`
  * → "Peronospora", `olivo_occhio-pavone` → "Occhio pavone").
  */
 function prettyModelName(modelName: string): string {
@@ -107,7 +107,7 @@ function prettyModelName(modelName: string): string {
 /**
  * Modulo crop (id) di ciascuna categoria. I `dss_results.model_name` sono
  * scritti come `"<moduloId>_<dssId>"` (vedi `outcomesToDssResults`), quindi la
- * coerenza crop↔modello (Modulo 1.2) si verifica sul PREFISSO del modulo —
+ * coerenza crop↔modello (Modulo 1.2) si verifica sul PREFISSO del module —
  * robusto sia per i modelli patologici (es. `vite_peronospora`) sia per quelli
  * fenologici/accumulo (es. `cereali_spigatura`, `frutta_sviluppo-melo`), che il
  * vecchio match per parola-chiave-malattia escludeva per errore. `generic`
@@ -576,7 +576,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
 
   // -- Autonomia idrica RAW% (Modulo 1.1 + 3.3) -----------------------------
   // ETc per ettaro = MEDIA giornaliera tra gli plots (mm, intensiva), NON
-  // somma cumulativa (fix del valore aberrante). Il consumo idrico recente
+  // somma cumulativa (fix del value aberrante). Il consumo idrico recente
   // (media ETc sugli ultimi N giorni) alimenta il contatore predittivo dei
   // giorni di autonomia prima dello stress idrico severo.
   const idx = soilIndices
@@ -593,7 +593,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
   const drDaily = aggregateByDate(idx, (s) => s.depletion_mm, "mean");
   const rawDaily = aggregateByDate(idx, (s) => s.raw_mm, "mean");
   // Stato CORRENTE (≤ oggi): gli indici includono i giorni di previsione in coda,
-  // che altrimenti maschererebbero l'irrigazione recente (vedi calcolaPlot).
+  // che altrimenti maschererebbero l'irrigazione recente (vedi computePlot).
   const lastDr = valueAsOfToday(drDaily);
   const lastRaw = valueAsOfToday(rawDaily);
   const residualMm =
@@ -797,7 +797,7 @@ function aggregateByDate(
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-/** Ultimo valore con data ≤ oggi (stato corrente), ignorando i giorni di previsione. */
+/** Ultimo value con data ≤ oggi (stato corrente), ignorando i giorni di previsione. */
 function valueAsOfToday(series: DatedValue[]): number | null {
   const today = new Date().toISOString().slice(0, 10);
   let v: number | null = null;
@@ -808,7 +808,7 @@ function valueAsOfToday(series: DatedValue[]): number | null {
   return v ?? series[series.length - 1]?.value ?? null;
 }
 
-/** Genera gli insight azionabili dalle condizioni correnti del campo. */
+/** Genera gli insight azionabili dalle condizioni correnti del field. */
 function buildInsights(args: {
   stressMean: number | null;
   worst: DssResult | null;

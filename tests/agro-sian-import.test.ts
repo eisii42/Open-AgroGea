@@ -6,7 +6,7 @@ import {
   mapSianFeature,
   numeroItaliano,
   parseCsvRows,
-  risolviSuperficieHa,
+  resolveAreaHa,
 } from "../apps/agro-field-suite/src/services/gis/sian-mapping";
 
 const QUADRATO: Polygon = {
@@ -35,16 +35,16 @@ describe("numeroItaliano", () => {
 
 describe("risolviSuperficieHa", () => {
   it("dà priorità alla superficie dichiarata in ettari", () => {
-    assert.equal(risolviSuperficieHa({ SUP_HA: "2,5" }), 2.5);
+    assert.equal(resolveAreaHa({ SUP_HA: "2,5" }), 2.5);
   });
   it("converte un'area in m² quando manca quella in ettari", () => {
-    assert.equal(risolviSuperficieHa({ AREA_MQ: "25000" }), 2.5);
+    assert.equal(resolveAreaHa({ AREA_MQ: "25000" }), 2.5);
   });
-  it("usa l'area geodetica come ultima spiaggia", () => {
-    assert.equal(risolviSuperficieHa({}, 1.2345), 1.2345);
+  it("usa l'area geodetica come last spiaggia", () => {
+    assert.equal(resolveAreaHa({}, 1.2345), 1.2345);
   });
   it("ritorna 0 senza alcuna fonte", () => {
-    assert.equal(risolviSuperficieHa({}), 0);
+    assert.equal(resolveAreaHa({}), 0);
   });
 });
 
@@ -106,7 +106,7 @@ describe("parseCsvRows", () => {
     const rows = parseCsvRows(csv);
     assert.equal(rows.length, 2);
     assert.deepEqual(rows[0], { COD_APP: "7", COD_PROD: "060", SUP_HA: "2,5" });
-    // Le righe CSV alimentano mapSianFeature senza geometria.
+    // Le rows CSV alimentano mapSianFeature senza geometria.
     const mapped = mapSianFeature(rows[0], null);
     assert.equal(mapped.agricultural_parcel_external_id, "7");
     assert.equal(mapped.crop_external_code, "060");
@@ -119,7 +119,7 @@ describe("parseCsvRows", () => {
     assert.deepEqual(rows[0], { NOME: "Campo A", NOTE: "nota; con; separatore" });
   });
 
-  it("ritorna vuoto senza righe dati", () => {
+  it("ritorna vuoto senza rows dati", () => {
     assert.deepEqual(parseCsvRows("solo_header"), []);
   });
 });

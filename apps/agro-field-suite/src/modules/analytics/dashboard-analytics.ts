@@ -41,7 +41,7 @@ export interface EntityDef {
   id: string;
   label: string;
   fields: EntityField[];
-  /** Proietta il dominio (filtrato) in righe piatte dimensione/misura. */
+  /** Proietta il dominio (filtrato) in rows piatte dimensione/misura. */
   rows: (data: DashboardData) => Flat[];
 }
 
@@ -82,7 +82,7 @@ function prettyModel(modelName: string): string {
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
-/** Mappa plot_id → nome plot. */
+/** Mappa plot_id → name plot. */
 function plotNames(data: DashboardData): Map<string, string> {
   return new Map(data.plots.map((a) => [a.id, a.user_plot_name]));
 }
@@ -92,7 +92,7 @@ function plotAreas(data: DashboardData): Map<string, number> {
   return new Map(data.plots.map((a) => [a.id, a.area_ha]));
 }
 
-/** Mappa plot_campaign_id → nome plot (per il bilancio idrico). */
+/** Mappa plot_campaign_id → name plot (per il bilancio idrico). */
 function campaignPlotNames(data: DashboardData): Map<string, string> {
   const byPlot = plotNames(data);
   const m = new Map<string, string>();
@@ -123,7 +123,7 @@ export const ENTITIES: EntityDef[] = [
       const plotCrop = new Map<string, string>();
       for (const c of d.campaigns) plotCrop.set(c.plot_id, cropName.get(c.crop_id) ?? "—");
       return d.plots.map((a) => ({
-        nome: a.user_plot_name,
+        name: a.user_plot_name,
         crop: plotCrop.get(a.id) ?? "—",
         irrigazione: a.irrigation_type ?? "—",
         anno: a.planting_year ?? "—",
@@ -251,7 +251,7 @@ export const ENTITIES: EntityDef[] = [
       return d.dssRisultati.map((r) => ({
         modello: prettyModel(r.model_name),
         plot: r.plot_id ? names.get(r.plot_id) ?? "—" : "—",
-        valore: r.output_value,
+        value: r.output_value,
       }));
     },
   },

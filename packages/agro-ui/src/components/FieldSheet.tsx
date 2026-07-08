@@ -32,7 +32,7 @@ export function FieldSheet({
         // Mobile: bottom sheet a tutta larghezza. z-40 (non z-30) per stare
         // SOPRA la tab bar mobile fissa di FieldDashboard (anch'essa z-30,
         // renderizzata dopo in ordine DOM): altrimenti a parità di z-index la
-        // tab bar vinceva lo stacking e copriva il footer/pulsante salva.
+        // tab bar vinceva lo stacking e copriva il footer/pulsante save.
         "absolute inset-x-0 bottom-0 z-40 flex flex-col rounded-t-[var(--r-3)]",
         "border border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-pop)]",
         collapsed ? "max-h-14" : "max-h-[70dvh]",

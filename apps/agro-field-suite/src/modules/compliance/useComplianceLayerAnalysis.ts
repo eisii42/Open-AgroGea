@@ -37,7 +37,7 @@ function appezzamentiFeatureCollection(
     features: plots.map((a) => ({
       type: "Feature",
       geometry: a.geometry,
-      properties: { id: a.id, nome: a.user_plot_name },
+      properties: { id: a.id, name: a.user_plot_name },
     })),
   };
 }

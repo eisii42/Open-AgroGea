@@ -7,12 +7,12 @@
  *      dell'azienda (`Company.paese`, ISO 3166-1 alpha-2).
  *   2. **Validazione spaziale (cross-check):** le coordinate reali dei poligoni
  *      degli plots. Se i campi cadono fuori dai confini nazionali
- *      dell'indirizzo, si emette un alert e/o si aggiorna il contesto normativo
+ *      dell'indirizzo, si emette un alert e/o si update il contesto normativo
  *      del singolo sotto-plot. Include il rilevamento rapido di
  *      coordinate invertite (lat/lon scambiate), causa comune di drift.
  *
  * Modulo **PURO**: nessun DOM/React, nessun accesso DB (accetta geometrie
- * GeoJSON, non righe di tabella). Sopravvive intatto al rename dello schema e
+ * GeoJSON, non rows di tabella). Sopravvive intatto al rename dello schema e
  * resta testabile sotto `node --test`.
  */
 import type { MultiPolygon, Polygon } from "geojson";
@@ -79,7 +79,7 @@ export function detectCountryAtPoint(
   return null;
 }
 
-/** Normalizza una stringa paese (alpha-2, nome o vuoto) in {@link CountryCode}. */
+/** Normalizza una stringa paese (alpha-2, name o vuoto) in {@link CountryCode}. */
 export function normalizeCountryCode(raw: string | null | undefined): CountryCode | null {
   if (!raw) return null;
   const v = raw.trim().toUpperCase();
@@ -177,7 +177,7 @@ export function checkPlotCountry(
  */
 export function resolveCountry(
   input: {
-    /** Paese dell'indirizzo legale (ISO alpha-2 o nome); `null` se assente. */
+    /** Paese dell'indirizzo legale (ISO alpha-2 o name); `null` se assente. */
     addressCountry?: string | null;
     /** Geometrie degli plots per il cross-check (opzionale). */
     plots?: PlotGeometry[];
@@ -243,7 +243,7 @@ export function resolveCountry(
 
 /**
  * Versione "per sotto-appezzamento": ritorna, per ciascun plot, il paese
- * che ne governa il contesto normativo. Un campo fuori dal paese del tenant è
+ * che ne governa il contesto normativo. Un field fuori dal paese del tenant è
  * regolato dal paese in cui ricade davvero (se supportato), permettendo companies
  * transfrontaliere. Usa il bounding box, quindi è rapido e privo di dipendenze.
  */

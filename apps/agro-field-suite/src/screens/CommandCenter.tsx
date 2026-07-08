@@ -49,8 +49,8 @@ type CommandCenterPage = "crops" | "company";
  *     (annata → crop → plots), griglia KPI configurabile, dashboard
  *     editabile, calendario operativo e Raw Data Inspector con cross-filtering;
  *   * «Company» — l'andamento generale: superficie/operazioni/raccolto
- *     dell'annata, stato del Magazzino (valore giacenze a CUMP, lots scaduti e
- *     in scadenza), costo products imputato per campo e backup/ripristino.
+ *     dell'annata, stato del Magazzino (value giacenze a CUMP, lots scaduti e
+ *     in scadenza), costo products imputato per field e backup/ripristino.
  * Il contesto aziendale vive nello store e sopravvive allo switch di vista.
  */
 export function CommandCenter() {
@@ -299,7 +299,7 @@ export function CommandCenter() {
 
         {page === "crops" && (
           <>
-        {/* Barra filtri gerarchici + sintesi + export */}
+        {/* Barra filtri gerarchici + summary + export */}
         <div className="mb-4 flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1 text-[11px] text-[var(--ink-3)]">
             {t("commandCenter.campaignYear")}

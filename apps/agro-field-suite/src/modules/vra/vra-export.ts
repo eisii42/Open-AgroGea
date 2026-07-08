@@ -7,7 +7,7 @@
  *    con ProcessDataVariable per il rateo.
  *
  * NB: la mappatura DDI/unità ISOXML è un MVP: i DDI e i fattori di scala vanno
- * confermati contro il terminale di destinazione prima dell'uso in campo.
+ * confermati contro il terminale di destinazione prima dell'uso in field.
  * Parte PURA (solo stringhe): testabile sotto Node.
  */
 import type { Feature, Polygon } from "geojson";
@@ -95,7 +95,7 @@ export function vraToIsoXml(
 
   const tzn = result.zone
     .map((zona) => {
-      const valoreIso = Math.round(zona.rateo * scala);
+      const isoValue = Math.round(zona.rateo * scala);
       const polygons = (celleperZona.get(zona.zona) ?? [])
         .map(polygonToPln)
         .join("");
@@ -103,7 +103,7 @@ export function vraToIsoXml(
         `<TZN A="${zona.zona + 1}" B="${escapeXml(
           `Zona ${zona.zona + 1} (${zona.rateo} ${result.unita})`,
         )}">` +
-        `<PDV A="${ddi}" B="${valoreIso}"/>` +
+        `<PDV A="${ddi}" B="${isoValue}"/>` +
         polygons +
         `</TZN>`
       );

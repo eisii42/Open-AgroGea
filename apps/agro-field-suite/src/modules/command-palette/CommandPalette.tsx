@@ -17,7 +17,7 @@ import type { UndoRedoApi } from "../../hooks/useGeometryUndoRedo";
 
 /**
  * Command Palette globale (Ctrl/Cmd+K): navigazione headless della suite.
- * Digitando il nome di un plot si esegue il flyTo sul suo poligono;
+ * Digitando il name di un plot si esegue il flyTo sul suo poligono;
  * digitando un'azione si apre il pannello / si attiva lo strumento. Annulla e
  * ripristina geometria compaiono durante una sessione di editing.
  */
@@ -72,7 +72,7 @@ export function CommandPalette({
     const azioni: Comando[] = [
       {
         id: "act-ndvi",
-        titolo: t("commandPalette.actions.ndvi"),
+        title: t("commandPalette.actions.ndvi"),
         categoria: "azione",
         paroleChiave: ["analisi", "suolo", "satellite", "sentinel"],
         esegui: apriPannello("ndvi"),
@@ -80,7 +80,7 @@ export function CommandPalette({
       },
       {
         id: "act-vra",
-        titolo: t("commandPalette.actions.vra"),
+        title: t("commandPalette.actions.vra"),
         categoria: "azione",
         paroleChiave: ["prescrizione", "isobus", "concimazione"],
         esegui: apriPannello("vra"),
@@ -88,7 +88,7 @@ export function CommandPalette({
       },
       {
         id: "act-tratt",
-        titolo: t("commandPalette.actions.newTreatment"),
+        title: t("commandPalette.actions.newTreatment"),
         categoria: "azione",
         paroleChiave: ["quaderno", "registro", "operazione"],
         esegui: apriPannello("quaderno"),
@@ -96,7 +96,7 @@ export function CommandPalette({
       },
       {
         id: "act-coltura",
-        titolo: t("commandPalette.actions.cropSheet"),
+        title: t("commandPalette.actions.cropSheet"),
         categoria: "azione",
         paroleChiave: ["fenologia", "modelli"],
         esegui: apriPannello("coltura"),
@@ -104,28 +104,28 @@ export function CommandPalette({
       },
       {
         id: "act-draw-poly",
-        titolo: t("commandPalette.actions.drawPlot"),
+        title: t("commandPalette.actions.drawPlot"),
         categoria: "azione",
         paroleChiave: ["poligono", "nuovo campo"],
         esegui: disegna("polygon"),
       },
       {
         id: "act-draw-line",
-        titolo: t("commandPalette.actions.drawInfrastructure"),
+        title: t("commandPalette.actions.drawInfrastructure"),
         categoria: "azione",
         paroleChiave: ["linea", "asset"],
         esegui: disegna("line"),
       },
       {
         id: "act-draw-poi",
-        titolo: t("commandPalette.actions.drawPoi"),
+        title: t("commandPalette.actions.drawPoi"),
         categoria: "azione",
         paroleChiave: ["punto", "trappola", "sensore"],
         esegui: disegna("point"),
       },
       {
         id: "act-registro",
-        titolo: t("commandPalette.actions.editGeometries"),
+        title: t("commandPalette.actions.editGeometries"),
         categoria: "azione",
         paroleChiave: ["registro", "gestione"],
         esegui: apriPannello("registro"),
@@ -133,7 +133,7 @@ export function CommandPalette({
       },
       {
         id: "act-stampa",
-        titolo: t("commandPalette.actions.printMap"),
+        title: t("commandPalette.actions.printMap"),
         categoria: "azione",
         paroleChiave: ["print", "composer", "pdf", "pac", "psr"],
         esegui: apriPannello("stampa"),
@@ -141,7 +141,7 @@ export function CommandPalette({
       },
       {
         id: "act-impostazioni",
-        titolo: t("commandPalette.actions.companySettings"),
+        title: t("commandPalette.actions.companySettings"),
         categoria: "azione",
         paroleChiave: ["meteo", "config"],
         esegui: apriPannello("impostazioni"),
@@ -149,7 +149,7 @@ export function CommandPalette({
       },
       {
         id: "act-profile",
-        titolo: t("commandPalette.actions.profileSettings"),
+        title: t("commandPalette.actions.profileSettings"),
         categoria: "azione",
         paroleChiave: ["profile", "preferenze", "lingua", "unità", "moduli", "account"],
         esegui: apriPannello("profile"),
@@ -159,7 +159,7 @@ export function CommandPalette({
       // quindi qui serve solo la direzione verso il Command Center.
       {
         id: "act-command-center",
-        titolo: t("commandPalette.actions.openCommandCenter"),
+        title: t("commandPalette.actions.openCommandCenter"),
         categoria: "azione",
         paroleChiave: ["dashboard", "dati", "kpi", "analisi", "report", "vista"],
         scorciatoia: "→",
@@ -173,7 +173,7 @@ export function CommandPalette({
     if (undoRedo.canUndo) {
       azioni.push({
         id: "act-undo",
-        titolo: t("commandPalette.actions.undoGeometry"),
+        title: t("commandPalette.actions.undoGeometry"),
         categoria: "azione",
         paroleChiave: ["undo", "indietro"],
         scorciatoia: "Ctrl+Z",
@@ -186,7 +186,7 @@ export function CommandPalette({
     if (undoRedo.canRedo) {
       azioni.push({
         id: "act-redo",
-        titolo: t("commandPalette.actions.redoGeometry"),
+        title: t("commandPalette.actions.redoGeometry"),
         categoria: "azione",
         paroleChiave: ["redo", "avanti"],
         scorciatoia: "Ctrl+Y",
@@ -197,18 +197,18 @@ export function CommandPalette({
       });
     }
 
-    const navigazione: Comando[] = plots.map((apz) => {
-      const crop = cropForPlot(apz.id, campaignFields, crops);
+    const navigazione: Comando[] = plots.map((plot) => {
+      const crop = cropForPlot(plot.id, campaignFields, crops);
       return {
-      id: `apz-${apz.id}`,
-      titolo: apz.user_plot_name,
+      id: `apz-${plot.id}`,
+      title: plot.user_plot_name,
       sottotitolo: crop ?? undefined,
       categoria: "appezzamento",
       paroleChiave: [crop ?? "", "vai", "mappa"].filter(Boolean),
       esegui: () => {
-        const bounds = boundingBox(apz.geometry);
+        const bounds = boundingBox(plot.geometry);
         mapControllerRef.current?.fitBounds(bounds);
-        void selectPlot(apz.id);
+        void selectPlot(plot.id);
         onClose();
       },
       };
@@ -308,7 +308,7 @@ export function CommandPalette({
                     : "text-[var(--ink-2)]",
                 )}
               >
-                <span className="flex-1 truncate">{cmd.titolo}</span>
+                <span className="flex-1 truncate">{cmd.title}</span>
                 {cmd.sottotitolo && (
                   <span className="truncate text-xs text-[var(--ink-4)]">
                     {cmd.sottotitolo}

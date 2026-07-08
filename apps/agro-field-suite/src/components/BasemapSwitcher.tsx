@@ -13,7 +13,7 @@ import {
 } from "../lib/basemaps";
 
 /**
- * Selettore basemap di campo (Modulo 1 §FIX, esteso). Apre un menù con:
+ * Selettore basemap di field (Modulo 1 §FIX, esteso). Apre un menù con:
  *   * basemap di base mutuamente esclusivi (stradario · satellite): un solo
  *     raster di sfondo alla volta, in fondo allo stack;
  *   * un overlay catastale (WMS Agenzia delle Entrate) attivabile in modo

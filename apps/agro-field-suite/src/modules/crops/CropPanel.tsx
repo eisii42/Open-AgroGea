@@ -65,9 +65,9 @@ function useSelectedPlot(): {
   vuoto: boolean;
 } {
   const plots = useAgroStore((s) => s.plots);
-  const selezionatoId = useAgroStore((s) => s.selectedPlotId);
+  const selectedId = useAgroStore((s) => s.selectedPlotId);
   const [scelto, setScelto] = useState<string>(
-    selezionatoId ?? plots[0]?.id ?? "",
+    selectedId ?? plots[0]?.id ?? "",
   );
 
   // CTA "Completa ora" della compliance SIAN (v17): la scheda si apre già
@@ -115,14 +115,14 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
   const plots = useAgroStore((s) => s.plots);
   const crops = useAgroStore((s) => s.crops);
   const campaignFields = useAgroStore((s) => s.campaignFields);
-  const selezionatoId = useAgroStore((s) => s.selectedPlotId);
-  const { stato, calcola } = useDssCalculation();
+  const selectedId = useAgroStore((s) => s.selectedPlotId);
+  const { stato, compute } = useDssCalculation();
 
   const [sel, setSel] = useState<Set<string>>(
     () =>
       new Set(
-        selezionatoId
-          ? [selezionatoId]
+        selectedId
+          ? [selectedId]
           : plots[0]
             ? [plots[0].id]
             : [],
@@ -137,15 +137,15 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
       return next;
     });
 
-  // Target = plots selezionati con una crop/modulo DSS risolvibile.
+  // Target = plots selezionati con una crop/module DSS risolvibile.
   const targets = useMemo<DssTarget[]>(() => {
     const out: DssTarget[] = [];
     for (const a of plots) {
       if (!sel.has(a.id)) continue;
-      const modulo = cropModuleForCrop(
+      const module = cropModuleForCrop(
         cropForPlot(a.id, campaignFields, crops),
       );
-      if (modulo) out.push({ plot: a, modulo });
+      if (module) out.push({ plot: a, module });
     }
     return out;
   }, [plots, sel, campaignFields, crops]);
@@ -163,7 +163,7 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
         <Button
           className="min-h-[var(--touch-min)] w-full gap-2"
           disabled={targets.length === 0 || inCorso}
-          onClick={() => void calcola(targets, { skipWaterBalance: true })}
+          onClick={() => void compute(targets, { skipWaterBalance: true })}
         >
           <RefreshCw size={15} className={cn(inCorso && "animate-spin")} />
           {inCorso

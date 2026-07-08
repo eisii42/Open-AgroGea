@@ -99,7 +99,7 @@ function intersecaLayer(
  * Verifica i vincoli geografici dell'appezzamento sui layer forniti e ricava il
  * massimale di azoto. L'ordine dei vincoli restituiti è sempre zvn, sic, zps.
  */
-export function verificaCompliance(
+export function checkCompliance(
   geometria: Polygon | MultiPolygon,
   layers: LayerCompliance[],
 ): RisultatoCompliance {
@@ -139,7 +139,7 @@ export function verificaCompliance(
   };
 }
 
-/** Massimale di azoto in valore assoluto (kg) per la superficie data. */
+/** Massimale di azoto in value assoluto (kg) per la superficie data. */
 export function azotoTotaleMax(
   superficieHa: number | null,
   maxKgHa: number | null,

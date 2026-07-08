@@ -35,7 +35,7 @@ interface Props {
 /**
  * Strumento pre-cache area offline. Permette all'agronomo di scaricare le
  * tile di una zona geografica prima di uscire dalla connettività (ufficio →
- * campo). Supporta sia inserimento manuale del bbox sia acquisizione
+ * field). Supporta sia inserimento manuale del bbox sia acquisizione
  * automatica dall'estensione corrente della mappa.
  */
 export function OfflineAreaDialog({ onClose, mapControllerRef }: Props) {
@@ -64,7 +64,7 @@ export function OfflineAreaDialog({ onClose, mapControllerRef }: Props) {
     void cachedTileCount().then(setCachedCount);
   }, []);
 
-  // Quando l'estensione bbox cambia aggiorna la stima.
+  // Quando l'estensione bbox cambia update la stima.
   useEffect(() => {
     const bbox = parseBbox();
     if (!bbox) {

@@ -142,7 +142,7 @@ describe("validateProduct / categorie rigide", () => {
     );
   });
 
-  it("carburante richiede l'assegnazione UMA; le sementi solo nome+unità", () => {
+  it("carburante richiede l'assegnazione UMA; le sementi solo name+unità", () => {
     assert.ok(
       validateProduct({ category: "fuel", name: "Gasolio", unit: "l" }).some(
         (e) => e.field === "uma_code",
@@ -211,7 +211,7 @@ describe("schema v16 / migrazione additiva", () => {
 });
 
 describe("DAL warehouse / carico lots e CUMP", () => {
-  it("il carico crea il lot, aggiorna il CUMP e accoda entrambe le mutazioni", async () => {
+  it("il carico crea il lot, update il CUMP e accoda entrambe le mutazioni", async () => {
     const dal = await TestDal.create();
     const companyId = await seedCompany(dal);
     const product = await dal.upsertProduct({
@@ -419,7 +419,7 @@ describe("DAL warehouse / issue atomico (§5.2)", () => {
 });
 
 describe("Definition of Done §6 / flusso end-to-end", () => {
-  it("prodotto → lot → attività → stock, costo al campo, alert, fallback", async () => {
+  it("prodotto → lot → attività → stock, costo al field, alert, fallback", async () => {
     const dal = await TestDal.create();
     const companyId = await seedCompany(dal);
     const plotId = await seedPlot(dal, companyId);
@@ -453,7 +453,7 @@ describe("Definition of Done §6 / flusso end-to-end", () => {
       unit_cost: 0.55,
     });
 
-    // 2) L'attività scarica il lot reale.
+    // 2) L'attività download il lot reale.
     await dal.insertTreatmentWithIssues(
       {
         ...TRATTAMENTO_BASE,
@@ -479,7 +479,7 @@ describe("Definition of Done §6 / flusso end-to-end", () => {
         e instanceof WarehouseError && e.code === "insufficient_stock",
     );
 
-    // 4) Costo (via CUMP) imputato al campo trattato.
+    // 4) Costo (via CUMP) imputato al field trattato.
     const costi = await dal.productCostsPerField(companyId);
     assert.equal(costi.length, 1);
     assert.equal(costi[0].plot_id, plotId);

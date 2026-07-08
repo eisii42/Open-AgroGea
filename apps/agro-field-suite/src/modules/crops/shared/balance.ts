@@ -20,7 +20,7 @@ import {
  *   * `irrigationPlan` (agrometeo) → bilancio idrico del soil e piano irriguo.
  *
  * Il Kc "declinato per phase fenologica della coltura" è quello di `fenologia`:
- * qui si seleziona solo quello giusto per specie+phase e si proietta il bilancio.
+ * qui si select solo quello giusto per specie+phase e si proietta il bilancio.
  */
 
 export interface CropBalanceInput {

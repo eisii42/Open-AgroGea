@@ -8,7 +8,7 @@ import {
 } from "@geolibre/core";
 import { useEffect } from "react";
 import {
-  costruisciOverlayDss,
+  buildDssOverlay,
   dssRiskRamp,
   type FieldSummary,
 } from "../modules/dss/dss-overlay";
@@ -34,7 +34,7 @@ const STOPS_DSS: VectorStyleStop[] = [
 
 export interface DssOverlayParams {
   plots: Plot[];
-  /** Punteggio sintetico 0..1 per plot (id → sintesi). */
+  /** Punteggio sintetico 0..1 per plot (id → summary). */
   summaryPerField: Map<string, FieldSummary>;
   /** CropType prevalente, per la calibrazione della rampa/legenda. */
   crop: CropType;
@@ -44,7 +44,7 @@ export interface DssOverlayParams {
   styleEpoch?: number;
 }
 
-function rimuoviLayer(): void {
+function removeLayer(): void {
   const store = useAppStore.getState();
   if (store.layers.some((l) => l.id === DSS_OVERLAY_LAYER_ID)) {
     store.removeLayer(DSS_OVERLAY_LAYER_ID);
@@ -56,13 +56,13 @@ export function useDssOverlayLayer(params: DssOverlayParams): void {
 
   useEffect(() => {
     if (!attivo || summaryPerField.size === 0) {
-      rimuoviLayer();
+      removeLayer();
       return;
     }
     const rampa = dssRiskRamp(crop);
-    const geojson = costruisciOverlayDss(plots, summaryPerField, rampa);
+    const geojson = buildDssOverlay(plots, summaryPerField, rampa);
     if (geojson.features.length === 0) {
-      rimuoviLayer();
+      removeLayer();
       return;
     }
 

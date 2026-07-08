@@ -185,7 +185,7 @@ export function OperationsCalendar({
     return map;
   }, [events]);
 
-  // Costruzione della griglia mensile (settimana lun→dom, 6 righe).
+  // Costruzione della griglia mensile (settimana lun→dom, 6 rows).
   const first = new Date(Date.UTC(campaignYear, month, 1));
   const offset = (first.getUTCDay() + 6) % 7; // lun=0
   const daysInMonth = new Date(Date.UTC(campaignYear, month + 1, 0)).getUTCDate();
@@ -414,8 +414,8 @@ function TreatmentEditor({
   onDone: () => void;
 }) {
   const { t } = useTranslation();
-  const aggiorna = useAgroStore((s) => s.updateTreatment);
-  const elimina = useAgroStore((s) => s.deleteTreatment);
+  const update = useAgroStore((s) => s.updateTreatment);
+  const remove = useAgroStore((s) => s.deleteTreatment);
   const [product, setProduct] = useState(record?.product_name ?? "");
   const [date, setDate] = useState(
     record ? dayKey(record.executed_at) : "",
@@ -456,7 +456,7 @@ function TreatmentEditor({
         <button
           type="button"
           onClick={async () => {
-            await elimina(record.id);
+            await remove(record.id);
             onDone();
           }}
           className="flex items-center gap-1 rounded-[var(--r-2)] px-2 py-1.5 text-xs text-[var(--danger)] hover:bg-[var(--danger-l)]"
@@ -468,7 +468,7 @@ function TreatmentEditor({
           disabled={saving}
           onClick={async () => {
             setSaving(true);
-            await aggiorna(record.id, {
+            await update(record.id, {
               product_name: product.trim() || null,
               executed_at: new Date(`${date}T12:00:00`).toISOString(),
               note: note.trim() || null,
@@ -493,8 +493,8 @@ function HarvestEditor({
   onDone: () => void;
 }) {
   const { t } = useTranslation();
-  const salva = useAgroStore((s) => s.saveHarvest);
-  const elimina = useAgroStore((s) => s.deleteHarvest);
+  const save = useAgroStore((s) => s.saveHarvest);
+  const remove = useAgroStore((s) => s.deleteHarvest);
   const [qty, setQty] = useState(record?.quantity_kg?.toString() ?? "");
   const [date, setDate] = useState(
     record ? dayKey(record.harvested_at) : "",
@@ -526,7 +526,7 @@ function HarvestEditor({
         <button
           type="button"
           onClick={async () => {
-            await elimina(record.id);
+            await remove(record.id);
             onDone();
           }}
           className="flex items-center gap-1 rounded-[var(--r-2)] px-2 py-1.5 text-xs text-[var(--danger)] hover:bg-[var(--danger-l)]"
@@ -538,7 +538,7 @@ function HarvestEditor({
           disabled={saving}
           onClick={async () => {
             setSaving(true);
-            await salva({
+            await save({
               ...record,
               quantity_kg: qty.trim() === "" ? null : Number(qty),
               harvested_at: new Date(`${date}T12:00:00`).toISOString(),

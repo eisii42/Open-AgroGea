@@ -250,8 +250,8 @@ export function getRegionalExporter(countryCode: CountryCode): RegionalExporter 
   }
 }
 
-/** Scarica nel browser l'export product dall'adapter regionale. Ritorna il nome file. */
-export function scaricaExport(
+/** Scarica nel browser l'export product dall'adapter regionale. Ritorna il name file. */
+export function downloadExport(
   exporter: RegionalExporter,
   input: RegionalExportInput,
 ): string {
@@ -259,11 +259,11 @@ export function scaricaExport(
   const payload = exporter.bom ? `﻿${contenuto}` : contenuto;
   const blob = new Blob([payload], { type: exporter.mimeType });
   const url = URL.createObjectURL(blob);
-  const nomeFile = exporter.fileName(input.aziendaName);
+  const fileName = exporter.fileName(input.aziendaName);
   const a = document.createElement("a");
   a.href = url;
-  a.download = nomeFile;
+  a.download = fileName;
   a.click();
   URL.revokeObjectURL(url);
-  return nomeFile;
+  return fileName;
 }

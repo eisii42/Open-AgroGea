@@ -10,7 +10,7 @@ import type { ColorRamp } from "@agrogea/tools";
 export interface ColorbarTick {
   /** Posizione 0..1 lungo la barra (0 = base/min, 1 = cima/max). */
   pos: number;
-  valore: number;
+  value: number;
 }
 
 export interface ColorbarModel {
@@ -21,14 +21,14 @@ export interface ColorbarModel {
   max: number;
 }
 
-function arrotonda(value: number): number {
+function round(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
 /**
- * Costruisce il modello colorbar da una rampa `[valore, colore][]`. Il dominio
+ * Costruisce il modello colorbar da una rampa `[value, colore][]`. Il dominio
  * è [primo stop, ultimo stop]; il gradiente posiziona ogni colore in proporzione
- * al suo valore, e le tacche coincidono con gli stop della rampa.
+ * al suo value, e le tacche coincidono con gli stop della rampa.
  */
 export function buildColorbar(rampa: ColorRamp): ColorbarModel {
   if (rampa.length === 0) {
@@ -38,9 +38,9 @@ export function buildColorbar(rampa: ColorRamp): ColorbarModel {
   const max = rampa[rampa.length - 1][0];
   const span = max - min || 1;
 
-  const stops = rampa.map(([valore, colore]) => {
-    const pos = (valore - min) / span; // 0..1
-    return { pos, valore, colore };
+  const stops = rampa.map(([value, colore]) => {
+    const pos = (value - min) / span; // 0..1
+    return { pos, value, colore };
   });
 
   // Gradiente "to top": il primo stop (min) sta in basso (0%), l'ultimo in cima.
@@ -48,16 +48,16 @@ export function buildColorbar(rampa: ColorRamp): ColorbarModel {
     rampa.length === 1
       ? rampa[0][1]
       : `linear-gradient(to top, ${stops
-          .map((s) => `${s.colore} ${arrotonda(s.pos * 100)}%`)
+          .map((s) => `${s.colore} ${round(s.pos * 100)}%`)
           .join(", ")})`;
 
   return {
     cssGradient,
     ticks: stops.map((s) => ({
       pos: Math.round(s.pos * 10000) / 10000,
-      valore: arrotonda(s.valore),
+      value: round(s.value),
     })),
-    min: arrotonda(min),
-    max: arrotonda(max),
+    min: round(min),
+    max: round(max),
   };
 }

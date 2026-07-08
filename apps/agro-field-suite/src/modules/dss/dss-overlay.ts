@@ -72,7 +72,7 @@ const AZOTO_TARGET: Record<CropType, number> = {
   pomodoro: 30,
 };
 
-/** Calibrazione della sintesi per crop e phase (banda NDVI dalla fenologia). */
+/** Calibrazione della summary per crop e phase (banda NDVI dalla fenologia). */
 export function summaryCalibration(
   crop: CropType,
   phase: PhenologicalPhase,
@@ -120,23 +120,23 @@ export function summarizeFieldRisk(
   ingressi: FieldSummaryInputs,
   cal: SummaryCalibration,
 ): number {
-  const termini: Array<{ peso: number; valore: number }> = [
-    { peso: cal.pesoStress, valore: clamp01(ingressi.stressIdrico01) },
-    { peso: cal.pesoPatologico, valore: clamp01(ingressi.rischioPatologico01) },
+  const termini: Array<{ peso: number; value: number }> = [
+    { peso: cal.pesoStress, value: clamp01(ingressi.stressIdrico01) },
+    { peso: cal.pesoPatologico, value: clamp01(ingressi.rischioPatologico01) },
   ];
   if (typeof ingressi.ndvi === "number") {
     termini.push({
       peso: cal.pesoVigore,
-      valore: deficitVigore(ingressi.ndvi, cal.ndviAtteso),
+      value: deficitVigore(ingressi.ndvi, cal.ndviAtteso),
     });
   }
   const soil = soilDeficit(ingressi.azoto, ingressi.sostanzaOrganica, cal);
-  if (soil != null) termini.push({ peso: cal.pesoSuolo, valore: soil });
+  if (soil != null) termini.push({ peso: cal.pesoSuolo, value: soil });
 
   const pesoTot = termini.reduce((a, t) => a + t.peso, 0);
   if (pesoTot <= 0) return 0;
   return clamp01(
-    termini.reduce((a, t) => a + t.peso * t.valore, 0) / pesoTot,
+    termini.reduce((a, t) => a + t.peso * t.value, 0) / pesoTot,
   );
 }
 
@@ -172,7 +172,7 @@ function due(n: number): string {
   return Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0");
 }
 
-/** Colore esadecimale del punteggio secondo la rampa (step: ultima soglia vince). */
+/** Colore esadecimale del punteggio secondo la rampa (step: last soglia vince). */
 export function dssRiskColor(score: number, rampa: ColorRamp): string {
   let hex = rampa[0]?.[1] ?? VERDE;
   for (const [soglia, colore] of rampa) {
@@ -198,18 +198,18 @@ export interface FieldSummary {
 /**
  * Costruisce l'overlay coropletico: ogni plot diventa una feature
  * poligonale colorata in base al punteggio sintetico. Gli plots senza
- * sintesi disponibile sono omessi (nessun colore arbitrario).
+ * summary disponibile sono omessi (nessun colore arbitrario).
  */
-export function costruisciOverlayDss(
+export function buildDssOverlay(
   plots: Plot[],
   summaryPerField: Map<string, FieldSummary>,
   rampa: ColorRamp,
 ): FeatureCollection {
   const features: Feature[] = [];
   for (const a of plots) {
-    const sintesi = summaryPerField.get(a.id);
-    if (!sintesi) continue;
-    const score = clamp01(sintesi.rischio01);
+    const summary = summaryPerField.get(a.id);
+    if (!summary) continue;
+    const score = clamp01(summary.rischio01);
     features.push({
       type: "Feature",
       geometry: a.geometry,

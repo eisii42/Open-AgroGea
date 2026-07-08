@@ -94,7 +94,7 @@ describe("v17 / chiusura campagna e secondo raccolto", () => {
     assert.equal(tutte.length, 2);
   });
 
-  it("l'indice unico parziale blocca DUE campagne APERTE su stesso campo+anno", async () => {
+  it("l'indice unico parziale blocca DUE campagne APERTE su stesso field+anno", async () => {
     const dal = await TestDal.create();
     const { plotId } = await seedPlot(dal);
     const crop = await dal.upsertCrop({
@@ -216,7 +216,7 @@ describe("compliance SIAN / campi dichiarativi mancanti", () => {
 });
 
 describe("v17 / cropForPlot ignora le campagne chiuse", () => {
-  it("campo con campagna chiusa = campo libero", () => {
+  it("campo con campagna chiusa = field libero", () => {
     const crop: Crop = {
       id: "crop-1",
       tenant_id: TENANT,

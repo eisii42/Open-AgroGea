@@ -13,7 +13,7 @@ import { createSyncTarget, type SyncTarget } from "./targets";
  *
  * È deliberatamente isolato dalla UI: comunica solo via `onSnapshot`, quindi
  * un cambio di SDK o di schema remoto può rompere il router ma mai
- * l'operatività offline in campo.
+ * l'operatività offline in field.
  */
 
 const BATCH_SIZE = 200;

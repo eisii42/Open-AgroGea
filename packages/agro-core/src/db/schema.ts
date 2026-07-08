@@ -3,7 +3,7 @@
  *
  * Stesso modello logico del data plane remoto, con tre differenze deliberate:
  *   * niente PostGIS: la geometria resta GeoJSON in `jsonb` (MapLibre e
- *     DuckDB-WASM la consumano nativamente; l'area si calcola con @turf/area nel
+ *     DuckDB-WASM la consumano nativamente; l'area si compute con @turf/area nel
  *     DAL, non nel DB locale; la colonna PostGIS `geom` esiste solo lato remoto);
  *   * niente RLS: l'isolamento per tenant è dato dall'istanza PGlite dedicata
  *     (un dataDir per tenant_id), sbloccata da PIN/biometria via Tauri;
@@ -49,7 +49,7 @@
  *     transazione (nessuno issue parziale);
  *   * `activity_products` — giunzione attività (`treatment_logs`) ↔ lot, con
  *     quantità scaricata e costo imputato (CUMP congelato al momento dello
- *     issue): è la base del costo colturale per campo (0.4.0).
+ *     issue): è la base del costo colturale per field (0.4.0).
  *   I campi testo libero di `treatment_logs` (`product_name`,
  *   `machinery_equipment`, …) restano INTATTI come fallback per i record non
  *   collegati a un lot reale.
@@ -64,7 +64,7 @@
  *     identità colturale species/scientific_name/variety_name/crop_category;
  *     agrofarmaci: carenza/rientro di default; comune: scorta minima);
  *   * `plots_campaign.closed_at`: chiusura del ciclo colturale (il raccolto di
- *     un'annuale termina la campagna e il campo torna libero);
+ *     un'annuale termina la campagna e il field torna libero);
  *   * il vincolo `unique_plot_per_campaign` diventa un indice unico PARZIALE
  *     sulle sole campagne APERTE (closed_at/deleted_at null): consente il
  *     secondo raccolto nello stesso anno dopo la chiusura della prima campagna.
@@ -160,7 +160,7 @@ create table if not exists plots_registry (
 create index if not exists plots_registry_company_idx
   on plots_registry (company_id);
 
--- plots_campaign — stato BUROCRATICO annuale del campo per Campagna Agraria,
+-- plots_campaign — stato BUROCRATICO annuale del field per Campagna Agraria,
 -- LPIS/IACS compliant. Associa un plot fisico a una crop (crops) per
 -- una determinata annata; relazione 1:N su (plot_id, campaign_year).
 create table if not exists plots_campaign (
@@ -333,7 +333,7 @@ create index if not exists harvest_logs_company_idx
 -- dal sync router verso il data plane remoto (ex outbox_mutazioni).
 create table if not exists sync_outbox (
   mutation_id uuid primary key,
-  -- Nessun CHECK enumerato sul nome tabella: i valori sono products SOLO dal DAL
+  -- Nessun CHECK enumerato sul name tabella: i valori sono products SOLO dal DAL
   -- (tipizzati lato TS) e l'enumerazione richiedeva una migrazione fragile a ogni
   -- nuova tabella sincronizzata (un batch di schema interrotto lasciava il vincolo
   -- stantio → violazioni al boot). La validazione vive a valle nel sync target.
@@ -390,7 +390,7 @@ create index if not exists dss_results_plot_idx
   on dss_results (plot_id, calculated_at desc);
 
 -- soil_water_indices — output giornaliero del bilancio idrico FAO 56/66 per
--- campagna del campo. LOCAL-ONLY: interamente ricomputabile dalle letture meteo
+-- campagna del field. LOCAL-ONLY: interamente ricomputabile dalle letture meteo
 -- e dai log irrigui, non si sincronizza (come dss_results).
 create table if not exists soil_water_indices (
   id                  uuid primary key default gen_random_uuid(),
@@ -427,7 +427,7 @@ create index if not exists data_transfer_logs_tenant_idx
   on data_transfer_logs (tenant_id, executed_at desc);
 
 -- Allinea il CHECK di file_format anche su istanze pre-v13 già create (il
--- vincolo inline non si aggiorna da solo): drop+add idempotente del nome
+-- vincolo inline non si update da solo): drop+add idempotente del name
 -- auto-generato da Postgres per il check di colonna.
 alter table data_transfer_logs
   drop constraint if exists data_transfer_logs_file_format_check;
@@ -586,7 +586,7 @@ create index if not exists product_lots_product_idx
 -- activity_products — giunzione attività ↔ lot: quantità scaricata e costo
 -- imputato, con unit_cost = CUMP del product CONGELATO al momento dello
 -- issue (il CUMP successivo non riscrive la storia). Il costo confluisce sul
--- campo trattato via treatment_logs.plot_id (bilancio di campo 0.4.0).
+-- field trattato via treatment_logs.plot_id (bilancio di field 0.4.0).
 create table if not exists activity_products (
   id               uuid primary key,
   tenant_id        uuid not null,

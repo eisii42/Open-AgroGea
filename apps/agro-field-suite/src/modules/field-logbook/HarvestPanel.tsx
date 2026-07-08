@@ -79,7 +79,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
   const quintaliNum = quintali.trim() === "" ? null : Number(quintali);
   const quintaliValidi = quintaliNum == null || Number.isFinite(quintaliNum);
 
-  // -- ciclo colturale (v17): campagna APERTA del campo scelto ---------------
+  // -- ciclo colturale (v17): campagna APERTA del field scelto ---------------
   const campoAperto = useMemo(
     () =>
       appId
@@ -99,7 +99,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
         : null,
     [crops, campoAperto],
   );
-  // Solo le ANNUALI si chiudono col raccolto (le perenni restano in campo).
+  // Solo le ANNUALI si chiudono col raccolto (le perenni restano in field).
   const fieldCategory =
     typeof fieldCrop?.crop_metadata?.["category"] === "string"
       ? (fieldCrop.crop_metadata["category"] as string)
@@ -108,8 +108,8 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
     fieldCategory === "seminativo" || fieldCategory === "orticoltura";
   const [chiudi, setChiudi] = useState(false);
 
-  // Al cambio campo: proponi la chiusura per le annuali e precompila la
-  // cultivar dalla crop di campagna (se il campo cultivar è ancora vuoto).
+  // Al cambio field: proponi la chiusura per le annuali e precompila la
+  // cultivar dalla crop di campagna (se il field cultivar è ancora vuoto).
   useEffect(() => {
     setChiudi(isAnnuale);
     if (fieldCrop) {
@@ -128,7 +128,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
   );
   const [senzaSian, setSenzaSian] = useState(false);
   useEffect(() => {
-    setSenzaSian(false); // ogni cambio campo richiede una nuova scelta esplicita
+    setSenzaSian(false); // ogni cambio field richiede una nuova scelta esplicita
   }, [appId]);
   const sianOk = mancantiSian.length === 0 || senzaSian;
 
@@ -136,7 +136,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
 
   /** Etichette leggibili dei campi mancanti, nella semantica del paese. */
   const etichetteMancanti = mancantiSian
-    .map((campo) => t(`raccoltaPanel.declField.${countryCode}.${campo}` as never))
+    .map((field) => t(`raccoltaPanel.declField.${countryCode}.${field}` as never))
     .join(", ");
 
   // Badge "SIAN/SIEX ✗" nel selettore: campi con campagna aperta ma
@@ -191,7 +191,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
     try {
       await saveHarvest({
         plot_id: appId || null,
-        // Aggancio alla campagna APERTA del campo (le chiuse sono storia).
+        // Aggancio alla campagna APERTA del field (le chiuse sono storia).
         plot_campaign_id: campoAperto?.id ?? null,
         cultivar: cultivar.trim() || null,
         destination_logistics: destinazione.trim() || null,
@@ -202,7 +202,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
           ? { destinazione_lotto: destinazioneLotto.trim() }
           : {},
       });
-      // v17: il raccolto di un'annuale chiude il ciclo colturale — il campo
+      // v17: il raccolto di un'annuale chiude il ciclo colturale — il field
       // torna libero (mappa neutra, DSS spento, nuova semina possibile).
       if (chiudi && campoAperto) {
         await closeCampaign(campoAperto.id);
@@ -260,7 +260,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
           </div>
 
           {/* Compliance dichiarativa (SIAN/SIEX): campi mancanti sulla campagna
-              del campo scelto. CTA per completare subito o override consapevole. */}
+              del field scelto. CTA per completare subito o override consapevole. */}
           {mancantiSian.length > 0 && (
             <div className="flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--warn)] bg-[var(--warn-l)] px-3 py-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--warn)]">
@@ -478,7 +478,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
       <ConfirmDeleteOperation
         open={daEliminare != null}
         label={daEliminare ? harvestLabel(daEliminare) : ""}
-        titolo={t("raccoltaPanel.deleteHarvest")}
+        title={t("raccoltaPanel.deleteHarvest")}
         messaggio={t("raccoltaPanel.deleteConfirmMessage")}
         consensoLabel={t("raccoltaPanel.deleteConfirmConsent")}
         onConfirm={confermaEliminazione}

@@ -20,7 +20,7 @@ import type {
 /**
  * Risolve la crop corrente di un plot FISICO tramite il suo record di
  * Campagna Agraria (`plots_campaign` → `crops`). Restituisce la categoria DSS
- * (`crop_metadata.category`, es. "viticoltura") se presente, altrimenti il nome
+ * (`crop_metadata.category`, es. "viticoltura") se presente, altrimenti il name
  * comune della crop. Coerente con la normalizzazione: un plot ha una crop
  * solo nel contesto di un'annata. `null` se l'appezzamento non ha campagna/crop.
  */
@@ -29,7 +29,7 @@ export function cropForPlot(
   campaignFields: PlotCampaign[],
   crops: Crop[],
 ): string | null {
-  // Le campagne CHIUSE (raccolto delle annuali, v17) non contano: il campo è
+  // Le campagne CHIUSE (raccolto delle annuali, v17) non contano: il field è
   // tornato libero e la mappa/DSS lo trattano come senza crop.
   const camp = campaignFields.find(
     (c) => c.plot_id === plotId && c.deleted_at == null && c.closed_at == null,
@@ -56,10 +56,10 @@ function cropPerPlot(
 
 /**
  * Etichetta leggibile della crop associata a un plot nella Campagna
- * attiva (`plots_campaign` → `crops`): nome comune con varietà tra parentesi se
+ * attiva (`plots_campaign` → `crops`): name comune con varietà tra parentesi se
  * presente (es. "Vite (Sangiovese)"). `null` se non c'è crop per l'annata.
  * A differenza di {@link cropForPlot} (che ritorna la categoria DSS),
- * qui si privilegia il nome reale della crop, più informativo nel tooltip.
+ * qui si privilegia il name reale della crop, più informativo nel tooltip.
  */
 export function cropLabelPerPlot(
   plotId: string,
@@ -107,7 +107,7 @@ export function plotsToFeatureCollection(
           fill: color,
           stroke: color,
           // Obbligatori con simpleStyleEnabled (vedi nota nel tipo): senza, il
-          // renderer calcola opacità/spessore = to-number(null) = 0 → invisibile.
+          // renderer compute opacità/spessore = to-number(null) = 0 → invisibile.
           "fill-opacity": 0.35,
           "stroke-width": 1.5,
         },

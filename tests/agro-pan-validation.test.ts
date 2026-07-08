@@ -84,12 +84,12 @@ describe("PAN validation / fertilizzazioni", () => {
     assert.ok(errs.some((e) => e.field === "fertilizer_type" && e.messageKey === "validation.invalidFertilizerType"));
   });
 
-  it("rifiuta un titolo NPK mal formato", () => {
+  it("rifiuta un title NPK mal formato", () => {
     const errs = validateFertilizationLog({ ...validFertilization, npk_ratio: "15/15/15" });
     assert.ok(errs.some((e) => e.field === "npk_ratio" && e.messageKey === "validation.npkFormat"));
   });
 
-  it("accetta un titolo NPK valido", () => {
+  it("accetta un title NPK valido", () => {
     assert.deepEqual(validateFertilizationLog({ ...validFertilization, npk_ratio: "20-10-10" }), []);
   });
 });

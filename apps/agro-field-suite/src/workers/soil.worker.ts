@@ -21,10 +21,10 @@ import type { FeatureCollection, MultiPolygon, Polygon } from "geojson";
 import { rasterToGridCells } from "../modules/vra/raster-cells";
 
 /**
- * Web Worker del modulo Suolo (refactor pipeline indici STAC). Fa il lavoro
- * pesante fuori dal main thread: per ogni scena della series temporale scarica
+ * Web Worker del module Suolo (refactor pipeline indici STAC). Fa il lavoro
+ * pesante fuori dal main thread: per ogni scena della series temporale download
  * SOLO le bande necessarie (finestra COG via HTTP-Range), le riallinea su una
- * griglia comune, calcola gli indici scelti, ritaglia sul poligono e ne fa la
+ * griglia comune, compute gli indici scelti, ritaglia sul poligono e ne fa la
  * media. Per la scena più recente produce anche il buffer RGBA dell'index
  * primario (overlay raster sulla mappa) e i quattro angoli geografici.
  *
@@ -53,8 +53,8 @@ export interface SuoloJob {
   vra?: { step: number };
 }
 
-/** Cella della griglia VRA: poligono con valore medio dell'index primario. */
-export type VraCells = FeatureCollection<Polygon, { valore: number }>;
+/** Cella della griglia VRA: poligono con value medio dell'index primario. */
+export type VraCells = FeatureCollection<Polygon, { value: number }>;
 
 export interface SeriesPoint {
   datetime: string;
@@ -143,7 +143,7 @@ interface BandaLetta {
  * 0..1) con la georeferenziazione UTM. geotiff fa richieste Range solo sulle
  * tile coperte, evitando di scaricare l'intera scena.
  */
-async function leggiBanda(
+async function readBand(
   href: string,
   bboxLonLat: [number, number, number, number],
 ): Promise<BandaLetta> {
@@ -258,7 +258,7 @@ async function elaboraScena(
   const lette = await Promise.all(
     nomiBande.map(async (name) => ({
       name,
-      banda: await leggiBanda(scena.bandHrefs[name], job.bbox),
+      banda: await readBand(scena.bandHrefs[name], job.bbox),
     })),
   );
   const ref = scegliRiferimento(lette.map((l) => l.banda));
@@ -288,7 +288,7 @@ async function elaboraScena(
         height: ref.height,
         coordinates: windowToCoordinates(ref),
       };
-      // Vettorizzazione VRA solo se richiesta (modulo Mappe VRA, non analisi).
+      // Vettorizzazione VRA solo se richiesta (module Mappe VRA, non analisi).
       if (job.vra) {
         vraCells = rasterToGridCells(masked, ref, job.vra.step);
       }

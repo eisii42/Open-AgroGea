@@ -2,15 +2,15 @@
  * K-means 1D **deterministico** per la zonazione VRA.
  *
  * Niente RNG: i centroidi iniziali sono presi a quantili regolari dei valori
- * ordinati, così la stessa mappa indice produce sempre le stesse zone (risultati
- * riproducibili e testabili). I centroidi finali sono ordinati in modo crescente
- * e le assegnazioni rimappate, così la zona 0 è sempre quella a valore più basso.
+ * sorted, così la stessa mappa indice produce sempre le stesse zone (risultati
+ * riproducibili e testabili). I centroidi finali sono sorted in modo crescente
+ * e le assegnazioni rimappate, così la zona 0 è sempre quella a value più basso.
  */
 
 export interface KMeansResult {
-  /** Indice del cluster (0..k-1, per valore crescente) per ogni valore input. */
+  /** Indice del cluster (0..k-1, per value crescente) per ogni value input. */
   assignments: number[];
-  /** Centroidi ordinati in modo crescente. */
+  /** Centroidi sorted in modo crescente. */
   centroids: number[];
 }
 

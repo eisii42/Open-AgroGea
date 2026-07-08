@@ -93,7 +93,7 @@ describe("yieldReductionFao66 (Ky)", () => {
 });
 
 describe("waterRisk01 e vettore di stress", () => {
-  it("vale 0 a campo pieno, 0.5 alla soglia RAW, 1 al punto di appassimento", () => {
+  it("vale 0 a field pieno, 0.5 alla soglia RAW, 1 al punto di appassimento", () => {
     assert.equal(waterRisk01({ depletion: 0, raw: RAW, awc: AWC }), 0);
     assert.equal(waterRisk01({ depletion: RAW, raw: RAW, awc: AWC }), 0.5);
     assert.equal(waterRisk01({ depletion: AWC, raw: RAW, awc: AWC }), 1);

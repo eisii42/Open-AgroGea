@@ -1,5 +1,5 @@
 /**
- * Offline Tile Cache — pre-scarica tile cartografiche per un'area geografica
+ * Offline Tile Cache — pre-download tile cartografiche per un'area geografica
  * definita da un bounding box e le memorizza nella Cache API del browser
  * (condivisa con il Service Worker `sw.js`).
  *
@@ -85,7 +85,7 @@ export function estimateTileCount(bbox: BBox, minZ: number, maxZ: number): numbe
  * @param tileTemplate URL template con `{z}`, `{x}`, `{y}` placeholder.
  * @param bbox         Area geografica (EPSG:4326).
  * @param minZ         Zoom minimo (es. 8 per visione regionale).
- * @param maxZ         Zoom massimo (es. 16 per dettaglio campo).
+ * @param maxZ         Zoom massimo (es. 16 per dettaglio field).
  * @param onProgress   Callback aggiornata ad ogni tile scaricata.
  * @param signal       AbortSignal per annullare il download.
  */

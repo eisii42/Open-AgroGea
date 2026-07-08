@@ -61,7 +61,7 @@ export function SyncPanel({ onClose }: { onClose: () => void }) {
     void ricarica();
   }, [ricarica, sync.pendingCount]);
 
-  const elimina = async (id: string) => {
+  const remove = async (id: string) => {
     setBusy(true);
     try {
       await deleteQueuedMutation(id);
@@ -167,7 +167,7 @@ export function SyncPanel({ onClose }: { onClose: () => void }) {
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => void elimina(m.mutation_id)}
+                    onClick={() => void remove(m.mutation_id)}
                     title={t("syncPanel.list.removeFromQueue")}
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--r-2)] text-[#dc2626] hover:bg-[#dc2626]/10 disabled:opacity-50"
                   >

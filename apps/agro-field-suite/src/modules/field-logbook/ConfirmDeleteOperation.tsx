@@ -12,8 +12,8 @@ import { useTranslation } from "react-i18next";
 /**
  * Banner/modal di sicurezza per la cancellazione di una singola operation del
  * Quaderno di Campagna (FIX 1). A differenza del SafetyDeleteModal (che chiede di
- * digitare il nome esatto di un elemento geografico), qui l'operazione non ha un
- * nome stabile: lo sblocco passa da un TOGGLE di consenso esplicito che abilita
+ * digitare il name esatto di un elemento geografico), qui l'operazione non ha un
+ * name stabile: lo sblocco passa da un TOGGLE di consenso esplicito che abilita
  * il pulsante distruttivo. Espone il messaggio legale obbligatorio prima di
  * eseguire il DELETE su PGlite.
  */
@@ -24,7 +24,7 @@ export function ConfirmDeleteOperation({
   onConfirm,
   onClose,
   /** Titolo del modal (default: operation colturale del QDC). */
-  titolo,
+  title,
   /** Messaggio del banner legale (default: invalidazione storico QDC). */
   messaggio,
   /** Testo del consenso nel toggle. */
@@ -34,14 +34,14 @@ export function ConfirmDeleteOperation({
   label: string;
   onConfirm: () => Promise<void>;
   onClose: () => void;
-  titolo?: string;
+  title?: string;
   messaggio?: string;
   consensoLabel?: string;
 }) {
   const { t } = useTranslation();
   const [consenso, setConsenso] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const titoloEffettivo = titolo ?? t("confirmDeleteOperazione.defaultTitle");
+  const effectiveTitle = title ?? t("confirmDeleteOperazione.defaultTitle");
   const messaggioEffettivo =
     messaggio ?? t("confirmDeleteOperazione.defaultMessage");
   const consensoLabelEffettivo =
@@ -72,7 +72,7 @@ export function ConfirmDeleteOperation({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-[#dc2626]">
             <AlertTriangle size={18} />
-            {titoloEffettivo}
+            {effectiveTitle}
           </DialogTitle>
           <DialogDescription>{label}</DialogDescription>
         </DialogHeader>

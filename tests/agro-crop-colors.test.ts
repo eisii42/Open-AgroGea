@@ -25,7 +25,7 @@ describe("crop-colors", () => {
     assert.notEqual(cropColor("Vite"), cropColor("Olivo"));
   });
 
-  it("è deterministico per colture sconosciute (stesso nome → stesso colore)", () => {
+  it("è deterministico per colture sconosciute (stesso name → stesso colore)", () => {
     const a = cropColor("Quinoa");
     const b = cropColor("Quinoa");
     assert.equal(a, b);

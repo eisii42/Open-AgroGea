@@ -8,7 +8,7 @@ import type {
 import { type Row, upsertSql } from "./write";
 
 /**
- * Strato base del DAL: transazione dato+outbox, applicazione delle righe
+ * Strato base del DAL: transazione dato+outbox, applicazione delle rows
  * remote (pull LWW), gestione della coda `sync_outbox` e watermark del pull
  * incrementale. I domini applicativi vivono nelle sottoclassi (vedi dal.ts).
  */
@@ -37,7 +37,7 @@ export class AgroDalBase {
    * Accoda la mutazione in `sync_outbox` DENTRO la transazione passata: è il
    * mattone condiviso tra la scrittura singola ({@link writeWithOutbox}) e le
    * scritture multi-riga atomiche del Magazzino (carico lot con CUMP,
-   * issue attività), dove più righe di dominio e le loro voci di outbox
+   * issue attività), dove più rows di dominio e le loro voci di outbox
    * devono confermarsi o fallire insieme.
    */
   protected async enqueueOutbox(
@@ -92,7 +92,7 @@ export class AgroDalBase {
   // -- pull dal data plane remoto --------------------------------------------
 
   /**
-   * Applica righe arrivate dal data plane remoto (pull di idratazione): upsert
+   * Applica rows arrivate dal data plane remoto (pull di idratazione): upsert
    * LWW SENZA voce di outbox. Una riga locale più recente non viene sovrascritta.
    */
   async applyRemoteRows(tabella: SyncTable, rows: Row[]): Promise<number> {
@@ -111,7 +111,7 @@ export class AgroDalBase {
   /**
    * Watermark per tabella dell'ultimo pull riuscito (`agro_meta`, chiavi
    * `pull_watermark:<tabella>`): il target remoto li usa per scaricare solo le
-   * righe con `updated_at` successivo, invece dell'intero dataset del tenant.
+   * rows con `updated_at` successivo, invece dell'intero dataset del tenant.
    */
   async getPullWatermarks(): Promise<Record<string, string>> {
     const result = await this.db.query<{ key: string; value: string }>(

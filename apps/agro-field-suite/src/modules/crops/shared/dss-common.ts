@@ -37,7 +37,7 @@ function offsetBiofix(
  * sono default editabili, non costanti regolatorie.
  *
  * L'accumulo parte dal BIOFIX (`context.gddStartDate`), non dal primo
- * day della finestra meteo: così il valore è agronomicamente ancorato (1°
+ * day della finestra meteo: così il value è agronomicamente ancorato (1°
  * gennaio, semina, ripresa vegetativa) e stabile rispetto a quanta storia è
  * stata scaricata. Ritorna SEMPRE un alert — quando sotto soglia, un alert di
  * "accumulo in corso" col progresso, così la UI mostra l'avanzamento e non solo

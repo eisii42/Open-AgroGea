@@ -1,7 +1,7 @@
 /**
  * Palette agronomica per la colorazione choropleth (per classi) delle zone VRA.
  *
- * Pura e testabile. Le zone sono ordinate per indice crescente (zona 0 = vigore
+ * Pura e testabile. Le zone sono sortedList per indice crescente (zona 0 = vigore
  * più basso): la rampa RdYlGn 5 classi mappa il basso vigore sul rosso e l'alto
  * sul verde, lettura immediata della mappa di prescrizione.
  */

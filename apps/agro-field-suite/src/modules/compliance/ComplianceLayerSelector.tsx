@@ -50,7 +50,7 @@ export function ComplianceLayerSelector() {
     }
   }
 
-  function selezionaLayer(id: string) {
+  function selectLayer(id: string) {
     setLayerId(id);
     const l = layerEsterni.find((x) => x.id === id);
     if (!l) return;
@@ -98,7 +98,7 @@ export function ComplianceLayerSelector() {
             <select
               id="gc-layer"
               value={layerId}
-              onChange={(e) => selezionaLayer(e.target.value)}
+              onChange={(e) => selectLayer(e.target.value)}
               className="w-full rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-2 text-sm"
             >
               <option value="">— scegli un layer —</option>

@@ -33,11 +33,11 @@ const TIPI_ASSET_PUNTO = ["pozzo", "trappola", "sensore-iot", "ingresso", "fabbr
 
 export function DataEntrySheet({ pending }: { pending: PendingGeometry }) {
   const savePlot = useAgroStore((s) => s.saveDrawnPlot);
-  const salvaAsset = useAgroStore((s) => s.saveDrawnAsset);
+  const saveAsset = useAgroStore((s) => s.saveDrawnAsset);
   const clearPending = useAgroStore((s) => s.clearPendingGeometry);
 
   // Risolve la scheda dati: rimuove lo sketch provvisorio dall'engine (così
-  // nulla resta sulla mappa) e chiude il pannello. Usato sia su salva sia su
+  // nulla resta sulla mappa) e chiude il pannello. Usato sia su save sia su
   // annulla.
   const resolve = () => {
     void clearGeoEditorSketches();
@@ -69,7 +69,7 @@ export function DataEntrySheet({ pending }: { pending: PendingGeometry }) {
       pending={pending}
       onCancel={resolve}
       onSave={async (attrs) => {
-        const record = await salvaAsset(pending.feature.geometry, attrs);
+        const record = await saveAsset(pending.feature.geometry, attrs);
         if (!record) throw new Error(SAVE_NO_TENANT_MSG);
         resolve();
       }}
@@ -110,7 +110,7 @@ function AppezzamentoForm({
 }) {
   const { t } = useTranslation();
   const readOnly = useReadOnly(useAgroStore((s) => s.activeCompanyId));
-  const [nome, setNome] = useState("");
+  const [name, setNome] = useState("");
   const [irrigazione, setIrrigazione] = useState("");
   const [saving, setSaving] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
@@ -120,7 +120,7 @@ function AppezzamentoForm({
     setErrore(null);
     try {
       await onSave({
-        name: nome.trim() || undefined,
+        name: name.trim() || undefined,
         irrigation_type: irrigazione.trim() || null,
       });
     } catch (e) {
@@ -167,7 +167,7 @@ function AppezzamentoForm({
           <Label htmlFor="ap-nome">{t("dataEntrySheet.plotName")}</Label>
           <Input
             id="ap-nome"
-            value={nome}
+            value={name}
             onChange={(e) => setNome(e.target.value)}
             placeholder={t("dataEntrySheet.plotNamePlaceholder")}
           />
@@ -207,7 +207,7 @@ function AssetForm({
   const readOnly = useReadOnly(useAgroStore((s) => s.activeCompanyId));
   const isLinea = pending.kind === "line";
   const tipi = isLinea ? TIPI_ASSET_LINEA : TIPI_ASSET_PUNTO;
-  const [nome, setNome] = useState("");
+  const [name, setNome] = useState("");
   const [tipo, setTipo] = useState(tipi[0]);
   const [categoria, setCategoria] = useState<"fixed" | "mobile">("fixed");
   const [saving, setSaving] = useState(false);
@@ -227,7 +227,7 @@ function AssetForm({
     setErrore(null);
     try {
       await onSave({
-        name: nome.trim() || null,
+        name: name.trim() || null,
         asset_type: tipo,
         category: categoria,
         length_m: lunghezza,
@@ -292,7 +292,7 @@ function AssetForm({
           <Label htmlFor="as-nome">{t("dataEntrySheet.assetName")}</Label>
           <Input
             id="as-nome"
-            value={nome}
+            value={name}
             onChange={(e) => setNome(e.target.value)}
             placeholder={
               isLinea

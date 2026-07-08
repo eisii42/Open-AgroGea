@@ -100,7 +100,7 @@ interface AdapterAliases {
   sep?: string;
 }
 
-function risolviSuperficie(
+function resolveArea(
   idx: Map<string, unknown>,
   aliases: AdapterAliases,
   areaGeodeticaHa?: number | null,
@@ -142,7 +142,7 @@ function makeAdapter(
         agricultural_parcel_external_id: asCodice(pick(idx, aliases.agricultural)),
         crop_external_code: asCodice(pick(idx, aliases.crop)),
         variety_external_code: asCodice(pick(idx, aliases.variety)),
-        superficie_ha: risolviSuperficie(idx, aliases, areaGeodeticaHa),
+        superficie_ha: resolveArea(idx, aliases, areaGeodeticaHa),
         geometria,
       };
     },
@@ -219,9 +219,9 @@ function isPoligono(g: Geometry | null): g is Polygon | MultiPolygon {
   return g != null && (g.type === "Polygon" || g.type === "MultiPolygon");
 }
 
-/** Estensione (minuscola, senza punto) del nome file. */
-function estensione(nome: string): string {
-  const m = /\.([^.\\/]+)$/.exec(nome.trim().toLowerCase());
+/** Estensione (minuscola, senza punto) del name file. */
+function estensione(name: string): string {
+  const m = /\.([^.\\/]+)$/.exec(name.trim().toLowerCase());
   return m ? m[1] : "";
 }
 

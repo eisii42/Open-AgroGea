@@ -14,7 +14,7 @@ import { isTauriRuntime } from "@agrogea/core";
 /** Versione corrente del software (allineata a tauri.conf.json / package.json). */
 export const APP_VERSION = "0.1.0";
 
-/** Destinatario del modulo di feedback (vedi CLAUDE.md). */
+/** Destinatario del module di feedback (vedi CLAUDE.md). */
 export const FEEDBACK_EMAIL = "gea.watcher@gmail.com";
 
 /** Metadati tecnici allegati al feedback per facilitare il debug. */

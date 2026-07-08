@@ -4,7 +4,7 @@
  *
  * Modulo PURO: nessuna dipendenza da DB, store o rete. Trasforma uno
  * snapshot in-memory dei dati aziendali in un documento GeoJSON valido e
- * viceversa. L'I/O su PGlite (lettura righe, upsert transazionale dato+outbox)
+ * viceversa. L'I/O su PGlite (lettura rows, upsert transazionale dato+outbox)
  * resta responsabilità del DAL; il salvataggio/lettura del file fisico resta
  * dell'orchestratore app-side.
  *
@@ -16,7 +16,7 @@
  *                      Campagna (treatments, soil, harvests) annidati;
  *       · "asset"    → infrastructure (`infrastructure_assets`: pozzi, trappole,
  *                      sensori, fabbricati…) — i POI puntuali e le geometrie CAD;
- *       · "scouting" → rilievo GPS di campo (`scouting_observations`).
+ *       · "scouting" → rilievo GPS di field (`scouting_observations`).
  *   La geometria di ogni Feature è già GeoJSON in PGlite (niente PostGIS): viene
  *   letta e riscritta così com'è.
  */
@@ -55,7 +55,7 @@ export interface AgronomicLogs {
 /**
  * Un plot con i suoi log e le campagne agrarie (unità di una Feature
  * "plot"). `campaigns` (`plots_campaign`) lega l'appezzamento alle COLTURE per
- * annata: senza queste righe l'associazione plot↔crop andrebbe persa.
+ * annata: senza queste rows l'associazione plot↔crop andrebbe persa.
  */
 export interface PlotBundle extends AgronomicLogs {
   plot: Plot;

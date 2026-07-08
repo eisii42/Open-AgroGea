@@ -94,7 +94,7 @@ export function assertWritable(get: StoreGet): void {
 
 /**
  * Persiste sul DAL una geometria per un elemento (plot/infrastructure/
- * POI), aggiorna lo store e notifica il sync; ritorna la geometria PRECEDENTE
+ * POI), update lo store e notifica il sync; ritorna la geometria PRECEDENTE
  * (per l'undo) o null se l'elemento non esiste. La geometria viene normalizzata
  * (strip Z, anelli) dentro i metodi `upsert*` del DAL.
  */

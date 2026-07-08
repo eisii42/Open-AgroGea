@@ -19,7 +19,7 @@ import type {
 } from "../workers/soil.worker";
 
 /**
- * Pipeline indici del modulo Suolo (refactor STAC). Orchestrazione main-thread
+ * Pipeline indici del module Suolo (refactor STAC). Orchestrazione main-thread
  * della ricerca STAC (multi-index, multi-plot, filtro cloud cover,
  * strategie temporali) e del worker di calcolo. Per ogni plot:
  *
@@ -111,7 +111,7 @@ function rgbaToDataUrl(overlay: OverlayRaster): string {
 }
 
 /** Rimuove tutti gli overlay d'index dallo store (prima di un nuovo calcolo). */
-function rimuoviOverlay(): void {
+function removeOverlay(): void {
   const store = useAppStore.getState();
   for (const layer of store.layers) {
     if (layer.id.startsWith(OVERLAY_PREFIX)) store.removeLayer(layer.id);
@@ -166,7 +166,7 @@ export function useSoilPipeline() {
     };
   }, []);
 
-  const eseguiJob = useCallback(
+  const runJob = useCallback(
     (job: SuoloJob, onProgress: (p: SuoloProgress) => void) =>
       new Promise<{ series: SeriesPoint[]; overlay: OverlayRaster | null }>(
         (resolve, reject) => {
@@ -192,10 +192,10 @@ export function useSoilPipeline() {
     [],
   );
 
-  const calcola = useCallback(
+  const compute = useCallback(
     async (plots: Plot[], opzioni: SoilOptions) => {
       if (plots.length === 0 || opzioni.indici.length === 0) return;
-      rimuoviOverlay();
+      removeOverlay();
       const risultati: PlotResult[] = [];
 
       try {
@@ -216,16 +216,16 @@ export function useSoilPipeline() {
           strategia.tipo === "intervallo" ? strategia.giorni + 90 : 120;
 
         for (let i = 0; i < plots.length; i++) {
-          const apz = plots[i];
+          const plot = plots[i];
           setStato({
             phase: "lavorazione",
-            label: `Ricerca scene · ${apz.user_plot_name}`,
+            label: `Ricerca scene · ${plot.user_plot_name}`,
             appezzamentoCorrente: i + 1,
             appezzamentiTotali: plots.length,
           });
 
-          const bbox = boundingBox(apz.geometry);
-          let serieScene = await searchSceneSeries(bbox, {
+          const bbox = boundingBox(plot.geometry);
+          let sceneSeries = await searchSceneSeries(bbox, {
             indici: opzioni.indici,
             cloudCoverMax: opzioni.cloudCoverMax,
             ...(datetimeRange
@@ -234,12 +234,12 @@ export function useSoilPipeline() {
           });
           // Intervallo "ultimi N gg": ancora la finestra all'ultima scena utile.
           if (strategia.tipo === "intervallo") {
-            serieScene = filterWindowFromLatest(serieScene, strategia.giorni);
+            sceneSeries = filterWindowFromLatest(sceneSeries, strategia.giorni);
           }
-          if (serieScene.length === 0) {
+          if (sceneSeries.length === 0) {
             risultati.push({
-              plotId: apz.id,
-              name: apz.user_plot_name,
+              plotId: plot.id,
+              name: plot.user_plot_name,
               series: [],
             });
             continue;
@@ -248,38 +248,38 @@ export function useSoilPipeline() {
           // "ultima": solo la scena più recente; intervallo/personalizzato:
           // tutta la series (per il grafico di trend).
           const scene =
-            strategia.tipo === "ultima" ? [serieScene[0]] : serieScene;
+            strategia.tipo === "ultima" ? [sceneSeries[0]] : sceneSeries;
 
           const job: SuoloJob = {
             tipo: "suolo",
             scene,
             indici: opzioni.indici,
             indicePrimario: opzioni.indicePrimario,
-            geometria: apz.geometry,
+            geometria: plot.geometry,
             bbox,
           };
-          const { series, overlay } = await eseguiJob(job, (p) => {
+          const { series, overlay } = await runJob(job, (p) => {
             if (p.tipo !== "progress") return;
             setStato({
               phase: "lavorazione",
-              label: `Calcolo indici · ${apz.user_plot_name} (scena ${p.scenaCorrente}/${p.sceneTotali})`,
+              label: `Calcolo indici · ${plot.user_plot_name} (scena ${p.scenaCorrente}/${p.sceneTotali})`,
               appezzamentoCorrente: i + 1,
               appezzamentiTotali: plots.length,
             });
           });
 
-          if (overlay) iniettaOverlay(apz.id, overlay);
+          if (overlay) iniettaOverlay(plot.id, overlay);
 
           // Cache offline della media NDVI più recente (series crescente: ultimo
           // = più recente), così la scheda plot la mostra offline.
           const ndviRecente = series.at(-1)?.medie.ndvi;
           if (ndviRecente != null && !Number.isNaN(ndviRecente)) {
-            await saveMeanNdvi(apz.id, Math.round(ndviRecente * 1000) / 1000);
+            await saveMeanNdvi(plot.id, Math.round(ndviRecente * 1000) / 1000);
           }
 
           risultati.push({
-            plotId: apz.id,
-            name: apz.user_plot_name,
+            plotId: plot.id,
+            name: plot.user_plot_name,
             series,
           });
         }
@@ -297,13 +297,13 @@ export function useSoilPipeline() {
         });
       }
     },
-    [eseguiJob, saveMeanNdvi],
+    [runJob, saveMeanNdvi],
   );
 
   const reset = useCallback(() => {
-    rimuoviOverlay();
+    removeOverlay();
     setStato({ phase: "idle" });
   }, []);
 
-  return { stato, calcola, reset };
+  return { stato, compute, reset };
 }

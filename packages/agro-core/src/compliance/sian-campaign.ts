@@ -57,25 +57,25 @@ export function declarativeSystem(
  */
 export function missingDeclarative(
   countryCode: string | null | undefined,
-  campo: Pick<PlotCampaign, MissingDeclarativeField>,
+  field: Pick<PlotCampaign, MissingDeclarativeField>,
 ): MissingDeclarativeField[] {
   if (!declarativeSystem(countryCode)) return [];
   return CAMPI_DICHIARATIVI.filter((key) => {
-    const v = campo[key];
+    const v = field[key];
     return v == null || v.trim() === "";
   });
 }
 
 /** Variante IT-only, senza country (test e chiamate esplicitamente SIAN). */
 export function missingSian(
-  campo: Pick<PlotCampaign, MissingDeclarativeField>,
+  field: Pick<PlotCampaign, MissingDeclarativeField>,
 ): MissingDeclarativeField[] {
-  return missingDeclarative("IT", campo);
+  return missingDeclarative("IT", field);
 }
 
 /** true se la campagna ha tutti i dati dichiarativi richiesti dal paese. */
 export function sianComplete(
-  campo: Pick<PlotCampaign, MissingDeclarativeField>,
+  field: Pick<PlotCampaign, MissingDeclarativeField>,
 ): boolean {
-  return missingSian(campo).length === 0;
+  return missingSian(field).length === 0;
 }

@@ -39,7 +39,7 @@ import i18n from "../../i18n";
  * nella stessa tabella `treatment_logs` (colonne nullable): nessuna modifica di
  * schema. Il soilSample di SUOLO è un caso speciale: scrive sulla tabella
  * dedicata `soil_samples` (via `onSubmitSoil`), con posizione = centroid del
- * campo.
+ * field.
  */
 
 const UNITA: DoseUnit[] = ["kg/ha", "l/ha", "kg/hl", "l/hl", "g/hl", "m3"];
@@ -194,17 +194,17 @@ interface ScaricoRow {
 }
 
 /**
- * Proposta di assegnazione crop al campo generata da una SEMINA con issue
+ * Proposta di assegnazione crop al field generata da una SEMINA con issue
  * di una semente (automazione v17): il chiamante (LogbookPanel) crea
  * `crops` + `plots_campaign` dopo la registrazione dell'operazione.
  */
 export interface CropAssignment {
   plotId: string;
-  /** Nome comune della specie (dall'anagrafica semente o dal nome product). */
+  /** Nome comune della specie (dall'anagrafica semente o dal name product). */
   species: string;
   scientificName: string | null;
   varietyName: string | null;
-  /** Categoria DSS del campo ("seminativo" | "orticoltura"). */
+  /** Categoria DSS del field ("seminativo" | "orticoltura"). */
   cropCategory: string;
   /** Densità di semina derivata dalla dose (kg/ha), se disponibile. */
   densitaSemina: number | null;
@@ -374,7 +374,7 @@ export function OperationForm({
   const [sostanzaOrganica, setSostanzaOrganica] = useState("");
   const [tessitura, setTessitura] = useState("");
   const [saving, setSaving] = useState(false);
-  // Scarico da warehouse (0.2.0): righe product → lot → quantità.
+  // Scarico da warehouse (0.2.0): rows product → lot → quantità.
   const [scarichiRows, setScarichiRows] = useState<ScaricoRow[]>([]);
   // Errore del salvataggio (es. stock insufficiente): il form resta aperto.
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -392,7 +392,7 @@ export function OperationForm({
   const soilMode = isSampling && matrice === "suolo";
 
   // Volume irriguo (litri) canonico salvato su `water_volume_l`, dall'apporto in
-  // mm/hl e dalla superficie del campo (i mm sono per ettaro).
+  // mm/hl e dalla superficie del field (i mm sono per ettaro).
   const irrLitres = useMemo(
     () =>
       f.irrigationAmount
@@ -461,10 +461,10 @@ export function OperationForm({
     totaleManualeNum,
   ]);
   const mancano = panErrors.length > 0;
-  // Per il campione di soil serve un campo georeferenziato (centroid = posizione).
+  // Per il campione di soil serve un field georeferenziato (centroid = posizione).
   const soilWithoutField = soilMode && !plot;
 
-  // -- Magazzino (0.2.0): categoria pertinente e validazione righe issue ----
+  // -- Magazzino (0.2.0): categoria pertinente e validazione rows issue ----
   const categoriaMagazzino = categoryForOperation(operationType);
   const prodottiCategoria = useMemo(
     () =>
@@ -549,7 +549,7 @@ export function OperationForm({
     operationType === "sowing"
       ? prodottiCategoria.find((p) => p.id === scarichiRows[0]?.productId) ?? null
       : null;
-  // Il campo scelto non ha una campagna APERTA per l'annata: la semina può
+  // Il field scelto non ha una campagna APERTA per l'annata: la semina può
   // assegnargli la crop (crops + plots_campaign) automaticamente.
   const plotWithoutCampaign = Boolean(
     plotId &&
@@ -602,7 +602,7 @@ export function OperationForm({
 
   const num = (s: string) => (s.trim() === "" ? null : Number(s));
 
-  // -- righe issue warehouse ------------------------------------------------
+  // -- rows issue warehouse ------------------------------------------------
 
   function updateIssue(index: number, patch: Partial<ScaricoRow>) {
     setScarichiRows((rows) =>
@@ -635,7 +635,7 @@ export function OperationForm({
         return { ...row, ...patch };
       }),
     );
-    // Prima riga: auto-compila il nome product (fallback testuale del registro)
+    // Prima riga: auto-compila il name product (fallback testuale del registro)
     // e i default dell'anagrafica (registrazione, sostanza attiva, carenza e
     // rientro, v17) se i campi sono ancora vuoti.
     if (index === 0 && patch.productId) {
@@ -734,7 +734,7 @@ export function OperationForm({
         total_quantity: totaleAutomatico ?? (f.totalManual ? totaleManualeNum : null),
         // water_volume_l = volume in litri: la botte (fitosanitari) o l'apporto
         // irriguo convertito da mm/hl (irrigazione). È la forma che il bilancio
-        // idrico riconverte in lama d'acqua (mm) sulla superficie del campo.
+        // idrico riconverte in lama d'acqua (mm) sulla superficie del field.
         water_volume_l: f.waterVolume
           ? acquaVolume
             ? Number.parseInt(acquaVolume, 10)
@@ -808,7 +808,7 @@ export function OperationForm({
               </option>
               {campaignFields?.map((c) => (
                 <option key={c.campoCampagnaId} value={c.campoCampagnaId}>
-                  {c.nome}
+                  {c.name}
                   {c.codiceColturaSian ? ` · ${c.codiceColturaSian}` : ""}
                 </option>
               ))}
@@ -1136,7 +1136,7 @@ export function OperationForm({
         </section>
       )}
 
-      {/* Automazione v17: la semina di una semente su un campo senza crop
+      {/* Automazione v17: la semina di una semente su un field senza crop
           propone di creare scheda crop + campagna agraria in automatico. */}
       {proposeAssignment && (
         <label className="flex items-start gap-2 rounded-[var(--r-2)] border border-[var(--accent-bd)] bg-[var(--accent-l)] px-3 py-2">
