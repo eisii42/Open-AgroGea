@@ -86,6 +86,8 @@ npm run lint
 - **Analisi spaziale in-browser** — **DuckDB Spatial (WASM)** legge i dati transazionali da PGlite per overlay, spatial join e zonazione, senza mai lasciare il dispositivo.
 - **Sincronizzazione** — coda `sync_outbox` locale: di default resta no-op (i dati non lasciano mai il dispositivo); opzionalmente si drena verso un PostgreSQL on-premise via comando Rust nativo.
 
+Mappa completa dei package/feature, flusso dati e come aggiungere una feature o una coltura DSS: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Convenzioni di codice (inglese, naming): [docs/glossary.md](docs/glossary.md) · [docs/naming-conventions.md](docs/naming-conventions.md).
+
 ## Aggiornamenti automatici (desktop)
 
 L'app desktop si aggiorna da sola via **Tauri Updater** + GitHub Releases: controllo discreto all'avvio, banner con changelog e pulsante "Aggiorna ora", download con barra di avanzamento, nessun aggiornamento silenzioso. Dettagli: [docs/technical/desktop-auto-update.md](docs/technical/desktop-auto-update.md).

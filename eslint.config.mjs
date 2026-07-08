@@ -53,6 +53,38 @@ export default [
     rules: {
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
+      // Enforce the CASING conventions of docs/naming-conventions.md. Note this
+      // enforces *case*, not *language* — English is enforced by review against
+      // docs/glossary.md. Property names are deliberately left unconstrained:
+      // the code mirrors snake_case DB columns (business_name, area_ha), quoted
+      // i18n keys and `__`-prefixed GeoJSON props, which must pass through as-is.
+      "@typescript-eslint/naming-convention": [
+        "warn",
+        {
+          selector: "variableLike",
+          format: ["camelCase", "PascalCase", "UPPER_CASE"],
+          leadingUnderscore: "allow",
+        },
+        {
+          // Destructured names mirror their source property (often a snake_case
+          // DB column: `const { tenant_id, area_ha } = row`) — pass them through.
+          selector: ["variable", "parameter"],
+          modifiers: ["destructured"],
+          format: null,
+        },
+        {
+          selector: "typeLike",
+          format: ["PascalCase"],
+        },
+        {
+          selector: "property",
+          format: null,
+        },
+        {
+          selector: "import",
+          format: null,
+        },
+      ],
     },
   },
 ];
