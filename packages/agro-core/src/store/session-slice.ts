@@ -45,7 +45,7 @@ export function createSessionSlice(
       const dal = await AgroDal.open(claims.tenantId);
       const syncRouter = new SyncRouter({
         dal,
-        configStorage: claims.configStorage,
+        storageConfig: claims.storageConfig,
         onSnapshot: (sync) => {
           const prev = get().sync;
           set({ sync });

@@ -30,9 +30,9 @@ export const LOCAL_TENANT_ID = "00000000-0000-4000-8000-000000000001";
 export function localTenantClaims(): TenantClaims {
   return {
     tenantId: LOCAL_TENANT_ID,
-    licenzaAttiva: true,
-    configStorage: { tipo: "local" },
-    moduli: [],
+    licenseActive: true,
+    storageConfig: { kind: "local" },
+    modules: [],
     selfService: true,
   };
 }

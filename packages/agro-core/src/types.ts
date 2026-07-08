@@ -20,17 +20,17 @@ export interface AuthSession {
 export type StorageConfig =
   | {
       /** Data plane gestito dall'edizione (backend remoto dell'adapter). */
-      tipo: "cloud";
+      kind: "cloud";
     }
   | {
-      tipo: "on_premise";
+      kind: "on_premise";
       /**
        * Identificatore del profile di connessione PostgreSQL privato del
        * cliente. La stringa di connessione vera non transita mai nel JS: vive
        * nello store cifrato di Tauri ed è risolta dal comando Rust
        * `agro_push_mutations` a partire da questo id.
        */
-      profilo_connessione: string;
+      connection_profile: string;
     }
   | {
       /**
@@ -39,16 +39,16 @@ export type StorageConfig =
        * intatto), ma nessuna push raggiunge un data plane remoto — il router usa
        * il {@link LocalOnlySyncTarget}.
        */
-      tipo: "local";
+      kind: "local";
     };
 
 /** Claims di licenza del workspace attivo. */
 export interface TenantClaims {
   tenantId: string;
-  licenzaAttiva: boolean;
-  configStorage: StorageConfig;
+  licenseActive: boolean;
+  storageConfig: StorageConfig;
   /** Moduli colturali sbloccati dalla licenza (es. "viticoltura"). */
-  moduli: string[];
+  modules: string[];
   /**
    * true quando il `tenantId` deriva dall'uid dell'utente (onboarding
    * self-service) anziché da una claim `tenant_id` provisionata nel JWT.
@@ -739,7 +739,7 @@ export interface SyncSnapshot {
   lastPulledAt: string | null;
   lastError: string | null;
   /** Dove sta riversando i dati: 'cloud' | 'on_premise' | 'local'. */
-  target: StorageConfig["tipo"] | null;
+  target: StorageConfig["kind"] | null;
 }
 
 /** Esito di un drain dell'outbox verso il data plane. */

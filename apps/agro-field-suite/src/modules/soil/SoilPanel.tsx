@@ -443,7 +443,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
         {/* Stato / progress */}
         {inCorso && (
           <p className="text-sm text-[var(--accent)]">
-            {stato.etichetta}
+            {stato.label}
             {" · "}
             {t("suoloPanel.progress.plotCounter", {
               current: stato.appezzamentoCorrente,

@@ -39,7 +39,7 @@ export interface OpzioniGeneraVra {
 
 export type VraStato =
   | { fase: "idle" }
-  | { fase: "lavorazione"; etichetta: string }
+  | { fase: "lavorazione"; label: string }
   | { fase: "completato"; risultato: RisultatoZoneVra }
   | { fase: "errore"; message: string };
 
@@ -130,7 +130,7 @@ export function useVraGenerator() {
   const genera = useCallback(
     async (appezzamento: Plot, opzioni: OpzioniGeneraVra) => {
       try {
-        setStato({ fase: "lavorazione", etichetta: "Ricerca scena satellitare…" });
+        setStato({ fase: "lavorazione", label: "Ricerca scena satellitare…" });
         const bbox = boundingBox(appezzamento.geometry);
         const scene = await searchSceneSeries(bbox, {
           indici: [opzioni.indice],
@@ -145,7 +145,7 @@ export function useVraGenerator() {
           return;
         }
 
-        setStato({ fase: "lavorazione", etichetta: "Calcolo indice e celle…" });
+        setStato({ fase: "lavorazione", label: "Calcolo indice e celle…" });
         const cells = await eseguiJob({
           tipo: "suolo",
           scene: [scene[0]],

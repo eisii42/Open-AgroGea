@@ -57,7 +57,7 @@ export type SuoloStato =
   | { phase: "idle" }
   | {
       phase: "lavorazione";
-      etichetta: string;
+      label: string;
       appezzamentoCorrente: number;
       appezzamentiTotali: number;
     }
@@ -219,7 +219,7 @@ export function useSoilPipeline() {
           const apz = plots[i];
           setStato({
             phase: "lavorazione",
-            etichetta: `Ricerca scene · ${apz.user_plot_name}`,
+            label: `Ricerca scene · ${apz.user_plot_name}`,
             appezzamentoCorrente: i + 1,
             appezzamentiTotali: plots.length,
           });
@@ -262,7 +262,7 @@ export function useSoilPipeline() {
             if (p.tipo !== "progress") return;
             setStato({
               phase: "lavorazione",
-              etichetta: `Calcolo indici · ${apz.user_plot_name} (scena ${p.scenaCorrente}/${p.sceneTotali})`,
+              label: `Calcolo indici · ${apz.user_plot_name} (scena ${p.scenaCorrente}/${p.sceneTotali})`,
               appezzamentoCorrente: i + 1,
               appezzamentiTotali: plots.length,
             });

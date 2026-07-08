@@ -231,7 +231,7 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
 
         {/* Stato */}
         {inCorso && (
-          <p className="text-sm text-[var(--accent)]">{stato.etichetta}</p>
+          <p className="text-sm text-[var(--accent)]">{stato.label}</p>
         )}
         {stato.fase === "errore" && (
           <div className="rounded-[var(--r-2)] bg-[var(--danger-l)] p-2 text-sm text-[var(--danger)]">

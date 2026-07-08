@@ -15,7 +15,7 @@ import type {
  * router non sa (né deve sapere) dove finiscono i dati.
  */
 export interface SyncTarget {
-  readonly tipo: StorageConfig["tipo"];
+  readonly kind: StorageConfig["kind"];
   push(batch: OutboxMutation[]): Promise<SyncPushResult>;
   /**
    * Idratazione inversa: scarica le righe del tenant dal data plane remoto
@@ -165,10 +165,10 @@ export const PULL_TABLES: { tabella: SyncTable; columns: string }[] = [
  * usando l'id del profile presente nelle claims di licenza.
  */
 export class OnPremiseSyncTarget implements SyncTarget {
-  readonly tipo = "on_premise" as const;
+  readonly kind = "on_premise" as const;
 
   constructor(
-    private readonly profiloConnessione: string,
+    private readonly connectionProfile: string,
     private readonly tenantId: string,
   ) {}
 
@@ -179,7 +179,7 @@ export class OnPremiseSyncTarget implements SyncTarget {
       );
     }
     return tauriInvoke<SyncPushResult>("agro_push_mutations", {
-      profile: this.profiloConnessione,
+      profile: this.connectionProfile,
       tenantId: this.tenantId,
       mutations: JSON.stringify(toWirePayload(batch)),
     });
@@ -206,7 +206,7 @@ export class OnPremiseSyncTarget implements SyncTarget {
     const data = await tauriInvoke<Record<string, Record<string, unknown>[]>>(
       "agro_pull_mutations",
       {
-        profile: this.profiloConnessione,
+        profile: this.connectionProfile,
         tenantId: this.tenantId,
         watermarks: JSON.stringify(watermarks),
       },
@@ -232,7 +232,7 @@ export class OnPremiseSyncTarget implements SyncTarget {
  * direttamente sul locale senza alcuna dipendenza remota.
  */
 export class LocalOnlySyncTarget implements SyncTarget {
-  readonly tipo = "local" as const;
+  readonly kind = "local" as const;
 
   async push(batch: OutboxMutation[]): Promise<SyncPushResult> {
     return { applied: batch.length, skipped_lww: 0, duplicates: 0 };
@@ -243,9 +243,9 @@ export function createSyncTarget(
   config: StorageConfig,
   tenantId: string,
 ): SyncTarget {
-  switch (config.tipo) {
+  switch (config.kind) {
     case "on_premise":
-      return new OnPremiseSyncTarget(config.profilo_connessione, tenantId);
+      return new OnPremiseSyncTarget(config.connection_profile, tenantId);
     case "local":
       return new LocalOnlySyncTarget();
     default:

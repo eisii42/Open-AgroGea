@@ -20,7 +20,7 @@ import { useTranslation } from "react-i18next";
 export function ConfirmDeleteOperation({
   open,
   /** Etichetta dell'operazione da eliminare, per ricordare cosa si cancella. */
-  etichetta,
+  label,
   onConfirm,
   onClose,
   /** Titolo del modal (default: operazione colturale del QDC). */
@@ -31,7 +31,7 @@ export function ConfirmDeleteOperation({
   consensoLabel,
 }: {
   open: boolean;
-  etichetta: string;
+  label: string;
   onConfirm: () => Promise<void>;
   onClose: () => void;
   titolo?: string;
@@ -74,7 +74,7 @@ export function ConfirmDeleteOperation({
             <AlertTriangle size={18} />
             {titoloEffettivo}
           </DialogTitle>
-          <DialogDescription>{etichetta}</DialogDescription>
+          <DialogDescription>{label}</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-3">

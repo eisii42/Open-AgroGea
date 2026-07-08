@@ -239,10 +239,10 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
 
   async function confermaEliminazione() {
     if (!daEliminare) return;
-    const etichetta = operationLabel(daEliminare);
+    const label = operationLabel(daEliminare);
     await deleteTreatment(daEliminare.id);
     setDaEliminare(null);
-    setNotifica(t("quadernoPanel.notification.removed", { label: etichetta }));
+    setNotifica(t("quadernoPanel.notification.removed", { label: label }));
   }
 
   const filtrati = useMemo(() => {
@@ -517,7 +517,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
 
       <ConfirmDeleteOperation
         open={daEliminare != null}
-        etichetta={daEliminare ? operationLabel(daEliminare) : ""}
+        label={daEliminare ? operationLabel(daEliminare) : ""}
         onConfirm={confermaEliminazione}
         onClose={() => setDaEliminare(null)}
       />

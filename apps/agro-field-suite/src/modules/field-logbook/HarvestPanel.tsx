@@ -179,10 +179,10 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
 
   async function confermaEliminazione() {
     if (!daEliminare) return;
-    const etichetta = harvestLabel(daEliminare);
+    const label = harvestLabel(daEliminare);
     await deleteHarvest(daEliminare.id);
     setDaEliminare(null);
-    setNotifica(t("raccoltaPanel.removedNotice", { label: etichetta }));
+    setNotifica(t("raccoltaPanel.removedNotice", { label: label }));
   }
 
   async function handleSubmit() {
@@ -477,7 +477,7 @@ export function HarvestPanel({ onClose }: { onClose: () => void }) {
 
       <ConfirmDeleteOperation
         open={daEliminare != null}
-        etichetta={daEliminare ? harvestLabel(daEliminare) : ""}
+        label={daEliminare ? harvestLabel(daEliminare) : ""}
         titolo={t("raccoltaPanel.deleteHarvest")}
         messaggio={t("raccoltaPanel.deleteConfirmMessage")}
         consensoLabel={t("raccoltaPanel.deleteConfirmConsent")}

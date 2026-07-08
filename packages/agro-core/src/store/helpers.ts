@@ -29,14 +29,14 @@ export const MAX_GEOMETRY_HISTORY = 50;
 /**
  * Profilo sintetico dalle claims correnti, usato come ripiego quando il profile
  * non è leggibile online (sblocco offline, o control plane non raggiungibile):
- * lo stato di licenza ricade su `licenzaAttiva` delle claims.
+ * lo stato di licenza ricade su `licenseActive` delle claims.
  */
 export function profiloDaClaims(claims: TenantClaims): UserProfile {
   return {
     id: claims.tenantId,
     email: "",
     license_plan: "standard",
-    license_status: claims.licenzaAttiva ? "active" : "inactive",
+    license_status: claims.licenseActive ? "active" : "inactive",
     updated_at: new Date().toISOString(),
   };
 }
