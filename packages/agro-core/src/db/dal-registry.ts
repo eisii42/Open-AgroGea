@@ -299,12 +299,12 @@ export class AgroDalRegistry extends AgroDalBase {
   }
 
   async listCampiCampagna(
-    options: { anno?: number; plotId?: string } = {},
+    options: { year?: number; plotId?: string } = {},
   ): Promise<PlotCampaign[]> {
     const conditions = ["tenant_id = $1", "deleted_at is null"];
     const params: unknown[] = [this.tenantId];
-    if (options.anno != null) {
-      params.push(options.anno);
+    if (options.year != null) {
+      params.push(options.year);
       conditions.push(`campaign_year = $${params.length}`);
     }
     if (options.plotId) {
@@ -326,12 +326,12 @@ export class AgroDalRegistry extends AgroDalBase {
 
   /** Anni di campagna distinti presenti nel database locale, dal più recente. */
   async listAnniCampagna(): Promise<number[]> {
-    const result = await this.db.query<{ anno: number }>(
-      `select distinct campaign_year as anno from plots_campaign
+    const result = await this.db.query<{ year: number }>(
+      `select distinct campaign_year as year from plots_campaign
        where tenant_id = $1 and deleted_at is null
-       order by anno desc`,
+       order by year desc`,
       [this.tenantId],
     );
-    return result.rows.map((r) => r.anno);
+    return result.rows.map((r) => r.year);
   }
 }

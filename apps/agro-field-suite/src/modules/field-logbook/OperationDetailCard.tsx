@@ -11,11 +11,11 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 
-function opLabel(t: TFunction, tipo: OperationType): string {
-  return t(`operazioneDettaglioCard.opLabel.${tipo}`);
+function opLabel(t: TFunction, type: OperationType): string {
+  return t(`operationDetailCard.opLabel.${type}`);
 }
 
-function dataEstesa(value: string): string {
+function longDate(value: string): string {
   const d = new Date(value);
   return Number.isNaN(d.getTime())
     ? "—"
@@ -55,34 +55,34 @@ export function OperationDetailCard({
 
   const cropPlot: FieldSpec[] = [
     {
-      label: t("operazioneDettaglioCard.field.plot"),
-      value: appezzamentoNome ?? t("operazioneDettaglioCard.wholeFarm"),
+      label: t("operationDetailCard.field.plot"),
+      value: appezzamentoNome ?? t("operationDetailCard.wholeFarm"),
       wide: true,
     },
   ];
 
   const productDose: FieldSpec[] = [
-    { label: t("operazioneDettaglioCard.field.product"), value: o.product_name, wide: true },
-    { label: t("operazioneDettaglioCard.field.activeSubstance"), value: o.active_substance, wide: true },
-    { label: t("operazioneDettaglioCard.field.targetDisease"), value: o.target_disease, wide: true },
-    { label: t("operazioneDettaglioCard.field.registrationNumber"), value: o.registration_number, num: true },
-    { label: t("operazioneDettaglioCard.field.dose"), value: dose, num: true },
-    { label: t("operazioneDettaglioCard.field.totalQuantity"), value: o.total_quantity, num: true },
-    { label: t("operazioneDettaglioCard.field.waterVolume"), value: o.water_volume_l, num: true },
-    { label: t("operazioneDettaglioCard.field.fertilizerType"), value: o.fertilizer_type },
-    { label: t("operazioneDettaglioCard.field.npkRatio"), value: o.npk_ratio, num: true },
+    { label: t("operationDetailCard.field.product"), value: o.product_name, wide: true },
+    { label: t("operationDetailCard.field.activeSubstance"), value: o.active_substance, wide: true },
+    { label: t("operationDetailCard.field.targetDisease"), value: o.target_disease, wide: true },
+    { label: t("operationDetailCard.field.registrationNumber"), value: o.registration_number, num: true },
+    { label: t("operationDetailCard.field.dose"), value: dose, num: true },
+    { label: t("operationDetailCard.field.totalQuantity"), value: o.total_quantity, num: true },
+    { label: t("operationDetailCard.field.waterVolume"), value: o.water_volume_l, num: true },
+    { label: t("operationDetailCard.field.fertilizerType"), value: o.fertilizer_type },
+    { label: t("operationDetailCard.field.npkRatio"), value: o.npk_ratio, num: true },
   ];
 
   const operator: FieldSpec[] = [
-    { label: t("operazioneDettaglioCard.field.operatorName"), value: o.operator_name, wide: true },
-    { label: t("operazioneDettaglioCard.field.operatorTaxCode"), value: o.operator_tax_code, num: true },
-    { label: t("operazioneDettaglioCard.field.licenseNumber"), value: o.license_number, num: true },
-    { label: t("operazioneDettaglioCard.field.machineryEquipment"), value: o.machinery_equipment, wide: true },
+    { label: t("operationDetailCard.field.operatorName"), value: o.operator_name, wide: true },
+    { label: t("operationDetailCard.field.operatorTaxCode"), value: o.operator_tax_code, num: true },
+    { label: t("operationDetailCard.field.licenseNumber"), value: o.license_number, num: true },
+    { label: t("operationDetailCard.field.machineryEquipment"), value: o.machinery_equipment, wide: true },
   ];
 
   const safety: FieldSpec[] = [
-    { label: t("operazioneDettaglioCard.field.reentryInterval"), value: o.reentry_interval_h, num: true },
-    { label: t("operazioneDettaglioCard.field.safetyPeriod"), value: o.safety_period_days, num: true },
+    { label: t("operationDetailCard.field.reentryInterval"), value: o.reentry_interval_h, num: true },
+    { label: t("operationDetailCard.field.safetyPeriod"), value: o.safety_period_days, num: true },
   ];
 
   return (
@@ -100,10 +100,10 @@ export function OperationDetailCard({
               {opLabel(t, o.operation_type) ?? o.operation_type}
             </p>
             <h3 className="truncate text-base font-semibold">
-              {o.product_name ?? opLabel(t, o.operation_type) ?? t("operazioneDettaglioCard.operation")}
+              {o.product_name ?? opLabel(t, o.operation_type) ?? t("operationDetailCard.operation")}
             </h3>
             <p className="mt-0.5 text-xs capitalize text-[var(--ink-3)]">
-              {dataEstesa(o.executed_at)}
+              {longDate(o.executed_at)}
             </p>
           </div>
           <button
@@ -116,13 +116,13 @@ export function OperationDetailCard({
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
-          <InfoSection title={t("operazioneDettaglioCard.section.cropPlot")} fields={cropPlot} />
-          <InfoSection title={t("operazioneDettaglioCard.section.productDose")} fields={productDose} />
-          <InfoSection title={t("operazioneDettaglioCard.section.operator")} fields={operator} />
-          <InfoSection title={t("operazioneDettaglioCard.section.safety")} fields={safety} />
+          <InfoSection title={t("operationDetailCard.section.cropPlot")} fields={cropPlot} />
+          <InfoSection title={t("operationDetailCard.section.productDose")} fields={productDose} />
+          <InfoSection title={t("operationDetailCard.section.operator")} fields={operator} />
+          <InfoSection title={t("operationDetailCard.section.safety")} fields={safety} />
 
           {o.note && (
-            <Section title={t("operazioneDettaglioCard.section.notes")}>
+            <Section title={t("operationDetailCard.section.notes")}>
               <p className="col-span-2 whitespace-pre-wrap rounded-[var(--r-2)] bg-[var(--panel-2)] px-3 py-2 text-sm text-[var(--ink-1)]">
                 {o.note}
               </p>
@@ -136,14 +136,14 @@ export function OperationDetailCard({
             onClick={() => void onDelete()}
             className="flex items-center gap-1.5 rounded-[var(--r-2)] px-2.5 py-1.5 text-xs font-medium text-[var(--danger)] hover:bg-[var(--danger-l,#fee2e2)]"
           >
-            <Trash2 size={13} /> {t("operazioneDettaglioCard.delete")}
+            <Trash2 size={13} /> {t("operationDetailCard.delete")}
           </button>
           <button
             type="button"
             onClick={onClose}
             className="rounded-[var(--r-2)] border border-[var(--line)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--panel-2)]"
           >
-            {t("operazioneDettaglioCard.close")}
+            {t("operationDetailCard.close")}
           </button>
         </div>
       </div>

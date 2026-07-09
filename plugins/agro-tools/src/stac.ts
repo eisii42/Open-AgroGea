@@ -103,7 +103,7 @@ export interface SasToken {
   /** Query string del SAS (es. "st=…&se=…&sig=…"), da appendere agli href. */
   token: string;
   /** Scadenza del token in ms epoch. */
-  scadenzaMs: number;
+  expiryMs: number;
 }
 
 /**
@@ -137,7 +137,7 @@ export async function planetaryComputerToken(
   const expiry = data["msft:expiry"] ? Date.parse(data["msft:expiry"]) : Number.NaN;
   return {
     token: data.token,
-    scadenzaMs: Number.isFinite(expiry) ? expiry : Date.now() + 50 * 60 * 1000,
+    expiryMs: Number.isFinite(expiry) ? expiry : Date.now() + 50 * 60 * 1000,
   };
 }
 
@@ -260,10 +260,10 @@ export function selectBestItem(
  * worker scarica solo questi asset per ogni scena.
  */
 export function requiredBandsForIndices(
-  indici: VegetationIndex[],
+  indices: VegetationIndex[],
 ): string[] {
   const bande = new Set<string>();
-  for (const index of indici) {
+  for (const index of indices) {
     if (isSoilIndex(index)) {
       const { nir, red } = SOIL_BANDS[index];
       bande.add(nir);
@@ -335,11 +335,11 @@ export function extractSceneSeries(
  */
 export function filterWindowFromLatest(
   scene: IndicesScene[],
-  giorni: number,
+  days: number,
 ): IndicesScene[] {
   if (scene.length <= 1) return scene;
   const ancora = new Date(scene[0].datetime).getTime();
-  const minimo = ancora - giorni * 24 * 3600 * 1000;
+  const minimo = ancora - days * 24 * 3600 * 1000;
   return scene.filter((s) => new Date(s.datetime).getTime() >= minimo);
 }
 
@@ -353,7 +353,7 @@ export function filterWindowFromLatest(
 export async function searchSceneSeries(
   bbox: [number, number, number, number],
   options: {
-    indici: VegetationIndex[];
+    indices: VegetationIndex[];
     cloudCoverMax?: number;
     giorniIndietro?: number;
     /** Intervallo esplicito inizio/fine (analisi personalizzata). */
@@ -367,7 +367,7 @@ export async function searchSceneSeries(
 ): Promise<IndicesScene[]> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const apiUrl = options.apiUrl ?? STAC_API_URL;
-  const bandeNecessarie = requiredBandsForIndices(options.indici);
+  const bandeNecessarie = requiredBandsForIndices(options.indices);
   const body = buildStacSearchBody(bbox, {
     cloudCoverMax: options.cloudCoverMax,
     giorniIndietro: options.giorniIndietro,

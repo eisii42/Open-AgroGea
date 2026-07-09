@@ -50,7 +50,7 @@ export function PrintComposer({ onClose, mapControllerRef }: Props) {
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const company = companies.find((a) => a.id === activeCompanyId);
 
-  const [title, setTitolo] = useState(
+  const [title, setTitle] = useState(
     `${company?.business_name ?? "AgroGea"} · ${new Date().toLocaleDateString("it-IT")}`,
   );
   const [note, setNote] = useState("");
@@ -163,7 +163,7 @@ export function PrintComposer({ onClose, mapControllerRef }: Props) {
           </label>
           <input
             value={title}
-            onChange={(e) => setTitolo(e.target.value)}
+            onChange={(e) => setTitle(e.target.value)}
             className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-2 text-sm"
           />
         </div>

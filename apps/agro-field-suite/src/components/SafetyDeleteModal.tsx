@@ -95,7 +95,7 @@ export function SafetyDeleteModal({
               className="flex-1 rounded-[var(--r-2)] bg-[#dc2626] px-3 py-2 text-sm font-medium text-white transition-opacity hover:bg-[#b91c1c] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {deleting
-                ? t("confirmDeleteOperazione.deleting")
+                ? t("confirmDeleteOperation.deleting")
                 : t("safetyDeleteModal.confirmDelete")}
             </button>
           </div>

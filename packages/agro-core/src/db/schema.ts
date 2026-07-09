@@ -126,7 +126,7 @@ create table if not exists crops (
   deleted_at      timestamptz
 );
 
--- Migrazione additiva per istanze v12 già create senza i timestamp di sync
+-- Migrazione additiva per istanze v12 già create without i timestamp di sync
 -- (crops è una tabella sincronizzata: serve updated_at per outbox/LWW).
 alter table crops add column if not exists created_at timestamptz not null default now();
 alter table crops add column if not exists updated_at timestamptz not null default now();
@@ -148,7 +148,7 @@ create table if not exists plots_registry (
   planting_year    smallint,
   -- unico punto di verità per la area, ricalcolata dal DAL (@turf/area).
   area_ha          numeric(10, 4) not null,
-  -- cache dell'ultimo NDVI medio della pipeline STAC (consultabile offline).
+  -- cache dell'last NDVI medio della pipeline STAC (consultabile offline).
   last_ndvi_mean   numeric,
   historical_notes text,
   metadata         jsonb not null default '{}',
@@ -160,7 +160,7 @@ create table if not exists plots_registry (
 create index if not exists plots_registry_company_idx
   on plots_registry (company_id);
 
--- plots_campaign — stato BUROCRATICO annuale del field per Campagna Agraria,
+-- plots_campaign — status BUROCRATICO annuale del field per Campagna Agraria,
 -- LPIS/IACS compliant. Associa un plot fisico a una crop (crops) per
 -- una determinata annata; relazione 1:N su (plot_id, campaign_year).
 create table if not exists plots_campaign (
@@ -183,7 +183,7 @@ create table if not exists plots_campaign (
 
 -- v17: colonna additiva per le istanze pre-esistenti + sostituzione del vincolo
 -- pieno con l'unicità PARZIALE sulle campagne aperte (secondo raccolto possibile
--- dopo la chiusura della prima campagna dello stesso anno).
+-- dopo la chiusura della before campagna dello stesso year).
 alter table plots_campaign add column if not exists closed_at timestamptz;
 alter table plots_campaign
   drop constraint if exists unique_plot_per_campaign;
@@ -355,9 +355,9 @@ create index if not exists sync_outbox_pending_idx
   on sync_outbox (sync_status, created_at)
   where sync_status in ('pending', 'error');
 
--- weather_config — configurazione per-company della fonte meteo. Tabella
+-- weather_config — configurazione per-company della fonte weather. Tabella
 -- LOCAL-ONLY: non transita dall'outbox (la api_key non lascia il device, ed è
--- stato di installazione). Una row per company.
+-- status di installazione). Una row per company.
 create table if not exists weather_config (
   company_id           uuid primary key references companies (id) on delete cascade,
   tenant_id            uuid not null,
@@ -374,8 +374,8 @@ create table if not exists weather_config (
   updated_at           timestamptz not null default now()
 );
 
--- dss_results — cache degli indici di rischio calcolati dai DSS. LOCAL-ONLY:
--- interamente ricomputabile dalle readings meteo, non si sincronizza.
+-- dss_results — cache degli indices di rischio calcolati dai DSS. LOCAL-ONLY:
+-- interamente ricomputabile dalle readings weather, non si sincronizza.
 create table if not exists dss_results (
   id           uuid primary key default gen_random_uuid(),
   plot_id      uuid references plots_registry (id) on delete cascade,
@@ -390,7 +390,7 @@ create index if not exists dss_results_plot_idx
   on dss_results (plot_id, calculated_at desc);
 
 -- soil_water_indices — output giornaliero del bilancio idrico FAO 56/66 per
--- campagna del field. LOCAL-ONLY: interamente ricomputabile dalle readings meteo
+-- campagna del field. LOCAL-ONLY: interamente ricomputabile dalle readings weather
 -- e dai log irrigui, non si sincronizza (come dss_results).
 create table if not exists soil_water_indices (
   id                  uuid primary key default gen_random_uuid(),
@@ -491,7 +491,7 @@ create table if not exists tenant_memberships (
 create index if not exists tenant_memberships_company_idx
   on tenant_memberships (company_id, role);
 
--- product_catalogs — cataloghi di stato MULTIREGIONALI (Modulo 3). Reference data
+-- product_catalogs — cataloghi di status MULTIREGIONALI (Modulo 3). Reference data
 -- LOCAL-ONLY: cataloghi ministeriali per paese filtered a runtime dal country_code.
 create table if not exists product_catalogs (
   id                  uuid primary key default gen_random_uuid(),
@@ -513,8 +513,8 @@ create index if not exists product_catalogs_country_idx
 
 -- v16 — Magazzino (0.2.0) ----------------------------------------------------
 
--- products — anagrafica products di warehouse a categorie RIGIDE. La categoria
--- determina i campi obbligatori (enforced lato TS in validateProduct, come
+-- products — anagrafica products di warehouse a categorie RIGIDE. La category
+-- determina i fields obbligatori (enforced lato TS in validateProduct, come
 -- la validazione PAN; qui le columns restano nullable per non irrigidire le
 -- migrazioni): agrofarmaci → registration_number (registro PAN); concimi →
 -- titoli N-P-K; carburante → codice assegnazione UMA. avg_unit_cost è il
@@ -538,17 +538,17 @@ create table if not exists products (
   supplier            text,
   avg_unit_cost       numeric(12, 4) not null default 0,
   notes               text,
-  -- v17: proprietà estensibili per categoria (sementi: identità colturale;
-  -- agrofarmaci: carenza/rientro di default; comune: scorta minima).
+  -- v17: proprietà estensibili per category (sementi: identità colturale;
+  -- agrofarmaci: carenza/reentry di default; comune: scorta minima).
   metadata            jsonb not null default '{}',
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
   deleted_at          timestamptz
 );
 
--- Allineamento additivo per le istanze v16 create prima dell'estensione
+-- Allineamento additivo per le istanze v16 create before dell'estensione
 -- dell'anagrafica (sostanza attiva per gli agrofarmaci, fornitore comune,
--- categoria residuale 'other' per lubrificanti/materiali di consumo, metadata).
+-- category residuale 'other' per lubrificanti/materiali di consumo, metadata).
 alter table products add column if not exists active_substance text;
 alter table products add column if not exists supplier text;
 alter table products add column if not exists metadata jsonb not null default '{}';
@@ -561,10 +561,10 @@ alter table products
 create index if not exists products_company_idx
   on products (company_id, category);
 
--- product_lots — lots di warehouse: number lot, scadenza, stock current
+-- product_lots — lots di warehouse: number lot, expiry, stock current
 -- e costo unitario di carico (input del CUMP). Il CHECK "quantity_on_hand >= 0"
 -- è la guardia ATOMICA dello issue: la transazione che porterebbe la stock
--- sotto zero fallisce per intero (nessuno stato parziale/inconsistente).
+-- sotto zero fallisce per intero (nessuno status parziale/inconsistente).
 create table if not exists product_lots (
   id               uuid primary key,
   tenant_id        uuid not null,

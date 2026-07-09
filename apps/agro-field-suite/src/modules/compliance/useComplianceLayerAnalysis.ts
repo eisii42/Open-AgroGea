@@ -46,15 +46,15 @@ export function useComplianceLayerAnalysis(
   plots: Plot[],
   layerGeojson: FeatureCollection | null,
 ): ComplianceAnalysisResult {
-  const [stato, setStato] = useState<ComplianceAnalysisResult>(VUOTO);
+  const [status, setStatus] = useState<ComplianceAnalysisResult>(VUOTO);
 
   useEffect(() => {
     if (!layerGeojson || plots.length === 0) {
-      setStato(VUOTO);
+      setStatus(VUOTO);
       return;
     }
-    let annullato = false;
-    setStato({ ...VUOTO, loading: true });
+    let cancelled = false;
+    setStatus({ ...VUOTO, loading: true });
 
     void (async () => {
       try {
@@ -72,21 +72,21 @@ export function useComplianceLayerAnalysis(
           maskTable: "compliance_layer",
           predicate: "intersects",
         });
-        if (annullato) return;
+        if (cancelled) return;
         const ids = new Set<string>();
         for (const f of res.features) {
           const id = f.properties?.id;
           if (typeof id === "string") ids.add(id);
         }
-        setStato({
+        setStatus({
           loading: false,
           error: null,
           appezzamentiColpiti: [...ids],
           eseguita: true,
         });
       } catch (err) {
-        if (annullato) return;
-        setStato({
+        if (cancelled) return;
+        setStatus({
           loading: false,
           error: err instanceof Error ? err.message : String(err),
           appezzamentiColpiti: [],
@@ -96,9 +96,9 @@ export function useComplianceLayerAnalysis(
     })();
 
     return () => {
-      annullato = true;
+      cancelled = true;
     };
   }, [plots, layerGeojson]);
 
-  return stato;
+  return status;
 }

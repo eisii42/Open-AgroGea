@@ -47,22 +47,22 @@ const WarehousePanel = lazy(() =>
 const SoilPanel = lazy(() =>
   import("../modules/soil/SoilPanel").then((m) => ({ default: m.SoilPanel })),
 );
-const ColturaDatiPanel = lazy(() =>
+const CropDataPanel = lazy(() =>
   import("../modules/crops/CropPanel").then((m) => ({
-    default: m.ColturaDatiPanel,
+    default: m.CropDataPanel,
   })),
 );
-const ColturaDssPanel = lazy(() =>
+const CropDssPanel = lazy(() =>
   import("../modules/crops/CropPanel").then((m) => ({
-    default: m.ColturaDssPanel,
+    default: m.CropDssPanel,
   })),
 );
 const VraPanel = lazy(() =>
   import("../modules/vra/VraPanel").then((m) => ({ default: m.VraPanel })),
 );
-const BilancioIdricoPanel = lazy(() =>
+const WaterBalancePanel = lazy(() =>
   import("../modules/water-balance/WaterBalancePanel").then((m) => ({
-    default: m.BilancioIdricoPanel,
+    default: m.WaterBalancePanel,
   })),
 );
 const PrintComposer = lazy(() =>
@@ -197,7 +197,7 @@ export function FieldDashboard() {
         {/* Mappa persistente: mai rimontata, mai ridimensionata dai pannelli.
             `data-sidebar` permette al CSS di scostare i controlli nativi top-left
             (es. pannello Misura) a destra della colonna bottoni, così la scheda
-            si apre di fianco al bottone senza finire dietro la barra moduli. */}
+            si apre di fianco al bottone without finire dietro la barra moduli. */}
         <div
           className="agro-field-map absolute inset-0"
           data-sidebar={sidebarCollapsed ? "collapsed" : "open"}
@@ -318,13 +318,13 @@ export function FieldDashboard() {
             />
           )}
           {openPanels.includes("coltura") && (
-            <ColturaDatiPanel onClose={() => togglePanel("coltura")} />
+            <CropDataPanel onClose={() => togglePanel("coltura")} />
           )}
           {openPanels.includes("coltura-dss") && (
-            <ColturaDssPanel onClose={() => togglePanel("coltura-dss")} />
+            <CropDssPanel onClose={() => togglePanel("coltura-dss")} />
           )}
           {openPanels.includes("acqua") && (
-            <BilancioIdricoPanel onClose={() => togglePanel("acqua")} />
+            <WaterBalancePanel onClose={() => togglePanel("acqua")} />
           )}
           {openPanels.includes("sync") && (
             <SyncPanel onClose={() => togglePanel("sync")} />

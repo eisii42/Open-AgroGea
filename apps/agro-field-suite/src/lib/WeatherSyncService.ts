@@ -19,11 +19,11 @@ import i18n from "../i18n";
  * UUIDv5 è deterministico: la stessa chiave → lo stesso id, quindi l'idempotenza
  * `on conflict (id)` resta intatta e un re-import sovrascrive senza duplicare.
  */
-const NS_LETTURA_METEO = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
+const WEATHER_READING_NS = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
 
 /** Id `uuid` deterministico di una reading meteo dalla sua chiave naturale. */
 function readingId(chiaveNaturale: string): string {
-  return uuidv5(chiaveNaturale, NS_LETTURA_METEO);
+  return uuidv5(chiaveNaturale, WEATHER_READING_NS);
 }
 
 /**
@@ -51,37 +51,37 @@ type WeatherReadingInput = Omit<
  * Copre i modelli giornalieri (peronospora/oidio) e gran parte dell'accumulo
  * recente; lo storico più profondo per il GDD stagionale arriva dall'Archive API.
  */
-const GIORNI_STORICO_FORECAST = 92;
-const GIORNI_PREVISIONE = 16;
+const FORECAST_HISTORY_DAYS = 92;
+const FORECAST_DAYS = 16;
 
 /**
  * Finestra di rilettura locale: abbondante, così l'accumulo stagionale dispone
  * di tutta la storia presente in PGlite (forecast + backfill Archive). Lettura
  * locale, nessun costo di quota.
  */
-const GIORNI_LETTURA = 430;
+const READING_DAYS = 430;
 
 /** Latenza tipica dell'Archive API Open-Meteo (i dati recenti non ci sono). */
-const ARCHIVIO_LATENZA_GIORNI = 5;
+const ARCHIVE_LATENCY_DAYS = 5;
 
 /** Lucchetto orario: sotto questo delta si legge dalla cache locale. */
-export const LOCK_METEO_MINUTI = 60;
+export const WEATHER_LOCK_MINUTES = 60;
 
 /** Stazione logica con cui Open-Meteo marca le sue rows in `letture_meteo`. */
-export const STAZIONE_OPEN_METEO = "open-meteo";
+export const OPEN_METEO_STATION = "open-meteo";
 
-export interface MeteoFetchOptions {
+export interface WeatherFetchOptions {
   dal: AgroDal;
   companyId: string;
   /** Plot da cui prendere le coordinate (il "principale"). */
-  appezzamentoPrincipale: Plot | null;
+  mainPlot: Plot | null;
   /** Config già caricata; se assente il servizio la legge dal DAL. */
   config?: CompanyWeatherConfig | null;
   /** Forza il fetch ignorando il lucchetto orario (pulsante "aggiorna ora"). */
   force?: boolean;
 }
 
-export interface MeteoFetchResult {
+export interface WeatherFetchResult {
   /** true se ha colpito davvero la rete/centralina in questa chiamata. */
   fetched: boolean;
   fonte: WeatherDataSource;
@@ -98,19 +98,19 @@ export interface MeteoFetchResult {
 // ---------------------------------------------------------------------------
 
 /** Condizioni correnti per la row principale della scheda meteo. */
-export interface MeteoCorrente {
+export interface CurrentWeather {
   /** ISO dell'osservazione current restituita da Open-Meteo. */
   ora: string;
   temperatura: number | null;
   umidita: number | null;
   vento: number | null;
-  pioggia: number | null;
+  rain: number | null;
   /** Codice meteo WMO (0..99) per la scelta dell'icona. */
   weatherCode: number | null;
 }
 
 /** Sintesi di un giorno di previsione (icona + min/max + pioggia). */
-export interface GiornoPrevisione {
+export interface ForecastDay {
   /** Data "YYYY-MM-DD" (timezone locale dell'azienda). */
   data: string;
   tMin: number | null;
@@ -121,9 +121,9 @@ export interface GiornoPrevisione {
 }
 
 export interface PrevisioneDashboard {
-  current: MeteoCorrente;
+  current: CurrentWeather;
   /** Oggi in testa, poi i giorni successivi. */
-  giorni: GiornoPrevisione[];
+  days: ForecastDay[];
   /** ISO del momento in cui è stata recuperata (per il "aggiornato alle…"). */
   recuperatoIl: string;
 }
@@ -148,7 +148,7 @@ interface OpenMeteoForecastResp {
 }
 
 /** Giorni di previsione mostrati nella scheda: oggi + 4. */
-const GIORNI_PREVISIONE_DASHBOARD = 5;
+const DASHBOARD_FORECAST_DAYS = 5;
 
 /**
  * Cache in-memory (per company) della previsione da cruscotto. È volutamente
@@ -170,10 +170,10 @@ function buildForecastDashboardUrl(lon: number, lat: number): string {
       "temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,precipitation",
     daily:
       "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max",
-    forecast_days: String(GIORNI_PREVISIONE_DASHBOARD),
+    forecast_days: String(DASHBOARD_FORECAST_DAYS),
     timezone: "auto",
   });
-  return `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
+  return `https://api.open-weather.com/v1/forecast?${params.toString()}`;
 }
 
 /** Minuti trascorsi dall'ISO passato a ora; +∞ se nullo/non valido. */
@@ -216,11 +216,11 @@ function buildOpenMeteoUrl(lon: number, lat: number): string {
     longitude: lon.toFixed(4),
     hourly:
       "temperature_2m,relative_humidity_2m,precipitation,shortwave_radiation,wind_speed_10m",
-    past_days: String(GIORNI_STORICO_FORECAST),
-    forecast_days: String(GIORNI_PREVISIONE),
+    past_days: String(FORECAST_HISTORY_DAYS),
+    forecast_days: String(FORECAST_DAYS),
     timezone: "auto",
   });
-  return `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
+  return `https://api.open-weather.com/v1/forecast?${params.toString()}`;
 }
 
 async function fetchOpenMeteo(
@@ -240,24 +240,24 @@ async function fetchOpenMeteo(
   return h.time.map((iso, i) => {
     const rilevatoIl = new Date(iso).toISOString();
     const rh = h.relative_humidity_2m[i] ?? null;
-    const pioggia = h.precipitation[i] ?? null;
+    const rain = h.precipitation[i] ?? null;
     return {
       // id idempotente (UUIDv5 dalla chiave naturale): un re-import sovrascrive.
-      id: readingId(`${STAZIONE_OPEN_METEO}:${rilevatoIl}`),
+      id: readingId(`${OPEN_METEO_STATION}:${rilevatoIl}`),
       company_id: companyId,
-      station_id: STAZIONE_OPEN_METEO,
+      station_id: OPEN_METEO_STATION,
       measured_at: rilevatoIl,
       air_temperature: h.temperature_2m[i] ?? null,
       relative_humidity: rh,
-      rain_mm: pioggia,
+      rain_mm: rain,
       leaf_wetness:
-        rh != null && pioggia != null ? stimaBagnatura(rh, pioggia) : null,
+        rh != null && rain != null ? stimaBagnatura(rh, rain) : null,
       solar_radiation: h.shortwave_radiation[i] ?? null,
       wind_speed: h.wind_speed_10m[i] ?? null,
       wind_direction: null,
       metadata: {
         provider: "open-meteo",
-        previsione: i >= GIORNI_STORICO_FORECAST * 24,
+        previsione: i >= FORECAST_HISTORY_DAYS * 24,
       },
     };
   });
@@ -275,7 +275,7 @@ interface OpenMeteoDaily {
 }
 
 /** "YYYY-MM-DD" in UTC da un timestamp. */
-function isoGiorno(ms: number): string {
+function isoDay(ms: number): string {
   return new Date(ms).toISOString().slice(0, 10);
 }
 
@@ -301,7 +301,7 @@ async function fetchArchivioGdd(
     timezone: "auto",
   });
   const resp = await fetch(
-    `https://archive-api.open-meteo.com/v1/archive?${params.toString()}`,
+    `https://archive-api.open-weather.com/v1/archive?${params.toString()}`,
   );
   if (!resp.ok) throw new Error(i18n.t("weatherSyncService.openMeteoArchiveHttpError", { status: resp.status }));
   const data = (await resp.json()) as { daily?: OpenMeteoDaily };
@@ -309,17 +309,17 @@ async function fetchArchivioGdd(
   if (!d?.time?.length) return [];
 
   const rows: WeatherReadingInput[] = [];
-  d.time.forEach((giorno, i) => {
+  d.time.forEach((day, i) => {
     const tMin = d.temperature_2m_min[i];
     const tMax = d.temperature_2m_max[i];
-    const pioggia = d.precipitation_sum[i] ?? null;
-    if (tMin == null && tMax == null) return; // giorno senza dato → saltato
+    const rain = d.precipitation_sum[i] ?? null;
+    if (tMin == null && tMax == null) return; // day without dato → saltato
     // Riga "minima" (mattino).
     rows.push({
-      id: readingId(`${STAZIONE_OPEN_METEO}:arch:${giorno}:min`),
+      id: readingId(`${OPEN_METEO_STATION}:arch:${day}:min`),
       company_id: companyId,
-      station_id: STAZIONE_OPEN_METEO,
-      measured_at: `${giorno}T06:00:00.000Z`,
+      station_id: OPEN_METEO_STATION,
+      measured_at: `${day}T06:00:00.000Z`,
       air_temperature: tMin ?? tMax ?? null,
       relative_humidity: null,
       rain_mm: null,
@@ -331,13 +331,13 @@ async function fetchArchivioGdd(
     });
     // Riga "massima" (pomeriggio), porta anche la pioggia del giorno.
     rows.push({
-      id: readingId(`${STAZIONE_OPEN_METEO}:arch:${giorno}:max`),
+      id: readingId(`${OPEN_METEO_STATION}:arch:${day}:max`),
       company_id: companyId,
-      station_id: STAZIONE_OPEN_METEO,
-      measured_at: `${giorno}T14:00:00.000Z`,
+      station_id: OPEN_METEO_STATION,
+      measured_at: `${day}T14:00:00.000Z`,
       air_temperature: tMax ?? tMin ?? null,
       relative_humidity: null,
-      rain_mm: pioggia,
+      rain_mm: rain,
       leaf_wetness: null,
       solar_radiation: null,
       wind_speed: null,
@@ -405,15 +405,15 @@ export const WeatherSyncService = {
    * cache), così il chiamante ha la serie pronta per i DSS senza un secondo giro.
    */
   async assicuraDatiMeteo(
-    options: MeteoFetchOptions,
-  ): Promise<MeteoFetchResult> {
-    const { dal, companyId, appezzamentoPrincipale, force } = options;
+    options: WeatherFetchOptions,
+  ): Promise<WeatherFetchResult> {
+    const { dal, companyId, mainPlot, force } = options;
     const config =
       options.config ?? (await dal.getConfigMeteo(companyId)) ?? null;
     const fonte: WeatherDataSource = config?.data_source ?? "public_api";
 
     const eta = minutiDa(config?.last_weather_pull_at ?? null);
-    const dentroLock = eta < LOCK_METEO_MINUTI;
+    const dentroLock = eta < WEATHER_LOCK_MINUTES;
 
     // Lucchetto orario: dati ancora freschi → si legge dalla cache locale.
     if (dentroLock && !force) {
@@ -425,7 +425,7 @@ export const WeatherSyncService = {
         inserite: 0,
         motivo: i18n.t("weatherSyncService.dataUpdatedMinutesAgo", {
           minutes: Math.round(eta),
-          lockMinutes: LOCK_METEO_MINUTI,
+          lockMinutes: WEATHER_LOCK_MINUTES,
         }),
       };
     }
@@ -436,10 +436,10 @@ export const WeatherSyncService = {
       if (!config) throw new Error(i18n.t("weatherSyncService.missingStationConfig"));
       nuove = await fetchStazionePrivata(companyId, config);
     } else {
-      if (!appezzamentoPrincipale?.geometry) {
+      if (!mainPlot?.geometry) {
         throw new Error(i18n.t("weatherSyncService.noPlotGeometryForStation"));
       }
-      const [lon, lat] = centroid(appezzamentoPrincipale.geometry);
+      const [lon, lat] = centroid(mainPlot.geometry);
       nuove = await fetchOpenMeteo(companyId, lon, lat);
     }
 
@@ -465,33 +465,33 @@ export const WeatherSyncService = {
   async assicuraStoricoGdd(options: {
     dal: AgroDal;
     companyId: string;
-    appezzamentoPrincipale: Plot | null;
+    mainPlot: Plot | null;
     /** Biofix dell'accumulo (ISO date): si download fin qui all'indietro. */
     dataInizio: string;
   }): Promise<{ backfilled: number }> {
-    const { dal, companyId, appezzamentoPrincipale, dataInizio } = options;
-    if (!appezzamentoPrincipale?.geometry) return { backfilled: 0 };
+    const { dal, companyId, mainPlot, dataInizio } = options;
+    if (!mainPlot?.geometry) return { backfilled: 0 };
 
     const inizio = dataInizio.slice(0, 10);
     const min = await dal.minRilevatoMeteo(companyId);
     // Storico già abbastanza profondo da coprire il biofix → niente da fare.
     if (min && min.slice(0, 10) <= inizio) return { backfilled: 0 };
 
-    const oggi = Date.now();
+    const today = Date.now();
     // Fine del backfill: dove NON arriva la previsione (92 gg fa), rispettando
     // la latenza dell'archivio e fermandosi appena prima dello storico esistente.
-    let fineMs = oggi - GIORNI_STORICO_FORECAST * 24 * 3600 * 1000;
-    const latenzaMs = oggi - ARCHIVIO_LATENZA_GIORNI * 24 * 3600 * 1000;
+    let fineMs = today - FORECAST_HISTORY_DAYS * 24 * 3600 * 1000;
+    const latenzaMs = today - ARCHIVE_LATENCY_DAYS * 24 * 3600 * 1000;
     if (fineMs > latenzaMs) fineMs = latenzaMs;
     if (min) {
       const minMs = new Date(min).getTime() - 24 * 3600 * 1000;
       if (minMs < fineMs) fineMs = minMs;
     }
 
-    const aISO = isoGiorno(fineMs);
+    const aISO = isoDay(fineMs);
     if (inizio > aISO) return { backfilled: 0 }; // nessun buco da colmare
 
-    const [lon, lat] = centroid(appezzamentoPrincipale.geometry);
+    const [lon, lat] = centroid(mainPlot.geometry);
     const rows = await fetchArchivioGdd(companyId, lon, lat, inizio, aISO);
     const backfilled = await dal.insertLettureMeteoLocali(rows);
     return { backfilled };
@@ -516,7 +516,7 @@ export const WeatherSyncService = {
     if (
       cached &&
       !force &&
-      (Date.now() - cached.at) / 60_000 < LOCK_METEO_MINUTI
+      (Date.now() - cached.at) / 60_000 < WEATHER_LOCK_MINUTES
     ) {
       return cached.data;
     }
@@ -534,11 +534,11 @@ export const WeatherSyncService = {
         temperatura: c.temperature_2m ?? null,
         umidita: c.relative_humidity_2m ?? null,
         vento: c.wind_speed_10m ?? null,
-        pioggia: c.precipitation ?? null,
+        rain: c.precipitation ?? null,
         weatherCode: c.weather_code ?? null,
       },
-      giorni: time.map((giorno, i) => ({
-        data: giorno,
+      days: time.map((day, i) => ({
+        data: day,
         tMin: d.temperature_2m_min?.[i] ?? null,
         tMax: d.temperature_2m_max?.[i] ?? null,
         pioggiaMm: d.precipitation_sum?.[i] ?? null,
@@ -567,7 +567,7 @@ async function readSeries(
   companyId: string,
 ): Promise<WeatherReading[]> {
   const dopo = new Date(
-    Date.now() - GIORNI_LETTURA * 24 * 3600 * 1000,
+    Date.now() - READING_DAYS * 24 * 3600 * 1000,
   ).toISOString();
   return dal.listLettureMeteo(companyId, { dopo, limit: 30_000 });
 }

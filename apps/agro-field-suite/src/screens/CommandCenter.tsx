@@ -191,7 +191,7 @@ export function CommandCenter() {
       harvests: plotHarvests,
       soilIndices: data.soilIndices,
       weather: data.weather,
-      dssRisultati: data.dssRisultati,
+      dssResults: data.dssResults,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
@@ -200,7 +200,7 @@ export function CommandCenter() {
       data.allCampaigns,
       data.soilIndices,
       data.weather,
-      data.dssRisultati,
+      data.dssResults,
       plotTreatments,
       plotHarvests,
       effectivePlotIds,
@@ -456,7 +456,7 @@ export function CommandCenter() {
                 plotIds={effectivePlotIds}
                 treatments={treatments}
                 harvests={harvests}
-                dssRisultati={data.dssRisultati}
+                dssResults={data.dssResults}
               />
               <RawDataInspector
                 plotIds={scopePlotIds}

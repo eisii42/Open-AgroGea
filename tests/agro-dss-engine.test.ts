@@ -104,7 +104,7 @@ describe("waterRisk01 e vettore di stress", () => {
   });
   it("waterStressVector produce un rischio01 coerente e usa Ky della coltura", () => {
     const v = waterStressVector({ depletion: 150, raw: RAW, awc: AWC }, "mais");
-    assert.equal(v.categoria, "idrico");
+    assert.equal(v.category, "idrico");
     assert.ok(v.rischio01 > 0.5 && v.rischio01 <= 1);
     assert.equal(cropKy("mais"), 1.25);
   });
@@ -129,8 +129,8 @@ describe("runDssEngine — composizione unificata", () => {
       awc: AWC,
     });
     // C'è il vettore idrico + i vettori patologici dell'olivo.
-    assert.ok(out.vettori.some((v) => v.categoria === "idrico"));
-    assert.ok(out.vettori.some((v) => v.categoria === "fitopatologico"));
+    assert.ok(out.vettori.some((v) => v.category === "idrico"));
+    assert.ok(out.vettori.some((v) => v.category === "fitopatologico"));
     const maxVettori = Math.max(...out.vettori.map((v) => v.rischio01));
     assert.equal(out.rischioComplessivo01, maxVettori);
     assert.ok(out.rischioComplessivo01 > 0);
@@ -139,6 +139,6 @@ describe("runDssEngine — composizione unificata", () => {
   it("senza stato idrico non aggiunge il vettore idrico", () => {
     const vite = cropModuleById("vite");
     const out = runDssEngine(vite!, [], undefined);
-    assert.equal(out.vettori.every((v) => v.categoria === "fitopatologico"), true);
+    assert.equal(out.vettori.every((v) => v.category === "fitopatologico"), true);
   });
 });

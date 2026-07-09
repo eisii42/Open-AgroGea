@@ -73,7 +73,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
     if (errors.length > 0) {
       throw new WarehouseError(
         "invalid_product",
-        `Anagrafica product incompleta per la categoria "${input.category}": ` +
+        `Anagrafica product incompleta per la category "${input.category}": ` +
           errors.map((e) => e.field).join(", "),
       );
     }
@@ -119,12 +119,12 @@ export class AgroDalWarehouse extends AgroDalLogbook {
 
   async listProducts(
     companyId: string,
-    options: { categoria?: Product["category"] } = {},
+    options: { category?: Product["category"] } = {},
   ): Promise<Product[]> {
     const conditions = ["company_id = $1", "deleted_at is null"];
     const params: unknown[] = [companyId];
-    if (options.categoria) {
-      params.push(options.categoria);
+    if (options.category) {
+      params.push(options.category);
       conditions.push(`category = $${params.length}`);
     }
     const result = await this.db.query<Product>(

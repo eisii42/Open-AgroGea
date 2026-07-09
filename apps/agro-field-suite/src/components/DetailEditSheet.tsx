@@ -50,7 +50,7 @@ export function DetailEditSheet({
   if (selected.kind === "appezzamento") {
     const record = plots.find((a) => a.id === selected.id);
     if (!record) return null;
-    return <AppezzamentoEdit record={record} />;
+    return <PlotEdit record={record} />;
   }
   if (selected.kind === "infrastruttura") {
     const record = assets.find((a) => a.id === selected.id);
@@ -59,7 +59,7 @@ export function DetailEditSheet({
   }
   const record = soilSamples.find((c) => c.id === selected.id);
   if (!record) return null;
-  return <CampionamentoEdit record={record} />;
+  return <SoilSampleEdit record={record} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -180,7 +180,7 @@ function useCloseDetail(id: string) {
 // Form per tipo
 // ---------------------------------------------------------------------------
 
-function AppezzamentoEdit({ record }: { record: Plot }) {
+function PlotEdit({ record }: { record: Plot }) {
   const { t } = useTranslation();
   const update = useAgroStore((s) => s.updatePlot);
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
@@ -188,9 +188,9 @@ function AppezzamentoEdit({ record }: { record: Plot }) {
   const close = useCloseDetail(record.id);
   const ctrl = useGeomEdit("appezzamento", record.id);
 
-  const [name, setNome] = useState(record.user_plot_name);
-  const [irrigazione, setIrrigazione] = useState(record.irrigation_type ?? "");
-  const [soil, setSuolo] = useState<SoilForm>(() =>
+  const [name, setName] = useState(record.user_plot_name);
+  const [irrigation, setIrrigation] = useState(record.irrigation_type ?? "");
+  const [soil, setSoil] = useState<SoilForm>(() =>
     readSoilForm(record.metadata),
   );
   const [saving, setSaving] = useState(false);
@@ -200,14 +200,14 @@ function AppezzamentoEdit({ record }: { record: Plot }) {
   const area = record.area_ha;
 
   const setSoilField = (field: keyof SoilForm, value: string) =>
-    setSuolo((s) => ({ ...s, [field]: value }));
+    setSoil((s) => ({ ...s, [field]: value }));
 
   const submit = async () => {
     setSaving(true);
     try {
       await update(record.id, {
         user_plot_name: name.trim() || record.user_plot_name,
-        irrigation_type: irrigazione.trim() || null,
+        irrigation_type: irrigation.trim() || null,
         metadata: mergeSoilMetadata(record.metadata, soil),
       });
     } finally {
@@ -251,18 +251,18 @@ function AppezzamentoEdit({ record }: { record: Plot }) {
           <Input
             id="ed-nome"
             value={name}
-            onChange={(e) => setNome(e.target.value)}
+            onChange={(e) => setName(e.target.value)}
           />
         </div>
         <div>
           <Label htmlFor="ed-irrig">{t("dataEntrySheet.irrigationType")}</Label>
           <Input
             id="ed-irrig"
-            value={irrigazione}
-            onChange={(e) => setIrrigazione(e.target.value)}
+            value={irrigation}
+            onChange={(e) => setIrrigation(e.target.value)}
           />
         </div>
-        <SuoloComposizioneSection soil={soil} onChange={setSoilField} />
+        <SoilCompositionSection soil={soil} onChange={setSoilField} />
       </div>
     </FieldSheet>
   );
@@ -305,7 +305,7 @@ const SOIL_FORM_EMPTY: SoilForm = {
  * compatibilità dati); l'etichetta mostrata viene tradotta a runtime tramite
  * `detailEditSheet.textureClass.<id>` (vedi `textureClassLabel`).
  */
-const CLASSI_TESSITURA = [
+const TEXTURE_CLASSES = [
   "sabbioso",
   "sabbioso franco",
   "franco sabbioso",
@@ -397,7 +397,7 @@ function mergeSoilMetadata(
   return next;
 }
 
-function SuoloNumber({
+function SoilNumber({
   id,
   label,
   value,
@@ -428,7 +428,7 @@ function SuoloNumber({
   );
 }
 
-function SuoloComposizioneSection({
+function SoilCompositionSection({
   soil,
   onChange,
 }: {
@@ -455,7 +455,7 @@ function SuoloComposizioneSection({
           onChange={(e) => onChange("tessitura", e.target.value)}
         >
           <option value="">{t("detailEditSheet.notSpecified")}</option>
-          {CLASSI_TESSITURA.map((c) => (
+          {TEXTURE_CLASSES.map((c) => (
             <option key={c} value={c}>
               {textureClassLabel(t, c)}
             </option>
@@ -464,19 +464,19 @@ function SuoloComposizioneSection({
       </div>
 
       <div className="grid grid-cols-3 gap-2">
-        <SuoloNumber
+        <SoilNumber
           id="ed-soil-sabbia"
           label={t("detailEditSheet.sandPercent")}
           value={soil.sabbia}
           onChange={(v) => onChange("sabbia", v)}
         />
-        <SuoloNumber
+        <SoilNumber
           id="ed-soil-limo"
           label={t("detailEditSheet.siltPercent")}
           value={soil.limo}
           onChange={(v) => onChange("limo", v)}
         />
-        <SuoloNumber
+        <SoilNumber
           id="ed-soil-argilla"
           label={t("detailEditSheet.clayPercent")}
           value={soil.argilla}
@@ -485,33 +485,33 @@ function SuoloComposizioneSection({
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <SuoloNumber
+        <SoilNumber
           id="ed-soil-so"
           label={t("detailEditSheet.organicMatterPercent")}
           step="0.1"
           value={soil.sostanza_organica}
           onChange={(v) => onChange("sostanza_organica", v)}
         />
-        <SuoloNumber
+        <SoilNumber
           id="ed-soil-ph"
           label={t("detailEditSheet.ph")}
           step="0.1"
           value={soil.ph}
           onChange={(v) => onChange("ph", v)}
         />
-        <SuoloNumber
+        <SoilNumber
           id="ed-soil-n"
           label={t("detailEditSheet.nitrogenMgKg")}
           value={soil.azoto}
           onChange={(v) => onChange("azoto", v)}
         />
-        <SuoloNumber
+        <SoilNumber
           id="ed-soil-p"
           label={t("detailEditSheet.phosphorusMgKg")}
           value={soil.fosforo}
           onChange={(v) => onChange("fosforo", v)}
         />
-        <SuoloNumber
+        <SoilNumber
           id="ed-soil-k"
           label={t("detailEditSheet.potassiumMgKg")}
           value={soil.potassio}
@@ -530,9 +530,9 @@ function AssetEdit({ record }: { record: InfrastructureAsset }) {
   const close = useCloseDetail(record.id);
   const ctrl = useGeomEdit("infrastruttura", record.id);
 
-  const [name, setNome] = useState(record.name ?? "");
-  const [tipo, setTipo] = useState(record.asset_type);
-  const [categoria, setCategoria] = useState<"fixed" | "mobile">(
+  const [name, setName] = useState(record.name ?? "");
+  const [type, setType] = useState(record.asset_type);
+  const [category, setCategory] = useState<"fixed" | "mobile">(
     record.category,
   );
   const [saving, setSaving] = useState(false);
@@ -542,8 +542,8 @@ function AssetEdit({ record }: { record: InfrastructureAsset }) {
     try {
       await update(record.id, {
         name: name.trim() || null,
-        asset_type: tipo,
-        category: categoria,
+        asset_type: type,
+        category: category,
       });
     } finally {
       setSaving(false);
@@ -587,10 +587,10 @@ function AssetEdit({ record }: { record: InfrastructureAsset }) {
           <Label htmlFor="ed-as-tipo">{t("dataEntrySheet.assetType")}</Label>
           <Select
             id="ed-as-tipo"
-            value={tipo}
-            onChange={(e) => setTipo(e.target.value)}
+            value={type}
+            onChange={(e) => setType(e.target.value)}
           >
-            {[...new Set([tipo, ...TIPI_ASSET])].map((tipoOpt) => (
+            {[...new Set([type, ...TIPI_ASSET])].map((tipoOpt) => (
               <option key={tipoOpt} value={tipoOpt}>
                 {tipoOpt}
               </option>
@@ -602,16 +602,16 @@ function AssetEdit({ record }: { record: InfrastructureAsset }) {
           <Input
             id="ed-as-nome"
             value={name}
-            onChange={(e) => setNome(e.target.value)}
+            onChange={(e) => setName(e.target.value)}
           />
         </div>
         <div>
           <Label htmlFor="ed-as-cat">{t("detailEditSheet.operationalStatus")}</Label>
           <Select
             id="ed-as-cat"
-            value={categoria}
+            value={category}
             onChange={(e) =>
-              setCategoria(e.target.value as "fixed" | "mobile")
+              setCategory(e.target.value as "fixed" | "mobile")
             }
           >
             <option value="fixed">{t("dataEntrySheet.fixed")}</option>
@@ -623,7 +623,7 @@ function AssetEdit({ record }: { record: InfrastructureAsset }) {
   );
 }
 
-function CampionamentoEdit({ record }: { record: SoilSample }) {
+function SoilSampleEdit({ record }: { record: SoilSample }) {
   const { t } = useTranslation();
   const close = useCloseDetail(record.id);
   const ctrl = useGeomEdit("poi", record.id);

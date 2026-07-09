@@ -184,7 +184,7 @@ export interface RegionalExporter {
 function slug(name = "azienda"): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "azienda";
 }
-function oggi(): string {
+function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
@@ -206,7 +206,7 @@ export function makeItExporter(
         config,
         input.campaignFields,
       ),
-    fileName: (name) => `quaderno-sian-${slug(name)}-${oggi()}.csv`,
+    fileName: (name) => `quaderno-sian-${slug(name)}-${today()}.csv`,
   };
 }
 
@@ -219,7 +219,7 @@ export const esExporter: RegionalExporter = {
   mimeType: "application/json;charset=utf-8",
   bom: false,
   build: buildSiexJson,
-  fileName: (name) => `cuaderno-digital-${slug(name)}-${oggi()}.json`,
+  fileName: (name) => `cuaderno-digital-${slug(name)}-${today()}.json`,
 };
 
 /** EU — base internazionale (CSV ISO). */
@@ -231,7 +231,7 @@ export const baseExporter: RegionalExporter = {
   mimeType: "text/csv;charset=utf-8",
   bom: false,
   build: buildBaseCsv,
-  fileName: (name) => `field-logbook-${slug(name)}-${oggi()}.csv`,
+  fileName: (name) => `field-logbook-${slug(name)}-${today()}.csv`,
 };
 
 /**

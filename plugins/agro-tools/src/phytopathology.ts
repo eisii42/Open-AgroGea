@@ -235,7 +235,7 @@ export interface PeacockEyeDay {
 }
 
 /** Ore di bagnatura minime per un evento d'infezione favorevole. */
-const BAGNATURA_SOGLIA_ORE = 10;
+const WETNESS_THRESHOLD_HOURS = 10;
 /** Banda termica favorevole alla germinazione dei conidi (°C). */
 const OCCHIO_T_MIN = 8;
 const OCCHIO_T_OTTIMALE_MAX = 22;
@@ -257,7 +257,7 @@ export function peacockEyeRisk(
   for (let i = 0; i < series.length; i++) {
     const g = series[i];
     const tMean = (g.tMin + g.tMax) / 2;
-    const bagnaturaOk = g.leafWetnessHours >= BAGNATURA_SOGLIA_ORE;
+    const bagnaturaOk = g.leafWetnessHours >= WETNESS_THRESHOLD_HOURS;
     const termicaOk = tMean >= OCCHIO_T_MIN && tMean <= OCCHIO_T_MAX;
     const favorevole = bagnaturaOk && termicaOk;
     consecutivi = favorevole ? consecutivi + 1 : 0;
@@ -273,7 +273,7 @@ export function peacockEyeRisk(
         model: "Occhio di pavone (bagnatura-temperatura)",
         risk,
         index,
-        message: `Bagnatura fogliare ${g.leafWetnessHours.toFixed(0)} h con T media ${tMean.toFixed(1)} °C${consecutivi > 1 ? ` da ${consecutivi} giorni` : ""}: condizioni d'infezione per Spilocaea oleagina. Valutare difesa rameica.`,
+        message: `Bagnatura fogliare ${g.leafWetnessHours.toFixed(0)} h con T media ${tMean.toFixed(1)} °C${consecutivi > 1 ? ` da ${consecutivi} days` : ""}: condizioni d'infezione per Spilocaea oleagina. Valutare difesa rameica.`,
         day: i,
       };
       if (!peggior || alert.index > peggior.index) peggior = alert;

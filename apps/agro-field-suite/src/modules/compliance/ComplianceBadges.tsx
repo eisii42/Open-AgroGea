@@ -2,7 +2,7 @@ import type { Plot } from "@agrogea/core";
 import { useAgroStore } from "@agrogea/core";
 import { useMemo } from "react";
 import { buildDueDiligenceReport } from "./due-diligence";
-import { useComplianceVincoli } from "./useGeoCompliance";
+import { useComplianceConstraints } from "./useGeoCompliance";
 
 /**
  * Badge condizionali di geo-compliance per un plot (Modulo 4):
@@ -16,17 +16,17 @@ export function ComplianceBadges({
 }: {
   plot: Plot;
 }) {
-  const valuta = useComplianceVincoli();
+  const valuta = useComplianceConstraints();
   const companies = useAgroStore((s) => s.companies);
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const recordTransfer = useAgroStore((s) => s.recordTransfer);
 
-  const esito = useMemo(
+  const outcome = useMemo(
     () => valuta(plot.geometry),
     [valuta, plot.geometry],
   );
 
-  if (!esito || esito.vincoli.length === 0) return null;
+  if (!outcome || outcome.constraints.length === 0) return null;
 
   const downloadReport = () => {
     const report = buildDueDiligenceReport({
@@ -34,7 +34,7 @@ export function ComplianceBadges({
       aziendaNome: companies.find((a) => a.id === activeCompanyId)?.business_name,
       geometria: plot.geometry,
       areaHa: plot.area_ha,
-      vincoli: esito.vincoli,
+      constraints: outcome.constraints,
     });
     const url = URL.createObjectURL(
       new Blob([report], { type: "application/geo+json" }),
@@ -55,17 +55,17 @@ export function ComplianceBadges({
 
   return (
     <div className="flex flex-col gap-1.5">
-      {esito.inZvn && (
+      {outcome.inZvn && (
         <span className="inline-flex items-center gap-1.5 rounded-[var(--r-2)] bg-[var(--warn-l)] px-2 py-1 text-xs font-medium text-[var(--warn)]">
           ⚠ Zona Vulnerabile Nitrati
         </span>
       )}
-      {esito.inAreaProtetta && (
+      {outcome.inAreaProtetta && (
         <span className="inline-flex items-center gap-1.5 rounded-[var(--r-2)] bg-[var(--warn-l)] px-2 py-1 text-xs font-medium text-[var(--ink-2)]">
           ⛰ Area protetta (SIC/ZPS)
         </span>
       )}
-      {esito.inEudr && (
+      {outcome.inEudr && (
         <div className="flex flex-col gap-1 rounded-[var(--r-2)] bg-[var(--danger-l)] px-2 py-1.5 text-xs text-[var(--danger)]">
           <span className="font-semibold">⛔ Verifica Compliance EUDR</span>
           <button

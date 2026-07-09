@@ -188,7 +188,7 @@
       "notifyTitle": "Mises à jour AgroGea"
     }
   },
-  "quadernoPanel": {
+  "logbookPanel": {
     "fieldFallbackName": "Champ {{id}}",
     "notification": {
       "removed": "Opération supprimée : {{label}}"
@@ -270,7 +270,7 @@
     "plotCalculationError": "Erreur de calcul pour cette parcelle.",
     "dssCalculationError": "Erreur de calcul DSS."
   },
-  "importaFascicolo": {
+  "importDossier": {
     "noActiveCompany": "Aucune exploitation active : impossible d'importer le Fascicolo.",
     "sianCrop": "Culture SIAN",
     "sianPlotName": "SIAN {{reference}}/{{parcel}}",
@@ -288,7 +288,7 @@
     "missingStationConfig": "Configuration de la station météo manquante.",
     "noPlotGeometryForStation": "Aucune parcelle avec géométrie : impossible de localiser la station météo."
   },
-  "bilancioIdricoPanel": {
+  "waterBalancePanel": {
     "title": "Eau · Bilan hydrique",
     "computing": "Calcul en cours…",
     "computeBalance": "Calculer le bilan",
@@ -329,7 +329,7 @@
     "exportMoistureHistory": "Exporter l'historique d'humidité",
     "registerCropHint": "Enregistrez la culture dans la Campagne Agricole pour archiver la série historique des indices hydriques."
   },
-  "anagraficaPanel": {
+  "registryPanel": {
     "title": "Fiche de l'Entreprise",
     "subtitle": "Données et codes de l'entreprise · synchronisés comme les autres données.",
     "selectCompany": "Sélectionnez une entreprise pour modifier sa fiche.",
@@ -378,7 +378,7 @@
       "contactRolePlaceholder": "ex. exploitant, agronome"
     }
   },
-  "raccoltaPanel": {
+  "harvestPanel": {
     "title": "Récoltes",
     "newHarvest": "Nouvelle récolte",
     "harvestFallbackLabel": "Récolte",
@@ -433,7 +433,7 @@
       "essiccazione": "séchage"
     }
   },
-  "impostazioniPanel": {
+  "settingsPanel": {
     "title": "Source météo et variables",
     "saved": "Enregistré ✓",
     "saveConfig": "Enregistrer la configuration",
@@ -530,7 +530,7 @@
     "titleCloud": "Transfert des données de l'entreprise",
     "titleStandalone": "Sécurité des données (sauvegarde/restauration)"
   },
-  "confirmDeleteOperazione": {
+  "confirmDeleteOperation": {
     "confirmDelete": "Oui, supprimer définitivement",
     "defaultConsentLabel": "Je confirme vouloir supprimer définitivement cette opération.",
     "defaultMessage": "la suppression de cette opération invalidera l'historique du Carnet de Champ pour cette parcelle. Cette action est irréversible.",
@@ -549,7 +549,7 @@
     "noCrop": "Sans culture",
     "title": "Cultures"
   },
-  "meteoCard": {
+  "weatherCard": {
     "today": "Aujourd'hui",
     "unavailable": "Météo indisponible : connectez-vous pour le premier téléchargement.",
     "refreshNow": "Actualiser maintenant",
@@ -693,7 +693,7 @@
     "title": "Télécharger une zone hors ligne",
     "west": "Ouest"
   },
-  "registroGeometrie": {
+  "geometryRegistry": {
     "pointsOfInterest": "Points d'intérêt",
     "samplingLabel": "Échantillonnage {{id}}",
     "title": "Registre des géométries ({{count}})",
@@ -739,7 +739,7 @@
     "tabOffline": "Hors ligne",
     "tabScouting": "Relevé GPS"
   },
-  "operazioneForm": {
+  "operationForm": {
     "onSurface": "sur {{area}} ha",
     "selectEllipsis": "Sélectionner…",
     "selectFromNationalRegister": "Sélectionner dans le registre national…",
@@ -1077,7 +1077,7 @@
     "recalcAllTitle": "Calculer les indices satellites, le DSS et le bilan hydrique pour toutes les parcelles",
     "refreshTitle": "Recharger le DSS, le bilan hydrique et la météo depuis la base de données"
   },
-  "suoloPanel": {
+  "soilPanel": {
     "calculateButton": "Calculer depuis Sentinel-2 (STAC)",
     "calculating": "Calcul en cours…",
     "charts": {
@@ -1198,7 +1198,7 @@
     "varietyFromCatalog": "Variété du catalogue",
     "varietyPlaceholder": "ex. Sangiovese, Leccino"
   },
-  "colturaPanel": {
+  "cropPanel": {
     "calculateModels": "Calculer les Modèles",
     "calculateModelsCount": "Calculer les Modèles ({{count}})",
     "dataTitle": "Données de culture",
@@ -1450,7 +1450,7 @@
       "water": "Apport en eau"
     }
   },
-  "operazioneDettaglioCard": {
+  "operationDetailCard": {
     "opLabel": {
       "phytosanitary": "Traitement phytosanitaire",
       "fertilization": "Fertilisation",
@@ -1490,7 +1490,7 @@
     "delete": "Supprimer",
     "close": "Fermer"
   },
-  "raccoltaDettaglioCard": {
+  "harvestDetailCard": {
     "harvest": "Récolte",
     "section": {
       "cropPlot": "Culture & parcelle",

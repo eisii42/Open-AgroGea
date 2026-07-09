@@ -98,7 +98,7 @@ export function assertWritable(get: StoreGet): void {
  * (per l'undo) o null se l'elemento non esiste. La geometria viene normalizzata
  * (strip Z, anelli) dentro i metodi `upsert*` del DAL.
  */
-export async function persistiGeometriaSuDal(
+export async function persistGeometryToDal(
   get: StoreGet,
   set: StoreSet,
   kind: SelectableKind,

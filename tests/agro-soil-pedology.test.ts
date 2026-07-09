@@ -8,12 +8,12 @@ import {
   saxtonRawls,
 } from "@agrogea/tools";
 import {
-  aggregaTessitura,
-  frazioniDaCampione,
+  aggregateTexture,
+  fractionsFromSample,
   frazioniDaProprieta,
   parametriDaMetadata,
   parametersFromManualSoil,
-  SUOLO_FRANCO_DEFAULT,
+  DEFAULT_LOAM_SOIL,
 } from "../apps/agro-field-suite/src/modules/soil/SoilDataResolver";
 
 /**
@@ -71,11 +71,11 @@ describe("normalizeFractions — percentuali a frazioni", () => {
 
 describe("saxtonRawls — sanità fisica θFC/θPWP", () => {
   it("FC > PWP e dentro i limiti fisici, per ogni tessitura", () => {
-    for (const classe of ["sabbioso", "franco", "argilloso"]) {
-      const fr = fractionsFromTexture(classe)!;
+    for (const textureClass of ["sabbioso", "franco", "argilloso"]) {
+      const fr = fractionsFromTexture(textureClass)!;
       const { fieldCapacity, wiltingPoint } = saxtonRawls(fr);
-      assert.ok(fieldCapacity > wiltingPoint, `${classe}: FC>PWP`);
-      assert.ok(wiltingPoint > 0 && fieldCapacity < 0.6, `${classe}: bounds`);
+      assert.ok(fieldCapacity > wiltingPoint, `${textureClass}: FC>PWP`);
+      assert.ok(wiltingPoint > 0 && fieldCapacity < 0.6, `${textureClass}: bounds`);
     }
   });
 
@@ -130,7 +130,7 @@ describe("frazioniDaProprieta — feature custom e soilSamples", () => {
   });
 });
 
-function campione(over: Partial<SoilSample>): SoilSample {
+function sample(over: Partial<SoilSample>): SoilSample {
   return {
     id: "c1",
     tenant_id: "t",
@@ -153,19 +153,19 @@ function campione(over: Partial<SoilSample>): SoilSample {
   };
 }
 
-describe("frazioniDaCampione / aggregaTessitura", () => {
+describe("fractionsFromSample / aggregateTexture", () => {
   it("legge la tessitura dal field texture o dalle percentuali in metadata", () => {
-    const daTexture = frazioniDaCampione(campione({ texture: "sandy loam" }));
+    const daTexture = fractionsFromSample(sample({ texture: "sandy loam" }));
     assert.ok(daTexture && daTexture.sabbia > daTexture.argilla);
 
-    const daMeta = frazioniDaCampione(
-      campione({ texture: null, metadata: { sabbia: 20, limo: 30, argilla: 50 } }),
+    const daMeta = fractionsFromSample(
+      sample({ texture: null, metadata: { sabbia: 20, limo: 30, argilla: 50 } }),
     );
     assert.ok(daMeta && Math.abs(daMeta.argilla - 0.5) < 1e-9);
   });
 
   it("media frazioni e sostanza organica dei campioni validi", () => {
-    const agg = aggregaTessitura([
+    const agg = aggregateTexture([
       { frazioni: { sabbia: 0.6, limo: 0.3, argilla: 0.1 }, sostanzaOrganica: 2 },
       { frazioni: { sabbia: 0.4, limo: 0.3, argilla: 0.3 }, sostanzaOrganica: 4 },
     ]);
@@ -176,7 +176,7 @@ describe("frazioniDaCampione / aggregaTessitura", () => {
   });
 
   it("aggrega null se la lista è vuota", () => {
-    assert.equal(aggregaTessitura([]), null);
+    assert.equal(aggregateTexture([]), null);
   });
 });
 
@@ -207,7 +207,7 @@ describe("parametriDaMetadata — fallback Tier 3", () => {
     );
     assert.ok(p);
     assert.equal(p!.fieldCapacity, 0.33);
-    assert.equal(p!.rootDepth, SUOLO_FRANCO_DEFAULT.rootDepth);
+    assert.equal(p!.rootDepth, DEFAULT_LOAM_SOIL.rootDepth);
   });
 
   it("null se il metadata non ha parametri soil completi", () => {
@@ -246,7 +246,7 @@ describe("parametersFromManualSoil — Tier 3 inserimento manuale", () => {
     );
     assert.ok(p);
     assert.ok(p!.fieldCapacity > p!.wiltingPoint);
-    assert.equal(p!.rootDepth, SUOLO_FRANCO_DEFAULT.rootDepth);
+    assert.equal(p!.rootDepth, DEFAULT_LOAM_SOIL.rootDepth);
   });
 
   it("usa le percentuali manuali e gli override profondità/depletion", () => {

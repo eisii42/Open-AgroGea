@@ -9,7 +9,7 @@ import { Trash2, Wheat, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
-function dataEstesa(value: string | Date): string {
+function longDate(value: string | Date): string {
   const d = typeof value === "string" ? new Date(value) : value;
   return Number.isNaN(d.getTime())
     ? "—"
@@ -34,7 +34,7 @@ export function HarvestDetailCard({
 }) {
   const { t } = useTranslation();
   const r = harvest;
-  const quantita =
+  const quantity =
     r.quantity_kg != null
       ? `${(r.quantity_kg / 100).toLocaleString("it-IT")} q · ${r.quantity_kg.toLocaleString("it-IT")} kg`
       : null;
@@ -55,13 +55,13 @@ export function HarvestDetailCard({
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--line)] px-4 py-3">
           <div className="min-w-0">
             <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent)]">
-              <Wheat size={13} /> {t("raccoltaDettaglioCard.harvest")}
+              <Wheat size={13} /> {t("harvestDetailCard.harvest")}
             </p>
             <h3 className="truncate text-base font-semibold">
-              {r.cultivar ?? t("raccoltaDettaglioCard.harvest")}
+              {r.cultivar ?? t("harvestDetailCard.harvest")}
             </h3>
             <p className="mt-0.5 text-xs capitalize text-[var(--ink-3)]">
-              {dataEstesa(r.harvested_at)}
+              {longDate(r.harvested_at)}
             </p>
           </div>
           <button
@@ -74,19 +74,19 @@ export function HarvestDetailCard({
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
-          <Section title={t("raccoltaDettaglioCard.section.cropPlot")}>
-            <Row label={t("raccoltaDettaglioCard.field.plot")} value={appezzamentoNome ?? t("raccoltaDettaglioCard.wholeFarm")} />
-            <Row label={t("raccoltaDettaglioCard.field.cultivar")} value={r.cultivar} />
+          <Section title={t("harvestDetailCard.section.cropPlot")}>
+            <Row label={t("harvestDetailCard.field.plot")} value={appezzamentoNome ?? t("harvestDetailCard.wholeFarm")} />
+            <Row label={t("harvestDetailCard.field.cultivar")} value={r.cultivar} />
           </Section>
 
-          <Section title={t("raccoltaDettaglioCard.section.delivery")}>
-            <Row label={t("raccoltaDettaglioCard.field.destination")} value={r.destination_logistics} />
-            <Row label={t("raccoltaDettaglioCard.field.lotCode")} value={lot} />
-            <Row label={t("raccoltaDettaglioCard.field.quantity")} value={quantita} num />
+          <Section title={t("harvestDetailCard.section.delivery")}>
+            <Row label={t("harvestDetailCard.field.destination")} value={r.destination_logistics} />
+            <Row label={t("harvestDetailCard.field.lotCode")} value={lot} />
+            <Row label={t("harvestDetailCard.field.quantity")} value={quantity} num />
           </Section>
 
           {r.notes && (
-            <Section title={t("raccoltaDettaglioCard.section.notes")}>
+            <Section title={t("harvestDetailCard.section.notes")}>
               <p className="whitespace-pre-wrap rounded-[var(--r-2)] bg-[var(--panel-2)] px-3 py-2 text-sm text-[var(--ink-1)]">
                 {r.notes}
               </p>
@@ -100,14 +100,14 @@ export function HarvestDetailCard({
             onClick={() => void onDelete()}
             className="flex items-center gap-1.5 rounded-[var(--r-2)] px-2.5 py-1.5 text-xs font-medium text-[var(--danger)] hover:bg-[var(--danger-l,#fee2e2)]"
           >
-            <Trash2 size={13} /> {t("raccoltaDettaglioCard.delete")}
+            <Trash2 size={13} /> {t("harvestDetailCard.delete")}
           </button>
           <button
             type="button"
             onClick={onClose}
             className="rounded-[var(--r-2)] border border-[var(--line)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--panel-2)]"
           >
-            {t("raccoltaDettaglioCard.close")}
+            {t("harvestDetailCard.close")}
           </button>
         </div>
       </div>

@@ -91,7 +91,7 @@ export function geojsonToCsv(fc: FeatureCollection): string {
 /** BOM UTF-8: forza Excel (locale IT/ES) a leggere il file come UTF-8. */
 export const BOM_UTF8 = "﻿";
 
-export interface OpzioniCsvLocalizzato {
+export interface LocalizedCsvOptions {
   /** Separatore di field (default `;`, atteso dai locale europei). */
   separator?: string;
   /** Antepone il BOM UTF-8 (default true). */
@@ -105,7 +105,7 @@ export interface OpzioniCsvLocalizzato {
  */
 export function geojsonToCsvLocalizzato(
   fc: FeatureCollection,
-  options: OpzioniCsvLocalizzato = {},
+  options: LocalizedCsvOptions = {},
 ): string {
   const sep = options.separator ?? ";";
   const chiavi = new Set<string>();

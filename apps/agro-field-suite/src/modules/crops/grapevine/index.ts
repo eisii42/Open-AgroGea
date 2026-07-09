@@ -1,7 +1,7 @@
 import type { CropModule } from "../types";
 import { dssVite } from "./dss";
 
-export { bilancioVite } from "./balance";
+export { grapevineBalance } from "./balance";
 export { dssVite } from "./dss";
 
 /** Modulo crop Vite: DSS peronospora/oidio, specie fenologica "vite". */

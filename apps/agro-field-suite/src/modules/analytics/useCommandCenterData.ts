@@ -28,7 +28,7 @@ export interface CommandCenterData {
   allCampaigns: PlotCampaign[];
   /** Anni di campagna distinti, dal più recente (per il selettore d'annata). */
   years: number[];
-  dssRisultati: DssResult[];
+  dssResults: DssResult[];
   soilIndices: SoilWaterIndex[];
   weather: WeatherReading[];
   /**
@@ -54,7 +54,7 @@ export function useCommandCenterData(
 
   const [allCampaigns, setAllCampaigns] = useState<PlotCampaign[]>([]);
   const [weather, setWeather] = useState<WeatherReading[]>([]);
-  const [dssRisultati, setDssRisultati] = useState<DssResult[]>([]);
+  const [dssResults, setDssResults] = useState<DssResult[]>([]);
   const [soilIndices, setSoilIndices] = useState<SoilWaterIndex[]>([]);
   const [loadingBase, setLoadingBase] = useState(true);
   const [loadingScope, setLoadingScope] = useState(true);
@@ -127,7 +127,7 @@ export function useCommandCenterData(
   useEffect(() => {
     let alive = true;
     if (!dal || scopePlotIds.length === 0) {
-      setDssRisultati([]);
+      setDssResults([]);
       setSoilIndices([]);
       setLoadingScope(false);
       return;
@@ -138,7 +138,7 @@ export function useCommandCenterData(
       Promise.all(scopeCampaignIds.map((id) => dal.listIndiciIdrici(id))),
     ]).then(([dssByPlot, idxByCamp]) => {
       if (!alive) return;
-      setDssRisultati(dssByPlot.flat());
+      setDssResults(dssByPlot.flat());
       setSoilIndices(idxByCamp.flat());
       setLoadingScope(false);
     });
@@ -160,7 +160,7 @@ export function useCommandCenterData(
       campaignFields: allCampaigns,
       treatments,
       harvests,
-      dssRisultati,
+      dssResults,
       weather,
       soilIndices,
       campaignYear,
@@ -177,7 +177,7 @@ export function useCommandCenterData(
     allCampaigns,
     treatments,
     harvests,
-    dssRisultati,
+    dssResults,
     weather,
     soilIndices,
     campaignYear,
@@ -197,7 +197,7 @@ export function useCommandCenterData(
     result,
     allCampaigns,
     years,
-    dssRisultati,
+    dssResults,
     soilIndices,
     weather,
     refresh,

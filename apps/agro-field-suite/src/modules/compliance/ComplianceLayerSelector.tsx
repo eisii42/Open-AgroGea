@@ -4,7 +4,7 @@ import type { FeatureCollection } from "geojson";
 import { Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { EXTERNAL_LAYER_FLAG } from "../add-data/add-data";
-import { ETICHETTE_VINCOLO, type TipoVincolo } from "./geo-compliance";
+import { CONSTRAINT_LABELS, type ConstraintType } from "./geo-compliance";
 import { useComplianceLayerAnalysis } from "./useComplianceLayerAnalysis";
 
 /**
@@ -16,7 +16,7 @@ import { useComplianceLayerAnalysis } from "./useComplianceLayerAnalysis";
  * plots del tenant intersecano il layer, aggiornando i badge di allerta.
  */
 
-const TIPI: TipoVincolo[] = ["zvn", "sic", "zps", "eudr"];
+const TIPI: ConstraintType[] = ["zvn", "sic", "zps", "eudr"];
 
 export function ComplianceLayerSelector() {
   const layers = useAppStore((s) => s.layers);
@@ -24,7 +24,7 @@ export function ComplianceLayerSelector() {
   const plots = useAgroStore((s) => s.plots);
 
   const [layerId, setLayerId] = useState<string>("");
-  const [tipo, setTipo] = useState<TipoVincolo>("zvn");
+  const [type, setType] = useState<ConstraintType>("zvn");
 
   // Tutti i layer esterni attivi caricati via Add Data (con geometria).
   const layerEsterni = useMemo(
@@ -41,11 +41,11 @@ export function ComplianceLayerSelector() {
   const analisi = useComplianceLayerAnalysis(plots, geojson);
 
   /** Classifica il layer selezionato come vincolo `tipo` (tag app-wide). */
-  function classifica(nextTipo: TipoVincolo) {
-    setTipo(nextTipo);
+  function classification(nextType: ConstraintType) {
+    setType(nextType);
     if (chosenLayer) {
       updateLayer(chosenLayer.id, {
-        metadata: { ...chosenLayer.metadata, compliance: nextTipo },
+        metadata: { ...chosenLayer.metadata, compliance: nextType },
       });
     }
   }
@@ -56,13 +56,13 @@ export function ComplianceLayerSelector() {
     if (!l) return;
     // Eredita una classificazione già assegnata, altrimenti applica quella current.
     const current = l.metadata?.compliance;
-    const nextTipo =
+    const nextType =
       typeof current === "string" && (TIPI as string[]).includes(current)
-        ? (current as TipoVincolo)
-        : tipo;
-    setTipo(nextTipo);
+        ? (current as ConstraintType)
+        : type;
+    setType(nextType);
     updateLayer(l.id, {
-      metadata: { ...l.metadata, compliance: nextTipo },
+      metadata: { ...l.metadata, compliance: nextType },
     });
   }
 
@@ -119,14 +119,14 @@ export function ComplianceLayerSelector() {
             </label>
             <select
               id="gc-tipo"
-              value={tipo}
+              value={type}
               disabled={!chosenLayer}
-              onChange={(e) => classifica(e.target.value as TipoVincolo)}
+              onChange={(e) => classification(e.target.value as ConstraintType)}
               className="w-full rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-2 text-sm disabled:opacity-50"
             >
               {TIPI.map((t) => (
                 <option key={t} value={t}>
-                  {ETICHETTE_VINCOLO[t]}
+                  {CONSTRAINT_LABELS[t]}
                 </option>
               ))}
             </select>
@@ -150,18 +150,18 @@ export function ComplianceLayerSelector() {
                     className="inline-flex items-center gap-1.5 self-start rounded-[var(--r-2)] px-2 py-1 text-xs font-medium"
                     style={{
                       background:
-                        tipo === "zvn" || tipo === "eudr"
+                        type === "zvn" || type === "eudr"
                           ? "var(--danger-l, #fee2e2)"
                           : "var(--warn-l)",
                       color:
-                        tipo === "zvn" || tipo === "eudr"
+                        type === "zvn" || type === "eudr"
                           ? "var(--danger)"
                           : "var(--warn)",
                     }}
                   >
-                    {tipo === "zvn" && "⚠ ZVN"}
-                    {tipo === "eudr" && "⛔ EUDR"}
-                    {(tipo === "sic" || tipo === "zps") && "⛰ Area protetta"}
+                    {type === "zvn" && "⚠ ZVN"}
+                    {type === "eudr" && "⛔ EUDR"}
+                    {(type === "sic" || type === "zps") && "⛰ Area protetta"}
                     {` · ${colpiti} appezzament${colpiti === 1 ? "o" : "i"} interessat${colpiti === 1 ? "o" : "i"}`}
                   </span>
                   <p className="text-[11px] text-[var(--ink-4)]">

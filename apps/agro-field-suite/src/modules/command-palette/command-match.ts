@@ -5,7 +5,7 @@
  * in base alla query digitata, indipendente da React e dallo store.
  */
 
-export type CategoriaComando = "azione" | "appezzamento";
+export type CommandCategory = "azione" | "appezzamento";
 
 export interface ComandoBase {
   id: string;
@@ -13,7 +13,7 @@ export interface ComandoBase {
   sottotitolo?: string;
   /** Termini extra per il match (sinonimi, sigle). */
   paroleChiave?: string[];
-  categoria: CategoriaComando;
+  category: CommandCategory;
 }
 
 /** Normalizza per il confronto: minuscolo, senza accenti né punteggiatura. */
@@ -62,9 +62,9 @@ export function filterCommands<T extends ComandoBase>(
   const tokens = q.split(" ");
 
   return comandi
-    .map((comando, indice) => ({
+    .map((comando, index) => ({
       comando,
-      indice,
+      index,
       punteggio: punteggioComando(comando, tokens),
     }))
     .filter((entry) => entry.punteggio >= 0)
@@ -72,7 +72,7 @@ export function filterCommands<T extends ComandoBase>(
       if (b.punteggio !== a.punteggio) return b.punteggio - a.punteggio;
       const lenDiff = a.comando.title.length - b.comando.title.length;
       if (lenDiff !== 0) return lenDiff;
-      return a.indice - b.indice;
+      return a.index - b.index;
     })
     .map((entry) => entry.comando);
 }

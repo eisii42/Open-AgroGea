@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import {
   assertWritable,
   MAX_GEOMETRY_HISTORY,
-  persistiGeometriaSuDal,
+  persistGeometryToDal,
 } from "./helpers";
 import type { GeometrySlice, StoreGet, StoreSet } from "./state";
 
@@ -102,18 +102,18 @@ export function createGeometrySlice(
       assertWritable(get);
       const { geomEdit } = get();
       if (!geomEdit) return;
-      const esito = await persistiGeometriaSuDal(
+      const outcome = await persistGeometryToDal(
         get,
         set,
         geomEdit.kind,
         geomEdit.id,
         geometry,
       );
-      if (esito) {
+      if (outcome) {
         set((s) => ({
           geometryUndo: [
             ...s.geometryUndo,
-            { kind: geomEdit.kind, id: geomEdit.id, before: esito.before, after: geometry },
+            { kind: geomEdit.kind, id: geomEdit.id, before: outcome.before, after: geometry },
           ].slice(-MAX_GEOMETRY_HISTORY),
           geometryRedo: [],
         }));
@@ -126,7 +126,7 @@ export function createGeometrySlice(
       const stack = get().geometryUndo;
       const snap = stack[stack.length - 1];
       if (!snap) return;
-      await persistiGeometriaSuDal(get, set, snap.kind, snap.id, snap.before);
+      await persistGeometryToDal(get, set, snap.kind, snap.id, snap.before);
       set((s) => ({
         geometryUndo: s.geometryUndo.slice(0, -1),
         geometryRedo: [...s.geometryRedo, snap],
@@ -138,7 +138,7 @@ export function createGeometrySlice(
       const stack = get().geometryRedo;
       const snap = stack[stack.length - 1];
       if (!snap) return;
-      await persistiGeometriaSuDal(get, set, snap.kind, snap.id, snap.after);
+      await persistGeometryToDal(get, set, snap.kind, snap.id, snap.after);
       set((s) => ({
         geometryRedo: s.geometryRedo.slice(0, -1),
         geometryUndo: [...s.geometryUndo, snap],

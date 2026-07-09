@@ -39,11 +39,11 @@ const IDLE: FullRecalcState = {
 
 // "Calcola tutto" rinfresca l'NDVI (vigore) sull'ultima scena utile: sufficiente
 // per l'anomalia ΔNDVI e per i KPI; l'utente può poi approfondire dal module Suolo.
-const SUOLO_OPZIONI: SoilOptions = {
-  indici: ["ndvi"],
-  indicePrimario: "ndvi",
+const SOIL_OPTIONS: SoilOptions = {
+  indices: ["ndvi"],
+  primaryIndex: "ndvi",
   cloudCoverMax: 20,
-  strategia: { tipo: "ultima" },
+  strategia: { type: "ultima" },
 };
 
 export function useFullRecalc(onDone?: () => void) {
@@ -71,7 +71,7 @@ export function useFullRecalc(onDone?: () => void) {
         label: `Indici satellitari · ${plot.user_plot_name}`,
       }));
       try {
-        await soil.compute([plot], SUOLO_OPZIONI);
+        await soil.compute([plot], SOIL_OPTIONS);
       } catch {
         errors++;
       }

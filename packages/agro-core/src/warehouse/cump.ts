@@ -25,8 +25,8 @@ export function cumpAfterInbound(
 ): number {
   if (!(quantitaCaricata > 0)) return cumpCorrente;
   const base = existingStock > 0 ? existingStock : 0;
-  const totale = base + quantitaCaricata;
-  const cump = (base * cumpCorrente + quantitaCaricata * costoCarico) / totale;
+  const total = base + quantitaCaricata;
+  const cump = (base * cumpCorrente + quantitaCaricata * costoCarico) / total;
   return Math.round(cump * 10000) / 10000;
 }
 
@@ -48,16 +48,16 @@ export function expiryStatus(
   if (!expiresAt) return "valid";
   // Il Date di PGlite è a mezzanotte LOCALE: si riformatta con i componenti
   // locali (toISOString slitterebbe di un giorno nei fusi positivi).
-  const giorno =
+  const day =
     expiresAt instanceof Date
       ? `${expiresAt.getFullYear()}-${String(expiresAt.getMonth() + 1).padStart(2, "0")}-${String(expiresAt.getDate()).padStart(2, "0")}`
       : expiresAt.slice(0, 10);
-  const scadenza = new Date(`${giorno}T23:59:59.999`);
-  if (Number.isNaN(scadenza.getTime())) return "valid";
-  if (scadenza.getTime() < riferimento.getTime()) return "expired";
-  const soglia = new Date(riferimento);
-  soglia.setDate(soglia.getDate() + warningDays);
-  return scadenza.getTime() <= soglia.getTime() ? "expiring" : "valid";
+  const expiry = new Date(`${day}T23:59:59.999`);
+  if (Number.isNaN(expiry.getTime())) return "valid";
+  if (expiry.getTime() < riferimento.getTime()) return "expired";
+  const threshold = new Date(riferimento);
+  threshold.setDate(threshold.getDate() + warningDays);
+  return expiry.getTime() <= threshold.getTime() ? "expiring" : "valid";
 }
 
 /** true se il lot è scaduto (uso BLOCCATO nello issue, DAL + UI). */

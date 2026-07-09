@@ -37,30 +37,30 @@ export function useTenantCountry(): CountryResolution {
  * del tenant (es. fitofarmaci MAPA in Spagna). Ritorna anche il paese usato e lo
  * stato di caricamento per la UI.
  */
-export function useCountryCatalog(tipo: CatalogType): {
-  voci: CatalogEntry[];
+export function useCountryCatalog(type: CatalogType): {
+  items: CatalogEntry[];
   countryCode: CountryResolution["countryCode"];
   loading: boolean;
 } {
   const dal = useAgroStore((s) => s.dal);
   const { countryCode } = useTenantCountry();
-  const [voci, setVoci] = useState<CatalogEntry[]>([]);
+  const [items, setItems] = useState<CatalogEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!dal) {
-      setVoci([]);
+      setItems([]);
       return;
     }
     let alive = true;
     setLoading(true);
     dal
-      .listCatalogo(countryCode, tipo)
+      .listCatalogo(countryCode, type)
       .then((v) => {
-        if (alive) setVoci(v);
+        if (alive) setItems(v);
       })
       .catch(() => {
-        if (alive) setVoci([]);
+        if (alive) setItems([]);
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -68,7 +68,7 @@ export function useCountryCatalog(tipo: CatalogType): {
     return () => {
       alive = false;
     };
-  }, [dal, countryCode, tipo]);
+  }, [dal, countryCode, type]);
 
-  return { voci, countryCode, loading };
+  return { items, countryCode, loading };
 }

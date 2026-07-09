@@ -14,8 +14,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   OverlayRaster,
   SeriesPoint,
-  SuoloJob,
-  SuoloProgress,
+  SoilJob,
+  SoilProgress,
 } from "../workers/soil.worker";
 
 /**
@@ -32,17 +32,17 @@ import type {
  */
 
 export type StrategiaTemporale =
-  | { tipo: "ultima" }
-  | { tipo: "intervallo"; giorni: number }
+  | { type: "ultima" }
+  | { type: "intervallo"; days: number }
   /** Intervallo esplicito (ISO date "YYYY-MM-DD"), max 60 giorni. */
-  | { tipo: "personalizzato"; inizio: string; fine: string };
+  | { type: "personalizzato"; inizio: string; fine: string };
 
 /** Tetto dell'analisi personalizzata: l'intervallo non può superare i 60 giorni. */
-export const MAX_GIORNI_PERSONALIZZATO = 60;
+export const MAX_CUSTOM_DAYS = 60;
 
 export interface SoilOptions {
-  indici: VegetationIndex[];
-  indicePrimario: VegetationIndex;
+  indices: VegetationIndex[];
+  primaryIndex: VegetationIndex;
   cloudCoverMax: number;
   strategia: StrategiaTemporale;
 }
@@ -53,7 +53,7 @@ export interface PlotResult {
   series: SeriesPoint[];
 }
 
-export type SuoloStato =
+export type SoilStatus =
   | { phase: "idle" }
   | {
       phase: "lavorazione";
@@ -63,9 +63,9 @@ export type SuoloStato =
     }
   | {
       phase: "completato";
-      risultati: PlotResult[];
-      indici: VegetationIndex[];
-      indicePrimario: VegetationIndex;
+      results: PlotResult[];
+      indices: VegetationIndex[];
+      primaryIndex: VegetationIndex;
     }
   | { phase: "errore"; message: string };
 
@@ -73,7 +73,7 @@ const OVERLAY_PREFIX = "agrogea-overlay-";
 
 /**
  * Normalizza l'intervallo personalizzato: ordina gli estremi e taglia la durata
- * a {@link MAX_GIORNI_PERSONALIZZATO} giorni (difesa lato pipeline, oltre alla
+ * a {@link MAX_CUSTOM_DAYS} giorni (difesa lato pipeline, oltre alla
  * validazione UI). La fine è inclusa fino a fine giornata.
  */
 function clampRange(
@@ -85,7 +85,7 @@ function clampRange(
   if (fine < inizio) [inizio, fine] = [fine, inizio];
   // La fine copre l'intera giornata selezionata.
   fine.setHours(23, 59, 59, 999);
-  const maxMs = MAX_GIORNI_PERSONALIZZATO * 24 * 3600 * 1000;
+  const maxMs = MAX_CUSTOM_DAYS * 24 * 3600 * 1000;
   if (fine.getTime() - inizio.getTime() > maxMs) {
     inizio = new Date(fine.getTime() - maxMs);
   }
@@ -151,7 +151,7 @@ function iniettaOverlay(plotId: string, overlay: OverlayRaster): void {
 
 export function useSoilPipeline() {
   const saveMeanNdvi = useAgroStore((s) => s.saveMeanNdvi);
-  const [stato, setStato] = useState<SuoloStato>({ phase: "idle" });
+  const [status, setStatus] = useState<SoilStatus>({ phase: "idle" });
   const workerRef = useRef<Worker | null>(null);
 
   useEffect(() => {
@@ -167,7 +167,7 @@ export function useSoilPipeline() {
   }, []);
 
   const runJob = useCallback(
-    (job: SuoloJob, onProgress: (p: SuoloProgress) => void) =>
+    (job: SoilJob, onProgress: (p: SoilProgress) => void) =>
       new Promise<{ series: SeriesPoint[]; overlay: OverlayRaster | null }>(
         (resolve, reject) => {
           const worker = workerRef.current;
@@ -175,14 +175,14 @@ export function useSoilPipeline() {
             reject(new Error("Worker non inizializzato."));
             return;
           }
-          const onMessage = (e: MessageEvent<SuoloProgress>) => {
+          const onMessage = (e: MessageEvent<SoilProgress>) => {
             const msg = e.data;
-            if (msg.tipo === "progress") {
+            if (msg.type === "progress") {
               onProgress(msg);
               return;
             }
             worker.removeEventListener("message", onMessage);
-            if (msg.tipo === "error") reject(new Error(msg.message));
+            if (msg.type === "error") reject(new Error(msg.message));
             else resolve({ series: msg.series, overlay: msg.overlay });
           };
           worker.addEventListener("message", onMessage);
@@ -194,9 +194,9 @@ export function useSoilPipeline() {
 
   const compute = useCallback(
     async (plots: Plot[], options: SoilOptions) => {
-      if (plots.length === 0 || options.indici.length === 0) return;
+      if (plots.length === 0 || options.indices.length === 0) return;
       removeOverlay();
-      const risultati: PlotResult[] = [];
+      const results: PlotResult[] = [];
 
       try {
         const strategia = options.strategia;
@@ -205,19 +205,19 @@ export function useSoilPipeline() {
         // giorni indietro ("ultima" usa una finestra ampia per trovare l'ultimo
         // passaggio utile).
         const datetimeRange =
-          strategia.tipo === "personalizzato"
+          strategia.type === "personalizzato"
             ? clampRange(strategia.inizio, strategia.fine)
             : undefined;
         // Finestra di RICERCA STAC: sempre generosa, così si aggancia l'ultimo
         // passaggio utile anche se più vecchio del periodo richiesto (i passaggi
         // recenti possono essere tutti nuvolosi). Per le strategie a intervallo
         // la series viene poi ancorata agli ultimi N giorni dall'ultima scena.
-        const giorniRicerca =
-          strategia.tipo === "intervallo" ? strategia.giorni + 90 : 120;
+        const searchDays =
+          strategia.type === "intervallo" ? strategia.days + 90 : 120;
 
         for (let i = 0; i < plots.length; i++) {
           const plot = plots[i];
-          setStato({
+          setStatus({
             phase: "lavorazione",
             label: `Ricerca scene · ${plot.user_plot_name}`,
             appezzamentoCorrente: i + 1,
@@ -226,18 +226,18 @@ export function useSoilPipeline() {
 
           const bbox = boundingBox(plot.geometry);
           let sceneSeries = await searchSceneSeries(bbox, {
-            indici: options.indici,
+            indices: options.indices,
             cloudCoverMax: options.cloudCoverMax,
             ...(datetimeRange
               ? { datetimeRange }
-              : { giorniIndietro: giorniRicerca }),
+              : { giorniIndietro: searchDays }),
           });
           // Intervallo "ultimi N gg": ancora la finestra all'ultima scena utile.
-          if (strategia.tipo === "intervallo") {
-            sceneSeries = filterWindowFromLatest(sceneSeries, strategia.giorni);
+          if (strategia.type === "intervallo") {
+            sceneSeries = filterWindowFromLatest(sceneSeries, strategia.days);
           }
           if (sceneSeries.length === 0) {
-            risultati.push({
+            results.push({
               plotId: plot.id,
               name: plot.user_plot_name,
               series: [],
@@ -248,21 +248,21 @@ export function useSoilPipeline() {
           // "ultima": solo la scena più recente; intervallo/personalizzato:
           // tutta la series (per il grafico di trend).
           const scene =
-            strategia.tipo === "ultima" ? [sceneSeries[0]] : sceneSeries;
+            strategia.type === "ultima" ? [sceneSeries[0]] : sceneSeries;
 
-          const job: SuoloJob = {
-            tipo: "suolo",
+          const job: SoilJob = {
+            type: "suolo",
             scene,
-            indici: options.indici,
-            indicePrimario: options.indicePrimario,
+            indices: options.indices,
+            primaryIndex: options.primaryIndex,
             geometria: plot.geometry,
             bbox,
           };
           const { series, overlay } = await runJob(job, (p) => {
-            if (p.tipo !== "progress") return;
-            setStato({
+            if (p.type !== "progress") return;
+            setStatus({
               phase: "lavorazione",
-              label: `Calcolo indici · ${plot.user_plot_name} (scena ${p.scenaCorrente}/${p.sceneTotali})`,
+              label: `Calcolo indices · ${plot.user_plot_name} (scena ${p.scenaCorrente}/${p.sceneTotali})`,
               appezzamentoCorrente: i + 1,
               appezzamentiTotali: plots.length,
             });
@@ -277,21 +277,21 @@ export function useSoilPipeline() {
             await saveMeanNdvi(plot.id, Math.round(ndviRecente * 1000) / 1000);
           }
 
-          risultati.push({
+          results.push({
             plotId: plot.id,
             name: plot.user_plot_name,
             series,
           });
         }
 
-        setStato({
+        setStatus({
           phase: "completato",
-          risultati,
-          indici: options.indici,
-          indicePrimario: options.indicePrimario,
+          results,
+          indices: options.indices,
+          primaryIndex: options.primaryIndex,
         });
       } catch (error) {
-        setStato({
+        setStatus({
           phase: "errore",
           message: error instanceof Error ? error.message : String(error),
         });
@@ -302,8 +302,8 @@ export function useSoilPipeline() {
 
   const reset = useCallback(() => {
     removeOverlay();
-    setStato({ phase: "idle" });
+    setStatus({ phase: "idle" });
   }, []);
 
-  return { stato, compute, reset };
+  return { status, compute, reset };
 }

@@ -14,9 +14,9 @@ import type { DssWeatherDay } from "../types";
  * così nessun DSS riceve mai `NaN` o una series discontinua.
  */
 
-const MS_GIORNO = 24 * 3600 * 1000;
+const MS_PER_DAY = 24 * 3600 * 1000;
 
-interface GiornoAgg {
+interface AggregatedDay {
   data: string;
   tMin: number | null;
   tMax: number | null;
@@ -28,7 +28,7 @@ interface GiornoAgg {
 }
 
 /** Parte data "YYYY-MM-DD" (UTC) di un timestamp ISO. */
-function giornoDi(iso: string): string {
+function dayOf(iso: string): string {
   return new Date(iso).toISOString().slice(0, 10);
 }
 
@@ -40,11 +40,11 @@ function mediaFinita(valori: number[]): number | null {
 }
 
 /** Aggrega le readings (orarie) in record giornalieri grezzi, con buchi. */
-function aggregaPerGiorno(readings: WeatherReading[]): Map<string, GiornoAgg> {
-  const perGiorno = new Map<string, GiornoAgg>();
+function aggregateByDay(readings: WeatherReading[]): Map<string, AggregatedDay> {
+  const perDay = new Map<string, AggregatedDay>();
   for (const l of readings) {
-    const data = giornoDi(l.measured_at);
-    let agg = perGiorno.get(data);
+    const data = dayOf(l.measured_at);
+    let agg = perDay.get(data);
     if (!agg) {
       agg = {
         data,
@@ -55,7 +55,7 @@ function aggregaPerGiorno(readings: WeatherReading[]): Map<string, GiornoAgg> {
         leafWetnessHours: 0,
         campioni: 0,
       };
-      perGiorno.set(data, agg);
+      perDay.set(data, agg);
     }
     const t = l.air_temperature;
     if (t != null && Number.isFinite(t)) {
@@ -79,22 +79,22 @@ function aggregaPerGiorno(readings: WeatherReading[]): Map<string, GiornoAgg> {
     agg.campioni += 1;
   }
   // rhMean accumulata → media reale per il number di readings del day.
-  for (const agg of perGiorno.values()) {
+  for (const agg of perDay.values()) {
     if (agg.rhMean != null && agg.campioni > 0) {
       agg.rhMean = agg.rhMean / agg.campioni;
     }
   }
-  return perGiorno;
+  return perDay;
 }
 
 /** Tutte le date "YYYY-MM-DD" da `inizio` a `fine` incluse. */
-function enumeraGiorni(inizio: string, fine: string): string[] {
+function enumerateDays(inizio: string, fine: string): string[] {
   const out: string[] = [];
   let t = new Date(`${inizio}T00:00:00Z`).getTime();
   const tFine = new Date(`${fine}T00:00:00Z`).getTime();
   while (t <= tFine) {
     out.push(new Date(t).toISOString().slice(0, 10));
-    t += MS_GIORNO;
+    t += MS_PER_DAY;
   }
   return out;
 }
@@ -164,24 +164,24 @@ function riempiMediaAdiacenti(
  */
 export function buildDssSeries(readings: WeatherReading[]): DssWeatherDay[] {
   if (readings.length === 0) return [];
-  const perGiorno = aggregaPerGiorno(readings);
-  const date = [...perGiorno.keys()].sort();
+  const perDay = aggregateByDay(readings);
+  const date = [...perDay.keys()].sort();
   if (date.length === 0) return [];
 
-  const giorni = enumeraGiorni(date[0], date[date.length - 1]);
-  const tMinRaw = giorni.map((d) => perGiorno.get(d)?.tMin ?? null);
-  const tMaxRaw = giorni.map((d) => perGiorno.get(d)?.tMax ?? null);
-  const rhRaw = giorni.map((d) => perGiorno.get(d)?.rhMean ?? null);
-  const pioggiaRaw = giorni.map((d) => perGiorno.get(d)?.rain ?? null);
-  const bagnaturaRaw = giorni.map((d) => perGiorno.get(d)?.leafWetnessHours ?? null);
+  const days = enumerateDays(date[0], date[date.length - 1]);
+  const tMinRaw = days.map((d) => perDay.get(d)?.tMin ?? null);
+  const tMaxRaw = days.map((d) => perDay.get(d)?.tMax ?? null);
+  const rhRaw = days.map((d) => perDay.get(d)?.rhMean ?? null);
+  const rainRaw = days.map((d) => perDay.get(d)?.rain ?? null);
+  const bagnaturaRaw = days.map((d) => perDay.get(d)?.leafWetnessHours ?? null);
 
   const tMin = interpolaLineare(tMinRaw);
   const tMax = interpolaLineare(tMaxRaw);
   const rh = riempiMediaAdiacenti(rhRaw);
-  const rain = riempiMediaAdiacenti(pioggiaRaw);
+  const rain = riempiMediaAdiacenti(rainRaw);
   const bagnatura = riempiMediaAdiacenti(bagnaturaRaw);
 
-  return giorni.map((data, i) => {
+  return days.map((data, i) => {
     // Guardia finale anti-NaN: una series tutta-vuota su un canale ricade su 0;
     // tMin/tMax incoerenti vengono riordinati.
     const lo = Number.isFinite(tMin[i]) ? tMin[i] : 0;

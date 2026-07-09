@@ -6,29 +6,29 @@
  */
 import type { GeoLibreLayer } from "@geolibre/core";
 
-export interface VoceLegenda {
+export interface LegendItem {
   id: string;
   name: string;
-  colore: string;
+  color: string;
 }
 
-const COLORE_DEFAULT = "#1f6feb";
+const DEFAULT_COLOR = "#1f6feb";
 
 /** Colore rappresentativo di un layer per la legenda. */
-function coloreLayer(layer: GeoLibreLayer): string {
+function layerColor(layer: GeoLibreLayer): string {
   const style = layer.style as unknown as Record<string, unknown> | undefined;
   const candidato =
     (style?.fillColor as string) ||
     (style?.strokeColor as string) ||
     (style?.circleColor as string);
-  return typeof candidato === "string" && candidato ? candidato : COLORE_DEFAULT;
+  return typeof candidato === "string" && candidato ? candidato : DEFAULT_COLOR;
 }
 
 /**
  * Legenda dinamica dai layer visibili: esclude basemap e gli sketch grezzi del
  * geo-editor (non sono dati da legenda). Mantiene l'ordine dei layer.
  */
-export function buildLegenda(layers: GeoLibreLayer[]): VoceLegenda[] {
+export function buildLegenda(layers: GeoLibreLayer[]): LegendItem[] {
   return layers
     .filter((layer) => {
       if (!layer.visible) return false;
@@ -39,14 +39,14 @@ export function buildLegenda(layers: GeoLibreLayer[]): VoceLegenda[] {
     .map((layer) => ({
       id: layer.id,
       name: layer.name,
-      colore: coloreLayer(layer),
+      color: layerColor(layer),
     }));
 }
 
 export interface PrintOptions {
   title: string;
   note?: string;
-  legenda: VoceLegenda[];
+  legenda: LegendItem[];
   mostraScala: boolean;
   /** Testo della scala grafica (es. "200 m"). */
   scalaTesto?: string;
@@ -91,10 +91,10 @@ export function buildPrintSvg(opts: PrintOptions): string {
     `<text x="${panelX}" y="${y}" font-size="13" font-weight="700" fill="#1a2733">Legenda</text>`,
   );
   y += 22;
-  for (const voce of opts.legenda) {
+  for (const item of opts.legenda) {
     blocchi.push(
-      `<rect x="${panelX}" y="${y - 11}" width="14" height="14" rx="3" fill="${esc(voce.colore)}" stroke="#ffffff"/>`,
-      `<text x="${panelX + 22}" y="${y}" font-size="12" fill="#333d47">${esc(voce.name)}</text>`,
+      `<rect x="${panelX}" y="${y - 11}" width="14" height="14" rx="3" fill="${esc(item.color)}" stroke="#ffffff"/>`,
+      `<text x="${panelX + 22}" y="${y}" font-size="12" fill="#333d47">${esc(item.name)}</text>`,
     );
     y += 22;
   }

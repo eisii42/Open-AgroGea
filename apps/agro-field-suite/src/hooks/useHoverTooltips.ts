@@ -26,7 +26,7 @@ export interface HoverState {
   props: Record<string, unknown>;
 }
 
-const APPEZZAMENTI_ID = "agrogea-plots";
+const PLOTS_ID = "agrogea-plots";
 const INFRASTRUTTURE_ID = "agrogea-infrastrutture";
 const POI_ID = "agrogea-poi";
 
@@ -48,7 +48,7 @@ export function useHoverTooltips(
 
     // Layer nativi (anche se i dati arrivano dopo: MapLibre lega per id).
     const bindings: Binding[] = [
-      { layerId: fillLayerId(APPEZZAMENTI_ID), kind: "appezzamento" },
+      { layerId: fillLayerId(PLOTS_ID), kind: "appezzamento" },
       { layerId: lineLayerId(INFRASTRUTTURE_ID), kind: "infrastruttura" },
       { layerId: fillLayerId(INFRASTRUTTURE_ID), kind: "infrastruttura" },
       { layerId: circleLayerId(INFRASTRUTTURE_ID), kind: "infrastruttura" },

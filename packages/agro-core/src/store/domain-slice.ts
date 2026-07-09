@@ -235,7 +235,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         dal.listHarvests(activeCompanyId),
         dal.getConfigMeteo(activeCompanyId),
         dal.listDataTransferLogs(),
-        dal.listCampiCampagna({ anno: get().activeCampaign }),
+        dal.listCampiCampagna({ year: get().activeCampaign }),
         dal.listMemberships(),
         dal.listProducts(activeCompanyId),
         dal.listLotti(activeCompanyId),
@@ -411,11 +411,11 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       return record;
     },
 
-    setActiveCampaign: async (anno) => {
-      set({ activeCampaign: anno });
+    setActiveCampaign: async (year) => {
+      set({ activeCampaign: year });
       const dal = get().dal;
       if (!dal || !get().activeCompanyId) return;
-      set({ campaignFields: await dal.listCampiCampagna({ anno }) });
+      set({ campaignFields: await dal.listCampiCampagna({ year }) });
     },
 
     savePlotCampaign: async (input) => {

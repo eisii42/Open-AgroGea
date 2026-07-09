@@ -34,13 +34,13 @@ import { rasterToGridCells } from "../modules/vra/raster-cells";
  * bande lavora su array allineati.
  */
 
-export interface SuoloJob {
-  tipo: "suolo";
+export interface SoilJob {
+  type: "suolo";
   /** Serie di scene, dalla più recente alla più vecchia (vedi searchSceneSeries). */
   scene: IndicesScene[];
-  indici: VegetationIndex[];
+  indices: VegetationIndex[];
   /** Indice da renderizzare come overlay raster (sulla scena più recente). */
-  indicePrimario: VegetationIndex;
+  primaryIndex: VegetationIndex;
   geometria: Polygon | MultiPolygon;
   bbox: [number, number, number, number];
   /** Fattore L per SAVI (default lato libreria). */
@@ -75,21 +75,21 @@ export interface OverlayRaster {
   coordinates: OverlayCoordinates;
 }
 
-export type SuoloProgress =
+export type SoilProgress =
   | {
-      tipo: "progress";
+      type: "progress";
       phase: "download" | "calcolo";
       scenaCorrente: number;
       sceneTotali: number;
     }
   | {
-      tipo: "done";
+      type: "done";
       series: SeriesPoint[];
       overlay: OverlayRaster | null;
       /** Celle VRA dell'index primario, solo se `job.vra` è impostato. */
       vraCells: VraCells | null;
     }
-  | { tipo: "error"; message: string };
+  | { type: "error"; message: string };
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
 
@@ -103,7 +103,7 @@ let tokenCache: SasToken | null = null;
 let tokenInFlight: Promise<string> | null = null;
 
 async function tokenSentinel(): Promise<string> {
-  if (tokenCache && tokenCache.scadenzaMs > Date.now() + 60_000) {
+  if (tokenCache && tokenCache.expiryMs > Date.now() + 60_000) {
     return tokenCache.token;
   }
   tokenInFlight ??= planetaryComputerToken(SENTINEL2_COLLECTION)
@@ -206,7 +206,7 @@ async function readBand(
  * le coordinate UTM dei centri pixel. Se la banda è già sulla griglia `ref`,
  * la restituisce invariata. I pixel fuori dalla banda diventano NaN.
  */
-function ricampionaSuRiferimento(
+function resampleToReference(
   banda: BandaLetta,
   ref: RasterWindow,
 ): Float32Array {
@@ -247,16 +247,16 @@ function scegliRiferimento(bande: BandaLetta[]): RasterWindow {
 
 async function elaboraScena(
   scena: IndicesScene,
-  job: SuoloJob,
+  job: SoilJob,
   conOverlay: boolean,
 ): Promise<{
   punto: SeriesPoint;
   overlay: OverlayRaster | null;
   vraCells: VraCells | null;
 }> {
-  const nomiBande = Object.keys(scena.bandHrefs);
+  const bandNames = Object.keys(scena.bandHrefs);
   const lette = await Promise.all(
-    nomiBande.map(async (name) => ({
+    bandNames.map(async (name) => ({
       name,
       banda: await readBand(scena.bandHrefs[name], job.bbox),
     })),
@@ -264,7 +264,7 @@ async function elaboraScena(
   const ref = scegliRiferimento(lette.map((l) => l.banda));
   const bande: Record<string, Float32Array> = {};
   for (const { name, banda } of lette) {
-    bande[name] = ricampionaSuRiferimento(banda, ref);
+    bande[name] = resampleToReference(banda, ref);
   }
 
   const medie: Partial<Record<VegetationIndex, number>> = {};
@@ -272,14 +272,14 @@ async function elaboraScena(
   let overlay: OverlayRaster | null = null;
   let vraCells: VraCells | null = null;
 
-  for (const index of job.indici) {
+  for (const index of job.indices) {
     const valori = computeIndex(index, bande, { L: job.L });
     const { masked } = clipRasterToPolygon(valori, ref, job.geometria);
     const stats = indexStatistics(masked);
     medie[index] = stats.media;
     validPixels = Math.max(validPixels, stats.validPixels);
 
-    if (conOverlay && index === job.indicePrimario) {
+    if (conOverlay && index === job.primaryIndex) {
       overlay = {
         index,
         datetime: scena.datetime,
@@ -307,9 +307,9 @@ async function elaboraScena(
   };
 }
 
-ctx.addEventListener("message", async (event: MessageEvent<SuoloJob>) => {
+ctx.addEventListener("message", async (event: MessageEvent<SoilJob>) => {
   const job = event.data;
-  if (job?.tipo !== "suolo") return;
+  if (job?.type !== "suolo") return;
   try {
     if (job.scene.length === 0) {
       throw new Error("Nessuna scena available per i filters scelti.");
@@ -320,11 +320,11 @@ ctx.addEventListener("message", async (event: MessageEvent<SuoloJob>) => {
 
     for (let i = 0; i < job.scene.length; i++) {
       ctx.postMessage({
-        tipo: "progress",
+        type: "progress",
         phase: "download",
         scenaCorrente: i + 1,
         sceneTotali: job.scene.length,
-      } satisfies SuoloProgress);
+      } satisfies SoilProgress);
 
       // La scena più recente (i === 0) produce l'overlay (e le celle VRA).
       const { punto, overlay: o, vraCells: c } = await elaboraScena(
@@ -342,13 +342,13 @@ ctx.addEventListener("message", async (event: MessageEvent<SuoloJob>) => {
 
     const transfer = overlay ? [overlay.rgba.buffer] : [];
     ctx.postMessage(
-      { tipo: "done", series, overlay, vraCells } satisfies SuoloProgress,
+      { type: "done", series, overlay, vraCells } satisfies SoilProgress,
       transfer,
     );
   } catch (error) {
     ctx.postMessage({
-      tipo: "error",
+      type: "error",
       message: error instanceof Error ? error.message : String(error),
-    } satisfies SuoloProgress);
+    } satisfies SoilProgress);
   }
 });

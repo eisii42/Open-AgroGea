@@ -57,7 +57,7 @@ describe("v17 / chiusura campagna e secondo raccolto", () => {
       crop_metadata: { category: "seminativo", densita_semina: 200 },
     });
 
-    const prima = await dal.upsertCampoCampagna({
+    const before = await dal.upsertCampoCampagna({
       plot_id: plotId,
       crop_id: crop.id,
       campaign_year: 2026,
@@ -67,13 +67,13 @@ describe("v17 / chiusura campagna e secondo raccolto", () => {
       crop_external_code: null,
       variety_external_code: null,
     });
-    assert.equal(prima.closed_at, null);
+    assert.equal(before.closed_at, null);
 
     // Raccolto → chiusura del ciclo.
-    const chiusa = await dal.closeCampaign(prima.id);
+    const chiusa = await dal.closeCampaign(before.id);
     assert.ok(chiusa?.closed_at, "closed_at non impostato");
     // Idempotenza: richiudere una campagna chiusa è un no-op.
-    assert.equal(await dal.closeCampaign(prima.id), null);
+    assert.equal(await dal.closeCampaign(before.id), null);
 
     // Secondo raccolto: nuova semina nello stesso anno → row NUOVA (la
     // campagna chiusa non viene riusata né riaperta).
@@ -87,7 +87,7 @@ describe("v17 / chiusura campagna e secondo raccolto", () => {
       crop_external_code: null,
       variety_external_code: null,
     });
-    assert.notEqual(seconda.id, prima.id);
+    assert.notEqual(seconda.id, before.id);
     assert.equal(seconda.closed_at, null);
 
     const tutte = await dal.listCampiCampagna({ plotId: plotId });

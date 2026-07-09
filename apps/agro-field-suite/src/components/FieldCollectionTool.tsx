@@ -99,7 +99,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
   // nota corrispondente, caricando il registro se necessario.
   useEffect(() => {
     if (!scoutingOpenObservationId) return;
-    const apri = async () => {
+    const open = async () => {
       let lista = observations;
       if (lista.length === 0 && dal && activeCompanyId) {
         try {
@@ -110,11 +110,11 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
           /* tabella non pronta */
         }
       }
-      const trovata = lista.find((o) => o.id === scoutingOpenObservationId);
-      if (trovata) setDetailObs(trovata);
+      const found = lista.find((o) => o.id === scoutingOpenObservationId);
+      if (found) setDetailObs(found);
       consumeScoutingOpen();
     };
-    void apri();
+    void open();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scoutingOpenObservationId]);
 
@@ -275,7 +275,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
     }
   }
 
-  function annulla() {
+  function cancel() {
     setPendingPoint(null);
     setMode("idle");
     setError(null);
@@ -291,7 +291,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={annulla}
+                onClick={cancel}
                 className="flex-1 rounded-[var(--r-2)] border border-[var(--line)] py-2.5 text-sm font-medium hover:bg-[var(--panel-2)]"
               >
                 {t("logbook.common.cancel")}
@@ -351,7 +351,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
             </Field>
 
             {/* Campo foto solo se l'edizione ha uno storage remoto registrato:
-                senza uploader la foto non avrebbe dove essere caricata. */}
+                without uploader la foto non avrebbe dove essere caricata. */}
             {controlPlane().uploadScoutingPhoto && (
               <Field label={t("fieldCollectionTool.photo")}>
                 <input

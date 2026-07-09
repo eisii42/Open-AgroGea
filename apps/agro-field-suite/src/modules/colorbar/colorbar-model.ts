@@ -38,9 +38,9 @@ export function buildColorbar(rampa: ColorRamp): ColorbarModel {
   const max = rampa[rampa.length - 1][0];
   const span = max - min || 1;
 
-  const stops = rampa.map(([value, colore]) => {
+  const stops = rampa.map(([value, color]) => {
     const pos = (value - min) / span; // 0..1
-    return { pos, value, colore };
+    return { pos, value, color };
   });
 
   // Gradiente "to top": il primo stop (min) sta in basso (0%), l'ultimo in cima.
@@ -48,7 +48,7 @@ export function buildColorbar(rampa: ColorRamp): ColorbarModel {
     rampa.length === 1
       ? rampa[0][1]
       : `linear-gradient(to top, ${stops
-          .map((s) => `${s.colore} ${round(s.pos * 100)}%`)
+          .map((s) => `${s.color} ${round(s.pos * 100)}%`)
           .join(", ")})`;
 
   return {

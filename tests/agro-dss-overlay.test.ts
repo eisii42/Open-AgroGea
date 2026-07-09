@@ -55,7 +55,7 @@ describe("summarizeFieldRisk", () => {
   });
 
   it("il deficit di azoto alza il risk", () => {
-    const senza = summarizeFieldRisk(
+    const without = summarizeFieldRisk(
       { stressIdrico01: 0.2, rischioPatologico01: 0.2, ndvi: 0.7 },
       CAL,
     );
@@ -63,7 +63,7 @@ describe("summarizeFieldRisk", () => {
       { stressIdrico01: 0.2, rischioPatologico01: 0.2, ndvi: 0.7, azoto: 2 },
       CAL,
     );
-    assert.ok(carente > senza);
+    assert.ok(carente > without);
   });
 });
 

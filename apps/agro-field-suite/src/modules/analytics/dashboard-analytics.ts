@@ -125,8 +125,8 @@ export const ENTITIES: EntityDef[] = [
       return d.plots.map((a) => ({
         name: a.user_plot_name,
         crop: plotCrop.get(a.id) ?? "—",
-        irrigazione: a.irrigation_type ?? "—",
-        anno: a.planting_year ?? "—",
+        irrigation: a.irrigation_type ?? "—",
+        year: a.planting_year ?? "—",
         area_ha: a.area_ha,
         ndvi: a.last_ndvi_mean,
       }));
@@ -152,13 +152,13 @@ export const ENTITIES: EntityDef[] = [
       return d.treatments
         .filter((t) => t.deleted_at == null)
         .map((t) => ({
-          tipo: OP_LABEL[t.operation_type] ?? t.operation_type,
+          type: OP_LABEL[t.operation_type] ?? t.operation_type,
           product: t.product_name ?? "—",
           avversita: t.target_disease ?? "—",
           mese: monthKey(t.executed_at),
           plot: t.plot_id ? names.get(t.plot_id) ?? "—" : "Intera azienda",
           dose: t.dose_value,
-          quantita: t.total_quantity,
+          quantity: t.total_quantity,
           acqua_l: t.water_volume_l,
           area_ha: t.plot_id ? areas.get(t.plot_id) ?? null : null,
         }));
@@ -213,8 +213,8 @@ export const ENTITIES: EntityDef[] = [
         etc: s.etc,
         dr: s.depletion_mm,
         raw: s.raw_mm,
-        irrigazione: s.irrigation_mm,
-        pioggia: s.rain_mm,
+        irrigation: s.irrigation_mm,
+        rain: s.rain_mm,
         percolazione: s.deep_percolation_mm,
       }));
     },
@@ -233,7 +233,7 @@ export const ENTITIES: EntityDef[] = [
       d.weather.map((w) => ({
         data: dayKey(w.measured_at),
         temperatura: w.air_temperature,
-        pioggia: w.rain_mm,
+        rain: w.rain_mm,
         umidita: w.relative_humidity,
         vento: w.wind_speed,
       })),
@@ -248,7 +248,7 @@ export const ENTITIES: EntityDef[] = [
     ],
     rows: (d) => {
       const names = plotNames(d);
-      return d.dssRisultati.map((r) => ({
+      return d.dssResults.map((r) => ({
         modello: prettyModel(r.model_name),
         plot: r.plot_id ? names.get(r.plot_id) ?? "—" : "—",
         value: r.output_value,

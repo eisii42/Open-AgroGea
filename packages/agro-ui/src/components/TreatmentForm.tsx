@@ -41,10 +41,10 @@ const TIPI = [
   "sampling",
 ] as const satisfies readonly OperationType[];
 
-const UNITA: DoseUnit[] = ["kg/ha", "l/ha", "kg/hl", "l/hl", "g/hl", "m3"];
+const UNITS: DoseUnit[] = ["kg/ha", "l/ha", "kg/hl", "l/hl", "g/hl", "m3"];
 
 /** Avversità target PAN (dropdown rigorosa: niente testo libero). */
-export const AVVERSITA_PAN = [
+export const PAN_PESTS = [
   "Peronospora",
   "Oidio",
   "Botrite",
@@ -60,14 +60,14 @@ export const AVVERSITA_PAN = [
   "Altro",
 ] as const;
 
-export type TrattamentoFormValues = Omit<
+export type TreatmentFormValues = Omit<
   TreatmentLog,
   "id" | "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
 >;
 
 /** Opzione di field per la Campagna Agraria selezionata (name + codice SIAN). */
-export interface CampoCampagnaOption {
-  campoCampagnaId: string;
+export interface FieldCampaignOption {
+  fieldCampaignId: string;
   plotId: string;
   name: string;
   codiceColturaSian: string | null;
@@ -82,9 +82,9 @@ export interface ComplianceTreatment {
   azotoMaxTotaleKg: number | null;
 }
 
-export interface TrattamentoFormProps {
+export interface TreatmentFormProps {
   plots: Plot[];
-  onSubmit: (values: TrattamentoFormValues) => Promise<void> | void;
+  onSubmit: (values: TreatmentFormValues) => Promise<void> | void;
   onCancel?: () => void;
   /** Plot pre-selezionato (es. apertura dal popup del field). */
   defaultAppezzamentoId?: string | null;
@@ -92,7 +92,7 @@ export interface TrattamentoFormProps {
    * Campi validi per la Campagna Agraria attiva. Se forniti, il selettore mostra
    * questi (name + codice crop SIAN) e l'operazione aggancia `plot_campaign_id`.
    */
-  campaignFields?: CampoCampagnaOption[];
+  campaignFields?: FieldCampaignOption[];
   /**
    * Valuta i vincoli geografici dell'appezzamento (iniettata dall'app, che
    * legge i layer ZVN/SIC-ZPS). Tiene @agrogea/ui disaccoppiato dal motore.
@@ -114,7 +114,7 @@ export function TreatmentForm({
   campaignFields,
   valutaCompliance,
   prodottiCatalogo,
-}: TrattamentoFormProps) {
+}: TreatmentFormProps) {
   const { t } = useTranslation();
   // t() per chiavi DINAMICHE (etichette field + messaggi del validatore PAN):
   // bypassa il tipaggio stretto delle chiavi statiche di i18next.
@@ -125,29 +125,29 @@ export function TreatmentForm({
   const usesCampaign = (campaignFields?.length ?? 0) > 0;
   const usaCatalogo = (prodottiCatalogo?.length ?? 0) > 0;
 
-  const [tipo, setTipo] = useState<OperationType>("phytosanitary");
-  const [plotId, setAppezzamentoId] = useState<string>(
+  const [type, setType] = useState<OperationType>("phytosanitary");
+  const [plotId, setPlotId] = useState<string>(
     defaultAppezzamentoId ?? "",
   );
-  const [campoCampagnaId, setCampoCampagnaId] = useState<string>(() => {
+  const [fieldCampaignId, setFieldCampaignId] = useState<string>(() => {
     if (!usesCampaign || !defaultAppezzamentoId) return "";
     return (
       campaignFields?.find((c) => c.plotId === defaultAppezzamentoId)
-        ?.campoCampagnaId ?? ""
+        ?.fieldCampaignId ?? ""
     );
   });
   const [data, setData] = useState<string>(
     () => new Date().toISOString().slice(0, 10),
   );
-  const [product, setProdotto] = useState("");
-  const [prodottoCodice, setProdottoCodice] = useState("");
-  const [numeroRegistrazione, setNumeroRegistrazione] = useState("");
+  const [product, setProduct] = useState("");
+  const [productCode, setProductCode] = useState("");
+  const [registrationNumber, setRegistrationNumber] = useState("");
   const [sostanzaAttiva, setSostanzaAttiva] = useState("");
-  const [doseValore, setDoseValore] = useState("");
-  const [doseUnita, setDoseUnita] = useState<DoseUnit>("kg/ha");
-  const [acquaVolume, setAcquaVolume] = useState("");
-  const [operatoreCf, setOperatoreCf] = useState("");
-  const [numPatentino, setNumPatentino] = useState("");
+  const [doseValue, setDoseValue] = useState("");
+  const [doseUnit, setDoseUnit] = useState<DoseUnit>("kg/ha");
+  const [waterVolume, setWaterVolume] = useState("");
+  const [operatorTaxCode, setOperatorTaxCode] = useState("");
+  const [licenseNumber, setLicenseNumber] = useState("");
   const [target, setTarget] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -157,36 +157,36 @@ export function TreatmentForm({
   );
 
   const selectedField = useMemo(
-    () => campaignFields?.find((c) => c.campoCampagnaId === campoCampagnaId) ?? null,
-    [campaignFields, campoCampagnaId],
+    () => campaignFields?.find((c) => c.fieldCampaignId === fieldCampaignId) ?? null,
+    [campaignFields, fieldCampaignId],
   );
 
   // Superficie autorevole per i calcoli: dichiarata di campagna o quella fisica.
   const area = selectedField?.superficieHa ?? plot?.area_ha ?? null;
 
   // Totale automatico: dose × area (solo per unità riferite all'ettaro).
-  const quantitaTotale = useMemo(() => {
-    const dose = Number.parseFloat(doseValore);
-    if (!Number.isFinite(dose) || !area || !doseUnita.endsWith("/ha")) {
+  const totalQuantity = useMemo(() => {
+    const dose = Number.parseFloat(doseValue);
+    if (!Number.isFinite(dose) || !area || !doseUnit.endsWith("/ha")) {
       return null;
     }
     return Math.round(dose * area * 100) / 100;
-  }, [doseValore, doseUnita, area]);
+  }, [doseValue, doseUnit, area]);
 
   // Geo-compliance dell'appezzamento selezionato (vincoli + massimale azoto).
   const compliance = useMemo(
     () => (plot && valutaCompliance ? valutaCompliance(plot) : null),
     [plot, valutaCompliance],
   );
-  const superaAzoto =
-    tipo === "fertilization" &&
+  const exceedsNitrogen =
+    type === "fertilization" &&
     compliance?.azotoMaxTotaleKg != null &&
-    quantitaTotale != null &&
-    quantitaTotale > compliance.azotoMaxTotaleKg;
+    totalQuantity != null &&
+    totalQuantity > compliance.azotoMaxTotaleKg;
 
   // Validazione PAN completa (Modulo 3) solo per i treatments fitosanitari;
   // per gli altri tipi (irrigazione, lavorazione…) restano i vincoli minimi.
-  const fito = tipo === "phytosanitary";
+  const fito = type === "phytosanitary";
   const panErrors = useMemo<ValidationError[]>(
     () =>
       fito
@@ -194,11 +194,11 @@ export function TreatmentForm({
             operation_date: data,
             target_disease: target,
             product_name: product,
-            registration_number: numeroRegistrazione,
+            registration_number: registrationNumber,
             active_substance: sostanzaAttiva,
-            applied_dose: doseValore ? Number.parseFloat(doseValore) : null,
-            unit_of_measure: doseUnita,
-            operator_license_number: numPatentino,
+            applied_dose: doseValue ? Number.parseFloat(doseValue) : null,
+            unit_of_measure: doseUnit,
+            operator_license_number: licenseNumber,
           })
         : [],
     [
@@ -206,52 +206,52 @@ export function TreatmentForm({
       data,
       target,
       product,
-      numeroRegistrazione,
+      registrationNumber,
       sostanzaAttiva,
-      doseValore,
-      doseUnita,
-      numPatentino,
+      doseValue,
+      doseUnit,
+      licenseNumber,
     ],
   );
-  const mancano = panErrors.length > 0;
+  const missing = panErrors.length > 0;
 
   function selectCampaign(value: string) {
-    setCampoCampagnaId(value);
-    const opt = campaignFields?.find((c) => c.campoCampagnaId === value);
-    setAppezzamentoId(opt?.plotId ?? "");
+    setFieldCampaignId(value);
+    const opt = campaignFields?.find((c) => c.fieldCampaignId === value);
+    setPlotId(opt?.plotId ?? "");
   }
 
   // Selezione dal catalog nazionale: auto-compila sostanza attiva e n. registrazione.
   function selectProduct(codice: string) {
-    setProdottoCodice(codice);
-    const voce = prodottiCatalogo?.find((p) => p.code === codice);
-    setProdotto(voce?.name ?? "");
-    if (voce?.active_substance) setSostanzaAttiva(voce.active_substance);
-    if (voce?.registration_number)
-      setNumeroRegistrazione(voce.registration_number);
+    setProductCode(codice);
+    const item = prodottiCatalogo?.find((p) => p.code === codice);
+    setProduct(item?.name ?? "");
+    if (item?.active_substance) setSostanzaAttiva(item.active_substance);
+    if (item?.registration_number)
+      setRegistrationNumber(item.registration_number);
   }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (saving || mancano) return;
+    if (saving || missing) return;
     setSaving(true);
     try {
       await onSubmit({
-        operation_type: tipo,
+        operation_type: type,
         plot_id: plotId || null,
-        plot_campaign_id: campoCampagnaId || null,
+        plot_campaign_id: fieldCampaignId || null,
         product_name: product || null,
-        registration_number: numeroRegistrazione || null,
-        dose_value: doseValore ? Number.parseFloat(doseValore) : null,
-        dose_unit: doseValore ? doseUnita : null,
-        total_quantity: quantitaTotale,
+        registration_number: registrationNumber || null,
+        dose_value: doseValue ? Number.parseFloat(doseValue) : null,
+        dose_unit: doseValue ? doseUnit : null,
+        total_quantity: totalQuantity,
         target_disease: target || null,
         operator_name: null,
         machinery_equipment: null,
         active_substance: sostanzaAttiva || null,
-        water_volume_l: acquaVolume ? Number.parseInt(acquaVolume, 10) : null,
-        operator_tax_code: operatoreCf.trim().toUpperCase() || null,
-        license_number: numPatentino || null,
+        water_volume_l: waterVolume ? Number.parseInt(waterVolume, 10) : null,
+        operator_tax_code: operatorTaxCode.trim().toUpperCase() || null,
+        license_number: licenseNumber || null,
         fertilizer_type: null,
         npk_ratio: null,
         executed_at: new Date(`${data}T12:00:00`).toISOString(),
@@ -272,10 +272,10 @@ export function TreatmentForm({
           <button
             key={op}
             type="button"
-            onClick={() => setTipo(op)}
+            onClick={() => setType(op)}
             className={cn(
               "min-h-[var(--touch-min)] rounded-[var(--r-2)] border px-3 text-sm",
-              tipo === op
+              type === op
                 ? "border-[var(--accent-bd)] bg-[var(--accent-l)] font-semibold text-[var(--accent)]"
                 : "border-[var(--line)] bg-[var(--panel)] text-[var(--ink-2)]",
             )}
@@ -305,12 +305,12 @@ export function TreatmentForm({
           {usesCampaign ? (
             <Select
               id="qdc-appezzamento"
-              value={campoCampagnaId}
+              value={fieldCampaignId}
               onChange={(e) => selectCampaign(e.target.value)}
             >
               <option value="">{t("logbook.common.wholeFarm")}</option>
               {campaignFields?.map((c) => (
-                <option key={c.campoCampagnaId} value={c.campoCampagnaId}>
+                <option key={c.fieldCampaignId} value={c.fieldCampaignId}>
                   {c.name}
                   {c.codiceColturaSian ? ` · SIAN ${c.codiceColturaSian}` : ""}
                 </option>
@@ -320,7 +320,7 @@ export function TreatmentForm({
             <Select
               id="qdc-appezzamento"
               value={plotId}
-              onChange={(e) => setAppezzamentoId(e.target.value)}
+              onChange={(e) => setPlotId(e.target.value)}
             >
               <option value="">{t("logbook.common.wholeFarm")}</option>
               {plots.map((a) => (
@@ -363,7 +363,7 @@ export function TreatmentForm({
           {usaCatalogo ? (
             <Select
               id="qdc-prodotto"
-              value={prodottoCodice}
+              value={productCode}
               onChange={(e) => selectProduct(e.target.value)}
               required={fito}
             >
@@ -379,7 +379,7 @@ export function TreatmentForm({
             <Input
               id="qdc-prodotto"
               value={product}
-              onChange={(e) => setProdotto(e.target.value)}
+              onChange={(e) => setProduct(e.target.value)}
               placeholder={t("logbook.treatment.productPlaceholder")}
               required={fito}
             />
@@ -389,8 +389,8 @@ export function TreatmentForm({
           <Label htmlFor="qdc-reg">{t("logbook.treatment.regNumber")}</Label>
           <Input
             id="qdc-reg"
-            value={numeroRegistrazione}
-            onChange={(e) => setNumeroRegistrazione(e.target.value)}
+            value={registrationNumber}
+            onChange={(e) => setRegistrationNumber(e.target.value)}
             placeholder={t("logbook.treatment.regNumberPlaceholder")}
             className="agro-num"
             required={fito}
@@ -417,7 +417,7 @@ export function TreatmentForm({
           required={fito}
         >
           <option value="">{t("logbook.common.select")}</option>
-          {AVVERSITA_PAN.map((a) => (
+          {PAN_PESTS.map((a) => (
             <option key={a} value={a}>
               {a}
             </option>
@@ -434,8 +434,8 @@ export function TreatmentForm({
             inputMode="decimal"
             min="0"
             step="any"
-            value={doseValore}
-            onChange={(e) => setDoseValore(e.target.value)}
+            value={doseValue}
+            onChange={(e) => setDoseValue(e.target.value)}
             className="agro-num"
           />
         </div>
@@ -443,10 +443,10 @@ export function TreatmentForm({
           <Label htmlFor="qdc-unita">{t("logbook.treatment.unit")}</Label>
           <Select
             id="qdc-unita"
-            value={doseUnita}
-            onChange={(e) => setDoseUnita(e.target.value as DoseUnit)}
+            value={doseUnit}
+            onChange={(e) => setDoseUnit(e.target.value as DoseUnit)}
           >
-            {UNITA.map((u) => (
+            {UNITS.map((u) => (
               <option key={u} value={u}>
                 {u === "m3" ? "m³" : u}
               </option>
@@ -461,25 +461,25 @@ export function TreatmentForm({
             inputMode="numeric"
             min="0"
             step="1"
-            value={acquaVolume}
-            onChange={(e) => setAcquaVolume(e.target.value)}
+            value={waterVolume}
+            onChange={(e) => setWaterVolume(e.target.value)}
             placeholder={t("logbook.treatment.waterPlaceholder")}
             className="agro-num"
           />
         </div>
       </div>
 
-      {quantitaTotale != null && (
+      {totalQuantity != null && (
         <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] px-3 py-2 text-sm text-[var(--ink-2)]">
           {t("logbook.treatment.computedTotal")}{" "}
           <strong className="agro-num text-[var(--ink)]">
-            {quantitaTotale} {doseUnita.split("/")[0]}
+            {totalQuantity} {doseUnit.split("/")[0]}
           </strong>{" "}
-          ({doseValore} {doseUnita} × {area?.toFixed(2)} ha)
+          ({doseValue} {doseUnit} × {area?.toFixed(2)} ha)
         </p>
       )}
 
-      {superaAzoto && compliance?.azotoMaxTotaleKg != null && (
+      {exceedsNitrogen && compliance?.azotoMaxTotaleKg != null && (
         <p className="rounded-[var(--r-2)] bg-[var(--danger-l)] px-3 py-2 text-sm font-medium text-[var(--danger)]">
           {t("logbook.treatment.nitrogenExceeded", {
             max: compliance.azotoMaxTotaleKg,
@@ -492,8 +492,8 @@ export function TreatmentForm({
           <Label htmlFor="qdc-cf">{t("logbook.treatment.operatorTaxCode")}</Label>
           <Input
             id="qdc-cf"
-            value={operatoreCf}
-            onChange={(e) => setOperatoreCf(e.target.value)}
+            value={operatorTaxCode}
+            onChange={(e) => setOperatorTaxCode(e.target.value)}
             placeholder={t("logbook.treatment.operatorTaxCodePlaceholder")}
             className="agro-num uppercase"
             maxLength={16}
@@ -503,8 +503,8 @@ export function TreatmentForm({
           <Label htmlFor="qdc-pat">{t("logbook.treatment.license")}</Label>
           <Input
             id="qdc-pat"
-            value={numPatentino}
-            onChange={(e) => setNumPatentino(e.target.value)}
+            value={licenseNumber}
+            onChange={(e) => setLicenseNumber(e.target.value)}
             placeholder={t("logbook.treatment.licensePlaceholder")}
             className="agro-num"
           />
@@ -528,7 +528,7 @@ export function TreatmentForm({
       <div className="flex gap-2 pt-1">
         <Button
           type="submit"
-          disabled={saving || mancano}
+          disabled={saving || missing}
           className="min-h-[var(--touch-min)] flex-1"
         >
           {saving ? t("logbook.common.saving") : t("logbook.treatment.submit")}

@@ -9,13 +9,13 @@ import type { DssPlotResult } from "../../../hooks/useDssCalculation";
  * e gli alert testuali. Nessun bilancio idrico qui: vive nel pannello «Acqua».
  */
 
-const COLORE_RISCHIO: Record<DssRiskLevel, string> = {
+const RISK_COLOR: Record<DssRiskLevel, string> = {
   low: "#1f8a5b",
   medium: "#e8833a",
   high: "#d23b2e",
 };
 
-const ETICHETTA_RISCHIO: Record<DssRiskLevel, string> = {
+const RISK_LABEL: Record<DssRiskLevel, string> = {
   low: "Basso",
   medium: "Medio",
   high: "Alto",
@@ -32,8 +32,8 @@ function shortDate(iso: string): string {
   });
 }
 
-export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
-  const { name, module, esiti, series, meteo, message } = risultato;
+export function DssRiskCard({ result }: { result: DssPlotResult }) {
+  const { name, module, esiti, series, weather, message } = result;
 
   // Livello complessivo = il peggiore tra i modelli patologici.
   const peggiore = esiti.reduce<DssRiskLevel | null>((acc, e) => {
@@ -42,7 +42,7 @@ export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
   }, null);
 
   const noData = series.length === 0 || esiti.length === 0;
-  const colore = peggiore ? COLORE_RISCHIO[peggiore] : "var(--ink-4)";
+  const color = peggiore ? RISK_COLOR[peggiore] : "var(--ink-4)";
   const alerts = esiti.filter((e) => e.alert);
 
   return (
@@ -52,11 +52,11 @@ export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
         <p className="text-[11px] text-[var(--ink-4)]">{module.label}</p>
       </div>
 
-      {meteo && (
+      {weather && (
         <p className="mb-2 text-[11px] text-[var(--ink-4)]">
           Meteo:{" "}
-          {meteo.fonte === "private_station" ? "centralina aziendale" : "Open-Meteo"}
-          {meteo.fetched ? ` · aggiornato (${meteo.inserite} rows)` : " · da cache locale"}
+          {weather.fonte === "private_station" ? "centralina aziendale" : "Open-Meteo"}
+          {weather.fetched ? ` · aggiornato (${weather.inserite} rows)` : " · da cache locale"}
         </p>
       )}
 
@@ -69,16 +69,16 @@ export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
           {/* Card di risk complessivo: colore di sfondo dal livello peggiore. */}
           <div
             className="flex items-center justify-between rounded-[var(--r-2)] px-3 py-2.5"
-            style={{ background: `${colore}1a`, border: `1px solid ${colore}55` }}
+            style={{ background: `${color}1a`, border: `1px solid ${color}55` }}
           >
             <span className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-3)]">
               Rischio complessivo
             </span>
             <span
               className="rounded-full px-3 py-1 text-sm font-bold text-white"
-              style={{ background: colore }}
+              style={{ background: color }}
             >
-              {peggiore ? ETICHETTA_RISCHIO[peggiore] : "—"}
+              {peggiore ? RISK_LABEL[peggiore] : "—"}
             </span>
           </div>
 
@@ -91,17 +91,17 @@ export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
               >
                 <span
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ background: COLORE_RISCHIO[e.livello] }}
+                  style={{ background: RISK_COLOR[e.livello] }}
                 />
                 <span className="flex-1 text-sm font-medium">{e.dss.name}</span>
                 <span
                   className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
                   style={{
-                    background: `${COLORE_RISCHIO[e.livello]}22`,
-                    color: COLORE_RISCHIO[e.livello],
+                    background: `${RISK_COLOR[e.livello]}22`,
+                    color: RISK_COLOR[e.livello],
                   }}
                 >
-                  {ETICHETTA_RISCHIO[e.livello]}
+                  {RISK_LABEL[e.livello]}
                 </span>
                 <span className="agro-num w-6 text-right text-xs text-[var(--ink-3)]">
                   {e.value}
@@ -120,14 +120,14 @@ export function DssRiskCard({ risultato }: { risultato: DssPlotResult }) {
                     key={e.modelloNome}
                     className="flex gap-2 rounded-[var(--r-2)] border-l-2 p-2 text-xs"
                     style={{
-                      borderColor: COLORE_RISCHIO[e.livello],
-                      background: `${COLORE_RISCHIO[e.livello]}11`,
+                      borderColor: RISK_COLOR[e.livello],
+                      background: `${RISK_COLOR[e.livello]}11`,
                     }}
                   >
                     <AlertTriangle
                       size={14}
                       className="mt-0.5 shrink-0"
-                      style={{ color: COLORE_RISCHIO[e.livello] }}
+                      style={{ color: RISK_COLOR[e.livello] }}
                     />
                     <div>
                       <p className="font-medium">

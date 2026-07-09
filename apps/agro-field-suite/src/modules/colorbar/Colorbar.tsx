@@ -20,15 +20,15 @@ export function Colorbar() {
   // Una sola legenda per TIPO di indice, anche con più mappe/overlay dello
   // stesso indice attivi (es. NDVI su più plots/date): la rampa è
   // identica, quindi le voci duplicate vengono collassate.
-  const indici = useMemo(() => {
+  const indices = useMemo(() => {
     const set = new Set<VegetationIndex>();
     for (const l of layers) {
       if (
         l.visible &&
         l.metadata?.overlay === true &&
-        typeof l.metadata?.indice === "string"
+        typeof l.metadata?.index === "string"
       ) {
-        set.add(l.metadata.indice as VegetationIndex);
+        set.add(l.metadata.index as VegetationIndex);
       }
     }
     return [...set];
@@ -49,18 +49,18 @@ export function Colorbar() {
     return [...set];
   }, [layers]);
 
-  if (indici.length === 0 && crops.length === 0) return null;
+  if (indices.length === 0 && crops.length === 0) return null;
 
   return (
     <div className="pointer-events-none absolute bottom-10 right-3 z-30 flex flex-col gap-2">
       {crops.map((crop) => (
         <DssLegendCard key={crop} crop={crop} />
       ))}
-      {indici.map((indice) => (
+      {indices.map((index) => (
         <ColorbarCard
-          key={indice}
-          title={indice.toUpperCase()}
-          model={buildColorbar(rampForIndex(indice))}
+          key={index}
+          title={index.toUpperCase()}
+          model={buildColorbar(rampForIndex(index))}
         />
       ))}
     </div>

@@ -52,11 +52,11 @@ export interface GisParcelAdapter {
 
 // -- helpers generici (case-insensitive, alias robusti) ---------------------
 
-function normalizza(chiave: string): string {
-  return chiave.trim().toLowerCase().replace(/[\s.]+/g, "_");
+function normalizza(key: string): string {
+  return key.trim().toLowerCase().replace(/[\s.]+/g, "_");
 }
 
-function indicizza(props: SianProperties): Map<string, unknown> {
+function indexBy(props: SianProperties): Map<string, unknown> {
   const map = new Map<string, unknown>();
   for (const [k, v] of Object.entries(props)) map.set(normalizza(k), v);
   return map;
@@ -136,7 +136,7 @@ function makeAdapter(
     countryCode,
     label,
     mapFeature(props, geometria, areaGeodeticaHa) {
-      const idx = indicizza(props);
+      const idx = indexBy(props);
       return {
         reference_parcel_external_id: resolveReference(idx, aliases),
         agricultural_parcel_external_id: asCode(pick(idx, aliases.agricultural)),

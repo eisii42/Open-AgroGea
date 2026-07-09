@@ -98,9 +98,9 @@ describe("indici spettrali", () => {
 
 describe("fenologia", () => {
   it("ogni crop ha 4 fasi con Kc positivo", () => {
-    for (const matrice of Object.values(CROP_MATRICES)) {
-      assert.equal(matrice.fasi.length, 4);
-      for (const phase of matrice.fasi) assert.ok(phase.kc > 0);
+    for (const matrix of Object.values(CROP_MATRICES)) {
+      assert.equal(matrix.fasi.length, 4);
+      for (const phase of matrix.fasi) assert.ok(phase.kc > 0);
     }
   });
 
@@ -120,7 +120,7 @@ describe("zonazione VRA", () => {
   it("separa due cluster ben distinti", () => {
     const valori = f32([0.2, 0.21, 0.22, 0.8, 0.81, 0.82]);
     const res = kmeansZoning(valori, 2);
-    assert.equal(res.classi.length, 2);
+    assert.equal(res.classes.length, 2);
     // I primi 3 e gli ultimi 3 in classi diverse.
     assert.equal(res.assegnazioni[0], res.assegnazioni[2]);
     assert.equal(res.assegnazioni[3], res.assegnazioni[5]);
@@ -137,20 +137,20 @@ describe("zonazione VRA", () => {
 
   it("scarta i NaN del soil-masking", () => {
     const res = kmeansZoning(f32([0.2, Number.NaN, 0.8, 0.81]), 2);
-    const totale = res.classi.reduce((s, c) => s + c.pixel, 0);
-    assert.equal(totale, 3); // il NaN non conta
+    const total = res.classes.reduce((s, c) => s + c.pixel, 0);
+    assert.equal(total, 3); // il NaN non conta
   });
 
   it("dose conservativa: più dose dove il vigore è basso", () => {
     const res = kmeansZoning(f32([0.2, 0.21, 0.8, 0.81]), 2);
-    const dosi = dosesPerClass(res.classi, 100, "conservativa", 0.3);
+    const dosi = dosesPerClass(res.classes, 100, "conservativa", 0.3);
     // sortedList per centroid crescente: la prima (vigore basso) ha dose maggiore
     assert.ok(dosi[0].dose > dosi[1].dose);
   });
 
   it("dose spinta: più dose dove il vigore è alto", () => {
     const res = kmeansZoning(f32([0.2, 0.21, 0.8, 0.81]), 2);
-    const dosi = dosesPerClass(res.classi, 100, "spinta", 0.3);
+    const dosi = dosesPerClass(res.classes, 100, "spinta", 0.3);
     assert.ok(dosi[1].dose > dosi[0].dose);
   });
 });
@@ -183,11 +183,11 @@ describe("agrometeo", () => {
       rootDepth: 1,
       depletionFraction: 0.5,
     };
-    const stato = soilWaterStatus(soil, 0);
+    const status = soilWaterStatus(soil, 0);
     // AWC = (0.30-0.12)*1*1000 = 180 mm; RAW = 90 mm
-    assert.ok(Math.abs(stato.awc - 180) < 1e-6);
-    assert.ok(Math.abs(stato.raw - 90) < 1e-6);
-    assert.equal(stato.inStress, false);
+    assert.ok(Math.abs(status.awc - 180) < 1e-6);
+    assert.ok(Math.abs(status.raw - 90) < 1e-6);
+    assert.equal(status.inStress, false);
   });
 
   it("piano irriguo: prescrive irrigation raggiunta la depletion critica", () => {
@@ -228,10 +228,10 @@ describe("DSS fitopatologico", () => {
   });
 
   it("regola tre-dieci scatta solo con tutte le condizioni", () => {
-    const senza = threeTenRule([
+    const without = threeTenRule([
       { tMean: 12, rain: 5, shootLength: 15 }, // rain < 10
     ]);
-    assert.equal(senza, null);
+    assert.equal(without, null);
     const con = threeTenRule([
       { tMean: 8, rain: 12, shootLength: 12 }, // T < 10
       { tMean: 14, rain: 18, shootLength: 14 }, // tutte ok
@@ -448,7 +448,7 @@ describe("pipeline STAC multi-index e series temporale", () => {
         { status: 200 },
       )) as unknown as typeof fetch;
     const series = await searchSceneSeries([0, 0, 1, 1], {
-      indici: ["ndvi"],
+      indices: ["ndvi"],
       fetchImpl: okFetch,
     });
     assert.equal(series.length, 1);
@@ -458,7 +458,7 @@ describe("pipeline STAC multi-index e series temporale", () => {
       new Response("boom", { status: 500 })) as unknown as typeof fetch;
     await assert.rejects(
       searchSceneSeries([0, 0, 1, 1], {
-        indici: ["ndvi"],
+        indices: ["ndvi"],
         fetchImpl: badFetch,
         attesaBaseMs: 0,
       }),
@@ -489,7 +489,7 @@ describe("pipeline STAC multi-index e series temporale", () => {
       );
     }) as unknown as typeof fetch;
     const series = await searchSceneSeries([0, 0, 1, 1], {
-      indici: ["ndvi"],
+      indices: ["ndvi"],
       fetchImpl: flakyFetch,
       attesaBaseMs: 0,
     });
@@ -567,11 +567,11 @@ describe("pipeline STAC multi-index e series temporale", () => {
         { status: 200 },
       );
     }) as unknown as typeof fetch;
-    const { token, scadenzaMs } = await planetaryComputerToken("sentinel-2-l2a", {
+    const { token, expiryMs } = await planetaryComputerToken("sentinel-2-l2a", {
       fetchImpl: okFetch,
     });
     assert.equal(token, "se=Z&sig=W");
-    assert.equal(scadenzaMs, Date.parse("2026-06-13T12:00:00Z"));
+    assert.equal(expiryMs, Date.parse("2026-06-13T12:00:00Z"));
   });
 
   it("planetaryComputerToken riprova sui 429 e poi riesce (backoff)", async () => {

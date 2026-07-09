@@ -23,7 +23,7 @@ export type FormatoSian = "shapefile" | "csv";
 
 export interface SianImportParseResult {
   formato: FormatoSian;
-  campi: SianCampoMappato[];
+  fields: SianCampoMappato[];
 }
 
 function isPoligono(g: Geometry | null): g is Polygon | MultiPolygon {
@@ -59,10 +59,10 @@ export class SianImportParser {
     const ext = extension(file.name);
 
     if (ext === "csv" || ext === "tsv") {
-      const campi = parseCsvRows(await file.text()).map((props) =>
+      const fields = parseCsvRows(await file.text()).map((props) =>
         mapSianFeature(props, null, null),
       );
-      return { formato: "csv", campi };
+      return { formato: "csv", fields };
     }
 
     // Shapefile (zip/shp) e altri vettoriali → DuckDB Spatial → FeatureCollection.
@@ -71,6 +71,6 @@ export class SianImportParser {
     const fc = await SpatialAnalysisEngine.instance().loadVectorFileAsFeatureCollection(
       { name: file.name, extension: ext, data },
     );
-    return { formato: "shapefile", campi: mapFeatureCollection(fc) };
+    return { formato: "shapefile", fields: mapFeatureCollection(fc) };
   }
 }

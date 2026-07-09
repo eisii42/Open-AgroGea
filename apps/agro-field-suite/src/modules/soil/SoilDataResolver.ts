@@ -38,7 +38,7 @@ export type SoilSource =
   | "default";
 
 /** Chiave in `appezzamento.metadata` per la composizione del soil inserita a mano. */
-export const METADATA_SUOLO_KEY = "suolo";
+export const SOIL_METADATA_KEY = "suolo";
 
 /**
  * Composizione idro-pedologica inserita MANUALMENTE nella scheda plot
@@ -82,7 +82,7 @@ export interface ResolvedSoilParameters {
 }
 
 /** Parametri di default: terreno FRANCO (FAO-56 tab.19, valori conservativi). */
-export const SUOLO_FRANCO_DEFAULT: SoilParameters = {
+export const DEFAULT_LOAM_SOIL: SoilParameters = {
   fieldCapacity: 0.3,
   wiltingPoint: 0.12,
   rootDepth: 0.8,
@@ -124,8 +124,8 @@ function firstNumber(
   const lower = new Map(
     Object.entries(props).map(([k, v]) => [k.toLowerCase(), v]),
   );
-  for (const chiave of chiavi) {
-    const n = number(lower.get(chiave.toLowerCase()));
+  for (const key of chiavi) {
+    const n = number(lower.get(key.toLowerCase()));
     if (n != null) return n;
   }
   return null;
@@ -139,8 +139,8 @@ function firstString(
   const lower = new Map(
     Object.entries(props).map(([k, v]) => [k.toLowerCase(), v]),
   );
-  for (const chiave of chiavi) {
-    const v = lower.get(chiave.toLowerCase());
+  for (const key of chiavi) {
+    const v = lower.get(key.toLowerCase());
     if (typeof v === "string" && v.trim().length > 0) return v;
   }
   return null;
@@ -162,8 +162,8 @@ export function frazioniDaProprieta(
     const fr = normalizeFractions(sabbia ?? 0, limo ?? 0, argilla ?? 0);
     if (fr) return fr;
   }
-  const classe = firstString(props, ["tessitura", "texture", "textura", "classe", "soil_texture"]);
-  return fractionsFromTexture(classe);
+  const textureClass = firstString(props, ["tessitura", "texture", "textura", "classe", "soil_texture"]);
+  return fractionsFromTexture(textureClass);
 }
 
 /** Sostanza organica (%) dalle proprietà, multi spelling. */
@@ -180,11 +180,11 @@ export function sostanzaOrganicaDaProprieta(
 }
 
 /** Frazioni di un soilSample: tessitura testuale o percentuali in metadata. */
-export function frazioniDaCampione(
+export function fractionsFromSample(
   c: SoilSample,
 ): TextureFractions | null {
-  const daClasse = fractionsFromTexture(c.texture);
-  if (daClasse) return daClasse;
+  const fromClass = fractionsFromTexture(c.texture);
+  if (fromClass) return fromClass;
   const meta = (c.metadata ?? {}) as Record<string, unknown>;
   return frazioniDaProprieta(meta);
 }
@@ -196,21 +196,21 @@ interface Aggregato {
 }
 
 /** Media delle frazioni e della SO su una lista di campioni/feature validi. */
-export function aggregaTessitura(
-  voci: Array<{ frazioni: TextureFractions; sostanzaOrganica: number | null }>,
+export function aggregateTexture(
+  items: Array<{ frazioni: TextureFractions; sostanzaOrganica: number | null }>,
 ): Aggregato | null {
-  if (voci.length === 0) return null;
+  if (items.length === 0) return null;
   let sabbia = 0;
   let limo = 0;
   let argilla = 0;
   const so: number[] = [];
-  for (const v of voci) {
+  for (const v of items) {
     sabbia += v.frazioni.sabbia;
     limo += v.frazioni.limo;
     argilla += v.frazioni.argilla;
     if (v.sostanzaOrganica != null) so.push(v.sostanzaOrganica);
   }
-  const n = voci.length;
+  const n = items.length;
   const frazioni = normalizeFractions(sabbia / n, limo / n, argilla / n);
   if (!frazioni) return null;
   return {
@@ -231,18 +231,18 @@ export function parametersFromManualSoil(
   options: { profonditaRadiciM?: number; depletionFraction?: number } = {},
 ): SoilParameters | null {
   const meta = (plot.metadata ?? {}) as Record<string, unknown>;
-  const raw = meta[METADATA_SUOLO_KEY];
+  const raw = meta[SOIL_METADATA_KEY];
   if (!raw || typeof raw !== "object") return null;
   const s = raw as Record<string, unknown>;
 
   const depth =
     number(s.profondita_radici) ??
     options.profonditaRadiciM ??
-    SUOLO_FRANCO_DEFAULT.rootDepth;
+    DEFAULT_LOAM_SOIL.rootDepth;
   const depletion =
     number(s.frazione_deplezione) ??
     options.depletionFraction ??
-    SUOLO_FRANCO_DEFAULT.depletionFraction;
+    DEFAULT_LOAM_SOIL.depletionFraction;
 
   // Costanti idrauliche dirette (utente esperto).
   const cc = number(s.capacita_campo);
@@ -280,8 +280,8 @@ export function parametriDaMetadata(
   return {
     fieldCapacity: cc,
     wiltingPoint: pa,
-    rootDepth: number(p.rootDepth) ?? SUOLO_FRANCO_DEFAULT.rootDepth,
-    depletionFraction: number(p.depletionFraction) ?? SUOLO_FRANCO_DEFAULT.depletionFraction,
+    rootDepth: number(p.rootDepth) ?? DEFAULT_LOAM_SOIL.rootDepth,
+    depletionFraction: number(p.depletionFraction) ?? DEFAULT_LOAM_SOIL.depletionFraction,
   };
 }
 
@@ -418,11 +418,11 @@ export class SoilDataResolver {
     }
     return {
       parametri: {
-        ...SUOLO_FRANCO_DEFAULT,
+        ...DEFAULT_LOAM_SOIL,
         rootDepth:
-          opzSaxton.profonditaRadiciM ?? SUOLO_FRANCO_DEFAULT.rootDepth,
+          opzSaxton.profonditaRadiciM ?? DEFAULT_LOAM_SOIL.rootDepth,
         depletionFraction:
-          opzSaxton.depletionFraction ?? SUOLO_FRANCO_DEFAULT.depletionFraction,
+          opzSaxton.depletionFraction ?? DEFAULT_LOAM_SOIL.depletionFraction,
       },
       sorgente: "default",
       campioniUsati: 0,
@@ -447,10 +447,10 @@ export class SoilDataResolver {
       maskTable: plotTbl,
       predicate: "intersects",
     });
-    const voci = intersecate.features
+    const items = intersecate.features
       .map((f) => featureToEntry(f))
       .filter((v): v is NonNullable<typeof v> => v != null);
-    return aggregaTessitura(voci);
+    return aggregateTexture(items);
   }
 
   /** Tier 2: filtra i campioni interni/vicini al poligono e aggrega la tessitura. */
@@ -480,19 +480,19 @@ export class SoilDataResolver {
       `OR ST_DWithin(${s}.${quoteIdentifier("geom")}, ${p}.${quoteIdentifier("geom")}, ${tolleranzaDeg})`;
     const rows = await engine.query(sql);
 
-    const voci: Array<{ frazioni: TextureFractions; sostanzaOrganica: number | null }> = [];
+    const items: Array<{ frazioni: TextureFractions; sostanzaOrganica: number | null }> = [];
     const visti = new Set<string>();
     for (const row of rows) {
       const id = row.sample_id;
       if (typeof id !== "string" || visti.has(id)) continue;
       visti.add(id);
-      const campione = byId.get(id);
-      if (!campione) continue;
-      const frazioni = frazioniDaCampione(campione);
+      const sample = byId.get(id);
+      if (!sample) continue;
+      const frazioni = fractionsFromSample(sample);
       if (!frazioni) continue;
-      voci.push({ frazioni, sostanzaOrganica: campione.organic_matter });
+      items.push({ frazioni, sostanzaOrganica: sample.organic_matter });
     }
-    return aggregaTessitura(voci);
+    return aggregateTexture(items);
   }
 }
 

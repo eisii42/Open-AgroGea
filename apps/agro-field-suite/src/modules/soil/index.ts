@@ -11,15 +11,15 @@
  * (orchestrazione FAO 56/66) e l'overlay tematico DSS in `../dss/dss-overlay`.
  */
 export {
-  aggregaTessitura,
-  frazioniDaCampione,
+  aggregateTexture,
+  fractionsFromSample,
   frazioniDaProprieta,
-  METADATA_SUOLO_KEY,
+  SOIL_METADATA_KEY,
   parametriDaMetadata,
   parametersFromManualSoil,
   SoilDataResolver,
   sostanzaOrganicaDaProprieta,
-  SUOLO_FRANCO_DEFAULT,
+  DEFAULT_LOAM_SOIL,
   type ResolutionOptions,
   type ResolvedSoilParameters,
   type SoilSource,

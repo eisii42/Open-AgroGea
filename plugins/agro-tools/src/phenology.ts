@@ -124,9 +124,9 @@ export const CROP_MATRICES: Record<CropType, CropMatrix> = {
 };
 
 export function getCropMatrix(coltura: CropType): CropMatrix {
-  const matrice = CROP_MATRICES[coltura];
-  if (!matrice) throw new Error(`CropType senza matrice di calibrazione: ${coltura}`);
-  return matrice;
+  const matrix = CROP_MATRICES[coltura];
+  if (!matrix) throw new Error(`CropType without matrix di calibrazione: ${coltura}`);
+  return matrix;
 }
 
 export function getPhaseCalibration(
@@ -147,7 +147,7 @@ export function soilMaskThreshold(
   coltura: CropType,
   phase: PhenologicalPhase,
 ): number | null {
-  const matrice = getCropMatrix(coltura);
-  if (!matrice.arborea) return null;
+  const matrix = getCropMatrix(coltura);
+  if (!matrix.arborea) return null;
   return getPhaseCalibration(coltura, phase).ndviSoilMask;
 }

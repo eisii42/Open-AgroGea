@@ -111,14 +111,14 @@ export function OperationsCalendar({
   plotIds,
   treatments,
   harvests,
-  dssRisultati,
+  dssResults,
 }: {
   campaignYear: number;
   /** Appezzamenti nello scope (null = tutta l'azienda). */
   plotIds: Set<string> | null;
   treatments: TreatmentLog[];
   harvests: Harvest[];
-  dssRisultati: DssResult[];
+  dssResults: DssResult[];
 }) {
   const { t } = useTranslation();
   const initialMonth =
@@ -158,7 +158,7 @@ export function OperationsCalendar({
         future: day > today,
       });
     }
-    for (const d of dssRisultati) {
+    for (const d of dssResults) {
       if (d.risk_level !== "high" || !inScope(d.plot_id)) continue;
       const day = dayKey(d.calculated_at);
       out.push({
@@ -173,7 +173,7 @@ export function OperationsCalendar({
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [treatments, harvests, dssRisultati, plotIds, t]);
+  }, [treatments, harvests, dssResults, plotIds, t]);
 
   const eventsByDay = useMemo(() => {
     const map = new Map<string, CalEvent[]>();
@@ -288,7 +288,7 @@ export function OperationsCalendar({
           events={eventsByDay.get(selectedDay) ?? []}
           treatments={treatments}
           harvests={harvests}
-          dssRisultati={dssRisultati}
+          dssResults={dssResults}
           onClose={() => setSelectedDay(null)}
         />
       )}
@@ -305,14 +305,14 @@ function DayDetail({
   events,
   treatments,
   harvests,
-  dssRisultati,
+  dssResults,
   onClose,
 }: {
   day: string;
   events: CalEvent[];
   treatments: TreatmentLog[];
   harvests: Harvest[];
-  dssRisultati: DssResult[];
+  dssResults: DssResult[];
   onClose: () => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -389,7 +389,7 @@ function DayDetail({
                   )}
                   {e.kind === "dss" && (
                     <DssDetail
-                      record={dssRisultati.find((d) => d.id === e.refId)}
+                      record={dssResults.find((d) => d.id === e.refId)}
                     />
                   )}
                 </div>

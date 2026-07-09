@@ -17,7 +17,7 @@ const PALETTE_RDYLGN = [
 ] as const;
 
 /** Colore della zona `index` su `total` zone, campionando la palette. */
-export function coloreZona(index: number, total: number): string {
+export function zoneColor(index: number, total: number): string {
   if (total <= 1) return PALETTE_RDYLGN[PALETTE_RDYLGN.length - 1];
   const ratio = Math.min(1, Math.max(0, index / (total - 1)));
   const pos = Math.round(ratio * (PALETTE_RDYLGN.length - 1));
@@ -31,7 +31,7 @@ export function coloreZona(index: number, total: number): string {
 export function stopsVra(numeroZone: number): VectorStyleStop[] {
   return Array.from({ length: numeroZone }, (_, zona) => ({
     value: String(zona),
-    color: coloreZona(zona, numeroZone),
+    color: zoneColor(zona, numeroZone),
     label: `Zona ${zona + 1}`,
   }));
 }

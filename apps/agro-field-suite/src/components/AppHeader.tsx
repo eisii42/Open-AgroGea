@@ -112,7 +112,7 @@ export function AppHeader({
 
       {/* Add Data globale (GeoLibre 1.2): ingresso unico dei file esterni.
           Nascosto sotto sm: sui telefoni la barra si affollava troppo, e
-          l'import dati esterni non è un'azione da field di prima necessità. */}
+          l'import dati esterni non è un'azione da field di before necessità. */}
       {flags.headerAddData && (
         <div className="hidden shrink-0 sm:block">
           <AddDataControl />

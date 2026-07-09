@@ -75,8 +75,8 @@ export function hexToRgb(hex: string): Rgb {
 export function colorFromRamp(value: number, rampa: ColorRamp): Rgb | null {
   if (Number.isNaN(value)) return null;
   let hex = rampa[0]?.[1] ?? "#000000";
-  for (const [soglia, colore] of rampa) {
-    if (value >= soglia) hex = colore;
+  for (const [threshold, color] of rampa) {
+    if (value >= threshold) hex = color;
   }
   return hexToRgb(hex);
 }

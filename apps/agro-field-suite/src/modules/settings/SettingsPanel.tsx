@@ -31,8 +31,8 @@ function getVariabili(
 ): { id: WeatherVariable; label: string; descr: string }[] {
   return VARIABILE_IDS.map((id) => ({
     id,
-    label: t(`impostazioniPanel.variables.${id}.label`),
-    descr: t(`impostazioniPanel.variables.${id}.descr`),
+    label: t(`settingsPanel.variables.${id}.label`),
+    descr: t(`settingsPanel.variables.${id}.descr`),
   }));
 }
 
@@ -53,7 +53,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [variabili, setVariabili] = useState<Set<WeatherVariable>>(
     new Set(weatherConfig?.visible_variables ?? ["temperature", "humidity", "rain"]),
   );
-  const [salvataggio, setSalvataggio] = useState<"idle" | "salvo" | "fatto" | "errore">(
+  const [saving, setSaving] = useState<"idle" | "salvo" | "fatto" | "errore">(
     "idle",
   );
   const [erroreMsg, setErroreMsg] = useState<string>();
@@ -67,7 +67,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
     });
 
   const save = async () => {
-    setSalvataggio("salvo");
+    setSaving("salvo");
     setErroreMsg(undefined);
     try {
       await saveWeatherConfig({
@@ -79,10 +79,10 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           fonte === "private_station" ? deviceId || null : null,
         visible_variables: [...variabili],
       });
-      setSalvataggio("fatto");
+      setSaving("fatto");
     } catch (err) {
-      setSalvataggio("errore");
-      setErroreMsg(err instanceof Error ? err.message : t("impostazioniPanel.saveError"));
+      setSaving("errore");
+      setErroreMsg(err instanceof Error ? err.message : t("settingsPanel.saveError"));
     }
   };
 
@@ -90,33 +90,33 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <FieldSheet
-      title={t("impostazioniPanel.title")}
+      title={t("settingsPanel.title")}
       onClose={onClose}
       footer={
         <Button
           className="min-h-[var(--touch-min)] w-full"
-          disabled={!activeCompanyId || salvataggio === "salvo"}
+          disabled={!activeCompanyId || saving === "salvo"}
           onClick={() => void save()}
         >
-          {salvataggio === "salvo"
+          {saving === "salvo"
             ? t("logbook.common.saving")
-            : salvataggio === "fatto"
-              ? t("impostazioniPanel.saved")
-              : t("impostazioniPanel.saveConfig")}
+            : saving === "fatto"
+              ? t("settingsPanel.saved")
+              : t("settingsPanel.saveConfig")}
         </Button>
       }
     >
       <div className="flex flex-col gap-5">
         {!activeCompanyId && (
           <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] p-2 text-sm text-[var(--ink-3)]">
-            {t("impostazioniPanel.selectCompany")}
+            {t("settingsPanel.selectCompany")}
           </p>
         )}
 
         {/* 1) Fonte meteo */}
         <section>
           <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
-            {t("impostazioniPanel.weatherSource")}
+            {t("settingsPanel.weatherSource")}
           </p>
           <div className="flex flex-col gap-1.5">
             <button
@@ -129,9 +129,9 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
                   : "border-[var(--line)]",
               )}
             >
-              <p className="text-sm font-medium">{t("impostazioniPanel.publicApi.label")}</p>
+              <p className="text-sm font-medium">{t("settingsPanel.publicApi.label")}</p>
               <p className="text-xs text-[var(--ink-4)]">
-                {t("impostazioniPanel.publicApi.descr")}
+                {t("settingsPanel.publicApi.descr")}
               </p>
             </button>
             <button
@@ -144,9 +144,9 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
                   : "border-[var(--line)]",
               )}
             >
-              <p className="text-sm font-medium">{t("impostazioniPanel.privateStation.label")}</p>
+              <p className="text-sm font-medium">{t("settingsPanel.privateStation.label")}</p>
               <p className="text-xs text-[var(--ink-4)]">
-                {t("impostazioniPanel.privateStation.descr")}
+                {t("settingsPanel.privateStation.descr")}
               </p>
             </button>
           </div>
@@ -155,41 +155,41 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
             <div className="mt-2 flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--line)] p-2.5">
               <label className="flex flex-col gap-1 text-sm">
                 <span className="text-xs font-semibold text-[var(--ink-4)]">
-                  {t("impostazioniPanel.stationModel")}
+                  {t("settingsPanel.stationModel")}
                 </span>
                 <input
                   value={modello}
                   onChange={(e) => setModello(e.target.value)}
-                  placeholder={t("impostazioniPanel.stationModelPlaceholder")}
+                  placeholder={t("settingsPanel.stationModelPlaceholder")}
                   className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-1.5 text-sm"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
                 <span className="text-xs font-semibold text-[var(--ink-4)]">
-                  {t("impostazioniPanel.apiKey")}
+                  {t("settingsPanel.apiKey")}
                 </span>
                 <input
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   type="password"
                   autoComplete="off"
-                  placeholder={t("impostazioniPanel.apiKeyPlaceholder")}
+                  placeholder={t("settingsPanel.apiKeyPlaceholder")}
                   className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-1.5 text-sm"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
                 <span className="text-xs font-semibold text-[var(--ink-4)]">
-                  {t("impostazioniPanel.deviceId")}
+                  {t("settingsPanel.deviceId")}
                 </span>
                 <input
                   value={deviceId}
                   onChange={(e) => setDeviceId(e.target.value)}
-                  placeholder={t("impostazioniPanel.deviceIdPlaceholder")}
+                  placeholder={t("settingsPanel.deviceIdPlaceholder")}
                   className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-1.5 text-sm"
                 />
               </label>
               <p className="text-[11px] text-[var(--ink-4)]">
-                {t("impostazioniPanel.credentialsNotice")}
+                {t("settingsPanel.credentialsNotice")}
               </p>
             </div>
           )}
@@ -198,7 +198,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         {/* 2) Selettore variabili */}
         <section>
           <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
-            {t("impostazioniPanel.visibleVariables")}
+            {t("settingsPanel.visibleVariables")}
           </p>
           <div className="flex flex-col gap-1">
             {variabiliOptions.map((v) => (
@@ -219,7 +219,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           </div>
         </section>
 
-        {salvataggio === "errore" && (
+        {saving === "errore" && (
           <div className="rounded-[var(--r-2)] bg-[var(--danger-l)] p-2 text-sm text-[var(--danger)]">
             {erroreMsg}
           </div>

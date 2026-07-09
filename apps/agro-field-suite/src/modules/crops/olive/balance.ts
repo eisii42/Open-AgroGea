@@ -5,9 +5,9 @@ import {
 } from "../shared/balance";
 
 /** Bilancio idrico dell'olivo: Kc per phase della specie "olivo" (FAO-56). */
-export function bilancioOlivo(
+export function oliveBalance(
   phase: PhenologicalPhase,
-  meteo: WeatherDataDay[],
+  weather: WeatherDataDay[],
   pioggiaSerie: number[],
   soil: SoilParameters,
   deplezioneIniziale = 0,
@@ -15,7 +15,7 @@ export function bilancioOlivo(
   return cropWaterBalance({
     specie: "olivo",
     phase,
-    meteo,
+    weather,
     pioggiaSerie,
     soil,
     deplezioneIniziale,

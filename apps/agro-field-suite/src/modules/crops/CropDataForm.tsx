@@ -60,8 +60,8 @@ export function CropDataForm({
   // Cataloghi di stato filtered per il country_code risolto del tenant (Modulo 3):
   // specie e varietà del registro nazionale per i quick-pick guidati. Se vuoti,
   // i campi restano a testo libero (l'utente non è bloccato).
-  const { voci: cropCatalog, countryCode } = useCountryCatalog("crop");
-  const { voci: varietyCatalog } = useCountryCatalog("variety");
+  const { items: cropCatalog, countryCode } = useCountryCatalog("crop");
+  const { items: varietyCatalog } = useCountryCatalog("variety");
 
   // Tutte le campagne dell'appezzamento (ogni annata), per modifica + copia anno
   // precedente. Ricaricate al cambio plot e dopo ogni salvataggio.
@@ -82,7 +82,7 @@ export function CropDataForm({
 
   // Data dell'ultima SEMINA/TRAPIANTO dal Quaderno di Campagna (fonte di verità
   // per le annuali; alimenta il biofix GDD del DSS). Sola reading qui.
-  const [lastSowing, setUltimaSemina] = useState<string | null>(null);
+  const [lastSowing, setLastSowing] = useState<string | null>(null);
   useEffect(() => {
     let vivo = true;
     if (!dal || !activeCompanyId) return;
@@ -90,8 +90,8 @@ export function CropDataForm({
       .listTreatments(activeCompanyId, { plotId: plot.id, limit: 200 })
       .then((rows) => {
         if (!vivo) return;
-        const semina = rows.find((t) => t.operation_type === "sowing");
-        setUltimaSemina(semina?.executed_at ?? null);
+        const sowing = rows.find((t) => t.operation_type === "sowing");
+        setLastSowing(sowing?.executed_at ?? null);
       });
     return () => {
       vivo = false;
@@ -114,7 +114,7 @@ export function CropDataForm({
   // Annata da cui i valori sono stati copiati (precompilazione perenni).
   const [copiedFrom, setCopiedFrom] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
-  const [esito, setEsito] = useState<"idle" | "ok" | "errore">("idle");
+  const [outcome, setOutcome] = useState<"idle" | "ok" | "errore">("idle");
   const [erroreMsg, setErroreMsg] = useState<string>();
 
   // Prefill quando cambia plot, annata attiva o l'elenco campagne.
@@ -149,12 +149,12 @@ export function CropDataForm({
     setAgriParcel(source?.agricultural_parcel_external_id ?? "");
     setCropCode(source?.crop_external_code ?? "");
     setVarietyCode(source?.variety_external_code ?? "");
-    setEsito("idle");
+    setOutcome("idle");
   }, [plot.id, plot.area_ha, activeCampaign, plotCampaigns, crops]);
 
   const schema = cropFormSchema(t, category);
   // Annuali (semina/trapianto ogni campagna) vs perenni (anno d'impianto).
-  const isAnnuale = category === "seminativo" || category === "orticoltura";
+  const isAnnual = category === "seminativo" || category === "orticoltura";
 
   // Varietà del catalog, filtrate sulla specie scelta (metadata.crop_code) se il
   // collegamento esiste; altrimenti tutte le varietà del paese.
@@ -170,26 +170,26 @@ export function CropDataForm({
   // Quick-pick specie dal catalog: auto-compila tipo (se mappato), name comune,
   // name scientifico e codice ministeriale.
   function selectCatalogSpecies(code: string) {
-    const voce = cropCatalog.find((v) => v.code === code);
-    if (!voce) {
+    const item = cropCatalog.find((v) => v.code === code);
+    if (!item) {
       setCropCode("");
       return;
     }
-    const cat = metaStr(voce.metadata, "category");
+    const cat = metaStr(item.metadata, "category");
     if (cat && cropFormSchema(t, cat)) setCategory(cat);
-    setCommonName(voce.name);
-    const sci = metaStr(voce.metadata, "scientific_name");
+    setCommonName(item.name);
+    const sci = metaStr(item.metadata, "scientific_name");
     if (sci) setScientificName(sci);
-    setCropCode(voce.code);
+    setCropCode(item.code);
   }
 
   // Quick-pick varietà dal catalog: auto-compila name varietà, codice e clone.
   function selectCatalogVariety(code: string) {
     setVarietyCode(code);
-    const voce = varietyOptions.find((v) => v.code === code);
-    if (!voce) return;
-    setVarietyName(voce.name);
-    const clone = metaStr(voce.metadata, "clone");
+    const item = varietyOptions.find((v) => v.code === code);
+    if (!item) return;
+    setVarietyName(item.name);
+    const clone = metaStr(item.metadata, "clone");
     if (clone) setMeta((m) => ({ ...m, clone }));
   }
 
@@ -211,7 +211,7 @@ export function CropDataForm({
   async function save() {
     if (!canSave) return;
     setSaving(true);
-    setEsito("idle");
+    setOutcome("idle");
     setErroreMsg(undefined);
     try {
       const cropMetadata: Record<string, unknown> = { category };
@@ -243,11 +243,11 @@ export function CropDataForm({
       });
       if (!camp) throw new Error(t("cropDataForm.noActiveCompany"));
 
-      setEsito("ok");
+      setOutcome("ok");
       setReloadKey((k) => k + 1); // reload le campagne del plot (nuova annata)
       onSaved?.();
     } catch (e) {
-      setEsito("errore");
+      setOutcome("errore");
       setErroreMsg(
         e instanceof Error ? e.message : t("cropDataForm.saveFailed"),
       );
@@ -441,7 +441,7 @@ export function CropDataForm({
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
               {t("cropDataForm.campaignDeclarativeData", { campaignYear: activeCampaign })}
             </p>
-            {isAnnuale && (
+            {isAnnual && (
               <div className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2 text-xs">
                 <span className="font-semibold text-[var(--ink-3)]">
                   {t("cropDataForm.sowingDate")}
@@ -512,12 +512,12 @@ export function CropDataForm({
             </div>
           </section>
 
-          {esito === "errore" && (
+          {outcome === "errore" && (
             <p className="rounded-[var(--r-2)] bg-[var(--danger-l)] p-2 text-sm text-[var(--danger)]">
               {erroreMsg}
             </p>
           )}
-          {esito === "ok" && (
+          {outcome === "ok" && (
             <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] p-2 text-sm text-[var(--accent)]">
               {t("cropDataForm.cropSaved", { campaignYear: activeCampaign })}
             </p>

@@ -21,7 +21,7 @@ import {
  */
 
 // Suolo di prova: AWC = (0.30 − 0.10)·1.0·1000 = 200 mm; RAW = 0.5·AWC = 100 mm.
-const SUOLO: SoilParameters = {
+const SOIL: SoilParameters = {
   fieldCapacity: 0.3,
   wiltingPoint: 0.1,
   rootDepth: 1.0,
@@ -35,7 +35,7 @@ describe("waterBalanceFao66 — equazione di depletion", () => {
     const etc = [10, 8, 12, 0, 6];
     const rain = [0, 0, 0, 30, 0];
     const irrig = [0, 0, 5, 0, 0];
-    const { series } = waterBalanceFao66(SUOLO, etc, rain, irrig, 0);
+    const { series } = waterBalanceFao66(SOIL, etc, rain, irrig, 0);
 
     let drPrev = 0;
     for (const g of series) {
@@ -52,18 +52,18 @@ describe("waterBalanceFao66 — equazione di depletion", () => {
 
   it("la percolation profonda è > 0 solo quando l'apporto satura il profile", () => {
     // Dr iniziale 5 mm, rain 30 mm, nessuna ETc: 25 mm percolano via.
-    const { series } = waterBalanceFao66(SUOLO, [0], [30], [0], 5);
+    const { series } = waterBalanceFao66(SOIL, [0], [30], [0], 5);
     assert.equal(series[0].percolation, 25);
     assert.equal(series[0].depletion, 0);
 
     // Giornata secca (solo ETc): nessuna percolation.
-    const { series: secca } = waterBalanceFao66(SUOLO, [10], [0], [0], 0);
+    const { series: secca } = waterBalanceFao66(SOIL, [10], [0], [0], 0);
     assert.equal(secca[0].percolation, 0);
   });
 
   it("attiva inStress esattamente quando Dr ≥ RAW e riporta i giorni di autonomia", () => {
     const etc = new Array(12).fill(10); // +10 mm/day → RAW(100) al day 9
-    const { series, autonomyDays } = waterBalanceFao66(SUOLO, etc, [], [], 0);
+    const { series, autonomyDays } = waterBalanceFao66(SOIL, etc, [], [], 0);
     assert.equal(series[8].depletion, 90);
     assert.equal(series[8].inStress, false);
     assert.equal(series[9].depletion, 100);
@@ -72,7 +72,7 @@ describe("waterBalanceFao66 — equazione di depletion", () => {
   });
 
   it("non scende sotto 0 né supera AWC (clamp fisico)", () => {
-    const { series } = waterBalanceFao66(SUOLO, [500], [0], [0], 0);
+    const { series } = waterBalanceFao66(SOIL, [500], [0], [0], 0);
     // domanda non soddisfatta: Dr cappato ad AWC (≈200, module float).
     assert.ok(Math.abs(series[0].depletion - AWC) < 1e-6);
   });
@@ -176,7 +176,7 @@ describe("computeWaterBalance — composizione end-to-end", () => {
       irrigazioni: [{ data: "2026-06-03", mm: 4 }],
       crop: "vite",
       phase: "piena",
-      soil: SUOLO,
+      soil: SOIL,
       altitude: 100,
     });
 

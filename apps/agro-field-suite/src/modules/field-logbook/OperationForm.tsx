@@ -21,10 +21,10 @@ import {
   useSettingsStore,
 } from "@agrogea/core";
 import {
-  AVVERSITA_PAN,
-  type CampoCampagnaOption,
+  PAN_PESTS,
+  type FieldCampaignOption,
   type ComplianceTreatment,
-  type TrattamentoFormValues,
+  type TreatmentFormValues,
 } from "@agrogea/ui";
 import { Button, cn, Input, Label, Select } from "@geolibre/ui";
 import type { Point } from "geojson";
@@ -37,12 +37,12 @@ import i18n from "../../i18n";
  * scelto, mostra SOLO i campi pertinenti (es. la lavorazione non chiede il
  * patentino; il rilievo solo data/operatore/note). I tipi "di registro" scrivono
  * nella stessa tabella `treatment_logs` (columns nullable): nessuna modifica di
- * schema. Il soilSample di SUOLO è un caso speciale: scrive sulla tabella
+ * schema. Il soilSample di SOIL è un caso speciale: scrive sulla tabella
  * dedicata `soil_samples` (via `onSubmitSoil`), con posizione = centroid del
  * field.
  */
 
-const UNITA: DoseUnit[] = ["kg/ha", "l/ha", "kg/hl", "l/hl", "g/hl", "m3"];
+const UNITS: DoseUnit[] = ["kg/ha", "l/ha", "kg/hl", "l/hl", "g/hl", "m3"];
 
 type ProductMode = "phyto" | "fertilizer" | "seed";
 
@@ -73,7 +73,7 @@ interface OpFieldSpec {
   nitrogen?: boolean;
 }
 
-export interface OperazioneSpec {
+export interface OperationSpec {
   type: OperationType;
   label: string;
   descr: string;
@@ -84,18 +84,18 @@ export interface OperazioneSpec {
  * Registro dei tipi operation e dei campi pertinenti a ciascuno. `label` e
  * `descr` sono getter che risolvono la traduzione al momento della reading
  * (tramite l'istanza `i18n` condivisa, non un hook React): così i consumer
- * esterni che leggono `OPERAZIONI` come semplice array di dati (es.
+ * esterni che leggono `OPERATIONS` come semplice array di dati (es.
  * `LogbookPanel`) vedono comunque il testo nella lingua attiva a ogni
  * render, senza dover convertire l'array in una funzione.
  */
-export const OPERAZIONI: OperazioneSpec[] = [
+export const OPERATIONS: OperationSpec[] = [
   {
     type: "phytosanitary",
     get label() {
-      return i18n.t("operazioneForm.type.phytosanitary.label");
+      return i18n.t("operationForm.type.phytosanitary.label");
     },
     get descr() {
-      return i18n.t("operazioneForm.type.phytosanitary.descr");
+      return i18n.t("operationForm.type.phytosanitary.descr");
     },
     fields: {
       product: "phyto",
@@ -115,10 +115,10 @@ export const OPERAZIONI: OperazioneSpec[] = [
   {
     type: "fertilization",
     get label() {
-      return i18n.t("operazioneForm.type.fertilization.label");
+      return i18n.t("operationForm.type.fertilization.label");
     },
     get descr() {
-      return i18n.t("operazioneForm.type.fertilization.descr");
+      return i18n.t("operationForm.type.fertilization.descr");
     },
     fields: {
       product: "fertilizer",
@@ -132,47 +132,47 @@ export const OPERAZIONI: OperazioneSpec[] = [
   {
     type: "irrigation",
     get label() {
-      return i18n.t("operazioneForm.type.irrigation.label");
+      return i18n.t("operationForm.type.irrigation.label");
     },
     get descr() {
-      return i18n.t("operazioneForm.type.irrigation.descr");
+      return i18n.t("operationForm.type.irrigation.descr");
     },
     fields: { irrigationAmount: true, machinery: true },
   },
   {
     type: "tillage",
     get label() {
-      return i18n.t("operazioneForm.type.tillage.label");
+      return i18n.t("operationForm.type.tillage.label");
     },
     get descr() {
-      return i18n.t("operazioneForm.type.tillage.descr");
+      return i18n.t("operationForm.type.tillage.descr");
     },
     fields: { tillageType: true, machinery: true },
   },
   {
     type: "sowing",
     get label() {
-      return i18n.t("operazioneForm.type.sowing.label");
+      return i18n.t("operationForm.type.sowing.label");
     },
     get descr() {
-      return i18n.t("operazioneForm.type.sowing.descr");
+      return i18n.t("operationForm.type.sowing.descr");
     },
     fields: { product: "seed", dose: true, machinery: true },
   },
   {
     type: "sampling",
     get label() {
-      return i18n.t("operazioneForm.type.sampling.label");
+      return i18n.t("operationForm.type.sampling.label");
     },
     get descr() {
-      return i18n.t("operazioneForm.type.sampling.descr");
+      return i18n.t("operationForm.type.sampling.descr");
     },
     fields: {},
   },
 ];
 
-export function operationSpec(type: OperationType): OperazioneSpec {
-  return OPERAZIONI.find((o) => o.type === type) ?? OPERAZIONI[0];
+export function operationSpec(type: OperationType): OperationSpec {
+  return OPERATIONS.find((o) => o.type === type) ?? OPERATIONS[0];
 }
 
 /** Input del soilSample soil emesso dal form (verso `soil_samples`). */
@@ -182,7 +182,7 @@ export type SoilSampleInput = Omit<
 >;
 
 /** Riga di issue warehouse in compilazione nel form. */
-interface ScaricoRow {
+interface DischargeRow {
   productId: string;
   lotId: string;
   quantity: string;
@@ -240,10 +240,10 @@ function persistOperatorMemory(memory: OperatorMemory) {
 /** Stringa da number nullable (per i default della ripetizione operation). */
 const numStr = (v: number | null | undefined) => (v == null ? "" : String(v));
 
-export interface OperazioneFormProps {
+export interface OperationFormProps {
   operationType: OperationType;
   plots: Plot[];
-  campaignFields?: CampoCampagnaOption[];
+  campaignFields?: FieldCampaignOption[];
   prodottiCatalogo?: CatalogEntry[];
   concimiCatalogo?: CatalogEntry[];
   /**
@@ -263,7 +263,7 @@ export interface OperazioneFormProps {
    * proposta di crop da una semina (automazione v17), null se disattivata.
    */
   onSubmit: (
-    values: TrattamentoFormValues,
+    values: TreatmentFormValues,
     issues?: IssueRequest[],
     assegnazione?: CropAssignment | null,
   ) => Promise<void> | void;
@@ -274,7 +274,7 @@ export interface OperazioneFormProps {
    * Valori iniziali per "Ripeti operazione": precompila i campi dal record
    * esistente (la data resta oggi, gli issues si riscelgono sui lots attuali).
    */
-  defaults?: Partial<TrattamentoFormValues>;
+  defaults?: Partial<TreatmentFormValues>;
 }
 
 export function OperationForm({
@@ -291,7 +291,7 @@ export function OperationForm({
   onSubmitSoil,
   onCancel,
   defaults,
-}: OperazioneFormProps) {
+}: OperationFormProps) {
   const { t } = useTranslation();
   const spec = operationSpec(operationType);
   const f = spec.fields;
@@ -309,31 +309,31 @@ export function OperationForm({
   // da ripetere (la data resta oggi).
   const opMemory = useMemo(loadOperatorMemory, []);
   const initialApp = defaultAppezzamentoId || defaults?.plot_id || "";
-  const [plotId, setAppezzamentoId] = useState(initialApp);
-  const [campoCampagnaId, setCampoCampagnaId] = useState(() => {
+  const [plotId, setPlotId] = useState(initialApp);
+  const [fieldCampaignId, setFieldCampaignId] = useState(() => {
     if (!usesCampaign || !initialApp) return "";
     return (
       campaignFields?.find((c) => c.plotId === initialApp)
-        ?.campoCampagnaId ?? ""
+        ?.fieldCampaignId ?? ""
     );
   });
   const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
-  const [product, setProdotto] = useState(
+  const [product, setProduct] = useState(
     f.tillageType ? "" : defaults?.product_name ?? "",
   );
-  const [prodottoCodice, setProdottoCodice] = useState("");
-  const [numeroRegistrazione, setNumeroRegistrazione] = useState(
+  const [productCode, setProductCode] = useState("");
+  const [registrationNumber, setRegistrationNumber] = useState(
     defaults?.registration_number ?? "",
   );
   const [sostanzaAttiva, setSostanzaAttiva] = useState(
     defaults?.active_substance ?? "",
   );
   const [target, setTarget] = useState(defaults?.target_disease ?? "");
-  const [doseValore, setDoseValore] = useState(numStr(defaults?.dose_value));
-  const [doseUnita, setDoseUnita] = useState<DoseUnit>(
+  const [doseValue, setDoseValue] = useState(numStr(defaults?.dose_value));
+  const [doseUnit, setDoseUnit] = useState<DoseUnit>(
     defaults?.dose_unit ?? "kg/ha",
   );
-  const [acquaVolume, setAcquaVolume] = useState(
+  const [waterVolume, setWaterVolume] = useState(
     f.waterVolume ? numStr(defaults?.water_volume_l) : "",
   );
   // Irrigazione: quantità + unità (mm/hl). L'unità di default segue la preferenza
@@ -341,41 +341,41 @@ export function OperationForm({
   const waterPref = useSettingsStore((s) => s.units.water);
   const [irrAmount, setIrrAmount] = useState("");
   const [irrUnit, setIrrUnit] = useState<WaterUnit>(waterPref);
-  const [totaleManuale, setTotaleManuale] = useState(
+  const [manualTotal, setManualTotal] = useState(
     f.totalManual ? numStr(defaults?.total_quantity) : "",
   );
-  const [tipoConcime, setTipoConcime] = useState(
+  const [fertilizerType, setFertilizerType] = useState(
     defaults?.fertilizer_type ?? "minerale",
   );
-  const [titoloNpk, setTitoloNpk] = useState(defaults?.npk_ratio ?? "");
-  const [tipoLavorazione, setTipoLavorazione] = useState(
+  const [npkRatio, setNpkRatio] = useState(defaults?.npk_ratio ?? "");
+  const [tillageType, setTillageType] = useState(
     f.tillageType ? defaults?.product_name ?? "" : "",
   );
-  const [operatore, setOperatore] = useState(
+  const [operator, setOperator] = useState(
     defaults?.operator_name ?? opMemory.name ?? "",
   );
-  const [operatoreCf, setOperatoreCf] = useState(
+  const [operatorTaxCode, setOperatorTaxCode] = useState(
     defaults?.operator_tax_code ?? opMemory.taxCode ?? "",
   );
-  const [numPatentino, setNumPatentino] = useState(
+  const [licenseNumber, setLicenseNumber] = useState(
     defaults?.license_number ?? opMemory.license ?? "",
   );
-  const [mezzo, setMezzo] = useState(defaults?.machinery_equipment ?? "");
-  const [rientro, setRientro] = useState(numStr(defaults?.reentry_interval_h));
-  const [carenza, setCarenza] = useState(numStr(defaults?.safety_period_days));
+  const [machinery, setMachinery] = useState(defaults?.machinery_equipment ?? "");
+  const [reentry, setReentry] = useState(numStr(defaults?.reentry_interval_h));
+  const [safetyPeriod, setSafetyPeriod] = useState(numStr(defaults?.safety_period_days));
   const [note, setNote] = useState("");
   // Campionamento: matrice + analisi del soil.
-  const [matrice, setMatrice] = useState<"suolo" | "altro">("suolo");
-  const [depth, setProfondita] = useState("");
+  const [matrix, setMatrix] = useState<"suolo" | "altro">("suolo");
+  const [depth, setDepth] = useState("");
   const [ph, setPh] = useState("");
-  const [azoto, setAzoto] = useState("");
-  const [fosforo, setFosforo] = useState("");
-  const [potassio, setPotassio] = useState("");
+  const [nitrogen, setNitrogen] = useState("");
+  const [phosphorus, setPhosphorus] = useState("");
+  const [potassium, setPotassium] = useState("");
   const [sostanzaOrganica, setSostanzaOrganica] = useState("");
-  const [tessitura, setTessitura] = useState("");
+  const [texture, setTexture] = useState("");
   const [saving, setSaving] = useState(false);
   // Scarico da warehouse (0.2.0): rows product → lot → quantità.
-  const [scarichiRows, setScarichiRows] = useState<ScaricoRow[]>([]);
+  const [dischargeRows, setDischargeRows] = useState<DischargeRow[]>([]);
   // Errore del salvataggio (es. stock insufficiente): il form resta aperto.
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -384,12 +384,12 @@ export function OperationForm({
     [plots, plotId],
   );
   const selectedField = useMemo(
-    () => campaignFields?.find((c) => c.campoCampagnaId === campoCampagnaId) ?? null,
-    [campaignFields, campoCampagnaId],
+    () => campaignFields?.find((c) => c.fieldCampaignId === fieldCampaignId) ?? null,
+    [campaignFields, fieldCampaignId],
   );
   const area = selectedField?.superficieHa ?? plot?.area_ha ?? null;
   const isSampling = operationType === "sampling";
-  const soilMode = isSampling && matrice === "suolo";
+  const soilMode = isSampling && matrix === "suolo";
 
   // Volume irriguo (litri) canonico salvato su `water_volume_l`, dall'apporto in
   // mm/hl e dalla area del field (i mm sono per ettaro).
@@ -401,27 +401,27 @@ export function OperationForm({
     [f.irrigationAmount, irrAmount, irrUnit, area],
   );
 
-  const totaleAutomatico = useMemo(() => {
-    const dose = Number.parseFloat(doseValore);
-    if (!f.totalAuto || !Number.isFinite(dose) || !area || !doseUnita.endsWith("/ha")) {
+  const automaticTotal = useMemo(() => {
+    const dose = Number.parseFloat(doseValue);
+    if (!f.totalAuto || !Number.isFinite(dose) || !area || !doseUnit.endsWith("/ha")) {
       return null;
     }
     return Math.round(dose * area * 100) / 100;
-  }, [f.totalAuto, doseValore, doseUnita, area]);
+  }, [f.totalAuto, doseValue, doseUnit, area]);
 
-  const totaleManualeNum =
-    totaleManuale.trim() === "" ? null : Number(totaleManuale);
+  const manualTotalNum =
+    manualTotal.trim() === "" ? null : Number(manualTotal);
 
   const compliance = useMemo(
     () => (plot && valutaCompliance ? valutaCompliance(plot) : null),
     [plot, valutaCompliance],
   );
-  const totalePerAzoto = totaleAutomatico ?? totaleManualeNum;
-  const superaAzoto =
+  const totalForNitrogen = automaticTotal ?? manualTotalNum;
+  const exceedsNitrogen =
     f.nitrogen &&
     compliance?.azotoMaxTotaleKg != null &&
-    totalePerAzoto != null &&
-    totalePerAzoto > compliance.azotoMaxTotaleKg;
+    totalForNitrogen != null &&
+    totalForNitrogen > compliance.azotoMaxTotaleKg;
 
   const panErrors = useMemo<ValidationError[]>(() => {
     if (f.validate === "phyto") {
@@ -429,20 +429,20 @@ export function OperationForm({
         operation_date: data,
         target_disease: target,
         product_name: product,
-        registration_number: numeroRegistrazione,
+        registration_number: registrationNumber,
         active_substance: sostanzaAttiva,
-        applied_dose: doseValore ? Number.parseFloat(doseValore) : null,
-        unit_of_measure: doseUnita,
-        operator_license_number: numPatentino,
+        applied_dose: doseValue ? Number.parseFloat(doseValue) : null,
+        unit_of_measure: doseUnit,
+        operator_license_number: licenseNumber,
       });
     }
     if (f.validate === "fert") {
       return validateFertilizationLog({
         operation_date: data,
-        fertilizer_type: tipoConcime,
+        fertilizer_type: fertilizerType,
         commercial_name: product,
-        total_amount_kg: totaleManualeNum,
-        npk_ratio: titoloNpk,
+        total_amount_kg: manualTotalNum,
+        npk_ratio: npkRatio,
       });
     }
     return [];
@@ -451,16 +451,16 @@ export function OperationForm({
     data,
     target,
     product,
-    numeroRegistrazione,
+    registrationNumber,
     sostanzaAttiva,
-    doseValore,
-    doseUnita,
-    numPatentino,
-    tipoConcime,
-    titoloNpk,
-    totaleManualeNum,
+    doseValue,
+    doseUnit,
+    licenseNumber,
+    fertilizerType,
+    npkRatio,
+    manualTotalNum,
   ]);
-  const mancano = panErrors.length > 0;
+  const missing = panErrors.length > 0;
   // Per il campione di soil serve un field georeferenziato (centroid = posizione).
   const soilWithoutField = soilMode && !plot;
 
@@ -476,7 +476,7 @@ export function OperationForm({
     [prodottiMagazzino, warehouseCategory],
   );
   const usesWarehouse = categoryProducts.length > 0;
-  const lottoById = useMemo(() => {
+  const lotById = useMemo(() => {
     const map = new Map<string, ProductLot>();
     for (const l of lottiMagazzino ?? []) map.set(l.id, l);
     return map;
@@ -486,15 +486,15 @@ export function OperationForm({
   // Unità di base della quantità prevista: il prefisso della dose (kg/l) o kg
   // per il totale manuale delle fertilizzazioni. La quantità di issue segue
   // il totale calcolato finché l'utente non la modifica a mano (row.manual).
-  const baseDose = f.totalManual ? "kg" : doseUnita.split("/")[0];
-  const totalePrevisto =
-    totaleAutomatico ?? (f.totalManual ? totaleManualeNum : null);
+  const baseDose = f.totalManual ? "kg" : doseUnit.split("/")[0];
+  const expectedTotal =
+    automaticTotal ?? (f.totalManual ? manualTotalNum : null);
   /** true se l'unità del product può riconciliarsi con la quantità prevista. */
-  const unitaCompatibile = (unit: string) =>
-    totalePrevisto == null || unit === baseDose;
+  const compatibleUnit = (unit: string) =>
+    expectedTotal == null || unit === baseDose;
 
   /** Lotti utilizzabili del product (stock > 0, non scaduti) in ordine FEFO. */
-  const lottiUtilizzabili = (productId: string): ProductLot[] =>
+  const usableLots = (productId: string): ProductLot[] =>
     (lottiMagazzino ?? []).filter(
       (l) =>
         l.product_id === productId &&
@@ -503,9 +503,9 @@ export function OperationForm({
     );
 
   /** Riga compilata per intero e coerente: quantità > 0 e ≤ stock, lot non scaduto. */
-  const validRow = (row: ScaricoRow): boolean => {
+  const validRow = (row: DischargeRow): boolean => {
     const qty = Number.parseFloat(row.quantity);
-    const lot = lottoById.get(row.lotId);
+    const lot = lotById.get(row.lotId);
     return Boolean(
       row.productId &&
         lot &&
@@ -515,14 +515,14 @@ export function OperationForm({
         expiryStatus(lot.expires_at) !== "expired",
     );
   };
-  const validIssues: IssueRequest[] = scarichiRows
+  const validIssues: IssueRequest[] = dischargeRows
     .filter(validRow)
     .map((row) => ({
       product_lot_id: row.lotId,
       quantity: Number.parseFloat(row.quantity),
     }));
   // Una row toccata ma non valida blocca il submit (niente issues "a metà").
-  const incompleteIssues = scarichiRows.some(
+  const incompleteIssues = dischargeRows.some(
     (row) =>
       (row.productId || row.lotId || row.quantity.trim() !== "") &&
       !validRow(row),
@@ -531,17 +531,17 @@ export function OperationForm({
   // Auto-fill (v17): con UNA row di issue non modificata a mano, la quantità
   // segue il totale previsto (dose × area, o totale manuale in kg).
   useEffect(() => {
-    if (totalePrevisto == null || totalePrevisto <= 0) return;
-    setScarichiRows((rows) => {
+    if (expectedTotal == null || expectedTotal <= 0) return;
+    setDischargeRows((rows) => {
       if (rows.length !== 1) return rows;
       const row = rows[0];
       if (row.manual || !row.productId) return rows;
       const p = categoryProducts.find((x) => x.id === row.productId);
       if (!p || p.unit !== baseDose) return rows;
-      const q = String(totalePrevisto);
+      const q = String(expectedTotal);
       return row.quantity === q ? rows : [{ ...row, quantity: q }];
     });
-  }, [totalePrevisto, baseDose, categoryProducts]);
+  }, [expectedTotal, baseDose, categoryProducts]);
 
   // Auto-dose (fix): direzione inversa della riconciliazione. Quando l'utente
   // compila a mano la quantità dello scarico (row.manual), la DOSE segue lo
@@ -552,8 +552,8 @@ export function OperationForm({
   // scrive la quantità solo per le rows NON manuali, questo legge le manuali.
   useEffect(() => {
     if (!f.dose || area == null || area <= 0) return;
-    if (scarichiRows.length !== 1) return;
-    const row = scarichiRows[0];
+    if (dischargeRows.length !== 1) return;
+    const row = dischargeRows[0];
     if (!row.manual || !row.productId) return;
     const qty = Number.parseFloat(row.quantity);
     if (!Number.isFinite(qty) || qty <= 0) return;
@@ -561,17 +561,17 @@ export function OperationForm({
     if (!p || (p.unit !== "kg" && p.unit !== "l")) return;
     const dose = Math.round((qty / area) * 100) / 100;
     const unit = `${p.unit}/ha` as DoseUnit;
-    setDoseValore((current) =>
+    setDoseValue((current) =>
       current === String(dose) ? current : String(dose),
     );
-    setDoseUnita((current) => (current === unit ? current : unit));
-  }, [f.dose, area, scarichiRows, categoryProducts]);
+    setDoseUnit((current) => (current === unit ? current : unit));
+  }, [f.dose, area, dischargeRows, categoryProducts]);
 
   // -- automazione semina → crop di campagna (v17) -------------------------
   const activeCampaign = useAgroStore((s) => s.activeCampaign);
   const seedProduct =
     operationType === "sowing"
-      ? categoryProducts.find((p) => p.id === scarichiRows[0]?.productId) ?? null
+      ? categoryProducts.find((p) => p.id === dischargeRows[0]?.productId) ?? null
       : null;
   // Il field scelto non ha una campagna APERTA per l'annata: la semina può
   // assegnargli la crop (crops + plots_campaign) automaticamente.
@@ -579,7 +579,7 @@ export function OperationForm({
     plotId &&
       !(campaignFields ?? []).some((c) => c.plotId === plotId),
   );
-  const [assegnaColtura, setAssegnaColtura] = useState(true);
+  const [assignCrop, setAssignCrop] = useState(true);
   const proposeAssignment = Boolean(
     seedProduct && plotId && plotWithoutCampaign,
   );
@@ -590,7 +590,7 @@ export function OperationForm({
   };
   const speciesName = metaSeedStr("species") ?? seedProduct?.name ?? "";
   const assegnazione: CropAssignment | null =
-    proposeAssignment && assegnaColtura && area != null
+    proposeAssignment && assignCrop && area != null
       ? {
           plotId: plotId,
           species: speciesName,
@@ -598,38 +598,38 @@ export function OperationForm({
           varietyName: metaSeedStr("variety_name"),
           cropCategory: metaSeedStr("crop_category") ?? "seminativo",
           densitaSemina:
-            doseUnita === "kg/ha" && doseValore
-              ? Number.parseFloat(doseValore)
+            doseUnit === "kg/ha" && doseValue
+              ? Number.parseFloat(doseValue)
               : null,
           declaredAreaHa: area,
         }
       : null;
 
-  const canSubmit = !saving && !mancano && !soilWithoutField && !incompleteIssues;
+  const canSubmit = !saving && !missing && !soilWithoutField && !incompleteIssues;
 
   function selectCampaign(value: string) {
-    setCampoCampagnaId(value);
-    setAppezzamentoId(
-      campaignFields?.find((c) => c.campoCampagnaId === value)?.plotId ?? "",
+    setFieldCampaignId(value);
+    setPlotId(
+      campaignFields?.find((c) => c.fieldCampaignId === value)?.plotId ?? "",
     );
   }
 
   function selectProduct(codice: string) {
-    setProdottoCodice(codice);
-    const voce = catalog?.find((p) => p.code === codice);
-    setProdotto(voce?.name ?? "");
-    if (voce?.active_substance) setSostanzaAttiva(voce.active_substance);
-    if (voce?.registration_number) setNumeroRegistrazione(voce.registration_number);
-    const npk = voce?.metadata?.["npk_ratio"];
-    if (typeof npk === "string") setTitoloNpk(npk);
+    setProductCode(codice);
+    const item = catalog?.find((p) => p.code === codice);
+    setProduct(item?.name ?? "");
+    if (item?.active_substance) setSostanzaAttiva(item.active_substance);
+    if (item?.registration_number) setRegistrationNumber(item.registration_number);
+    const npk = item?.metadata?.["npk_ratio"];
+    if (typeof npk === "string") setNpkRatio(npk);
   }
 
   const num = (s: string) => (s.trim() === "" ? null : Number(s));
 
   // -- rows issue warehouse ------------------------------------------------
 
-  function updateIssue(index: number, patch: Partial<ScaricoRow>) {
-    setScarichiRows((rows) =>
+  function updateIssue(index: number, patch: Partial<DischargeRow>) {
+    setDischargeRows((rows) =>
       rows.map((row, i) => {
         if (i !== index) return row;
         if (patch.productId !== undefined && patch.productId !== row.productId) {
@@ -637,12 +637,12 @@ export function OperationForm({
           // più vicina); quantità riproposta dal totale previsto se l'utente
           // non l'ha ancora modificata a mano.
           const lot = patch.productId
-            ? lottiUtilizzabili(patch.productId)[0] ?? null
+            ? usableLots(patch.productId)[0] ?? null
             : null;
           const p = categoryProducts.find((x) => x.id === patch.productId);
           const auto =
-            !row.manual && totalePrevisto != null && p?.unit === baseDose
-              ? String(totalePrevisto)
+            !row.manual && expectedTotal != null && p?.unit === baseDose
+              ? String(expectedTotal)
               : row.quantity;
           return {
             productId: patch.productId,
@@ -665,28 +665,28 @@ export function OperationForm({
     if (index === 0 && patch.productId) {
       const p = categoryProducts.find((x) => x.id === patch.productId);
       if (p) {
-        setProdotto((current) => current || p.name);
+        setProduct((current) => current || p.name);
         if (p.registration_number) {
-          setNumeroRegistrazione((current) => current || p.registration_number || "");
+          setRegistrationNumber((current) => current || p.registration_number || "");
         }
         if (p.active_substance) {
           setSostanzaAttiva((current) => current || p.active_substance || "");
         }
         const meta = (p.metadata ?? {}) as Record<string, unknown>;
-        const carenzaDef = meta["safety_period_days"];
-        if (f.safety && (typeof carenzaDef === "number" || typeof carenzaDef === "string")) {
-          setCarenza((current) => current || String(carenzaDef));
+        const safetyPeriodDef = meta["safety_period_days"];
+        if (f.safety && (typeof safetyPeriodDef === "number" || typeof safetyPeriodDef === "string")) {
+          setSafetyPeriod((current) => current || String(safetyPeriodDef));
         }
-        const rientroDef = meta["reentry_interval_h"];
-        if (f.reentry && (typeof rientroDef === "number" || typeof rientroDef === "string")) {
-          setRientro((current) => current || String(rientroDef));
+        const reentryDef = meta["reentry_interval_h"];
+        if (f.reentry && (typeof reentryDef === "number" || typeof reentryDef === "string")) {
+          setReentry((current) => current || String(reentryDef));
         }
       }
     }
   }
 
   function removeIssue(index: number) {
-    setScarichiRows((rows) => rows.filter((_, i) => i !== index));
+    setDischargeRows((rows) => rows.filter((_, i) => i !== index));
   }
 
   /**
@@ -694,14 +694,14 @@ export function OperationForm({
    * viene sostituita da una row per lot finché la quantità è coperta.
    * No-op se la stock complessiva del product non basta.
    */
-  function dividiFefo(index: number) {
-    setScarichiRows((rows) => {
+  function splitFefo(index: number) {
+    setDischargeRows((rows) => {
       const row = rows[index];
       const qty = Number.parseFloat(row?.quantity ?? "");
       if (!row || !Number.isFinite(qty) || qty <= 0) return rows;
-      const nuove: ScaricoRow[] = [];
+      const nuove: DischargeRow[] = [];
       let resto = qty;
-      for (const lot of lottiUtilizzabili(row.productId)) {
+      for (const lot of usableLots(row.productId)) {
         if (resto <= 0) break;
         const presa = Math.min(resto, Number(lot.quantity_on_hand));
         nuove.push({
@@ -730,12 +730,12 @@ export function OperationForm({
           sampled_at: new Date(`${data}T12:00:00`).toISOString(),
           sampling_position: position,
           depth_cm: depth ? Number.parseInt(depth, 10) : null,
-          nitrogen: num(azoto),
-          phosphorus: num(fosforo),
-          potassium: num(potassio),
+          nitrogen: num(nitrogen),
+          phosphorus: num(phosphorus),
+          potassium: num(potassium),
           organic_matter: num(sostanzaOrganica),
           ph: num(ph),
-          texture: tessitura.trim() || null,
+          texture: texture.trim() || null,
           metadata: note.trim() ? { note: note.trim() } : {},
         });
         return;
@@ -744,46 +744,46 @@ export function OperationForm({
       await onSubmit({
         operation_type: operationType,
         plot_id: plotId || null,
-        plot_campaign_id: campoCampagnaId || null,
+        plot_campaign_id: fieldCampaignId || null,
         product_name: f.product
           ? product || null
           : f.tillageType
-            ? tipoLavorazione.trim() || null
+            ? tillageType.trim() || null
             : null,
-        registration_number: f.registrationNumber ? numeroRegistrazione || null : null,
+        registration_number: f.registrationNumber ? registrationNumber || null : null,
         active_substance: f.activeSubstance ? sostanzaAttiva || null : null,
         target_disease: f.targetDisease ? target || null : null,
-        dose_value: f.dose && doseValore ? Number.parseFloat(doseValore) : null,
-        dose_unit: f.dose && doseValore ? doseUnita : null,
-        total_quantity: totaleAutomatico ?? (f.totalManual ? totaleManualeNum : null),
+        dose_value: f.dose && doseValue ? Number.parseFloat(doseValue) : null,
+        dose_unit: f.dose && doseValue ? doseUnit : null,
+        total_quantity: automaticTotal ?? (f.totalManual ? manualTotalNum : null),
         // water_volume_l = volume in litri: la botte (fitosanitari) o l'apporto
         // irriguo convertito da mm/hl (irrigazione). È la forma che il bilancio
         // idrico riconverte in lama d'acqua (mm) sulla area del field.
         water_volume_l: f.waterVolume
-          ? acquaVolume
-            ? Number.parseInt(acquaVolume, 10)
+          ? waterVolume
+            ? Number.parseInt(waterVolume, 10)
             : null
           : f.irrigationAmount
             ? irrLitres
             : null,
-        fertilizer_type: f.fertilizerType ? tipoConcime : null,
-        npk_ratio: f.npkRatio ? titoloNpk || null : null,
-        operator_name: operatore.trim() || null,
-        operator_tax_code: f.operatorTaxCode ? operatoreCf.trim().toUpperCase() || null : null,
-        license_number: f.licenseNumber ? numPatentino || null : null,
-        machinery_equipment: f.machinery ? mezzo.trim() || null : null,
-        reentry_interval_h: f.reentry && rientro ? Number.parseInt(rientro, 10) : null,
-        safety_period_days: f.safety && carenza ? Number.parseInt(carenza, 10) : null,
+        fertilizer_type: f.fertilizerType ? fertilizerType : null,
+        npk_ratio: f.npkRatio ? npkRatio || null : null,
+        operator_name: operator.trim() || null,
+        operator_tax_code: f.operatorTaxCode ? operatorTaxCode.trim().toUpperCase() || null : null,
+        license_number: f.licenseNumber ? licenseNumber || null : null,
+        machinery_equipment: f.machinery ? machinery.trim() || null : null,
+        reentry_interval_h: f.reentry && reentry ? Number.parseInt(reentry, 10) : null,
+        safety_period_days: f.safety && safetyPeriod ? Number.parseInt(safetyPeriod, 10) : null,
         executed_at: new Date(`${data}T12:00:00`).toISOString(),
         weather_conditions: null,
         note: note.trim() || null,
       }, validIssues, assegnazione);
       // Memoria operatore (v17): l'ultimo operatore usato precompila i form.
-      if (operatore.trim() || operatoreCf.trim() || numPatentino.trim()) {
+      if (operator.trim() || operatorTaxCode.trim() || licenseNumber.trim()) {
         persistOperatorMemory({
-          name: operatore.trim() || undefined,
-          taxCode: operatoreCf.trim() || undefined,
-          license: numPatentino.trim() || undefined,
+          name: operator.trim() || undefined,
+          taxCode: operatorTaxCode.trim() || undefined,
+          license: licenseNumber.trim() || undefined,
         });
       }
     } catch (e) {
@@ -798,10 +798,10 @@ export function OperationForm({
 
   const productLabel =
     f.product === "phyto"
-      ? t("operazioneForm.productPhyto")
+      ? t("operationForm.productPhyto")
       : f.product === "fertilizer"
-        ? t("operazioneForm.productFertilizer")
-        : t("operazioneForm.productSeed");
+        ? t("operationForm.productFertilizer")
+        : t("operationForm.productSeed");
 
   return (
     <form
@@ -818,7 +818,7 @@ export function OperationForm({
       {/* Data + plot/campagna (comuni a tutti i tipi) */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="op-data">{t("operazioneForm.date")}</Label>
+          <Label htmlFor="op-data">{t("operationForm.date")}</Label>
           <Input id="op-data" type="date" value={data} onChange={(e) => setData(e.target.value)} required />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -826,19 +826,19 @@ export function OperationForm({
             {usesCampaign ? t("logbook.common.fieldCampaign") : t("logbook.common.plot")}
           </Label>
           {usesCampaign ? (
-            <Select id="op-app" value={campoCampagnaId} onChange={(e) => selectCampaign(e.target.value)}>
+            <Select id="op-app" value={fieldCampaignId} onChange={(e) => selectCampaign(e.target.value)}>
               <option value="">
                 {soilMode ? t("logbook.common.select") : t("logbook.common.wholeFarm")}
               </option>
               {campaignFields?.map((c) => (
-                <option key={c.campoCampagnaId} value={c.campoCampagnaId}>
+                <option key={c.fieldCampaignId} value={c.fieldCampaignId}>
                   {c.name}
                   {c.codiceColturaSian ? ` · ${c.codiceColturaSian}` : ""}
                 </option>
               ))}
             </Select>
           ) : (
-            <Select id="op-app" value={plotId} onChange={(e) => setAppezzamentoId(e.target.value)}>
+            <Select id="op-app" value={plotId} onChange={(e) => setPlotId(e.target.value)}>
               <option value="">
                 {soilMode ? t("logbook.common.select") : t("logbook.common.wholeFarm")}
               </option>
@@ -856,21 +856,21 @@ export function OperationForm({
       {/* Campionamento: scelta della matrice */}
       {isSampling && (
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="op-matrice">{t("operazioneForm.sampledMatrix")}</Label>
+          <Label htmlFor="op-matrix">{t("operationForm.sampledMatrix")}</Label>
           <Select
-            id="op-matrice"
-            value={matrice}
-            onChange={(e) => setMatrice(e.target.value as "suolo" | "altro")}
+            id="op-matrix"
+            value={matrix}
+            onChange={(e) => setMatrix(e.target.value as "suolo" | "altro")}
           >
-            <option value="suolo">{t("operazioneForm.soilAnalysisOption")}</option>
-            <option value="altro">{t("operazioneForm.otherSampleOption")}</option>
+            <option value="suolo">{t("operationForm.soilAnalysisOption")}</option>
+            <option value="altro">{t("operationForm.otherSampleOption")}</option>
           </Select>
         </div>
       )}
 
       {soilWithoutField && (
         <p className="rounded-[var(--r-2)] bg-[var(--warn-l)] px-3 py-2 text-xs text-[var(--warn)]">
-          {t("operazioneForm.selectPlotForSoilSample")}
+          {t("operationForm.selectPlotForSoilSample")}
         </p>
       )}
 
@@ -878,37 +878,37 @@ export function OperationForm({
       {soilMode && (
         <section className="flex flex-col gap-2">
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
-            {t("operazioneForm.soilAnalysis")}
+            {t("operationForm.soilAnalysis")}
           </p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="soil-prof">{t("operazioneForm.depthCm")}</Label>
-              <Input id="soil-prof" type="number" inputMode="numeric" min="0" value={depth} onChange={(e) => setProfondita(e.target.value)} className="agro-num" />
+              <Label htmlFor="soil-prof">{t("operationForm.depthCm")}</Label>
+              <Input id="soil-prof" type="number" inputMode="numeric" min="0" value={depth} onChange={(e) => setDepth(e.target.value)} className="agro-num" />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="soil-ph">{t("detailEditSheet.ph")}</Label>
               <Input id="soil-ph" type="number" inputMode="decimal" step="any" value={ph} onChange={(e) => setPh(e.target.value)} className="agro-num" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="soil-so">{t("operazioneForm.organicMatterPercent")}</Label>
+              <Label htmlFor="soil-so">{t("operationForm.organicMatterPercent")}</Label>
               <Input id="soil-so" type="number" inputMode="decimal" step="any" value={sostanzaOrganica} onChange={(e) => setSostanzaOrganica(e.target.value)} className="agro-num" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="soil-n">{t("operazioneForm.nitrogenN")}</Label>
-              <Input id="soil-n" type="number" inputMode="decimal" step="any" value={azoto} onChange={(e) => setAzoto(e.target.value)} className="agro-num" />
+              <Label htmlFor="soil-n">{t("operationForm.nitrogenN")}</Label>
+              <Input id="soil-n" type="number" inputMode="decimal" step="any" value={nitrogen} onChange={(e) => setNitrogen(e.target.value)} className="agro-num" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="soil-p">{t("operazioneForm.phosphorusP")}</Label>
-              <Input id="soil-p" type="number" inputMode="decimal" step="any" value={fosforo} onChange={(e) => setFosforo(e.target.value)} className="agro-num" />
+              <Label htmlFor="soil-p">{t("operationForm.phosphorusP")}</Label>
+              <Input id="soil-p" type="number" inputMode="decimal" step="any" value={phosphorus} onChange={(e) => setPhosphorus(e.target.value)} className="agro-num" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="soil-k">{t("operazioneForm.potassiumK")}</Label>
-              <Input id="soil-k" type="number" inputMode="decimal" step="any" value={potassio} onChange={(e) => setPotassio(e.target.value)} className="agro-num" />
+              <Label htmlFor="soil-k">{t("operationForm.potassiumK")}</Label>
+              <Input id="soil-k" type="number" inputMode="decimal" step="any" value={potassium} onChange={(e) => setPotassium(e.target.value)} className="agro-num" />
             </div>
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="soil-tex">{t("operazioneForm.texture")}</Label>
-            <Input id="soil-tex" value={tessitura} onChange={(e) => setTessitura(e.target.value)} placeholder={t("operazioneForm.texturePlaceholder")} />
+            <Label htmlFor="soil-tex">{t("operationForm.texture")}</Label>
+            <Input id="soil-tex" value={texture} onChange={(e) => setTexture(e.target.value)} placeholder={t("operationForm.texturePlaceholder")} />
           </div>
         </section>
       )}
@@ -920,7 +920,7 @@ export function OperationForm({
           ))}
           {compliance.azotoMaxTotaleKg != null && (
             <span className="text-[var(--ink-3)]">
-              {t("operazioneForm.nitrogenMax")}{" "}
+              {t("operationForm.nitrogenMax")}{" "}
               <strong className="agro-num">{compliance.azotoMaxTotaleKg} kg</strong>
             </span>
           )}
@@ -930,8 +930,8 @@ export function OperationForm({
       {/* Tipo lavorazione (→ product_name) */}
       {f.tillageType && (
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="op-lav">{t("operazioneForm.tillageTypeLabel")}</Label>
-          <Input id="op-lav" value={tipoLavorazione} onChange={(e) => setTipoLavorazione(e.target.value)} placeholder={t("operazioneForm.tillageTypePlaceholder")} />
+          <Label htmlFor="op-lav">{t("operationForm.tillageTypeLabel")}</Label>
+          <Input id="op-lav" value={tillageType} onChange={(e) => setTillageType(e.target.value)} placeholder={t("operationForm.tillageTypePlaceholder")} />
         </div>
       )}
 
@@ -940,8 +940,8 @@ export function OperationForm({
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="op-prod">{productLabel}</Label>
           {usaCatalogo ? (
-            <Select id="op-prod" value={prodottoCodice} onChange={(e) => selectProduct(e.target.value)}>
-              <option value="">{t("operazioneForm.selectFromNationalRegister")}</option>
+            <Select id="op-prod" value={productCode} onChange={(e) => selectProduct(e.target.value)}>
+              <option value="">{t("operationForm.selectFromNationalRegister")}</option>
               {catalog?.map((p) => (
                 <option key={p.code} value={p.code}>
                   {p.name}
@@ -950,7 +950,7 @@ export function OperationForm({
               ))}
             </Select>
           ) : (
-            <Input id="op-prod" value={product} onChange={(e) => setProdotto(e.target.value)} />
+            <Input id="op-prod" value={product} onChange={(e) => setProduct(e.target.value)} />
           )}
         </div>
       )}
@@ -960,22 +960,22 @@ export function OperationForm({
       {usesWarehouse && !isSampling && (
         <section className="flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2">
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
-            {t("operazioneForm.warehouseSection")}
+            {t("operationForm.warehouseSection")}
           </p>
-          {scarichiRows.length === 0 && (
+          {dischargeRows.length === 0 && (
             <p className="text-[11px] text-[var(--ink-3)]">
-              {t("operazioneForm.warehouseFreeText")}
+              {t("operationForm.warehouseFreeText")}
             </p>
           )}
-          {scarichiRows.map((row, index) => {
+          {dischargeRows.map((row, index) => {
             const selectedProduct = categoryProducts.find(
               (p) => p.id === row.productId,
             );
             const productLots = (lottiMagazzino ?? []).filter(
               (l) => l.product_id === row.productId,
             );
-            const lottoSel = lottoById.get(row.lotId) ?? null;
-            const available = lottoSel ? Number(lottoSel.quantity_on_hand) : null;
+            const selectedLot = lotById.get(row.lotId) ?? null;
+            const available = selectedLot ? Number(selectedLot.quantity_on_hand) : null;
             return (
               <div
                 key={`scarico-${index}`}
@@ -984,7 +984,7 @@ export function OperationForm({
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor={`op-mag-prod-${index}`}>
-                      {t("operazioneForm.warehouseProduct")}
+                      {t("operationForm.warehouseProduct")}
                     </Label>
                     <Select
                       id={`op-mag-prod-${index}`}
@@ -993,17 +993,17 @@ export function OperationForm({
                         updateIssue(index, { productId: e.target.value })
                       }
                     >
-                      <option value="">{t("operazioneForm.selectEllipsis")}</option>
+                      <option value="">{t("operationForm.selectEllipsis")}</option>
                       {categoryProducts.map((p) => {
                         // Product in unità non riconciliabile con la dose
                         // (kg vs l): non selezionabile finché c'è un totale
                         // previsto da far quadrare.
-                        const incompatibile = !unitaCompatibile(p.unit);
+                        const incompatibile = !compatibleUnit(p.unit);
                         return (
                           <option key={p.id} value={p.id} disabled={incompatibile}>
                             {p.name} · {p.unit}
                             {incompatibile
-                              ? ` · ${t("operazioneForm.warehouseIncompatibleUnit", { unit: baseDose })}`
+                              ? ` · ${t("operationForm.warehouseIncompatibleUnit", { unit: baseDose })}`
                               : ""}
                           </option>
                         );
@@ -1012,7 +1012,7 @@ export function OperationForm({
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor={`op-mag-lot-${index}`}>
-                      {t("operazioneForm.warehouseLot")}
+                      {t("operationForm.warehouseLot")}
                     </Label>
                     <Select
                       id={`op-mag-lot-${index}`}
@@ -1022,10 +1022,10 @@ export function OperationForm({
                       }
                       disabled={!row.productId}
                     >
-                      <option value="">{t("operazioneForm.selectEllipsis")}</option>
+                      <option value="">{t("operationForm.selectEllipsis")}</option>
                       {productLots.map((l) => {
-                        const stato = expiryStatus(l.expires_at);
-                        const scaduto = stato === "expired";
+                        const status = expiryStatus(l.expires_at);
+                        const scaduto = status === "expired";
                         // Solo il lot nell'opzione: scadenza (Timestamp) e
                         // disponibilità NON vanno accodate qui — restano nella
                         // riga informativa sotto la select una volta scelto il
@@ -1035,9 +1035,9 @@ export function OperationForm({
                           <option key={l.id} value={l.id} disabled={scaduto}>
                             {l.lot_number ?? l.id.slice(0, 8)}
                             {scaduto
-                              ? ` · ${t("operazioneForm.warehouseExpiredOption")}`
-                              : stato === "expiring"
-                                ? ` · ${t("operazioneForm.warehouseExpiringOption")}`
+                              ? ` · ${t("operationForm.warehouseExpiredOption")}`
+                              : status === "expiring"
+                                ? ` · ${t("operationForm.warehouseExpiringOption")}`
                                 : ""}
                           </option>
                         );
@@ -1045,7 +1045,7 @@ export function OperationForm({
                     </Select>
                     {row.productId && productLots.length === 0 && (
                       <p className="text-[11px] text-[var(--warn)]">
-                        {t("operazioneForm.warehouseNoLots")}
+                        {t("operationForm.warehouseNoLots")}
                       </p>
                     )}
                   </div>
@@ -1053,7 +1053,7 @@ export function OperationForm({
                 <div className="flex items-end gap-2">
                   <div className="flex flex-1 flex-col gap-1.5">
                     <Label htmlFor={`op-mag-qta-${index}`}>
-                      {t("operazioneForm.warehouseQuantity", {
+                      {t("operationForm.warehouseQuantity", {
                         unit: selectedProduct?.unit ?? "—",
                       })}
                     </Label>
@@ -1072,21 +1072,21 @@ export function OperationForm({
                     />
                   </div>
                   {/* Riga informativa del lot scelto: disponibilità +
-                      scadenza formattata (spostate qui dalla dropdown). */}
-                  {lottoSel && (
+                      expiry formattata (spostate qui dalla dropdown). */}
+                  {selectedLot && (
                     <p className="pb-2 text-[11px] text-[var(--ink-3)]">
                       {available != null
-                        ? t("operazioneForm.warehouseAvailable", {
+                        ? t("operationForm.warehouseAvailable", {
                             qty: available,
                             unit: selectedProduct?.unit ?? "",
                           })
                         : ""}
-                      {lottoSel.expires_at
+                      {selectedLot.expires_at
                         ? `${available != null ? " · " : ""}${t(
-                            "operazioneForm.warehouseExpiresAt",
+                            "operationForm.warehouseExpiresAt",
                             {
                               date: new Date(
-                                lottoSel.expires_at,
+                                selectedLot.expires_at,
                               ).toLocaleDateString("it-IT"),
                             },
                           )}`
@@ -1099,7 +1099,7 @@ export function OperationForm({
                     onClick={() => removeIssue(index)}
                     className="min-h-[40px] px-2 text-xs"
                   >
-                    {t("operazioneForm.warehouseRemoveRow")}
+                    {t("operationForm.warehouseRemoveRow")}
                   </Button>
                 </div>
 
@@ -1112,15 +1112,15 @@ export function OperationForm({
                   const effectiveDose =
                     area && area > 0 ? qty / area : null;
                   const scostamento =
-                    totalePrevisto != null &&
-                    totalePrevisto > 0 &&
+                    expectedTotal != null &&
+                    expectedTotal > 0 &&
                     selectedProduct?.unit === baseDose &&
-                    Math.abs(qty - totalePrevisto) / totalePrevisto > 0.05;
+                    Math.abs(qty - expectedTotal) / expectedTotal > 0.05;
                   const exceedsLot =
                     available != null && qty > available;
                   const copribile =
                     exceedsLot &&
-                    lottiUtilizzabili(row.productId).reduce(
+                    usableLots(row.productId).reduce(
                       (s, l) => s + Number(l.quantity_on_hand),
                       0,
                     ) >= qty;
@@ -1129,7 +1129,7 @@ export function OperationForm({
                     <div className="flex flex-wrap items-center gap-2 text-[11px]">
                       {effectiveDose != null && f.dose && (
                         <span className="rounded-full bg-[var(--panel-2)] px-2 py-0.5 text-[var(--ink-3)]">
-                          {t("operazioneForm.warehouseEffectiveDose", {
+                          {t("operationForm.warehouseEffectiveDose", {
                             dose: (Math.round(effectiveDose * 100) / 100).toLocaleString("it-IT"),
                             unit: `${unit}/ha`,
                           })}
@@ -1137,8 +1137,8 @@ export function OperationForm({
                       )}
                       {scostamento && (
                         <span className="rounded-full bg-[var(--warn-l)] px-2 py-0.5 font-medium text-[var(--warn)]">
-                          {t("operazioneForm.warehouseMismatch", {
-                            total: totalePrevisto,
+                          {t("operationForm.warehouseMismatch", {
+                            total: expectedTotal,
                             unit,
                           })}
                         </span>
@@ -1146,10 +1146,10 @@ export function OperationForm({
                       {copribile && (
                         <button
                           type="button"
-                          onClick={() => dividiFefo(index)}
+                          onClick={() => splitFefo(index)}
                           className="rounded-full border border-[var(--accent-bd)] bg-[var(--accent-l)] px-2 py-0.5 font-medium text-[var(--accent)]"
                         >
-                          {t("operazioneForm.warehouseSplitFefo")}
+                          {t("operationForm.warehouseSplitFefo")}
                         </button>
                       )}
                     </div>
@@ -1161,14 +1161,14 @@ export function OperationForm({
           <button
             type="button"
             onClick={() =>
-              setScarichiRows((rows) => [
+              setDischargeRows((rows) => [
                 ...rows,
                 { productId: "", lotId: "", quantity: "" },
               ])
             }
             className="self-start text-xs font-medium text-[var(--accent)]"
           >
-            {t("operazioneForm.warehouseAddRow")}
+            {t("operationForm.warehouseAddRow")}
           </button>
         </section>
       )}
@@ -1179,13 +1179,13 @@ export function OperationForm({
         <label className="flex items-start gap-2 rounded-[var(--r-2)] border border-[var(--accent-bd)] bg-[var(--accent-l)] px-3 py-2">
           <input
             type="checkbox"
-            checked={assegnaColtura}
-            onChange={(e) => setAssegnaColtura(e.target.checked)}
+            checked={assignCrop}
+            onChange={(e) => setAssignCrop(e.target.checked)}
             className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
           />
           <span className="min-w-0">
             <span className="block text-sm font-medium text-[var(--accent)]">
-              {t("operazioneForm.assignCropLabel", {
+              {t("operationForm.assignCropLabel", {
                 crop:
                   speciesName +
                   (metaSeedStr("variety_name")
@@ -1196,7 +1196,7 @@ export function OperationForm({
               })}
             </span>
             <span className="block text-[11px] text-[var(--ink-3)]">
-              {t("operazioneForm.assignCropHint")}
+              {t("operationForm.assignCropHint")}
             </span>
           </span>
         </label>
@@ -1206,16 +1206,16 @@ export function OperationForm({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="op-tipoconcime">{t("logbook.fertilization.type")}</Label>
-            <Select id="op-tipoconcime" value={tipoConcime} onChange={(e) => setTipoConcime(e.target.value)}>
+            <Select id="op-tipoconcime" value={fertilizerType} onChange={(e) => setFertilizerType(e.target.value)}>
               <option value="minerale">{t("logbook.fertilization.mineral")}</option>
               <option value="organico">{t("logbook.fertilization.organic")}</option>
-              <option value="organo-minerale">{t("operazioneForm.organoMineral")}</option>
+              <option value="organo-minerale">{t("operationForm.organoMineral")}</option>
             </Select>
           </div>
           {f.npkRatio && (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="op-npk">{t("logbook.fertilization.npk")}</Label>
-              <Input id="op-npk" value={titoloNpk} onChange={(e) => setTitoloNpk(e.target.value)} placeholder={t("logbook.fertilization.npkPlaceholder")} className="agro-num" />
+              <Input id="op-npk" value={npkRatio} onChange={(e) => setNpkRatio(e.target.value)} placeholder={t("logbook.fertilization.npkPlaceholder")} className="agro-num" />
             </div>
           )}
         </div>
@@ -1225,7 +1225,7 @@ export function OperationForm({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="op-reg">{t("logbook.treatment.regNumber")}</Label>
-            <Input id="op-reg" value={numeroRegistrazione} onChange={(e) => setNumeroRegistrazione(e.target.value)} className="agro-num" />
+            <Input id="op-reg" value={registrationNumber} onChange={(e) => setRegistrationNumber(e.target.value)} className="agro-num" />
           </div>
           {f.activeSubstance && (
             <div className="flex flex-col gap-1.5">
@@ -1238,10 +1238,10 @@ export function OperationForm({
 
       {f.targetDisease && (
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="op-target">{t("operazioneForm.targetPest")}</Label>
+          <Label htmlFor="op-target">{t("operationForm.targetPest")}</Label>
           <Select id="op-target" value={target} onChange={(e) => setTarget(e.target.value)}>
-            <option value="">{t("operazioneForm.selectEllipsis")}</option>
-            {AVVERSITA_PAN.map((a) => (
+            <option value="">{t("operationForm.selectEllipsis")}</option>
+            {PAN_PESTS.map((a) => (
               <option key={a} value={a}>
                 {a}
               </option>
@@ -1256,12 +1256,12 @@ export function OperationForm({
             <>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="op-dose">{t("logbook.treatment.dose")}</Label>
-                <Input id="op-dose" type="number" inputMode="decimal" min="0" step="any" value={doseValore} onChange={(e) => setDoseValore(e.target.value)} className="agro-num" />
+                <Input id="op-dose" type="number" inputMode="decimal" min="0" step="any" value={doseValue} onChange={(e) => setDoseValue(e.target.value)} className="agro-num" />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="op-unita">{t("logbook.treatment.unit")}</Label>
-                <Select id="op-unita" value={doseUnita} onChange={(e) => setDoseUnita(e.target.value as DoseUnit)}>
-                  {UNITA.map((u) => (
+                <Select id="op-unita" value={doseUnit} onChange={(e) => setDoseUnit(e.target.value as DoseUnit)}>
+                  {UNITS.map((u) => (
                     <option key={u} value={u}>
                       {u === "m3" ? "m³" : u}
                     </option>
@@ -1273,7 +1273,7 @@ export function OperationForm({
           {f.waterVolume && (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="op-acqua">{t("logbook.treatment.water")}</Label>
-              <Input id="op-acqua" type="number" inputMode="numeric" min="0" step="1" value={acquaVolume} onChange={(e) => setAcquaVolume(e.target.value)} className="agro-num" />
+              <Input id="op-acqua" type="number" inputMode="numeric" min="0" step="1" value={waterVolume} onChange={(e) => setWaterVolume(e.target.value)} className="agro-num" />
             </div>
           )}
         </div>
@@ -1284,7 +1284,7 @@ export function OperationForm({
         <div className="flex flex-col gap-1.5">
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2 flex flex-col gap-1.5">
-              <Label htmlFor="op-irr">{t("operazioneForm.irrigationAmount", { unit: waterUnitLabel(irrUnit) })}</Label>
+              <Label htmlFor="op-irr">{t("operationForm.irrigationAmount", { unit: waterUnitLabel(irrUnit) })}</Label>
               <Input
                 id="op-irr"
                 type="number"
@@ -1303,8 +1303,8 @@ export function OperationForm({
                 value={irrUnit}
                 onChange={(e) => setIrrUnit(e.target.value as WaterUnit)}
               >
-                <option value="mm">{t("operazioneForm.mmSheet")}</option>
-                <option value="hl">{t("operazioneForm.hlVolume")}</option>
+                <option value="mm">{t("operationForm.mmSheet")}</option>
+                <option value="hl">{t("operationForm.hlVolume")}</option>
               </Select>
             </div>
           </div>
@@ -1325,37 +1325,37 @@ export function OperationForm({
                     ).toFixed(1)}{" "}
                     {irrUnit === "mm" ? "hl" : "mm"}
                   </strong>{" "}
-                  {t("operazioneForm.onSurface", { area: area.toFixed(2) })}
+                  {t("operationForm.onSurface", { area: area.toFixed(2) })}
                 </>
               )}
             </p>
           )}
           {area == null && irrUnit === "mm" && (
             <p className="rounded-[var(--r-2)] bg-[var(--warn-l)] px-3 py-1.5 text-xs text-[var(--warn)]">
-              {t("operazioneForm.selectPlotForMmConversion")}
+              {t("operationForm.selectPlotForMmConversion")}
             </p>
           )}
         </div>
       )}
 
-      {totaleAutomatico != null && (
+      {automaticTotal != null && (
         <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] px-3 py-2 text-sm text-[var(--ink-2)]">
           {t("logbook.treatment.computedTotal")}{" "}
           <strong className="agro-num text-[var(--ink)]">
-            {totaleAutomatico} {doseUnita.split("/")[0]}
+            {automaticTotal} {doseUnit.split("/")[0]}
           </strong>{" "}
-          ({doseValore} {doseUnita} × {area?.toFixed(2)} ha)
+          ({doseValue} {doseUnit} × {area?.toFixed(2)} ha)
         </p>
       )}
 
       {f.totalManual && (
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="op-tot">{t("operazioneForm.totalQuantityKg")}</Label>
-          <Input id="op-tot" type="number" inputMode="decimal" min="0" step="any" value={totaleManuale} onChange={(e) => setTotaleManuale(e.target.value)} className="agro-num" />
+          <Label htmlFor="op-tot">{t("operationForm.totalQuantityKg")}</Label>
+          <Input id="op-tot" type="number" inputMode="decimal" min="0" step="any" value={manualTotal} onChange={(e) => setManualTotal(e.target.value)} className="agro-num" />
         </div>
       )}
 
-      {superaAzoto && compliance?.azotoMaxTotaleKg != null && (
+      {exceedsNitrogen && compliance?.azotoMaxTotaleKg != null && (
         <p className="rounded-[var(--r-2)] bg-[var(--danger-l)] px-3 py-2 text-sm font-medium text-[var(--danger)]">
           {t("logbook.treatment.nitrogenExceeded", { max: compliance.azotoMaxTotaleKg })}
         </p>
@@ -1364,25 +1364,25 @@ export function OperationForm({
       {/* Operatore + (CF/patentino/mezzo solo dove richiesti) */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="op-operatore">{t("operazioneForm.operator")}</Label>
-          <Input id="op-operatore" value={operatore} onChange={(e) => setOperatore(e.target.value)} placeholder={t("operazioneForm.operatorPlaceholder")} />
+          <Label htmlFor="op-operator">{t("operationForm.operator")}</Label>
+          <Input id="op-operator" value={operator} onChange={(e) => setOperator(e.target.value)} placeholder={t("operationForm.operatorPlaceholder")} />
         </div>
         {f.operatorTaxCode && (
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="op-cf">{t("logbook.treatment.operatorTaxCode")}</Label>
-            <Input id="op-cf" value={operatoreCf} onChange={(e) => setOperatoreCf(e.target.value)} className="agro-num uppercase" maxLength={16} />
+            <Input id="op-cf" value={operatorTaxCode} onChange={(e) => setOperatorTaxCode(e.target.value)} className="agro-num uppercase" maxLength={16} />
           </div>
         )}
         {f.licenseNumber && (
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="op-pat">{t("logbook.treatment.license")}</Label>
-            <Input id="op-pat" value={numPatentino} onChange={(e) => setNumPatentino(e.target.value)} className="agro-num" />
+            <Input id="op-pat" value={licenseNumber} onChange={(e) => setLicenseNumber(e.target.value)} className="agro-num" />
           </div>
         )}
         {f.machinery && (
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="op-mezzo">{t("operazioneForm.machinery")}</Label>
-            <Input id="op-mezzo" value={mezzo} onChange={(e) => setMezzo(e.target.value)} placeholder={t("operazioneForm.machineryPlaceholder")} />
+            <Label htmlFor="op-machinery">{t("operationForm.machinery")}</Label>
+            <Input id="op-machinery" value={machinery} onChange={(e) => setMachinery(e.target.value)} placeholder={t("operationForm.machineryPlaceholder")} />
           </div>
         )}
       </div>
@@ -1391,21 +1391,21 @@ export function OperationForm({
         <div className="grid grid-cols-2 gap-3">
           {f.reentry && (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="op-rientro">{t("operazioneForm.reentryHours")}</Label>
-              <Input id="op-rientro" type="number" inputMode="numeric" min="0" value={rientro} onChange={(e) => setRientro(e.target.value)} className="agro-num" />
+              <Label htmlFor="op-rientro">{t("operationForm.reentryHours")}</Label>
+              <Input id="op-rientro" type="number" inputMode="numeric" min="0" value={reentry} onChange={(e) => setReentry(e.target.value)} className="agro-num" />
             </div>
           )}
           {f.safety && (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="op-carenza">{t("operazioneForm.safetyDays")}</Label>
-              <Input id="op-carenza" type="number" inputMode="numeric" min="0" value={carenza} onChange={(e) => setCarenza(e.target.value)} className="agro-num" />
+              <Label htmlFor="op-safetyPeriod">{t("operationForm.safetyDays")}</Label>
+              <Input id="op-safetyPeriod" type="number" inputMode="numeric" min="0" value={safetyPeriod} onChange={(e) => setSafetyPeriod(e.target.value)} className="agro-num" />
             </div>
           )}
         </div>
       )}
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="op-note">{t("operazioneForm.notes")}</Label>
+        <Label htmlFor="op-note">{t("operationForm.notes")}</Label>
         <textarea
           id="op-note"
           value={note}
@@ -1415,7 +1415,7 @@ export function OperationForm({
         />
       </div>
 
-      {mancano && (
+      {missing && (
         <div className="flex flex-col gap-0.5 rounded-[var(--r-2)] border border-[var(--danger)] bg-[var(--danger-l)] px-3 py-2 text-xs text-[var(--danger)]">
           <span className="font-semibold uppercase tracking-wide">{t("logbook.common.panRequired")}</span>
           {panErrors.map((e) => (
@@ -1427,13 +1427,13 @@ export function OperationForm({
       {/* Scarico atomico fallito: la transazione è annullata per intero (§5.2). */}
       {submitError && (
         <p className="rounded-[var(--r-2)] border border-[var(--danger)] bg-[var(--danger-l)] px-3 py-2 text-sm font-medium text-[var(--danger)]">
-          {t("operazioneForm.warehouseSubmitError", { message: submitError })}
+          {t("operationForm.warehouseSubmitError", { message: submitError })}
         </p>
       )}
 
       <div className="flex gap-2 pt-1">
         <Button type="submit" disabled={!canSubmit} className={cn("min-h-[var(--touch-min)] flex-1")}>
-          {saving ? t("logbook.common.saving") : t("operazioneForm.submit")}
+          {saving ? t("logbook.common.saving") : t("operationForm.submit")}
         </Button>
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel} className="min-h-[var(--touch-min)]">

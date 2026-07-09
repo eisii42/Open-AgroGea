@@ -217,14 +217,14 @@ export class AgroDalLocal extends AgroDalWarehouse {
    */
   async saveDssResults(
     plotId: string,
-    risultati: Array<
+    results: Array<
       Pick<DssResult, "model_name" | "risk_level" | "output_value"> & {
         calculated_at?: string;
       }
     >,
   ): Promise<DssResult[]> {
     const ts = nowIso();
-    const rows: DssResult[] = risultati.map((r) => ({
+    const rows: DssResult[] = results.map((r) => ({
       id: uuidv4(),
       plot_id: plotId,
       model_name: r.model_name,
@@ -233,7 +233,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
       calculated_at: r.calculated_at ?? ts,
     }));
     await this.db.transaction(async (tx: Transaction) => {
-      const modelli = risultati.map((r) => r.model_name);
+      const modelli = results.map((r) => r.model_name);
       if (modelli.length > 0) {
         await tx.query(
           `delete from dss_results
@@ -412,13 +412,13 @@ export class AgroDalLocal extends AgroDalWarehouse {
    */
   async listCatalogo(
     countryCode: string,
-    tipo: CatalogType,
+    type: CatalogType,
   ): Promise<CatalogEntry[]> {
     const result = await this.db.query<CatalogEntry>(
       `select * from product_catalogs
        where country_code = $1 and type = $2
        order by name`,
-      [countryCode, tipo],
+      [countryCode, type],
     );
     return result.rows;
   }
@@ -428,15 +428,15 @@ export class AgroDalLocal extends AgroDalWarehouse {
    * (country_code, type, code). Local-only.
    */
   async upsertCatalogoVoci(
-    voci: Array<
+    items: Array<
       Pick<CatalogEntry, "country_code" | "type" | "code" | "name"> &
         Partial<Pick<CatalogEntry, "id" | "active_substance" | "registration_number" | "metadata">>
     >,
   ): Promise<number> {
-    if (voci.length === 0) return 0;
+    if (items.length === 0) return 0;
     const ts = nowIso();
     await this.db.transaction(async (tx: Transaction) => {
-      for (const v of voci) {
+      for (const v of items) {
         await tx.query(
           `insert into product_catalogs
              (id, country_code, type, code, name, active_substance, registration_number, metadata, created_at, updated_at)
@@ -461,6 +461,6 @@ export class AgroDalLocal extends AgroDalWarehouse {
         );
       }
     });
-    return voci.length;
+    return items.length;
   }
 }

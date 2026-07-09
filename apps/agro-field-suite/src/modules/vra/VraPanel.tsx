@@ -6,9 +6,9 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useVraGenerator } from "./useVraGenerator";
 import {
-  ETICHETTE_LAVORAZIONE,
-  type TipoLavorazione,
-  UNITA_LAVORAZIONE,
+  TILLAGE_LABELS,
+  type TillageType,
+  TILLAGE_UNITS,
 } from "./vra-zones";
 
 /**
@@ -18,7 +18,7 @@ import {
  * esportabile per i terminali dei trattori (ISO-XML / GeoJSON).
  */
 
-const INDICI: { id: VegetationIndex; label: string }[] = [
+const INDICES: { id: VegetationIndex; label: string }[] = [
   { id: "ndvi", label: "NDVI" },
   { id: "ndre", label: "NDRE" },
   { id: "msavi2", label: "MSAVI2" },
@@ -26,7 +26,7 @@ const INDICI: { id: VegetationIndex; label: string }[] = [
   { id: "ndwi", label: "NDWI" },
 ];
 
-const LAVORAZIONI = Object.keys(ETICHETTE_LAVORAZIONE) as TipoLavorazione[];
+const TILLAGE_TYPES = Object.keys(TILLAGE_LABELS) as TillageType[];
 
 // Risoluzione della cella VRA in pixel Sentinel-2 (10 m/pixel).
 const RISOLUZIONI = [
@@ -39,7 +39,7 @@ const MIN_ZONE = 2;
 const MAX_ZONE = 5;
 
 /** Chiavi i18n per le etichette di lavorazione (`vra-zones.ts` resta in italiano). */
-const LAVORAZIONE_I18N_KEY: Record<TipoLavorazione, string> = {
+const TILLAGE_I18N_KEY: Record<TillageType, string> = {
   concimazione: "vraPanel.tillage.concimazione",
   fertilizzazione: "vraPanel.tillage.fertilizzazione",
   trattamento: "vraPanel.tillage.trattamento",
@@ -51,18 +51,18 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const plots = useAgroStore((s) => s.plots);
   const selectedId = useAgroStore((s) => s.selectedPlotId);
-  const { stato, generate, runExport, reset } = useVraGenerator();
+  const { status, generate, runExport, reset } = useVraGenerator();
 
   const [plotId, setApzId] = useState(selectedId ?? "");
-  const [indice, setIndice] = useState<VegetationIndex>("ndvi");
-  const [lavorazione, setLavorazione] = useState<TipoLavorazione>("concimazione");
+  const [index, setIndex] = useState<VegetationIndex>("ndvi");
+  const [tillage, setTillage] = useState<TillageType>("concimazione");
   const [step, setStep] = useState(4);
   const [zone, setZone] = useState(3);
-  const [ratei, setRatei] = useState<number[]>([120, 100, 80]);
+  const [rates, setRates] = useState<number[]>([120, 100, 80]);
 
   // Adatta la lista dei ratei al number di zone (zona 0 = indice più basso).
   useEffect(() => {
-    setRatei((prev) => {
+    setRates((prev) => {
       if (prev.length === zone) return prev;
       const next = [...prev];
       while (next.length < zone) next.push(next.at(-1) ?? 100);
@@ -72,8 +72,8 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
   }, [zone]);
 
   const plot = plots.find((a) => a.id === plotId);
-  const unita = UNITA_LAVORAZIONE[lavorazione];
-  const inCorso = stato.fase === "lavorazione";
+  const unit = TILLAGE_UNITS[tillage];
+  const inCorso = status.fase === "lavorazione";
   const canGenerate = plot != null && !inCorso;
 
   return (
@@ -87,7 +87,7 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
           onClick={() => {
             if (!plot) return;
             reset();
-            void generate(plot, { indice, step, zone, lavorazione, ratei });
+            void generate(plot, { index, step, zone, tillage, rates });
           }}
         >
           {inCorso ? t("vraPanel.generating") : t("vraPanel.generateMap")}
@@ -127,11 +127,11 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
               {t("vraPanel.baseIndex")}
             </p>
             <select
-              value={indice}
-              onChange={(e) => setIndice(e.target.value as VegetationIndex)}
+              value={index}
+              onChange={(e) => setIndex(e.target.value as VegetationIndex)}
               className="w-full rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-2 text-sm"
             >
-              {INDICI.map((i) => (
+              {INDICES.map((i) => (
                 <option key={i.id} value={i.id}>
                   {i.label}
                 </option>
@@ -143,15 +143,15 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
               {t("vraPanel.tillageLabel")}
             </p>
             <select
-              value={lavorazione}
+              value={tillage}
               onChange={(e) =>
-                setLavorazione(e.target.value as TipoLavorazione)
+                setTillage(e.target.value as TillageType)
               }
               className="w-full rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-2 text-sm"
             >
-              {LAVORAZIONI.map((l) => (
+              {TILLAGE_TYPES.map((l) => (
                 <option key={l} value={l}>
-                  {t(LAVORAZIONE_I18N_KEY[l] as never)}
+                  {t(TILLAGE_I18N_KEY[l] as never)}
                 </option>
               ))}
             </select>
@@ -194,13 +194,13 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
         {/* Ratei per zona */}
         <section>
           <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
-            {t("vraPanel.ratesPerZone", { unit: unita })}
+            {t("vraPanel.ratesPerZone", { unit: unit })}
           </p>
           <p className="mb-2 text-[11px] text-[var(--ink-4)]">
             {t("vraPanel.zoneOrderHint", { zone })}
           </p>
           <div className="flex flex-col gap-1.5">
-            {ratei.map((rateo, i) => (
+            {rates.map((rateo, i) => (
               <label
                 // L'indice è la chiave naturale: le zone sono sortedList e stabili.
                 key={i}
@@ -215,7 +215,7 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
                   value={rateo}
                   min={0}
                   onChange={(e) =>
-                    setRatei((prev) =>
+                    setRates((prev) =>
                       prev.map((v, j) =>
                         j === i ? Number(e.target.value) : v,
                       ),
@@ -223,7 +223,7 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
                   }
                   className="agro-num flex-1 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-1.5 text-sm"
                 />
-                <span className="w-12 text-xs text-[var(--ink-4)]">{unita}</span>
+                <span className="w-12 text-xs text-[var(--ink-4)]">{unit}</span>
               </label>
             ))}
           </div>
@@ -231,22 +231,22 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
 
         {/* Stato */}
         {inCorso && (
-          <p className="text-sm text-[var(--accent)]">{stato.label}</p>
+          <p className="text-sm text-[var(--accent)]">{status.label}</p>
         )}
-        {stato.fase === "errore" && (
+        {status.fase === "errore" && (
           <div className="rounded-[var(--r-2)] bg-[var(--danger-l)] p-2 text-sm text-[var(--danger)]">
-            {stato.message}
+            {status.message}
           </div>
         )}
 
         {/* Risultato: legenda zone + export */}
-        {stato.fase === "completato" && (
+        {status.fase === "completato" && (
           <section className="flex flex-col gap-2 border-t border-[var(--line)] pt-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
               {t("vraPanel.zonesGenerated")}
             </p>
             <div className="flex flex-col gap-1">
-              {stato.risultato.zone.map((z) => (
+              {status.result.zone.map((z) => (
                 <div
                   key={z.zona}
                   className="flex items-center justify-between rounded-[var(--r-2)] bg-[var(--panel-2)] px-2 py-1 text-xs"
@@ -255,11 +255,11 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
                     {t("vraPanel.zoneNumber", { number: z.zona + 1 })}
                   </span>
                   <span className="text-[var(--ink-4)]">
-                    {indice.toUpperCase()} {z.valoreMedio.toFixed(3)} ·{" "}
+                    {index.toUpperCase()} {z.valoreMedio.toFixed(3)} ·{" "}
                     {t("vraPanel.cellsCount", { count: z.nCelle })}
                   </span>
                   <span className="agro-num font-semibold">
-                    {z.rateo} {stato.risultato.unita}
+                    {z.rateo} {status.result.unit}
                   </span>
                 </div>
               ))}

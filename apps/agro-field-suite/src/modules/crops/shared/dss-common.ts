@@ -71,7 +71,7 @@ export function creaDssAccumuloTermico(
         tBase,
         { tCutoff, targetThreshold: config.targetThreshold },
       );
-      const gddTotale = cumulative[cumulative.length - 1] ?? 0;
+      const totalGdd = cumulative[cumulative.length - 1] ?? 0;
 
       if (thresholdDay != null) {
         // Soglia raggiunta: risk configurato e day riportato all'index
@@ -89,12 +89,12 @@ export function creaDssAccumuloTermico(
       }
 
       // Sotto soglia: alert informativo di avanzamento (risk basso).
-      const progresso = Math.min(100, (gddTotale / config.targetThreshold) * 100);
+      const progresso = Math.min(100, (totalGdd / config.targetThreshold) * 100);
       return {
         model: config.name,
         risk: "basso",
         index: 1,
-        message: `Accumulo in corso: ${gddTotale.toFixed(0)}/${config.targetThreshold} °Cd (base ${tBase} °C) — ${progresso.toFixed(0)}% verso «${config.target}».`,
+        message: `Accumulo in corso: ${totalGdd.toFixed(0)}/${config.targetThreshold} °Cd (base ${tBase} °C) — ${progresso.toFixed(0)}% verso «${config.target}».`,
         day: offset + finestra.length - 1,
       };
     },

@@ -41,11 +41,11 @@ export function ConfirmDeleteOperation({
   const { t } = useTranslation();
   const [consenso, setConsenso] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const effectiveTitle = title ?? t("confirmDeleteOperazione.defaultTitle");
+  const effectiveTitle = title ?? t("confirmDeleteOperation.defaultTitle");
   const effectiveMessage =
-    messaggio ?? t("confirmDeleteOperazione.defaultMessage");
+    messaggio ?? t("confirmDeleteOperation.defaultMessage");
   const consensoLabelEffettivo =
-    consensoLabel ?? t("confirmDeleteOperazione.defaultConsentLabel");
+    consensoLabel ?? t("confirmDeleteOperation.defaultConsentLabel");
 
   // Azzera lo sblocco a ogni apertura: nessun residuo dalla sessione precedente.
   useEffect(() => {
@@ -83,7 +83,7 @@ export function ConfirmDeleteOperation({
             role="alert"
             className="rounded-[var(--r-2)] border border-[#dc2626] bg-[var(--danger-l,#fee2e2)] px-3 py-2.5 text-sm text-[#991b1b]"
           >
-            <strong>{t("confirmDeleteOperazione.warning")}</strong>{" "}
+            <strong>{t("confirmDeleteOperation.warning")}</strong>{" "}
             {effectiveMessage}
           </div>
 
@@ -124,8 +124,8 @@ export function ConfirmDeleteOperation({
               className="flex-1 rounded-[var(--r-2)] bg-[#dc2626] px-3 py-2 text-sm font-medium text-white transition-opacity hover:bg-[#b91c1c] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {deleting
-                ? t("confirmDeleteOperazione.deleting")
-                : t("confirmDeleteOperazione.confirmDelete")}
+                ? t("confirmDeleteOperation.deleting")
+                : t("confirmDeleteOperation.confirmDelete")}
             </button>
           </div>
         </div>

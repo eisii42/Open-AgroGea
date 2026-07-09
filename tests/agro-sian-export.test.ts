@@ -39,7 +39,7 @@ function tratt(
   id: string,
   plot_id: string | null,
   executed_at: string,
-  tipo: TreatmentLog["operation_type"] = "phytosanitary",
+  type: TreatmentLog["operation_type"] = "phytosanitary",
 ): TreatmentLog {
   return {
     id,
@@ -47,7 +47,7 @@ function tratt(
     company_id: "az",
     plot_id,
     plot_campaign_id: plot_id ? `cc-${plot_id}` : null,
-    operation_type: tipo,
+    operation_type: type,
     product_name: "Rame",
     registration_number: null,
     dose_value: 1,
@@ -75,7 +75,7 @@ function tratt(
 
 function field(
   plot_id: string,
-  anno: number,
+  year: number,
   over: Partial<PlotCampaign> = {},
 ): PlotCampaign {
   return {
@@ -83,7 +83,7 @@ function field(
     tenant_id: "t",
     plot_id,
     crop_id: `crop-${plot_id}`,
-    campaign_year: anno,
+    campaign_year: year,
     reference_parcel_external_id: "IS-1",
     agricultural_parcel_external_id: "AP-9",
     crop_external_code: "060",
@@ -208,7 +208,7 @@ describe("buildSianCsv · struttura", () => {
 
 describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
   it("popola i codici ministeriali dal join per plot_campaign_id", () => {
-    const campi = [field("a1", 2026)];
+    const fields = [field("a1", 2026)];
     const csv = buildSianCsv(
       [TRATT[0]],
       APPS,
@@ -223,7 +223,7 @@ describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
         includiIntestazioni: true,
         bom: true,
       },
-      campi,
+      fields,
     );
     const [header, row] = csv.split("\n");
     assert.equal(
@@ -252,9 +252,9 @@ describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
   it("FALLBACK: risolve i codici per plot+anno se plot_campaign_id è null", () => {
     // Operazione su a1 senza aggancio diretto (es. semina auto-assegnata):
     // i codici SIAN vengono comunque dalla campagna del plot per quell'anno.
-    const senzaAggancio = { ...tratt("t9", "a1", "2026-04-01T08:00:00.000Z"), plot_campaign_id: null };
+    const withoutLink = { ...tratt("t9", "a1", "2026-04-01T08:00:00.000Z"), plot_campaign_id: null };
     const csv = buildSianCsv(
-      [senzaAggancio],
+      [withoutLink],
       APPS,
       {
         columns: ["crop_external_code", "reference_parcel_external_id"],

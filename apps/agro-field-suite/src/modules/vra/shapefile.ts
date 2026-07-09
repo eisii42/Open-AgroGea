@@ -17,12 +17,12 @@ interface Record {
   box: [number, number, number, number];
 }
 
-interface CampoDbf {
+interface DbfField {
   /** Chiave originale nelle properties della feature. */
-  chiave: string;
+  key: string;
   /** Nome del field DBF (ASCII ≤ 10, maiuscolo). */
   name: string;
-  tipo: "N" | "C";
+  type: "N" | "C";
   lunghezza: number;
   decimali: number;
 }
@@ -56,7 +56,7 @@ function boxDaRings(rings: number[][][]): [number, number, number, number] {
 }
 
 /** Schema DBF dedotto dalle proprietà: numeri → N(19,6), stringhe → C(64). */
-function dedussiSchema(features: Feature[]): CampoDbf[] {
+function dedussiSchema(features: Feature[]): DbfField[] {
   const tipi = new Map<string, "N" | "C">();
   for (const f of features) {
     for (const [k, v] of Object.entries(f.properties ?? {})) {
@@ -64,13 +64,13 @@ function dedussiSchema(features: Feature[]): CampoDbf[] {
       tipi.set(k, typeof v === "number" ? "N" : "C");
     }
   }
-  return [...tipi].map(([chiave, tipo]) => ({
-    chiave,
+  return [...tipi].map(([key, type]) => ({
+    key,
     // I nomi dei campi DBF sono ≤ 10 caratteri ASCII maiuscoli.
-    name: chiave.replace(/[^a-z0-9_]/gi, "_").slice(0, 10).toUpperCase(),
-    tipo,
-    lunghezza: tipo === "N" ? 19 : 64,
-    decimali: tipo === "N" ? 6 : 0,
+    name: key.replace(/[^a-z0-9_]/gi, "_").slice(0, 10).toUpperCase(),
+    type,
+    lunghezza: type === "N" ? 19 : 64,
+    decimali: type === "N" ? 6 : 0,
   }));
 }
 
@@ -153,8 +153,8 @@ function buildShpShx(records: Record[]): { shp: Uint8Array; shx: Uint8Array } {
   return { shp: new Uint8Array(shp), shx: new Uint8Array(shx) };
 }
 
-function formatValue(value: unknown, field: CampoDbf): string {
-  if (field.tipo === "N") {
+function formatValue(value: unknown, field: DbfField): string {
+  if (field.type === "N") {
     const n = typeof value === "number" ? value : Number(value);
     const testo = Number.isFinite(n) ? n.toFixed(field.decimali) : "";
     return testo.slice(0, field.lunghezza).padStart(field.lunghezza, " ");
@@ -163,11 +163,11 @@ function formatValue(value: unknown, field: CampoDbf): string {
   return testo.slice(0, field.lunghezza).padEnd(field.lunghezza, " ");
 }
 
-function buildDbf(features: Feature[], schema: CampoDbf[]): Uint8Array {
+function buildDbf(features: Feature[], schema: DbfField[]): Uint8Array {
   const headerLength = 32 + schema.length * 32 + 1;
   const recordLength = 1 + schema.reduce((n, c) => n + c.lunghezza, 0);
-  const totale = headerLength + features.length * recordLength + 1;
-  const buf = new ArrayBuffer(totale);
+  const total = headerLength + features.length * recordLength + 1;
+  const buf = new ArrayBuffer(total);
   const dv = new DataView(buf);
 
   const now = new Date();
@@ -182,7 +182,7 @@ function buildDbf(features: Feature[], schema: CampoDbf[]): Uint8Array {
   schema.forEach((field, i) => {
     const base = 32 + i * 32;
     writeAscii(dv, base, field.name, 11);
-    dv.setUint8(base + 11, field.tipo.charCodeAt(0));
+    dv.setUint8(base + 11, field.type.charCodeAt(0));
     dv.setUint8(base + 16, field.lunghezza);
     dv.setUint8(base + 17, field.decimali);
   });
@@ -196,13 +196,13 @@ function buildDbf(features: Feature[], schema: CampoDbf[]): Uint8Array {
       writeAscii(
         dv,
         off,
-        formatValue(f.properties?.[field.chiave], field),
+        formatValue(f.properties?.[field.key], field),
         field.lunghezza,
       );
       off += field.lunghezza;
     }
   }
-  dv.setUint8(totale - 1, 0x1a); // EOF
+  dv.setUint8(total - 1, 0x1a); // EOF
   return new Uint8Array(buf);
 }
 

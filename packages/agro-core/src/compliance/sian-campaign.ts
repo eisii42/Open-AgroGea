@@ -27,7 +27,7 @@ export type MissingDeclarativeField =
 /** @deprecated alias storico (prima versione IT-only): usa MissingDeclarativeField. */
 export type MissingSianField = MissingDeclarativeField;
 
-const CAMPI_DICHIARATIVI: MissingDeclarativeField[] = [
+const DECLARATIVE_FIELDS: MissingDeclarativeField[] = [
   "crop_external_code",
   "reference_parcel_external_id",
   "agricultural_parcel_external_id",
@@ -60,7 +60,7 @@ export function missingDeclarative(
   field: Pick<PlotCampaign, MissingDeclarativeField>,
 ): MissingDeclarativeField[] {
   if (!declarativeSystem(countryCode)) return [];
-  return CAMPI_DICHIARATIVI.filter((key) => {
+  return DECLARATIVE_FIELDS.filter((key) => {
     const v = field[key];
     return v == null || v.trim() === "";
   });

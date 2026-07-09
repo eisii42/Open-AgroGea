@@ -11,16 +11,16 @@
  * Parte PURA (solo stringhe): testabile sotto Node.
  */
 import type { Feature, Polygon } from "geojson";
-import type { RisultatoZoneVra, TipoLavorazione } from "./vra-zones";
+import type { VraZoneResult, TillageType } from "./vra-zones";
 import { geojsonToShapefileZip } from "./shapefile";
 
-export function vraToGeoJson(result: RisultatoZoneVra): string {
+export function vraToGeoJson(result: VraZoneResult): string {
   return JSON.stringify(result.fc);
 }
 
 /** Archivio ZIP Shapefile (.shp/.shx/.dbf/.prj) della mappa VRA, per trattori legacy. */
 export function vraToShapefileZip(
-  result: RisultatoZoneVra,
+  result: VraZoneResult,
   nomeBase = "vra",
 ): Uint8Array {
   return geojsonToShapefileZip(result.fc, nomeBase);
@@ -33,8 +33,8 @@ export function vraToShapefileZip(
  *   * volume per area → DDI 0001, mm³/m² (1 L/ha  = 100 mm³/m²)
  *   * conteggio/area  → DDI 0028, 1/m²   (1 semi/ha = 0.0001 /m²)
  */
-const DDI_LAVORAZIONE: Record<
-  TipoLavorazione,
+const DDI_TILLAGE: Record<
+  TillageType,
   { ddi: string; scala: number }
 > = {
   concimazione: { ddi: "0006", scala: 10 },
@@ -77,10 +77,10 @@ export interface IsoXmlMeta {
  * ciascuna con il rateo come ProcessDataVariable e i poligoni delle celle.
  */
 export function vraToIsoXml(
-  result: RisultatoZoneVra,
+  result: VraZoneResult,
   meta: IsoXmlMeta,
 ): string {
-  const { ddi, scala } = DDI_LAVORAZIONE[result.lavorazione];
+  const { ddi, scala } = DDI_TILLAGE[result.tillage];
   const software = escapeXml(meta.software ?? "AgroGea");
   const taskName = escapeXml(meta.taskName);
 
@@ -101,7 +101,7 @@ export function vraToIsoXml(
         .join("");
       return (
         `<TZN A="${zona.zona + 1}" B="${escapeXml(
-          `Zona ${zona.zona + 1} (${zona.rateo} ${result.unita})`,
+          `Zona ${zona.zona + 1} (${zona.rateo} ${result.unit})`,
         )}">` +
         `<PDV A="${ddi}" B="${isoValue}"/>` +
         polygons +

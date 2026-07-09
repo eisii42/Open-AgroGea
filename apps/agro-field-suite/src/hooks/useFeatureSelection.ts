@@ -25,7 +25,7 @@ import { type RefObject, useEffect } from "react";
  * casi serve all'engine per posare/spostare vertici).
  */
 
-const APPEZZAMENTI_ID = "agrogea-plots";
+const PLOTS_ID = "agrogea-plots";
 const INFRASTRUTTURE_ID = "agrogea-infrastrutture";
 const POI_ID = "agrogea-poi";
 const SCOUTING_ID = "agrogea-scouting";
@@ -42,7 +42,7 @@ const LAYER_KINDS: LayerKind[] = [
   { id: circleLayerId(INFRASTRUTTURE_ID), kind: "infrastruttura" },
   { id: lineLayerId(INFRASTRUTTURE_ID), kind: "infrastruttura" },
   { id: fillLayerId(INFRASTRUTTURE_ID), kind: "infrastruttura" },
-  { id: fillLayerId(APPEZZAMENTI_ID), kind: "appezzamento" },
+  { id: fillLayerId(PLOTS_ID), kind: "appezzamento" },
 ];
 
 function featureRecordId(

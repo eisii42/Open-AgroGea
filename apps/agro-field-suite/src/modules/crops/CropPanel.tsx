@@ -15,9 +15,9 @@ import { DssRiskCard } from "./shared/DssRiskCard";
 
 /**
  * Modulo CropType, a DUE pannelli indipendenti nella colonna destra:
- *   * {@link ColturaDatiPanel} — form smart per inserire la crop (singolo
+ *   * {@link CropDataPanel} — form smart per inserire la crop (singolo
  *     plot) su `crops` + `plots_campaign`;
- *   * {@link ColturaDssPanel} — modelli previsionali (DSS) su UNO O PIÙ
+ *   * {@link CropDssPanel} — modelli previsionali (DSS) su UNO O PIÙ
  *     plots (come la pipeline indici), con scheda di risk colorata.
  * La crop del DSS è risolta dalla Campagna Agraria attiva (→ crops).
  */
@@ -60,13 +60,13 @@ function PlotSelect({
 
 function useSelectedPlot(): {
   plot: Plot | null;
-  scelto: string;
-  setScelto: (id: string) => void;
+  chosen: string;
+  setChosen: (id: string) => void;
   vuoto: boolean;
 } {
   const plots = useAgroStore((s) => s.plots);
   const selectedId = useAgroStore((s) => s.selectedPlotId);
-  const [scelto, setScelto] = useState<string>(
+  const [chosen, setChosen] = useState<string>(
     selectedId ?? plots[0]?.id ?? "",
   );
 
@@ -78,29 +78,29 @@ function useSelectedPlot(): {
   const consumeCropOpen = useAgroStore((s) => s.consumeCropOpen);
   useEffect(() => {
     if (cropOpenPlotId) {
-      setScelto(cropOpenPlotId);
+      setChosen(cropOpenPlotId);
       consumeCropOpen();
     }
   }, [cropOpenPlotId, consumeCropOpen]);
 
-  const plot = plots.find((a) => a.id === scelto) ?? null;
-  return { plot, scelto, setScelto, vuoto: plots.length === 0 };
+  const plot = plots.find((a) => a.id === chosen) ?? null;
+  return { plot, chosen, setChosen, vuoto: plots.length === 0 };
 }
 
 /** Pannello "Dati coltura": inserimento smart della crop per Campagna. */
-export function ColturaDatiPanel({ onClose }: { onClose: () => void }) {
+export function CropDataPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
-  const { plot, scelto, setScelto, vuoto } = useSelectedPlot();
+  const { plot, chosen, setChosen, vuoto } = useSelectedPlot();
   return (
-    <FieldSheet title={t("colturaPanel.dataTitle")} onClose={onClose}>
+    <FieldSheet title={t("cropPanel.dataTitle")} onClose={onClose}>
       <div className="flex flex-col gap-4">
         {vuoto ? (
           <p className="py-8 text-center text-sm text-[var(--ink-3)]">
-            {t("colturaPanel.noPlotAvailable")}
+            {t("cropPanel.noPlotAvailable")}
           </p>
         ) : (
           <>
-            <PlotSelect value={scelto} onChange={setScelto} />
+            <PlotSelect value={chosen} onChange={setChosen} />
             {plot && <CropDataForm plot={plot} />}
           </>
         )}
@@ -110,13 +110,13 @@ export function ColturaDatiPanel({ onClose }: { onClose: () => void }) {
 }
 
 /** Pannello "CropType · DSS": modelli previsionali su uno o più plots. */
-export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
+export function CropDssPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const plots = useAgroStore((s) => s.plots);
   const crops = useAgroStore((s) => s.crops);
   const campaignFields = useAgroStore((s) => s.campaignFields);
   const selectedId = useAgroStore((s) => s.selectedPlotId);
-  const { stato, compute } = useDssCalculation();
+  const { status, compute } = useDssCalculation();
 
   const [sel, setSel] = useState<Set<string>>(
     () =>
@@ -150,14 +150,14 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
     return out;
   }, [plots, sel, campaignFields, crops]);
 
-  const senzaModulo = [...sel].filter(
+  const withoutModule = [...sel].filter(
     (id) => !targets.some((t) => t.plot.id === id),
   );
-  const inCorso = stato.phase === "calcolo";
+  const inCorso = status.phase === "calcolo";
 
   return (
     <FieldSheet
-      title={t("colturaPanel.dssTitle")}
+      title={t("cropPanel.dssTitle")}
       onClose={onClose}
       footer={
         <Button
@@ -167,24 +167,24 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
         >
           <RefreshCw size={15} className={cn(inCorso && "animate-spin")} />
           {inCorso
-            ? t("colturaPanel.calculating")
+            ? t("cropPanel.calculating")
             : targets.length > 1
-              ? t("colturaPanel.calculateModelsCount", { count: targets.length })
-              : t("colturaPanel.calculateModels")}
+              ? t("cropPanel.calculateModelsCount", { count: targets.length })
+              : t("cropPanel.calculateModels")}
         </Button>
       }
     >
       <div className="flex flex-col gap-4">
         {plots.length === 0 ? (
           <p className="py-8 text-center text-sm text-[var(--ink-3)]">
-            {t("colturaPanel.noPlotAvailable")}
+            {t("cropPanel.noPlotAvailable")}
           </p>
         ) : (
           <>
             {/* Multi-selezione plots (come la pipeline indici). */}
             <section>
               <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
-                {t("colturaPanel.plotsCount", { count: sel.size })}
+                {t("cropPanel.plotsCount", { count: sel.size })}
               </p>
               <div className="flex max-h-40 flex-col gap-1 overflow-y-auto">
                 {plots.map((a) => {
@@ -212,23 +212,23 @@ export function ColturaDssPanel({ onClose }: { onClose: () => void }) {
               </div>
             </section>
 
-            {senzaModulo.length > 0 && (
+            {withoutModule.length > 0 && (
               <p className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2.5 text-xs text-[var(--ink-3)]">
-                {t("colturaPanel.plotsWithoutDssModule", { count: senzaModulo.length })}
+                {t("cropPanel.plotsWithoutDssModule", { count: withoutModule.length })}
               </p>
             )}
 
-            {stato.phase === "errore" && (
+            {status.phase === "errore" && (
               <div className="rounded-[var(--r-2)] bg-[var(--danger-l)] p-2 text-xs text-[var(--danger)]">
-                {stato.message}
+                {status.message}
               </div>
             )}
 
             {/* Risultati per plot: scheda di risk colorata. */}
-            {stato.phase === "completato" && (
+            {status.phase === "completato" && (
               <div className="flex flex-col gap-3">
-                {stato.risultati.map((r) => (
-                  <DssRiskCard key={r.plotId} risultato={r} />
+                {status.results.map((r) => (
+                  <DssRiskCard key={r.plotId} result={r} />
                 ))}
               </div>
             )}

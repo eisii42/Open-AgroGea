@@ -62,13 +62,13 @@ function shortDate(iso: string): string {
 }
 
 /** Etichetta leggibile della sorgente dei parametri idro-pedologici. */
-function getEtichetteSorgente(t: TFunction): Record<SoilSource, string> {
+function getSourceLabels(t: TFunction): Record<SoilSource, string> {
   return {
-    "custom-map": t("bilancioIdricoPanel.soilSource.customMap"),
-    "soil-samples": t("bilancioIdricoPanel.soilSource.soilSamples"),
-    manual: t("bilancioIdricoPanel.soilSource.manual"),
-    metadata: t("bilancioIdricoPanel.soilSource.metadata"),
-    default: t("bilancioIdricoPanel.soilSource.default"),
+    "custom-map": t("waterBalancePanel.soilSource.customMap"),
+    "soil-samples": t("waterBalancePanel.soilSource.soilSamples"),
+    manual: t("waterBalancePanel.soilSource.manual"),
+    metadata: t("waterBalancePanel.soilSource.metadata"),
+    default: t("waterBalancePanel.soilSource.default"),
   };
 }
 
@@ -80,7 +80,7 @@ const FORMATI_EXPORT: { id: MoistureHistoryFormat }[] = [
 ];
 
 /** Etichetta leggibile del formato di export (i formati sono nomi tecnici invariati). */
-const ETICHETTA_FORMATO: Record<MoistureHistoryFormat, string> = {
+const FORMAT_LABEL: Record<MoistureHistoryFormat, string> = {
   geojson: "GeoJSON",
   shapefile: "Shapefile",
   csv: "CSV",
@@ -115,7 +115,7 @@ function seriesToMoistureHistory(
   }));
 }
 
-export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
+export function WaterBalancePanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const plots = useAgroStore((s) => s.plots);
   const crops = useAgroStore((s) => s.crops);
@@ -141,19 +141,19 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
       return next;
     });
 
-  const { stato, compute } = useDssCalculation();
+  const { status, compute } = useDssCalculation();
   const [mostraOverlay, setMostraOverlay] = useState(false);
   const [esportando, setEsportando] = useState(false);
 
   // Mappa custom del soil (Tier 1): layer esterni caricati via «Aggiungi dati».
   const layers = useAppStore((s) => s.layers);
-  const [mappaSuoloId, setMappaSuoloId] = useState("");
+  const [soilMapId, setSoilMapId] = useState("");
   const soilLayer = useMemo(
     () => layers.filter((l) => l.metadata?.[EXTERNAL_LAYER_FLAG] === true && l.geojson),
     [layers],
   );
   const mappaCustom =
-    (soilLayer.find((l) => l.id === mappaSuoloId)?.geojson as
+    (soilLayer.find((l) => l.id === soilMapId)?.geojson as
       | FeatureCollection
       | undefined) ?? null;
 
@@ -170,11 +170,11 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
     return out;
   }, [plots, sel, campaignFields, crops]);
 
-  const senzaModulo = [...sel].filter(
+  const withoutModule = [...sel].filter(
     (id) => !targets.some((t) => t.plot.id === id),
   );
-  const inCorso = stato.phase === "calcolo";
-  const completato = stato.phase === "completato";
+  const inCorso = status.phase === "calcolo";
+  const completato = status.phase === "completato";
 
   const runExport = async (r: DssPlotResult, formato: MoistureHistoryFormat) => {
     const plot = plots.find((a) => a.id === r.plotId);
@@ -205,22 +205,22 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
   const plotsOverlay = useMemo(
     () =>
       completato
-        ? stato.risultati
+        ? status.results
             .map((r) => plots.find((a) => a.id === r.plotId))
             .filter((a): a is Plot => a != null)
         : [],
-    [completato, stato.risultati, plots],
+    [completato, status.results, plots],
   );
 
   const summaryPerField = useMemo(() => {
     const m = new Map<string, FieldSummary>();
     if (!completato) return m;
-    for (const r of stato.risultati) {
-      if (!r.bilancio) continue;
+    for (const r of status.results) {
+      if (!r.balance) continue;
       const appz = plots.find((a) => a.id === r.plotId);
-      const idrico = r.vettori.find((v) => v.categoria === "idrico");
+      const idrico = r.vettori.find((v) => v.category === "idrico");
       const patologico = r.vettori
-        .filter((v) => v.categoria === "fitopatologico")
+        .filter((v) => v.category === "fitopatologico")
         .reduce((max, v) => Math.max(max, v.rischio01), 0);
       const score = summarizeFieldRisk(
         {
@@ -233,18 +233,18 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
       m.set(r.plotId, { rischio01: score });
     }
     return m;
-  }, [completato, stato.risultati, plots]);
+  }, [completato, status.results, plots]);
 
   useDssOverlayLayer({
     plots: plotsOverlay,
     summaryPerField,
-    crop: stato.risultati[0]?.module.mainSpecies ?? "vite",
+    crop: status.results[0]?.module.mainSpecies ?? "vite",
     active: mostraOverlay && completato,
   });
 
   return (
     <FieldSheet
-      title={t("bilancioIdricoPanel.title")}
+      title={t("waterBalancePanel.title")}
       onClose={onClose}
       footer={
         <Button
@@ -254,24 +254,24 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
         >
           <RefreshCw size={15} className={cn(inCorso && "animate-spin")} />
           {inCorso
-            ? t("bilancioIdricoPanel.computing")
+            ? t("waterBalancePanel.computing")
             : targets.length > 1
-              ? t("bilancioIdricoPanel.computeBalanceCount", { count: targets.length })
-              : t("bilancioIdricoPanel.computeBalance")}
+              ? t("waterBalancePanel.computeBalanceCount", { count: targets.length })
+              : t("waterBalancePanel.computeBalance")}
         </Button>
       }
     >
       <div className="flex flex-col gap-4">
         {plots.length === 0 ? (
           <p className="py-8 text-center text-sm text-[var(--ink-3)]">
-            {t("bilancioIdricoPanel.noPlots")}
+            {t("waterBalancePanel.noPlots")}
           </p>
         ) : (
           <>
             {/* Multi-selezione plots. */}
             <section>
               <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
-                {t("bilancioIdricoPanel.plotsCount", { count: sel.size })}
+                {t("waterBalancePanel.plotsCount", { count: sel.size })}
               </p>
               <div className="flex max-h-40 flex-col gap-1 overflow-y-auto">
                 {plots.map((a) => {
@@ -301,12 +301,12 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
 
             <p className="flex items-center gap-1.5 text-[11px] text-[var(--ink-4)]">
               <Droplets size={13} className="text-[var(--accent)]" />
-              {t("bilancioIdricoPanel.formulaHint")}
+              {t("waterBalancePanel.formulaHint")}
             </p>
 
-            {senzaModulo.length > 0 && (
+            {withoutModule.length > 0 && (
               <p className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2.5 text-xs text-[var(--ink-3)]">
-                {t("bilancioIdricoPanel.noCropWarning", { count: senzaModulo.length })}
+                {t("waterBalancePanel.noCropWarning", { count: withoutModule.length })}
               </p>
             )}
 
@@ -314,14 +314,14 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
             {soilLayer.length > 0 && (
               <label className="flex flex-col gap-1 text-xs">
                 <span className="flex items-center gap-1.5 font-medium text-[var(--ink-3)]">
-                  <Layers size={13} /> {t("bilancioIdricoPanel.soilMap")}
+                  <Layers size={13} /> {t("waterBalancePanel.soilMap")}
                 </span>
                 <select
-                  value={mappaSuoloId}
-                  onChange={(e) => setMappaSuoloId(e.target.value)}
+                  value={soilMapId}
+                  onChange={(e) => setSoilMapId(e.target.value)}
                   className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-1.5 text-sm"
                 >
-                  <option value="">{t("bilancioIdricoPanel.soilMapAuto")}</option>
+                  <option value="">{t("waterBalancePanel.soilMapAuto")}</option>
                   {soilLayer.map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.name}
@@ -331,9 +331,9 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
               </label>
             )}
 
-            {stato.phase === "errore" && (
+            {status.phase === "errore" && (
               <div className="rounded-[var(--r-2)] bg-[var(--danger-l)] p-2 text-xs text-[var(--danger)]">
-                {stato.message}
+                {status.message}
               </div>
             )}
 
@@ -351,15 +351,15 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
                 >
                   <MapIcon size={14} />
                   {mostraOverlay
-                    ? t("bilancioIdricoPanel.overlayActive")
-                    : t("bilancioIdricoPanel.showRiskOnMap")}
+                    ? t("waterBalancePanel.overlayActive")
+                    : t("waterBalancePanel.showRiskOnMap")}
                 </button>
 
                 <div className="flex flex-col gap-3">
-                  {stato.risultati.map((r) => (
+                  {status.results.map((r) => (
                     <WaterResultCard
                       key={r.plotId}
-                      risultato={r}
+                      result={r}
                       esportando={esportando}
                       onExport={(f) => void runExport(r, f)}
                     />
@@ -376,22 +376,22 @@ export function BilancioIdricoPanel({ onClose }: { onClose: () => void }) {
 
 /** Scheda risultato del bilancio idrico per UN plot. */
 function WaterResultCard({
-  risultato,
+  result,
   esportando,
   onExport,
 }: {
-  risultato: DssPlotResult;
+  result: DssPlotResult;
   esportando: boolean;
   onExport: (formato: MoistureHistoryFormat) => void;
 }) {
   const { t } = useTranslation();
-  const { name, bilancio, soil, balanceSeries, message } = risultato;
-  const etichetteSorgente = useMemo(() => getEtichetteSorgente(t), [t]);
+  const { name, balance, soil, balanceSeries, message } = result;
+  const sourceLabels = useMemo(() => getSourceLabels(t), [t]);
 
   // La series copre ~430 giorni: su un grafico stretto un singolo day d'irrigation
   // diventa invisibile. Si mostra una FINESTRA RECENTE (ultimi ~75 giorni, inclusa
   // la previsione in coda) così gli apporti irrigui e l'andamento di Dr si leggono.
-  const datiGrafico = useMemo(
+  const chartData = useMemo(
     () =>
       balanceSeries.slice(-75).map((g) => ({
         data: shortDate(g.data),
@@ -413,39 +413,39 @@ function WaterResultCard({
     <section className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-3">
       <p className="mb-2 text-sm font-semibold">{name}</p>
 
-      {!bilancio ? (
+      {!balance ? (
         <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] p-2 text-xs text-[var(--ink-3)]">
-          {message ?? t("bilancioIdricoPanel.balanceNotComputable")}
+          {message ?? t("waterBalancePanel.balanceNotComputable")}
         </p>
       ) : (
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-            <span className="text-[var(--ink-3)]">{t("bilancioIdricoPanel.depletionDr")}</span>
+            <span className="text-[var(--ink-3)]">{t("waterBalancePanel.depletionDr")}</span>
             <span className="agro-num text-right">
-              {bilancio.depletion.toFixed(0)} / RAW {bilancio.raw.toFixed(0)} mm
+              {balance.depletion.toFixed(0)} / RAW {balance.raw.toFixed(0)} mm
             </span>
-            <span className="text-[var(--ink-3)]">{t("bilancioIdricoPanel.availableWater")}</span>
+            <span className="text-[var(--ink-3)]">{t("waterBalancePanel.availableWater")}</span>
             <span className="agro-num text-right">
-              {bilancio.awc.toFixed(0)} mm (AWC)
+              {balance.awc.toFixed(0)} mm (AWC)
             </span>
-            <span className="text-[var(--ink-3)]">{t("bilancioIdricoPanel.irrigationPeriod")}</span>
+            <span className="text-[var(--ink-3)]">{t("waterBalancePanel.irrigationPeriod")}</span>
             <span className="agro-num text-right" style={{ color: "#0ea5e9" }}>
               {totalIrrigation.toFixed(0)} mm
             </span>
-            <span className="text-[var(--ink-3)]">{t("bilancioIdricoPanel.autonomy")}</span>
+            <span className="text-[var(--ink-3)]">{t("waterBalancePanel.autonomy")}</span>
             <span className="agro-num text-right">
-              {t("bilancioIdricoPanel.autonomyDays", { count: bilancio.autonomyDays })}
+              {t("waterBalancePanel.autonomyDays", { count: balance.autonomyDays })}
             </span>
-            <span className="text-[var(--ink-3)]">{t("bilancioIdricoPanel.waterStatus")}</span>
+            <span className="text-[var(--ink-3)]">{t("waterBalancePanel.waterStatus")}</span>
             <span
               className="text-right font-semibold"
               style={{
-                color: bilancio.inStress ? "var(--danger)" : "var(--ok, #1f8a5b)",
+                color: balance.inStress ? "var(--danger)" : "var(--ok, #1f8a5b)",
               }}
             >
-              {bilancio.inStress
-                ? t("bilancioIdricoPanel.waterStress")
-                : t("bilancioIdricoPanel.adequate")}
+              {balance.inStress
+                ? t("waterBalancePanel.waterStress")
+                : t("waterBalancePanel.adequate")}
             </span>
           </div>
 
@@ -453,14 +453,14 @@ function WaterResultCard({
           {soil && (
             <div className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] px-2.5 py-1.5 text-[11px]">
               <span className="font-semibold text-[var(--ink-3)]">
-                {t("bilancioIdricoPanel.soilLabel", {
-                  source: etichetteSorgente[soil.sorgente],
+                {t("waterBalancePanel.soilLabel", {
+                  source: sourceLabels[soil.sorgente],
                 })}
               </span>
               {soil.tessitura && (
                 <span className="agro-num text-[var(--ink-4)]">
                   {" · "}
-                  {t("bilancioIdricoPanel.textureBreakdown", {
+                  {t("waterBalancePanel.textureBreakdown", {
                     sand: Math.round(soil.tessitura.sabbia * 100),
                     silt: Math.round(soil.tessitura.limo * 100),
                     clay: Math.round(soil.tessitura.argilla * 100),
@@ -470,19 +470,19 @@ function WaterResultCard({
               {soil.campioniUsati > 0 && (
                 <span className="text-[var(--ink-4)]">
                   {" · "}
-                  {t("bilancioIdricoPanel.samplesUsed", { count: soil.campioniUsati })}
+                  {t("waterBalancePanel.samplesUsed", { count: soil.campioniUsati })}
                 </span>
               )}
             </div>
           )}
 
           {/* Deplezione Dr (area) + apporti irrigui e rain (barre): così il
-              grafico MOSTRA gli eventi d'irrigation che alimentano il bilancio. */}
-          {datiGrafico.length > 1 && (
+              grafico MOSTRA gli eventi d'irrigation che alimentano il balance. */}
+          {chartData.length > 1 && (
             <div className="h-44 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
-                  data={datiGrafico}
+                  data={chartData}
                   margin={{ top: 4, right: 8, bottom: 0, left: -20 }}
                 >
                   <XAxis
@@ -502,11 +502,11 @@ function WaterResultCard({
                   />
                   <Legend wrapperStyle={{ fontSize: 10 }} />
                   <ReferenceLine
-                    y={bilancio.raw}
+                    y={balance.raw}
                     stroke="var(--danger)"
                     strokeDasharray="4 3"
                     label={{
-                      value: t("bilancioIdricoPanel.chart.rawLabel"),
+                      value: t("waterBalancePanel.chart.rawLabel"),
                       fontSize: 9,
                       fill: "var(--danger)",
                       position: "insideTopRight",
@@ -514,14 +514,14 @@ function WaterResultCard({
                   />
                   <Bar
                     dataKey="rain"
-                    name={t("bilancioIdricoPanel.chart.rain")}
+                    name={t("waterBalancePanel.chart.rain")}
                     fill="#93c5fd"
                     barSize={6}
                     isAnimationActive={false}
                   />
                   <Bar
                     dataKey="irrigation"
-                    name={t("bilancioIdricoPanel.chart.irrigation")}
+                    name={t("waterBalancePanel.chart.irrigation")}
                     fill="#0ea5e9"
                     barSize={6}
                     isAnimationActive={false}
@@ -529,7 +529,7 @@ function WaterResultCard({
                   <Area
                     type="monotone"
                     dataKey="depletion"
-                    name={t("bilancioIdricoPanel.chart.drShort")}
+                    name={t("waterBalancePanel.chart.drShort")}
                     stroke="#1f6feb"
                     fill="#1f6feb"
                     fillOpacity={0.18}
@@ -544,7 +544,7 @@ function WaterResultCard({
           {balanceSeries.length > 0 && (
             <div className="flex flex-col gap-1">
               <span className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--ink-4)]">
-                <Download size={12} /> {t("bilancioIdricoPanel.exportMoistureHistory")}
+                <Download size={12} /> {t("waterBalancePanel.exportMoistureHistory")}
               </span>
               <div className="flex gap-1.5">
                 {FORMATI_EXPORT.map((f) => (
@@ -555,16 +555,16 @@ function WaterResultCard({
                     onClick={() => onExport(f.id)}
                     className="flex-1 rounded-[var(--r-2)] border border-[var(--line)] px-2 py-1.5 text-[12px] font-semibold text-[var(--ink-2)] hover:bg-[var(--panel-2)] disabled:opacity-50"
                   >
-                    {ETICHETTA_FORMATO[f.id]}
+                    {FORMAT_LABEL[f.id]}
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          {!bilancio.persistito && (
+          {!balance.persistito && (
             <p className="text-[10px] text-[var(--ink-4)]">
-              {t("bilancioIdricoPanel.registerCropHint")}
+              {t("waterBalancePanel.registerCropHint")}
             </p>
           )}
         </div>

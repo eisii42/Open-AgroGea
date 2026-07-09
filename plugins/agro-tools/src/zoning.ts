@@ -26,7 +26,7 @@ export interface VigorClass {
 }
 
 export interface ZoningResult {
-  classi: VigorClass[];
+  classes: VigorClass[];
   /** Soglie che separano le classi (length = k − 1). */
   soglie: number[];
   /** Indice di classe per ogni pixel valido, allineato all'input filtrato. */
@@ -63,7 +63,7 @@ export function kmeansZoning(
   for (const v of values) if (Number.isFinite(v)) finiti.push(v);
   if (finiti.length < k) {
     throw new Error(
-      `Pixel validi insufficienti (${finiti.length}) per ${k} classi.`,
+      `Pixel validi insufficienti (${finiti.length}) per ${k} classes.`,
     );
   }
 
@@ -107,21 +107,21 @@ export function kmeansZoning(
   }
 
   const conteggi = new Array(k).fill(0);
-  const minClasse = new Array(k).fill(Number.POSITIVE_INFINITY);
-  const maxClasse = new Array(k).fill(Number.NEGATIVE_INFINITY);
+  const minClass = new Array(k).fill(Number.POSITIVE_INFINITY);
+  const maxClass = new Array(k).fill(Number.NEGATIVE_INFINITY);
   for (let p = 0; p < finiti.length; p++) {
     const c = assegnazioni[p];
     conteggi[c]++;
-    if (finiti[p] < minClasse[c]) minClasse[c] = finiti[p];
-    if (finiti[p] > maxClasse[c]) maxClasse[c] = finiti[p];
+    if (finiti[p] < minClass[c]) minClass[c] = finiti[p];
+    if (finiti[p] > maxClass[c]) maxClass[c] = finiti[p];
   }
 
-  const classi: VigorClass[] = centroidi.map((centroid, i) => ({
+  const classes: VigorClass[] = centroidi.map((centroid, i) => ({
     classe: i,
     centroid,
     intervallo: [
-      conteggi[i] > 0 ? minClasse[i] : Number.NaN,
-      conteggi[i] > 0 ? maxClasse[i] : Number.NaN,
+      conteggi[i] > 0 ? minClass[i] : Number.NaN,
+      conteggi[i] > 0 ? maxClass[i] : Number.NaN,
     ],
     pixel: conteggi[i],
     frazione: conteggi[i] / finiti.length,
@@ -131,7 +131,7 @@ export function kmeansZoning(
     .slice(0, -1)
     .map((c, i) => (c + centroidi[i + 1]) / 2);
 
-  return { classi, soglie: soglieFinali, assegnazioni, iterazioni };
+  return { classes, soglie: soglieFinali, assegnazioni, iterazioni };
 }
 
 /**
@@ -146,12 +146,12 @@ export function kmeansZoning(
  * Le classi sono ordinate per centroid crescente prima di mappare le dosi.
  */
 export function dosesPerClass(
-  classi: VigorClass[],
+  classes: VigorClass[],
   doseRiferimento: number,
   logica: VraLogic,
   intensita = 0.3,
 ): { classe: number; dose: number }[] {
-  const ordinate = [...classi].sort((a, b) => a.centroid - b.centroid);
+  const ordinate = [...classes].sort((a, b) => a.centroid - b.centroid);
   const n = ordinate.length;
   if (n < 2) return ordinate.map((c) => ({ classe: c.classe, dose: doseRiferimento }));
 

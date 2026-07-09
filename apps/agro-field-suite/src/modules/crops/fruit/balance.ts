@@ -5,9 +5,9 @@ import {
 } from "../shared/balance";
 
 /** Bilancio idrico della frutta: Kc per phase della specie "melo" (FAO-56). */
-export function bilancioFrutta(
+export function fruitBalance(
   phase: PhenologicalPhase,
-  meteo: WeatherDataDay[],
+  weather: WeatherDataDay[],
   pioggiaSerie: number[],
   soil: SoilParameters,
   deplezioneIniziale = 0,
@@ -15,7 +15,7 @@ export function bilancioFrutta(
   return cropWaterBalance({
     specie: "melo",
     phase,
-    meteo,
+    weather,
     pioggiaSerie,
     soil,
     deplezioneIniziale,

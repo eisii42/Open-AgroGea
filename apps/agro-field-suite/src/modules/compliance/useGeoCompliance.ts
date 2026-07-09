@@ -4,14 +4,14 @@ import type { FeatureCollection, Geometry } from "geojson";
 import { useCallback } from "react";
 import type { ComplianceTreatment } from "@agrogea/ui";
 import {
-  azotoTotaleMax,
+  totalNitrogenMax,
   type LayerCompliance,
-  type RisultatoCompliance,
-  type TipoVincolo,
+  type ComplianceResult,
+  type ConstraintType,
   checkCompliance,
 } from "./geo-compliance";
 
-const TAG_VALIDI: TipoVincolo[] = ["zvn", "sic", "zps", "eudr"];
+const TAG_VALIDI: ConstraintType[] = ["zvn", "sic", "zps", "eudr"];
 
 /** Layer dello store taggati come cartografia vincolante (compliance). */
 function useComplianceLayers(): LayerCompliance[] {
@@ -24,7 +24,7 @@ function useComplianceLayers(): LayerCompliance[] {
       (TAG_VALIDI as string[]).includes(tag) &&
       layer.geojson
     ) {
-      out.push({ tipo: tag as TipoVincolo, fc: layer.geojson as FeatureCollection });
+      out.push({ type: tag as ConstraintType, fc: layer.geojson as FeatureCollection });
     }
   }
   return out;
@@ -34,10 +34,10 @@ function useComplianceLayers(): LayerCompliance[] {
  * Valuta i vincoli geografici completi (ZVN/SIC/ZPS/EUDR) di una geometria.
  * Restituisce null se non ci sono layer di compliance caricati.
  */
-export function useComplianceVincoli() {
+export function useComplianceConstraints() {
   const complianceLayers = useComplianceLayers();
   return useCallback(
-    (geometria: Geometry): RisultatoCompliance | null => {
+    (geometria: Geometry): ComplianceResult | null => {
       if (complianceLayers.length === 0) return null;
       if (geometria.type !== "Polygon" && geometria.type !== "MultiPolygon") {
         return null;
@@ -61,14 +61,14 @@ export function useGeoCompliance() {
     (plot: Plot): ComplianceTreatment | null => {
       if (complianceLayers.length === 0) return null;
 
-      const esito = checkCompliance(plot.geometry, complianceLayers);
-      if (esito.vincoli.length === 0) return null;
+      const outcome = checkCompliance(plot.geometry, complianceLayers);
+      if (outcome.constraints.length === 0) return null;
 
       // Superficie autorevole: area geodetica del DAL.
       const area = plot.area_ha;
       return {
-        note: esito.note,
-        azotoMaxTotaleKg: azotoTotaleMax(area, esito.azotoMaxKgHa),
+        note: outcome.note,
+        azotoMaxTotaleKg: totalNitrogenMax(area, outcome.azotoMaxKgHa),
       };
     },
     [complianceLayers],

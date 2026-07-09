@@ -44,9 +44,9 @@ export function bootstrapStandalone(): Promise<void> {
     // Apre l'azienda esistente o crea quella di default. `createCompany` e
     // `switchTenant` impostano da sé `activeCompanyId`, sbloccando la dashboard.
     const companies = useAgroStore.getState().companies;
-    const prima = companies.find((a) => a.deleted_at == null) ?? companies[0];
-    if (prima) {
-      await useAgroStore.getState().switchTenant(prima.id);
+    const before = companies.find((a) => a.deleted_at == null) ?? companies[0];
+    if (before) {
+      await useAgroStore.getState().switchTenant(before.id);
     } else {
       await useAgroStore.getState().createCompany(LOCAL_COMPANY_DEFAULT);
     }

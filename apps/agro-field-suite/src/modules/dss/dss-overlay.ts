@@ -51,7 +51,7 @@ export interface SummaryCalibration {
  * seminativi a copertura continua pesano di più lo stress idrico. Valori
  * indicativi, non costanti regolatorie.
  */
-const PESI_COLTURA: Record<
+const CROP_WEIGHTS: Record<
   CropType,
   Pick<SummaryCalibration, "pesoStress" | "pesoPatologico" | "pesoVigore" | "pesoSuolo">
 > = {
@@ -63,7 +63,7 @@ const PESI_COLTURA: Record<
   pomodoro: { pesoStress: 0.4, pesoPatologico: 0.25, pesoVigore: 0.2, pesoSuolo: 0.15 },
 };
 
-const AZOTO_TARGET: Record<CropType, number> = {
+const NITROGEN_TARGET: Record<CropType, number> = {
   vite: 20,
   olivo: 18,
   melo: 25,
@@ -78,9 +78,9 @@ export function summaryCalibration(
   phase: PhenologicalPhase,
 ): SummaryCalibration {
   return {
-    ...PESI_COLTURA[crop],
+    ...CROP_WEIGHTS[crop],
     ndviAtteso: getPhaseCalibration(crop, phase).ndviAtteso,
-    azotoTarget: AZOTO_TARGET[crop] ?? 25,
+    azotoTarget: NITROGEN_TARGET[crop] ?? 25,
     sostanzaOrganicaTarget: 2,
   };
 }
@@ -156,14 +156,14 @@ const ROSSO = "#d73027";
  */
 export function dssRiskRamp(crop: CropType): ColorRamp {
   // Sensibilità ≈ peso combinato di stress+patologie: più alta ⇒ allerta prima.
-  const pesi = PESI_COLTURA[crop];
+  const pesi = CROP_WEIGHTS[crop];
   const sensibilita = pesi.pesoStress + pesi.pesoPatologico; // ~0.5..0.6
-  const sogliaGialla = clamp01(0.45 - (sensibilita - 0.5) * 0.4);
-  const sogliaRossa = clamp01(0.72 - (sensibilita - 0.5) * 0.3);
+  const yellowThreshold = clamp01(0.45 - (sensibilita - 0.5) * 0.4);
+  const redThreshold = clamp01(0.72 - (sensibilita - 0.5) * 0.3);
   return [
     [0, VERDE],
-    [Math.min(sogliaGialla, sogliaRossa - 0.05), GIALLO],
-    [sogliaRossa, ROSSO],
+    [Math.min(yellowThreshold, redThreshold - 0.05), GIALLO],
+    [redThreshold, ROSSO],
   ];
 }
 
@@ -175,8 +175,8 @@ function due(n: number): string {
 /** Colore esadecimale del punteggio secondo la rampa (step: last soglia vince). */
 export function dssRiskColor(score: number, rampa: ColorRamp): string {
   let hex = rampa[0]?.[1] ?? VERDE;
-  for (const [soglia, colore] of rampa) {
-    if (score >= soglia) hex = colore;
+  for (const [threshold, color] of rampa) {
+    if (score >= threshold) hex = color;
   }
   // Normalizza eventuali "#rgb" in "#rrggbb" per coerenza nelle properties.
   const { r, g, b } = hexToRgb(hex);

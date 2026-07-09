@@ -5,9 +5,9 @@ import {
 } from "../shared/balance";
 
 /** Bilancio idrico della vite: Kc per phase della specie "vite" (FAO-56). */
-export function bilancioVite(
+export function grapevineBalance(
   phase: PhenologicalPhase,
-  meteo: WeatherDataDay[],
+  weather: WeatherDataDay[],
   pioggiaSerie: number[],
   soil: SoilParameters,
   deplezioneIniziale = 0,
@@ -15,7 +15,7 @@ export function bilancioVite(
   return cropWaterBalance({
     specie: "vite",
     phase,
-    meteo,
+    weather,
     pioggiaSerie,
     soil,
     deplezioneIniziale,

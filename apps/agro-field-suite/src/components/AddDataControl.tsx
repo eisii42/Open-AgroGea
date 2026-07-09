@@ -63,7 +63,7 @@ export function AddDataControl() {
   const [modo, setModo] = useState<ModoImport>("mappa");
   const [busy, setBusy] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
-  const [esito, setEsito] = useState<string | null>(null);
+  const [outcome, setOutcome] = useState<string | null>(null);
   const [warnFile, setWarnFile] = useState<File | null>(null);
   const popRef = useRef<HTMLDivElement>(null);
 
@@ -108,7 +108,7 @@ export function AddDataControl() {
 
   async function onFile(file: File, forceAccept = false) {
     setErrore(null);
-    setEsito(null);
+    setOutcome(null);
     setWarnFile(null);
     const formato = formatFromFileName(file.name);
     if (!formato) {
@@ -144,7 +144,7 @@ export function AddDataControl() {
         file_format: formato,
         file_name: file.name,
       });
-      setEsito(
+      setOutcome(
         t("addDataControl.fileAdded", {
           name: file.name,
           count: fc.features.length,
@@ -165,7 +165,7 @@ export function AddDataControl() {
    */
   async function exportConfiguration(format: ExportFormat) {
     setErrore(null);
-    setEsito(null);
+    setOutcome(null);
     const exportable = layers.filter(
       (l) => l.metadata?.agrogea === true && l.geojson,
     );
@@ -189,7 +189,7 @@ export function AddDataControl() {
         file_format: format as FileFormat,
         file_name: artifact.filename,
       });
-      setEsito(
+      setOutcome(
         t("addDataControl.configExported", {
           name: artifact.filename,
           count: fc.features.length,
@@ -205,7 +205,7 @@ export function AddDataControl() {
   /** Import del Fascicolo SIAN: file → campi_campagna (create-or-populate). */
   async function onFileSian(file: File) {
     setErrore(null);
-    setEsito(null);
+    setOutcome(null);
     if (!activeCompanyId) {
       setErrore(t("addDataControl.selectCompanyFirst"));
       return;
@@ -215,29 +215,29 @@ export function AddDataControl() {
       const { SianImportParser } = await import(
         "../services/gis/SianImportParser"
       );
-      const { formato, campi } = await SianImportParser.parse(file);
-      if (campi.length === 0) {
+      const { formato, fields } = await SianImportParser.parse(file);
+      if (fields.length === 0) {
         setErrore(t("addDataControl.noFieldsRecognized"));
         return;
       }
-      const esitoImport = await importSianDossier(campi, activeCampaign);
+      const importResult = await importSianDossier(fields, activeCampaign);
       await recordTransfer({
         operation_type: "import",
         file_format: formato === "csv" ? "csv" : "shapefile",
         file_name: file.name,
       });
-      setEsito(
-        esitoImport.saltati
+      setOutcome(
+        importResult.saltati
           ? t("addDataControl.sianImportResultSkipped", {
               year: activeCampaign,
-              created: esitoImport.creati,
-              updated: esitoImport.aggiornati,
-              skipped: esitoImport.saltati,
+              created: importResult.creati,
+              updated: importResult.aggiornati,
+              skipped: importResult.saltati,
             })
           : t("addDataControl.sianImportResult", {
               year: activeCampaign,
-              created: esitoImport.creati,
-              updated: esitoImport.aggiornati,
+              created: importResult.creati,
+              updated: importResult.aggiornati,
             }),
       );
     } catch (err) {
@@ -280,7 +280,7 @@ export function AddDataControl() {
                 onClick={() => {
                   setModo(m.id);
                   setErrore(null);
-                  setEsito(null);
+                  setOutcome(null);
                 }}
                 className={cn(
                   "flex-1 rounded-[var(--r-1)] px-2 py-1 text-xs font-medium",
@@ -364,7 +364,7 @@ export function AddDataControl() {
           {errore && (
             <p className="mt-2 text-xs text-[var(--danger)]">{errore}</p>
           )}
-          {esito && <p className="mt-2 text-xs text-[var(--ok)]">{esito}</p>}
+          {outcome && <p className="mt-2 text-xs text-[var(--ok)]">{outcome}</p>}
 
           {/* Export in blocco della configurazione cartografica aziendale */}
           <div className="mt-3 border-t border-[var(--line)] pt-2.5">

@@ -18,7 +18,7 @@ export type SoilVariable =
   | "phosphorus"
   | "potassium";
 
-export const ETICHETTE_VARIABILE: Record<SoilVariable, string> = {
+export const VARIABLE_LABELS: Record<SoilVariable, string> = {
   ph: "pH",
   organic_matter: "Sostanza organica (%)",
   nitrogen: "Azoto (N)",

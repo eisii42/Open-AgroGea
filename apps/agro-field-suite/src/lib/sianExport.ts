@@ -62,7 +62,7 @@ export interface SianColumn {
  * riportare il codice interno inglese (`phytosanitary`, `harvest`…). La UI
  * sovrascrive con la lingua attiva via {@link SianColumnContext}.
  */
-export const ETICHETTE_TIPO_IT: Record<string, string> = {
+export const IT_TYPE_LABELS: Record<string, string> = {
   phytosanitary: "Trattamento fitosanitario",
   fertilization: "Fertilizzazione",
   irrigation: "Irrigazione",
@@ -76,7 +76,7 @@ function operationTypeLabel(
   op: OperationType,
   ctx?: SianColumnContext,
 ): string {
-  return ctx?.resolveOperationType?.(op) ?? ETICHETTE_TIPO_IT[op] ?? op;
+  return ctx?.resolveOperationType?.(op) ?? IT_TYPE_LABELS[op] ?? op;
 }
 
 /**
@@ -239,7 +239,7 @@ function isoOra(iso: string): string {
 }
 
 /** Filtri temporali e spaziali applicati prima della generazione del CSV. */
-export interface SianFiltri {
+export interface SianFilters {
   /** Data minima inclusiva (yyyy-mm-dd) o null per nessun limite. */
   dal?: string | null;
   /** Data massima inclusiva (yyyy-mm-dd) o null per nessun limite. */
@@ -279,7 +279,7 @@ export const CONFIG_SIAN_DEFAULT: SianExportConfig = {
 export function filterSianTreatments(
   treatments: TreatmentLog[],
   plots: Plot[],
-  filters: SianFiltri,
+  filters: SianFilters,
 ): TreatmentLog[] {
   const daTs = filters.dal ? new Date(`${filters.dal}T00:00:00`).getTime() : null;
   const aTs = filters.al ? new Date(`${filters.al}T23:59:59.999`).getTime() : null;
@@ -287,21 +287,21 @@ export function filterSianTreatments(
     filters.appezzamentoIds && filters.appezzamentoIds.length > 0
       ? new Set(filters.appezzamentoIds)
       : null;
-  const tipoSet =
+  const typeSet =
     filters.tipiOperazione && filters.tipiOperazione.length > 0
       ? new Set<string>(filters.tipiOperazione)
       : null;
-  const includiSenza = filters.includiSenzaAppezzamento ?? true;
+  const includeWithout = filters.includiSenzaAppezzamento ?? true;
 
   return treatments.filter((t) => {
     const ts = new Date(t.executed_at).getTime();
     if (daTs != null && ts < daTs) return false;
     if (aTs != null && ts > aTs) return false;
-    if (tipoSet && !tipoSet.has(t.operation_type)) return false;
+    if (typeSet && !typeSet.has(t.operation_type)) return false;
 
     if (!t.plot_id) {
       // Operazione intera company: nessun riferimento spaziale.
-      if (!includiSenza) return false;
+      if (!includeWithout) return false;
       return !appSet;
     }
     if (appSet && !appSet.has(t.plot_id)) return false;
@@ -328,15 +328,15 @@ export function resolveColumns(ids: string[]): SianColumn[] {
 function resolveField(
   t: TreatmentLog,
   perCampoId: Map<string, PlotCampaign>,
-  perPlotAnno: Map<string, PlotCampaign[]>,
+  perPlotYear: Map<string, PlotCampaign[]>,
 ): PlotCampaign | undefined {
   if (t.plot_campaign_id) {
     const diretto = perCampoId.get(t.plot_campaign_id);
     if (diretto) return diretto;
   }
   if (!t.plot_id) return undefined;
-  const anno = new Date(t.executed_at).getUTCFullYear();
-  const candidati = perPlotAnno.get(`${t.plot_id}:${anno}`);
+  const year = new Date(t.executed_at).getUTCFullYear();
+  const candidati = perPlotYear.get(`${t.plot_id}:${year}`);
   if (!candidati || candidati.length === 0) return undefined;
   // Preferisce la campagna APERTA (una sola per plot+anno grazie all'indice
   // parziale); se tutte chiuse (es. raccolto già registrato) prende l'ultima.
@@ -362,19 +362,19 @@ export function buildSianCsv(
   const perId = new Map(plots.map((a) => [a.id, a]));
   const perCampo = new Map(campaignFields.map((c) => [c.id, c]));
   // Indice plot+anno per il fallback di risoluzione campagna.
-  const perPlotAnno = new Map<string, PlotCampaign[]>();
+  const perPlotYear = new Map<string, PlotCampaign[]>();
   for (const c of campaignFields) {
     if (c.deleted_at != null) continue;
     const key = `${c.plot_id}:${c.campaign_year}`;
-    const list = perPlotAnno.get(key) ?? [];
+    const list = perPlotYear.get(key) ?? [];
     list.push(c);
-    perPlotAnno.set(key, list);
+    perPlotYear.set(key, list);
   }
   const cols = resolveColumns(config.columns);
   const sep = config.separator;
   const rows = treatments.map((t) => {
     const app = t.plot_id ? perId.get(t.plot_id) : undefined;
-    const field = resolveField(t, perCampo, perPlotAnno);
+    const field = resolveField(t, perCampo, perPlotYear);
     return cols.map((c) => csvCell(c.value(t, app, field, ctx), sep)).join(sep);
   });
   const lines = config.includiIntestazioni

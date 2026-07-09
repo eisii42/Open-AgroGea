@@ -1,10 +1,10 @@
 export { SyncBadge, type SyncBadgeProps } from "./components/SyncBadge";
 export { FieldSheet, type FieldSheetProps } from "./components/FieldSheet";
 export {
-  AVVERSITA_PAN,
-  type CampoCampagnaOption,
+  PAN_PESTS,
+  type FieldCampaignOption,
   type ComplianceTreatment,
   TreatmentForm,
-  type TrattamentoFormProps,
-  type TrattamentoFormValues,
+  type TreatmentFormProps,
+  type TreatmentFormValues,
 } from "./components/TreatmentForm";

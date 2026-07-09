@@ -318,7 +318,7 @@ export interface DomainSlice {
     >,
   ) => Promise<DataTransferLog | null>;
   /** Imposta l'anno della Campagna Agraria attiva e reload i campi di campagna. */
-  setActiveCampaign: (anno: number) => Promise<void>;
+  setActiveCampaign: (year: number) => Promise<void>;
   /**
    * Crea/update lo stato di Campagna Agraria di un field (SIAN/AGEA) e idrata
    * lo store. Ritorna la row o null senza company attiva.
@@ -422,7 +422,7 @@ export interface UiSlice {
   /**
    * Plot su cui aprire la scheda "Dati coltura" già puntata (CTA
    * "Completa ora" della compliance SIAN, v17). `null` = nessuna richiesta
-   * pendente; il ColturaDatiPanel la consuma all'apertura.
+   * pendente; il CropDataPanel la consuma all'apertura.
    */
   cropOpenPlotId: string | null;
   /**
@@ -466,7 +466,7 @@ export interface UiSlice {
   consumeScoutingOpen: () => void;
   /** Apre la scheda "Dati coltura" puntata sull'appezzamento (CTA compliance SIAN). */
   openCropForPlot: (plotId: string | null) => void;
-  /** Consuma la richiesta di apertura Dati crop (chiamata dal ColturaDatiPanel). */
+  /** Consuma la richiesta di apertura Dati crop (chiamata dal CropDataPanel). */
   consumeCropOpen: () => void;
   /** Imposta gli ID delle operazioni da mostrare come simboli in mappa (null = spento). */
   setMapOperationIds: (ids: string[] | null) => void;

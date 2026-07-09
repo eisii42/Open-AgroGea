@@ -5,9 +5,9 @@ import {
 } from "../shared/balance";
 
 /** Bilancio idrico dei cereali: Kc per phase della specie "frumento" (FAO-56). */
-export function bilancioCereali(
+export function cerealsBalance(
   phase: PhenologicalPhase,
-  meteo: WeatherDataDay[],
+  weather: WeatherDataDay[],
   pioggiaSerie: number[],
   soil: SoilParameters,
   deplezioneIniziale = 0,
@@ -15,7 +15,7 @@ export function bilancioCereali(
   return cropWaterBalance({
     specie: "frumento",
     phase,
-    meteo,
+    weather,
     pioggiaSerie,
     soil,
     deplezioneIniziale,

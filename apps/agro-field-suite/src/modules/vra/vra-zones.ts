@@ -10,14 +10,14 @@ import type { Feature, FeatureCollection, Polygon } from "geojson";
 import { kmeans1d } from "./kmeans";
 
 /** Tipi di lavorazione che possono usare una mappa a rateo variabile. */
-export type TipoLavorazione =
+export type TillageType =
   | "concimazione"
   | "fertilizzazione"
   | "trattamento"
   | "semina"
   | "irrigation";
 
-export const ETICHETTE_LAVORAZIONE: Record<TipoLavorazione, string> = {
+export const TILLAGE_LABELS: Record<TillageType, string> = {
   concimazione: "Concimazione",
   fertilizzazione: "Fertilizzazione",
   trattamento: "Trattamento",
@@ -26,7 +26,7 @@ export const ETICHETTE_LAVORAZIONE: Record<TipoLavorazione, string> = {
 };
 
 /** Unità di misura di default del rateo per ciascuna lavorazione. */
-export const UNITA_LAVORAZIONE: Record<TipoLavorazione, string> = {
+export const TILLAGE_UNITS: Record<TillageType, string> = {
   concimazione: "kg/ha",
   fertilizzazione: "kg/ha",
   trattamento: "L/ha",
@@ -45,33 +45,33 @@ export interface ZonaVra {
   rateo: number;
 }
 
-export interface OpzioniZoneVra {
+export interface VraZoneOptions {
   /** Numero di zone gestionali (cluster K-means). */
   zone: number;
   /** Tipo di lavorazione (determina unità ed etichette). */
-  lavorazione: TipoLavorazione;
+  tillage: TillageType;
   /**
    * Rateo per zona, allineato alle zone in ordine CRESCENTE di indice
    * (rates[0] = zona a indice più basso). Se più corto, l'ultimo value si
    * ripete; se assente, i ratei restano 0.
    */
-  ratei: number[];
+  rates: number[];
   /** Unità di misura del rateo (default per lavorazione). */
-  unita?: string;
+  unit?: string;
 }
 
-export interface RisultatoZoneVra {
+export interface VraZoneResult {
   /** Celle annotate con `zona`, `rateo`, `valore`, `lavorazione`, `unita`. */
   fc: FeatureCollection<Polygon>;
   /** Statistiche per zona (per legenda e riepilogo). */
   zone: ZonaVra[];
-  lavorazione: TipoLavorazione;
-  unita: string;
+  tillage: TillageType;
+  unit: string;
 }
 
-function rateoPerZona(ratei: number[], zona: number): number {
-  if (ratei.length === 0) return 0;
-  const value = ratei[Math.min(zona, ratei.length - 1)];
+function ratePerZone(rates: number[], zona: number): number {
+  if (rates.length === 0) return 0;
+  const value = rates[Math.min(zona, rates.length - 1)];
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
@@ -82,9 +82,9 @@ function rateoPerZona(ratei: number[], zona: number): number {
  */
 export function generateVraZones(
   cells: FeatureCollection<Polygon, { value?: number }>,
-  options: OpzioniZoneVra,
-): RisultatoZoneVra {
-  const unita = options.unita ?? UNITA_LAVORAZIONE[options.lavorazione];
+  options: VraZoneOptions,
+): VraZoneResult {
+  const unit = options.unit ?? TILLAGE_UNITS[options.tillage];
   const validi = cells.features.filter(
     (f): f is Feature<Polygon, { value: number }> =>
       typeof f.properties?.value === "number" &&
@@ -95,8 +95,8 @@ export function generateVraZones(
     return {
       fc: { type: "FeatureCollection", features: [] },
       zone: [],
-      lavorazione: options.lavorazione,
-      unita,
+      tillage: options.tillage,
+      unit,
     };
   }
 
@@ -110,7 +110,7 @@ export function generateVraZones(
     zona,
     valoreMedio: Math.round(valoreMedio * 1000) / 1000,
     nCelle: conteggi[zona],
-    rateo: rateoPerZona(options.ratei, zona),
+    rateo: ratePerZone(options.rates, zona),
   }));
 
   const features = validi.map((feature, i) => {
@@ -121,8 +121,8 @@ export function generateVraZones(
         ...feature.properties,
         zona,
         rateo: zone[zona].rateo,
-        lavorazione: options.lavorazione,
-        unita,
+        tillage: options.tillage,
+        unit,
       },
     } satisfies Feature<Polygon>;
   });
@@ -130,7 +130,7 @@ export function generateVraZones(
   return {
     fc: { type: "FeatureCollection", features },
     zone,
-    lavorazione: options.lavorazione,
-    unita,
+    tillage: options.tillage,
+    unit,
   };
 }

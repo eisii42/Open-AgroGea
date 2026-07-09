@@ -29,7 +29,7 @@ const CATEGORIE: ProductCategory[] = [
   "other",
 ];
 
-const UNITA = ["kg", "l", "q", "t", "pz"];
+const UNITS = ["kg", "l", "q", "t", "pz"];
 
 /** Soglia alert scadenza (giorni), persistita per-device. */
 const EXPIRY_KEY = "agrogea.warehouse.expiry_warning_days";
@@ -61,18 +61,18 @@ function ExpiryBadge({
   warningDays: number;
 }) {
   const { t } = useTranslation();
-  const stato = expiryStatus(lot.expires_at, new Date(), warningDays);
-  if (stato === "valid") return null;
+  const status = expiryStatus(lot.expires_at, new Date(), warningDays);
+  if (status === "valid") return null;
   return (
     <span
       className={cn(
         "rounded-full px-1.5 text-[10px] font-semibold uppercase",
-        stato === "expired"
+        status === "expired"
           ? "bg-[var(--danger-l)] text-[var(--danger)]"
           : "bg-[var(--warn-l)] text-[var(--warn)]",
       )}
     >
-      {stato === "expired" ? t("warehouse.lotExpired") : t("warehouse.lotExpiring")}
+      {status === "expired" ? t("warehouse.lotExpired") : t("warehouse.lotExpiring")}
     </span>
   );
 }
@@ -87,14 +87,14 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
   const deleteLot = useAgroStore((s) => s.deleteLot);
 
   // Vista: elenco | form nuovo product | dettaglio product (lots + carico).
-  const [nuovo, setNuovo] = useState(false);
-  const [prodottoApertoId, setProdottoApertoId] = useState<string | null>(null);
+  const [creatingNew, setCreatingNew] = useState(false);
+  const [openProductId, setOpenProductId] = useState<string | null>(null);
   const [warningDays, setWarningDays] = useState(loadExpiryDays);
   const [errore, setErrore] = useState<string | null>(null);
 
   const openProduct = useMemo(
-    () => products.find((p) => p.id === prodottoApertoId) ?? null,
-    [products, prodottoApertoId],
+    () => products.find((p) => p.id === openProductId) ?? null,
+    [products, openProductId],
   );
 
   const lotsPerProduct = useMemo(() => {
@@ -108,7 +108,7 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
   }, [lots]);
 
   // Alert §5.1: lots con stock scaduti o in scadenza entro la soglia.
-  const lottiCritici = useMemo(
+  const criticalLots = useMemo(
     () =>
       lots.filter(
         (l) =>
@@ -137,7 +137,7 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
   return (
     <FieldSheet
       title={
-        nuovo
+        creatingNew
           ? t("warehouse.newProduct")
           : openProduct
             ? openProduct.name
@@ -145,10 +145,10 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
       }
       onClose={onClose}
       footer={
-        nuovo || openProduct ? undefined : (
+        creatingNew || openProduct ? undefined : (
           <Button
             className="min-h-[var(--touch-min)] w-full"
-            onClick={() => setNuovo(true)}
+            onClick={() => setCreatingNew(true)}
           >
             ＋ {t("warehouse.newProduct")}
           </Button>
@@ -161,8 +161,8 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
         </p>
       )}
 
-      {nuovo ? (
-        <ProdottoForm
+      {creatingNew ? (
+        <ProductForm
           onSubmit={async (input, lottoIniziale) => {
             // Product + carico del lot iniziale (stock di partenza): il
             // carico update anche il CUMP dal costo unitario indicato.
@@ -177,23 +177,23 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
                   unit_cost: lottoIniziale.unit_cost,
                 });
               }
-              setNuovo(false);
+              setCreatingNew(false);
             });
           }}
-          onCancel={() => setNuovo(false)}
+          onCancel={() => setCreatingNew(false)}
         />
       ) : openProduct ? (
-        <ProdottoDettaglio
+        <ProductDetail
           product={openProduct}
           lots={lotsPerProduct.get(openProduct.id) ?? []}
           warningDays={warningDays}
-          onBack={() => setProdottoApertoId(null)}
+          onBack={() => setOpenProductId(null)}
           onCarica={(input) => withError(() => receiveLot(input))}
           onDeleteLotto={(id) => withError(() => deleteLot(id))}
           onDeleteProdotto={async () => {
             await withError(async () => {
               await deleteProduct(openProduct.id);
-              setProdottoApertoId(null);
+              setOpenProductId(null);
             });
           }}
         />
@@ -215,10 +215,10 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
                 />
               </div>
             </div>
-            {lottiCritici.length > 0 && (
+            {criticalLots.length > 0 && (
               <p className="rounded-[var(--r-2)] bg-[var(--warn-l)] px-3 py-2 text-xs font-medium text-[var(--warn)]">
                 ⚠ {t("warehouse.expiryAlert", {
-                  count: lottiCritici.length,
+                  count: criticalLots.length,
                   days: warningDays,
                 })}
               </p>
@@ -254,7 +254,7 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
                   <li key={product.id}>
                     <button
                       type="button"
-                      onClick={() => setProdottoApertoId(product.id)}
+                      onClick={() => setOpenProductId(product.id)}
                       className="flex w-full items-center gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2 text-left hover:bg-[var(--panel-2)]"
                     >
                       <span className="min-w-0 flex-1">
@@ -303,7 +303,7 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
 // Form anagrafica product (campi obbligatori PER CATEGORIA)
 // ---------------------------------------------------------------------------
 
-interface ProdottoFormInput {
+interface ProductFormInput {
   category: ProductCategory;
   name: string;
   unit: string;
@@ -324,28 +324,28 @@ interface ProdottoFormInput {
 }
 
 /** Carico iniziale contestuale alla creazione del product (stock di partenza). */
-interface LottoInizialeInput {
+interface InitialLotInput {
   lot_number: string | null;
   expires_at: string | null;
   initial_quantity: number;
   unit_cost: number;
 }
 
-function ProdottoForm({
+function ProductForm({
   onSubmit,
   onCancel,
 }: {
   onSubmit: (
-    input: ProdottoFormInput,
-    lottoIniziale: LottoInizialeInput,
+    input: ProductFormInput,
+    lottoIniziale: InitialLotInput,
   ) => Promise<void> | void;
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
-  const [categoria, setCategoria] = useState<ProductCategory>("phytosanitary");
-  const [name, setNome] = useState("");
-  const [unita, setUnita] = useState("kg");
-  const [numeroRegistrazione, setNumeroRegistrazione] = useState("");
+  const [category, setCategory] = useState<ProductCategory>("phytosanitary");
+  const [name, setName] = useState("");
+  const [unit, setUnit] = useState("kg");
+  const [registrationNumber, setRegistrationNumber] = useState("");
   const [sostanzaAttiva, setSostanzaAttiva] = useState("");
   const [npkN, setNpkN] = useState("");
   const [npkP, setNpkP] = useState("");
@@ -356,17 +356,17 @@ function ProdottoForm({
   // Identità colturale della semente (v17): alimenta l'auto-assegnazione della
   // crop al field quando la semente viene seminata dal Quaderno.
   const [specie, setSpecie] = useState("");
-  const [nomeScientifico, setNomeScientifico] = useState("");
+  const [scientificName, setScientificName] = useState("");
   const [varieta, setVarieta] = useState("");
-  const [categoriaColturale, setCategoriaColturale] = useState("seminativo");
+  const [cropCategory, setCropCategory] = useState("seminativo");
   // Default per il Quaderno (agrofarmaci) + scorta minima (comune).
-  const [carenzaDefault, setCarenzaDefault] = useState("");
-  const [rientroDefault, setRientroDefault] = useState("");
+  const [safetyPeriodDefault, setSafetyPeriodDefault] = useState("");
+  const [reentryDefault, setReentryDefault] = useState("");
   const [scortaMinima, setScortaMinima] = useState("");
   // Carico iniziale (fix: quantità e lot direttamente alla creazione).
-  const [numeroLotto, setNumeroLotto] = useState("");
-  const [scadenza, setScadenza] = useState("");
-  const [quantita, setQuantita] = useState("");
+  const [lotNumber, setLotNumber] = useState("");
+  const [expiry, setExpiry] = useState("");
+  const [quantity, setQuantity] = useState("");
   const [costo, setCosto] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -374,26 +374,26 @@ function ProdottoForm({
 
   // Metadata per categoria: solo chiavi valorizzate (jsonb pulito).
   const metadata: Record<string, unknown> = {};
-  if (categoria === "seed") {
+  if (category === "seed") {
     if (specie.trim()) metadata.species = specie.trim();
-    if (nomeScientifico.trim()) metadata.scientific_name = nomeScientifico.trim();
+    if (scientificName.trim()) metadata.scientific_name = scientificName.trim();
     if (varieta.trim()) metadata.variety_name = varieta.trim();
-    metadata.crop_category = categoriaColturale;
+    metadata.crop_category = cropCategory;
   }
-  if (categoria === "phytosanitary") {
-    const c = num(carenzaDefault);
+  if (category === "phytosanitary") {
+    const c = num(safetyPeriodDefault);
     if (c != null) metadata.safety_period_days = c;
-    const r = num(rientroDefault);
+    const r = num(reentryDefault);
     if (r != null) metadata.reentry_interval_h = r;
   }
   const minStock = num(scortaMinima);
   if (minStock != null && minStock > 0) metadata.min_stock = minStock;
 
-  const draft: ProdottoFormInput = {
-    category: categoria,
+  const draft: ProductFormInput = {
+    category: category,
     name: name,
-    unit: unita,
-    registration_number: numeroRegistrazione.trim() || null,
+    unit: unit,
+    registration_number: registrationNumber.trim() || null,
     active_substance: sostanzaAttiva.trim() || null,
     npk_n: num(npkN),
     npk_p: num(npkP),
@@ -406,22 +406,22 @@ function ProdottoForm({
   // Stessa validazione RIGIDA del DAL, anticipata nel form (bottone disattivo).
   const errors = validateProduct(draft);
   // La stock iniziale è FONDAMENTALE: quantità > 0 e costo >= 0 richiesti.
-  const qtaNum = Number.parseFloat(quantita);
-  const costoNum = Number.parseFloat(costo);
+  const qtaNum = Number.parseFloat(quantity);
+  const costNum = Number.parseFloat(costo);
   const validInbound =
-    Number.isFinite(qtaNum) && qtaNum > 0 && Number.isFinite(costoNum) && costoNum >= 0;
-  const mancano = errors.length > 0 || !validInbound;
+    Number.isFinite(qtaNum) && qtaNum > 0 && Number.isFinite(costNum) && costNum >= 0;
+  const missing = errors.length > 0 || !validInbound;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (saving || mancano) return;
+    if (saving || missing) return;
     setSaving(true);
     try {
       await onSubmit(draft, {
-        lot_number: numeroLotto.trim() || null,
-        expires_at: scadenza || null,
+        lot_number: lotNumber.trim() || null,
+        expires_at: expiry || null,
         initial_quantity: qtaNum,
-        unit_cost: costoNum,
+        unit_cost: costNum,
       });
     } finally {
       setSaving(false);
@@ -435,10 +435,10 @@ function ProdottoForm({
           <button
             key={c}
             type="button"
-            onClick={() => setCategoria(c)}
+            onClick={() => setCategory(c)}
             className={cn(
               "min-h-[var(--touch-min)] rounded-[var(--r-2)] border px-3 text-sm",
-              categoria === c
+              category === c
                 ? "border-[var(--accent-bd)] bg-[var(--accent-l)] font-semibold text-[var(--accent)]"
                 : "border-[var(--line)] bg-[var(--panel)] text-[var(--ink-2)]",
             )}
@@ -454,7 +454,7 @@ function ProdottoForm({
           <Input
             id="mag-nome"
             value={name}
-            onChange={(e) => setNome(e.target.value)}
+            onChange={(e) => setName(e.target.value)}
             required
           />
         </div>
@@ -462,10 +462,10 @@ function ProdottoForm({
           <Label htmlFor="mag-unita">{t("warehouse.unit")}</Label>
           <Select
             id="mag-unita"
-            value={unita}
-            onChange={(e) => setUnita(e.target.value)}
+            value={unit}
+            onChange={(e) => setUnit(e.target.value)}
           >
-            {UNITA.map((u) => (
+            {UNITS.map((u) => (
               <option key={u} value={u}>
                 {u}
               </option>
@@ -474,14 +474,14 @@ function ProdottoForm({
         </div>
       </div>
 
-      {categoria === "phytosanitary" && (
+      {category === "phytosanitary" && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mag-reg">{t("warehouse.registrationNumber")}</Label>
             <Input
               id="mag-reg"
-              value={numeroRegistrazione}
-              onChange={(e) => setNumeroRegistrazione(e.target.value)}
+              value={registrationNumber}
+              onChange={(e) => setRegistrationNumber(e.target.value)}
               className="agro-num"
               required
             />
@@ -503,8 +503,8 @@ function ProdottoForm({
               type="number"
               inputMode="numeric"
               min="0"
-              value={carenzaDefault}
-              onChange={(e) => setCarenzaDefault(e.target.value)}
+              value={safetyPeriodDefault}
+              onChange={(e) => setSafetyPeriodDefault(e.target.value)}
               className="agro-num"
             />
           </div>
@@ -515,8 +515,8 @@ function ProdottoForm({
               type="number"
               inputMode="numeric"
               min="0"
-              value={rientroDefault}
-              onChange={(e) => setRientroDefault(e.target.value)}
+              value={reentryDefault}
+              onChange={(e) => setReentryDefault(e.target.value)}
               className="agro-num"
             />
           </div>
@@ -525,7 +525,7 @@ function ProdottoForm({
 
       {/* Identità colturale della semente (v17): con questi dati la SEMINA dal
           Quaderno assegna automaticamente la crop al field. */}
-      {categoria === "seed" && (
+      {category === "seed" && (
         <section className="flex flex-col gap-3 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2">
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
             {t("warehouse.seedSection")}
@@ -553,8 +553,8 @@ function ProdottoForm({
               <Label htmlFor="mag-sci">{t("warehouse.scientificName")}</Label>
               <Input
                 id="mag-sci"
-                value={nomeScientifico}
-                onChange={(e) => setNomeScientifico(e.target.value)}
+                value={scientificName}
+                onChange={(e) => setScientificName(e.target.value)}
                 placeholder="es. Triticum aestivum"
               />
             </div>
@@ -562,8 +562,8 @@ function ProdottoForm({
               <Label htmlFor="mag-cropcat">{t("warehouse.cropCategory")}</Label>
               <Select
                 id="mag-cropcat"
-                value={categoriaColturale}
-                onChange={(e) => setCategoriaColturale(e.target.value)}
+                value={cropCategory}
+                onChange={(e) => setCropCategory(e.target.value)}
               >
                 <option value="seminativo">
                   {t("warehouse.cropCategorySeminativo")}
@@ -580,7 +580,7 @@ function ProdottoForm({
         </section>
       )}
 
-      {categoria === "fertilizer" && (
+      {category === "fertilizer" && (
         <div className="grid grid-cols-3 gap-3">
           {(
             [
@@ -608,7 +608,7 @@ function ProdottoForm({
         </div>
       )}
 
-      {categoria === "fuel" && (
+      {category === "fuel" && (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="mag-uma">{t("warehouse.umaCode")}</Label>
           <Input
@@ -633,7 +633,7 @@ function ProdottoForm({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="mag-minstock">
-            {t("warehouse.minStock", { unit: unita })}
+            {t("warehouse.minStock", { unit: unit })}
           </Label>
           <Input
             id="mag-minstock"
@@ -659,8 +659,8 @@ function ProdottoForm({
             <Label htmlFor="mag-lotto">{t("warehouse.lotNumber")}</Label>
             <Input
               id="mag-lotto"
-              value={numeroLotto}
-              onChange={(e) => setNumeroLotto(e.target.value)}
+              value={lotNumber}
+              onChange={(e) => setLotNumber(e.target.value)}
               className="agro-num"
             />
           </div>
@@ -669,13 +669,13 @@ function ProdottoForm({
             <Input
               id="mag-scadenza"
               type="date"
-              value={scadenza}
-              onChange={(e) => setScadenza(e.target.value)}
+              value={expiry}
+              onChange={(e) => setExpiry(e.target.value)}
             />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mag-quantita">
-              {t("warehouse.quantity")} ({unita})
+              {t("warehouse.quantity")} ({unit})
             </Label>
             <Input
               id="mag-quantita"
@@ -683,15 +683,15 @@ function ProdottoForm({
               inputMode="decimal"
               min="0"
               step="any"
-              value={quantita}
-              onChange={(e) => setQuantita(e.target.value)}
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
               className="agro-num"
               required
             />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mag-costo">
-              {t("warehouse.unitCost")} (€/{unita})
+              {t("warehouse.unitCost")} (€/{unit})
             </Label>
             <Input
               id="mag-costo"
@@ -719,7 +719,7 @@ function ProdottoForm({
         />
       </div>
 
-      {mancano && name.trim() !== "" && (
+      {missing && name.trim() !== "" && (
         <p className="rounded-[var(--r-2)] bg-[var(--warn-l)] px-3 py-2 text-xs text-[var(--warn)]">
           {t("warehouse.requiredByCategory")}
         </p>
@@ -728,7 +728,7 @@ function ProdottoForm({
       <div className="flex gap-2 pt-1">
         <Button
           type="submit"
-          disabled={saving || mancano}
+          disabled={saving || missing}
           className="min-h-[var(--touch-min)] flex-1"
         >
           {saving ? t("logbook.common.saving") : t("warehouse.saveProduct")}
@@ -750,7 +750,7 @@ function ProdottoForm({
 // Dettaglio product: lots + carico nuovo lot
 // ---------------------------------------------------------------------------
 
-function ProdottoDettaglio({
+function ProductDetail({
   product,
   lots,
   warningDays,
@@ -774,18 +774,18 @@ function ProdottoDettaglio({
   onDeleteProdotto: () => Promise<unknown>;
 }) {
   const { t } = useTranslation();
-  const [caricoOpen, setCaricoOpen] = useState(false);
-  const [numeroLotto, setNumeroLotto] = useState("");
-  const [scadenza, setScadenza] = useState("");
-  const [quantita, setQuantita] = useState("");
+  const [loadOpen, setLoadOpen] = useState(false);
+  const [lotNumber, setLotNumber] = useState("");
+  const [expiry, setExpiry] = useState("");
+  const [quantity, setQuantity] = useState("");
   const [costo, setCosto] = useState("");
   const [saving, setSaving] = useState(false);
 
   const stock = lots.reduce((s, l) => s + Number(l.quantity_on_hand), 0);
-  const qtaNum = Number.parseFloat(quantita);
-  const costoNum = Number.parseFloat(costo);
+  const qtaNum = Number.parseFloat(quantity);
+  const costNum = Number.parseFloat(costo);
   const validInbound =
-    Number.isFinite(qtaNum) && qtaNum > 0 && Number.isFinite(costoNum) && costoNum >= 0;
+    Number.isFinite(qtaNum) && qtaNum > 0 && Number.isFinite(costNum) && costNum >= 0;
 
   async function handleLoad(event: FormEvent) {
     event.preventDefault();
@@ -794,15 +794,15 @@ function ProdottoDettaglio({
     try {
       await onCarica({
         product_id: product.id,
-        lot_number: numeroLotto.trim() || null,
-        expires_at: scadenza || null,
+        lot_number: lotNumber.trim() || null,
+        expires_at: expiry || null,
         initial_quantity: qtaNum,
-        unit_cost: costoNum,
+        unit_cost: costNum,
       });
-      setCaricoOpen(false);
-      setNumeroLotto("");
-      setScadenza("");
-      setQuantita("");
+      setLoadOpen(false);
+      setLotNumber("");
+      setExpiry("");
+      setQuantity("");
       setCosto("");
     } finally {
       setSaving(false);
@@ -848,13 +848,13 @@ function ProdottoDettaglio({
           type="button"
           variant="outline"
           className="min-h-[36px] gap-1 px-2 text-xs"
-          onClick={() => setCaricoOpen((v) => !v)}
+          onClick={() => setLoadOpen((v) => !v)}
         >
           <PackagePlus size={14} /> {t("warehouse.loadLot")}
         </Button>
       </div>
 
-      {caricoOpen && (
+      {loadOpen && (
         <form
           onSubmit={handleLoad}
           className="flex flex-col gap-3 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2"
@@ -864,8 +864,8 @@ function ProdottoDettaglio({
               <Label htmlFor="lotto-numero">{t("warehouse.lotNumber")}</Label>
               <Input
                 id="lotto-numero"
-                value={numeroLotto}
-                onChange={(e) => setNumeroLotto(e.target.value)}
+                value={lotNumber}
+                onChange={(e) => setLotNumber(e.target.value)}
                 className="agro-num"
               />
             </div>
@@ -874,8 +874,8 @@ function ProdottoDettaglio({
               <Input
                 id="lotto-scadenza"
                 type="date"
-                value={scadenza}
-                onChange={(e) => setScadenza(e.target.value)}
+                value={expiry}
+                onChange={(e) => setExpiry(e.target.value)}
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -888,8 +888,8 @@ function ProdottoDettaglio({
                 inputMode="decimal"
                 min="0"
                 step="any"
-                value={quantita}
-                onChange={(e) => setQuantita(e.target.value)}
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
                 className="agro-num"
                 required
               />

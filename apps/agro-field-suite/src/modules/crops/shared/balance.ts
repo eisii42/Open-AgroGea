@@ -27,7 +27,7 @@ export interface CropBalanceInput {
   specie: PhenologicalSpecies;
   phase: PhenologicalPhase;
   /** Serie meteo giornaliera (stessa lunghezza di `pioggiaSerie`). */
-  meteo: WeatherDataDay[];
+  weather: WeatherDataDay[];
   /** Pioggia giornaliera (mm), allineata a `meteo`. */
   pioggiaSerie: number[];
   soil: SoilParameters;
@@ -50,7 +50,7 @@ export function cropWaterBalance(
   input: CropBalanceInput,
 ): CropBalanceOutput {
   const kc = getPhaseCalibration(input.specie, input.phase).kc;
-  const etcSeries = input.meteo.map((day) =>
+  const etcSeries = input.weather.map((day) =>
     cropEt(et0PenmanMonteith(day), kc),
   );
   const { series, autonomyDays } = irrigationPlan(

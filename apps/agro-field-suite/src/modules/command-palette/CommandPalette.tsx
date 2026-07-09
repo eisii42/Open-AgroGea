@@ -73,7 +73,7 @@ export function CommandPalette({
       {
         id: "act-ndvi",
         title: t("commandPalette.actions.ndvi"),
-        categoria: "azione",
+        category: "azione",
         paroleChiave: ["analisi", "suolo", "satellite", "sentinel"],
         esegui: openPanel("ndvi"),
         flag: "panelNdvi",
@@ -81,7 +81,7 @@ export function CommandPalette({
       {
         id: "act-vra",
         title: t("commandPalette.actions.vra"),
-        categoria: "azione",
+        category: "azione",
         paroleChiave: ["prescrizione", "isobus", "concimazione"],
         esegui: openPanel("vra"),
         flag: "panelVra",
@@ -89,7 +89,7 @@ export function CommandPalette({
       {
         id: "act-tratt",
         title: t("commandPalette.actions.newTreatment"),
-        categoria: "azione",
+        category: "azione",
         paroleChiave: ["quaderno", "registro", "operazione"],
         esegui: openPanel("quaderno"),
         flag: "panelQuaderno",
@@ -97,7 +97,7 @@ export function CommandPalette({
       {
         id: "act-coltura",
         title: t("commandPalette.actions.cropSheet"),
-        categoria: "azione",
+        category: "azione",
         paroleChiave: ["fenologia", "modelli"],
         esegui: openPanel("coltura"),
         flag: "panelColtura",
@@ -105,28 +105,28 @@ export function CommandPalette({
       {
         id: "act-draw-poly",
         title: t("commandPalette.actions.drawPlot"),
-        categoria: "azione",
+        category: "azione",
         paroleChiave: ["poligono", "nuovo campo"],
         esegui: disegna("polygon"),
       },
       {
         id: "act-draw-line",
         title: t("commandPalette.actions.drawInfrastructure"),
-        categoria: "azione",
+        category: "azione",
         paroleChiave: ["linea", "asset"],
         esegui: disegna("line"),
       },
       {
         id: "act-draw-poi",
         title: t("commandPalette.actions.drawPoi"),
-        categoria: "azione",
+        category: "azione",
         paroleChiave: ["punto", "trappola", "sensore"],
         esegui: disegna("point"),
       },
       {
         id: "act-registro",
         title: t("commandPalette.actions.editGeometries"),
-        categoria: "azione",
+        category: "azione",
         paroleChiave: ["registro", "gestione"],
         esegui: openPanel("registro"),
         flag: "panelRegistro",
@@ -134,7 +134,7 @@ export function CommandPalette({
       {
         id: "act-stampa",
         title: t("commandPalette.actions.printMap"),
-        categoria: "azione",
+        category: "azione",
         paroleChiave: ["print", "composer", "pdf", "pac", "psr"],
         esegui: openPanel("stampa"),
         flag: "panelStampa",
@@ -142,7 +142,7 @@ export function CommandPalette({
       {
         id: "act-impostazioni",
         title: t("commandPalette.actions.companySettings"),
-        categoria: "azione",
+        category: "azione",
         paroleChiave: ["meteo", "config"],
         esegui: openPanel("impostazioni"),
         flag: "panelMeteo",
@@ -150,7 +150,7 @@ export function CommandPalette({
       {
         id: "act-profile",
         title: t("commandPalette.actions.profileSettings"),
-        categoria: "azione",
+        category: "azione",
         paroleChiave: ["profile", "preferenze", "lingua", "unità", "moduli", "account"],
         esegui: openPanel("profile"),
       },
@@ -160,7 +160,7 @@ export function CommandPalette({
       {
         id: "act-command-center",
         title: t("commandPalette.actions.openCommandCenter"),
-        categoria: "azione",
+        category: "azione",
         paroleChiave: ["dashboard", "dati", "kpi", "analisi", "report", "vista"],
         scorciatoia: "→",
         esegui: () => {
@@ -174,7 +174,7 @@ export function CommandPalette({
       azioni.push({
         id: "act-undo",
         title: t("commandPalette.actions.undoGeometry"),
-        categoria: "azione",
+        category: "azione",
         paroleChiave: ["undo", "indietro"],
         scorciatoia: "Ctrl+Z",
         esegui: () => {
@@ -187,7 +187,7 @@ export function CommandPalette({
       azioni.push({
         id: "act-redo",
         title: t("commandPalette.actions.redoGeometry"),
-        categoria: "azione",
+        category: "azione",
         paroleChiave: ["redo", "avanti"],
         scorciatoia: "Ctrl+Y",
         esegui: () => {
@@ -203,7 +203,7 @@ export function CommandPalette({
       id: `apz-${plot.id}`,
       title: plot.user_plot_name,
       sottotitolo: crop ?? undefined,
-      categoria: "appezzamento",
+      category: "appezzamento",
       paroleChiave: [crop ?? "", "vai", "mappa"].filter(Boolean),
       esegui: () => {
         const bounds = boundingBox(plot.geometry);
@@ -233,7 +233,7 @@ export function CommandPalette({
     t,
   ]);
 
-  const risultati = useMemo(
+  const results = useMemo(
     () => filterCommands(comandi, query),
     [comandi, query],
   );
@@ -251,8 +251,8 @@ export function CommandPalette({
 
   // Mantiene la selezione entro i risultati correnti.
   useEffect(() => {
-    setActiveIndex((i) => Math.min(i, Math.max(0, risultati.length - 1)));
-  }, [risultati.length]);
+    setActiveIndex((i) => Math.min(i, Math.max(0, results.length - 1)));
+  }, [results.length]);
 
   if (!open) return null;
 
@@ -262,13 +262,13 @@ export function CommandPalette({
       onClose();
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActiveIndex((i) => Math.min(i + 1, risultati.length - 1));
+      setActiveIndex((i) => Math.min(i + 1, results.length - 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActiveIndex((i) => Math.max(i - 1, 0));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      risultati[activeIndex]?.esegui();
+      results[activeIndex]?.esegui();
     }
   };
 
@@ -290,12 +290,12 @@ export function CommandPalette({
           className="border-b border-[var(--line)] bg-transparent px-4 py-3 text-sm outline-none"
         />
         <div className="min-h-0 flex-1 overflow-y-auto py-1">
-          {risultati.length === 0 ? (
+          {results.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-[var(--ink-4)]">
               {t("commandPalette.noResults", { query })}
             </p>
           ) : (
-            risultati.map((cmd, i) => (
+            results.map((cmd, i) => (
               <button
                 key={cmd.id}
                 type="button"
@@ -320,7 +320,7 @@ export function CommandPalette({
                   </kbd>
                 )}
                 <span className="rounded-full bg-[var(--panel-2)] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--ink-4)]">
-                  {cmd.categoria === "appezzamento"
+                  {cmd.category === "appezzamento"
                     ? t("commandPalette.category.goTo")
                     : t("commandPalette.category.action")}
                 </span>

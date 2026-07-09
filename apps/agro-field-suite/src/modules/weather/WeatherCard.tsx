@@ -29,8 +29,8 @@ function useCompanyCoordinates(): [number, number] | null {
     const company = companies.find((a) => a.id === activeCompanyId);
     const sede = company?.centroid?.coordinates;
     if (sede && sede.length >= 2) return [sede[0], sede[1]];
-    const conGeometria = plots.find((a) => a.geometry);
-    if (conGeometria) return centroid(conGeometria.geometry);
+    const withGeometry = plots.find((a) => a.geometry);
+    if (withGeometry) return centroid(withGeometry.geometry);
     return null;
   }, [activeCompanyId, companies, plots]);
 }
@@ -42,11 +42,11 @@ function gradi(v: number | null | undefined): string {
 /** Etichetta breve del giorno: "Oggi" per l'indice 0, altrimenti il weekday. */
 function dayLabel(
   dataIso: string,
-  indice: number,
+  index: number,
   locale: string,
   todayLabel: string,
 ): string {
-  if (indice === 0) return todayLabel;
+  if (index === 0) return todayLabel;
   const d = new Date(`${dataIso}T00:00:00`);
   if (Number.isNaN(d.getTime())) return dataIso;
   return d.toLocaleDateString(locale, { weekday: "short" });
@@ -58,14 +58,14 @@ export function WeatherCard() {
   const coordinate = useCompanyCoordinates();
 
   const [previsione, setPrevisione] = useState<PrevisioneDashboard | null>(null);
-  const [stato, setStato] = useState<"idle" | "loading" | "errore">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "errore">("idle");
   const [aperto, setAperto] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(
     async (force: boolean) => {
       if (!activeCompanyId || !coordinate) return;
-      setStato("loading");
+      setStatus("loading");
       try {
         const data = await WeatherSyncService.previsioneDashboard({
           companyId: activeCompanyId,
@@ -74,10 +74,10 @@ export function WeatherCard() {
           force,
         });
         setPrevisione(data);
-        setStato("idle");
+        setStatus("idle");
       } catch {
         // Offline o fetch fallito: si conserva l'ultima previsione available.
-        setStato("errore");
+        setStatus("errore");
       }
     },
     [activeCompanyId, coordinate],
@@ -121,7 +121,7 @@ export function WeatherCard() {
 
   const current = previsione?.current;
   const currentInfo = weatherCodeInfo(current?.weatherCode);
-  const IconaCorrente = currentInfo.Icon;
+  const CurrentIcon = currentInfo.Icon;
 
   return (
     <div className="relative" ref={cardRef}>
@@ -129,12 +129,12 @@ export function WeatherCard() {
       <button
         type="button"
         onClick={() => setAperto((v) => !v)}
-        title={t("meteoCard.title")}
+        title={t("weatherCard.title")}
         className="flex min-h-[36px] items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] px-2 text-left hover:bg-[var(--panel-2)]"
       >
-        <IconaCorrente size={17} className="shrink-0 text-[var(--accent)]" />
+        <CurrentIcon size={17} className="shrink-0 text-[var(--accent)]" />
         <span className="agro-num text-sm font-medium tabular-nums">
-          {stato === "loading" && !previsione ? "…" : gradi(current?.temperatura)}
+          {status === "loading" && !previsione ? "…" : gradi(current?.temperatura)}
         </span>
       </button>
 
@@ -148,25 +148,25 @@ export function WeatherCard() {
             <button
               type="button"
               onClick={() => void load(true)}
-              title={t("meteoCard.refreshNow")}
+              title={t("weatherCard.refreshNow")}
               className="flex h-7 w-7 items-center justify-center rounded-[var(--r-1)] text-[var(--ink-3)] hover:bg-[var(--panel-2)]"
             >
               <RefreshCw
                 size={13}
-                className={cn(stato === "loading" && "animate-spin")}
+                className={cn(status === "loading" && "animate-spin")}
               />
             </button>
           </div>
 
-          {stato === "errore" && !previsione ? (
+          {status === "errore" && !previsione ? (
             <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] p-2 text-sm text-[var(--ink-3)]">
-              {t("meteoCard.unavailable")}
+              {t("weatherCard.unavailable")}
             </p>
           ) : (
             <>
               {/* Condizioni correnti */}
               <div className="flex items-center gap-3">
-                <IconaCorrente size={40} className="shrink-0 text-[var(--accent)]" />
+                <CurrentIcon size={40} className="shrink-0 text-[var(--accent)]" />
                 <div className="min-w-0 flex-1">
                   <p className="agro-num text-[28px] font-semibold leading-none tabular-nums">
                     {gradi(current?.temperatura)}
@@ -186,9 +186,9 @@ export function WeatherCard() {
                     </span>
                     <span className="flex items-center gap-1">
                       <Droplets size={12} className="text-[var(--accent)]" />
-                      {current?.pioggia == null
+                      {current?.rain == null
                         ? "—"
-                        : `${current.pioggia.toFixed(1)} mm`}
+                        : `${current.rain.toFixed(1)} mm`}
                     </span>
                   </div>
                 </div>
@@ -196,7 +196,7 @@ export function WeatherCard() {
 
               {/* Previsione giornaliera (oggi + successivi) */}
               <div className="mt-3 grid grid-cols-5 gap-1 border-t border-[var(--line)] pt-2.5">
-                {(previsione?.giorni ?? []).map((g, i) => {
+                {(previsione?.days ?? []).map((g, i) => {
                   const info = weatherCodeInfo(g.weatherCode);
                   const Icona = info.Icon;
                   return (
@@ -210,7 +210,7 @@ export function WeatherCard() {
                       }`}
                     >
                       <span className="text-[11px] font-medium capitalize text-[var(--ink-3)]">
-                        {dayLabel(g.data, i, i18n.language, t("meteoCard.today"))}
+                        {dayLabel(g.data, i, i18n.language, t("weatherCard.today"))}
                       </span>
                       <Icona size={20} className="text-[var(--ink-2)]" />
                       <span className="agro-num text-xs font-semibold tabular-nums">

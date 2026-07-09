@@ -46,7 +46,7 @@ export function DataEntrySheet({ pending }: { pending: PendingGeometry }) {
 
   if (pending.kind === "polygon") {
     return (
-      <AppezzamentoForm
+      <PlotForm
         pending={pending}
         onCancel={resolve}
         onSave={async (attrs) => {
@@ -99,7 +99,7 @@ function ErroreBanner({ messaggio }: { messaggio: string | null }) {
   );
 }
 
-function AppezzamentoForm({
+function PlotForm({
   pending,
   onCancel,
   onSave,
@@ -110,8 +110,8 @@ function AppezzamentoForm({
 }) {
   const { t } = useTranslation();
   const readOnly = useReadOnly(useAgroStore((s) => s.activeCompanyId));
-  const [name, setNome] = useState("");
-  const [irrigazione, setIrrigazione] = useState("");
+  const [name, setName] = useState("");
+  const [irrigation, setIrrigation] = useState("");
   const [saving, setSaving] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
 
@@ -121,7 +121,7 @@ function AppezzamentoForm({
     try {
       await onSave({
         name: name.trim() || undefined,
-        irrigation_type: irrigazione.trim() || null,
+        irrigation_type: irrigation.trim() || null,
       });
     } catch (e) {
       // Non si chiude la scheda: l'utente vede il motivo e può ritentare senza
@@ -168,7 +168,7 @@ function AppezzamentoForm({
           <Input
             id="ap-nome"
             value={name}
-            onChange={(e) => setNome(e.target.value)}
+            onChange={(e) => setName(e.target.value)}
             placeholder={t("dataEntrySheet.plotNamePlaceholder")}
           />
         </div>
@@ -176,8 +176,8 @@ function AppezzamentoForm({
           <Label htmlFor="ap-irrig">{t("dataEntrySheet.irrigationType")}</Label>
           <Input
             id="ap-irrig"
-            value={irrigazione}
-            onChange={(e) => setIrrigazione(e.target.value)}
+            value={irrigation}
+            onChange={(e) => setIrrigation(e.target.value)}
             placeholder={t("dataEntrySheet.irrigationTypePlaceholder")}
           />
         </div>
@@ -207,13 +207,13 @@ function AssetForm({
   const readOnly = useReadOnly(useAgroStore((s) => s.activeCompanyId));
   const isLinea = pending.kind === "line";
   const tipi = isLinea ? TIPI_ASSET_LINEA : TIPI_ASSET_PUNTO;
-  const [name, setNome] = useState("");
-  const [tipo, setTipo] = useState(tipi[0]);
-  const [categoria, setCategoria] = useState<"fixed" | "mobile">("fixed");
+  const [name, setName] = useState("");
+  const [type, setType] = useState(tipi[0]);
+  const [category, setCategory] = useState<"fixed" | "mobile">("fixed");
   const [saving, setSaving] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
 
-  const lunghezza = useMemo(() => {
+  const length = useMemo(() => {
     if (!isLinea) return null;
     const g = pending.feature.geometry;
     if (g.type === "LineString" || g.type === "MultiLineString") {
@@ -228,9 +228,9 @@ function AssetForm({
     try {
       await onSave({
         name: name.trim() || null,
-        asset_type: tipo,
-        category: categoria,
-        length_m: lunghezza,
+        asset_type: type,
+        category: category,
+        length_m: length,
       });
     } catch (e) {
       setErrore(errorMessage(e, t));
@@ -278,8 +278,8 @@ function AssetForm({
           <Label htmlFor="as-tipo">{t("dataEntrySheet.assetType")}</Label>
           <Select
             id="as-tipo"
-            value={tipo}
-            onChange={(e) => setTipo(e.target.value)}
+            value={type}
+            onChange={(e) => setType(e.target.value)}
           >
             {tipi.map((tipoOpt) => (
               <option key={tipoOpt} value={tipoOpt}>
@@ -293,7 +293,7 @@ function AssetForm({
           <Input
             id="as-nome"
             value={name}
-            onChange={(e) => setNome(e.target.value)}
+            onChange={(e) => setName(e.target.value)}
             placeholder={
               isLinea
                 ? t("dataEntrySheet.assetNamePlaceholderLine")
@@ -305,18 +305,18 @@ function AssetForm({
           <Label htmlFor="as-cat">{t("dataEntrySheet.category")}</Label>
           <Select
             id="as-cat"
-            value={categoria}
-            onChange={(e) => setCategoria(e.target.value as "fixed" | "mobile")}
+            value={category}
+            onChange={(e) => setCategory(e.target.value as "fixed" | "mobile")}
           >
             <option value="fixed">{t("dataEntrySheet.fixed")}</option>
             <option value="mobile">{t("dataEntrySheet.mobile")}</option>
           </Select>
         </div>
-        {isLinea && lunghezza != null && (
+        {isLinea && length != null && (
           <div>
             <Label>{t("dataEntrySheet.lengthGeodetic")}</Label>
             <div className="agro-num rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2 text-sm text-[var(--ink-2)]">
-              {lunghezza} m
+              {length} m
             </div>
           </div>
         )}

@@ -78,7 +78,7 @@ function plotEntry(a: Plot, t: TFunction): Entry {
   return {
     id: a.id,
     kind: "appezzamento",
-    label: a.user_plot_name || t("registroGeometrie.plot"),
+    label: a.user_plot_name || t("geometryRegistry.plot"),
     meta: area != null ? `${area.toFixed(2)} ha` : "",
     geometry: a.geometry,
   };
@@ -88,7 +88,7 @@ function assetEntry(a: InfrastructureAsset, t: TFunction): Entry {
   return {
     id: a.id,
     kind: "infrastruttura",
-    label: a.name || a.asset_type || t("registroGeometrie.infrastructure"),
+    label: a.name || a.asset_type || t("geometryRegistry.infrastructure"),
     meta: [a.asset_type, a.length_m != null ? `${a.length_m} m` : null]
       .filter(Boolean)
       .join(" · "),
@@ -100,7 +100,7 @@ function soilSampleEntry(c: SoilSample, t: TFunction): Entry {
   return {
     id: c.id,
     kind: "poi",
-    label: t("registroGeometrie.samplingLabel", { id: c.id.slice(0, 8) }),
+    label: t("geometryRegistry.samplingLabel", { id: c.id.slice(0, 8) }),
     meta: c.ph != null ? `pH ${c.ph}` : "POI",
     geometry: c.sampling_position,
   };
@@ -126,12 +126,12 @@ export function GeometryRegistry({
   const selectFeatureOnMap = useAgroStore((s) => s.selectFeatureOnMap);
 
   const groups: { title: string; entries: Entry[] }[] = [
-    { title: t("registroGeometrie.plots"), entries: plots.map((a) => plotEntry(a, t)) },
-    { title: t("registroGeometrie.infrastructures"), entries: assets.map((a) => assetEntry(a, t)) },
-    { title: t("registroGeometrie.pointsOfInterest"), entries: soilSamples.map((c) => soilSampleEntry(c, t)) },
+    { title: t("geometryRegistry.plots"), entries: plots.map((a) => plotEntry(a, t)) },
+    { title: t("geometryRegistry.infrastructures"), entries: assets.map((a) => assetEntry(a, t)) },
+    { title: t("geometryRegistry.pointsOfInterest"), entries: soilSamples.map((c) => soilSampleEntry(c, t)) },
   ];
 
-  const totale =
+  const total =
     plots.length + assets.length + soilSamples.length;
 
   const locate = (geometry: Geometry) => {
@@ -148,11 +148,11 @@ export function GeometryRegistry({
   };
 
   return (
-    <FieldSheet title={t("registroGeometrie.title", { count: totale })} onClose={onClose}>
+    <FieldSheet title={t("geometryRegistry.title", { count: total })} onClose={onClose}>
       <div className="flex flex-col gap-4">
-        {totale === 0 && (
+        {total === 0 && (
           <p className="px-1 text-sm text-[var(--ink-3)]">
-            {t("registroGeometrie.empty", { drawAction: t("nav.moduleDraw") })}
+            {t("geometryRegistry.empty", { drawAction: t("nav.moduleDraw") })}
           </p>
         )}
         {groups.map(

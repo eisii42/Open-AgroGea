@@ -7,11 +7,11 @@ import {
   useAppStore,
 } from "@geolibre/core";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { SuoloJob, SuoloProgress, VraCells } from "../../workers/soil.worker";
+import type { SoilJob, SoilProgress, VraCells } from "../../workers/soil.worker";
 import {
   generateVraZones,
-  type RisultatoZoneVra,
-  type TipoLavorazione,
+  type VraZoneResult,
+  type TillageType,
 } from "./vra-zones";
 import { vraToGeoJson, vraToIsoXml, vraToShapefileZip } from "./vra-export";
 import { stopsVra } from "./vra-palette";
@@ -24,33 +24,33 @@ import { stopsVra } from "./vra-palette";
  * terminali dei trattori.
  */
 
-export interface OpzioniGeneraVra {
+export interface VraGenerateOptions {
   /** Indice di base su cui zonare (default NDVI). */
-  indice: VegetationIndex;
+  index: VegetationIndex;
   /** Lato della cella in pixel (sottocampionamento del raster). */
   step: number;
   /** Numero di zone gestionali (cluster). */
   zone: number;
-  lavorazione: TipoLavorazione;
+  tillage: TillageType;
   /** Rateo per zona, in ordine crescente di indice. */
-  ratei: number[];
+  rates: number[];
   cloudCoverMax?: number;
 }
 
-export type VraStato =
+export type VraStatus =
   | { fase: "idle" }
   | { fase: "lavorazione"; label: string }
-  | { fase: "completato"; risultato: RisultatoZoneVra }
+  | { fase: "completato"; result: VraZoneResult }
   | { fase: "errore"; message: string };
 
 const VRA_LAYER_PREFIX = "agrogea-vra-";
 
-function iniettaVraLayer(plotId: string, risultato: RisultatoZoneVra) {
+function iniettaVraLayer(plotId: string, result: VraZoneResult) {
   const store = useAppStore.getState();
   const id = `${VRA_LAYER_PREFIX}${plotId}`;
   const layer: GeoLibreLayer = {
     id,
-    name: `VRA · ${risultato.lavorazione}`,
+    name: `VRA · ${result.tillage}`,
     type: "geojson",
     source: { type: "geojson" },
     visible: true,
@@ -65,14 +65,14 @@ function iniettaVraLayer(plotId: string, risultato: RisultatoZoneVra) {
       strokeWidth: 0.4,
       vectorStyleMode: "categorized",
       vectorStyleProperty: "zona",
-      vectorStyleStops: stopsVra(risultato.zone.length),
+      vectorStyleStops: stopsVra(result.zone.length),
     },
     metadata: { agrogea: true, vra: true },
-    geojson: risultato.fc,
+    geojson: result.fc,
     sourcePath: `agrogea://vra-${plotId}`,
   };
   if (store.layers.some((l) => l.id === id)) {
-    store.updateLayer(id, { geojson: risultato.fc, style: layer.style });
+    store.updateLayer(id, { geojson: result.fc, style: layer.style });
   } else {
     store.addLayer(layer);
   }
@@ -90,7 +90,7 @@ function download(name: string, contenuto: string | Uint8Array, mime: string) {
 }
 
 export function useVraGenerator() {
-  const [stato, setStato] = useState<VraStato>({ fase: "idle" });
+  const [status, setStatus] = useState<VraStatus>({ fase: "idle" });
   const workerRef = useRef<Worker | null>(null);
   const recordTransfer = useAgroStore((s) => s.recordTransfer);
 
@@ -107,18 +107,18 @@ export function useVraGenerator() {
   }, []);
 
   const runJob = useCallback(
-    (job: SuoloJob) =>
+    (job: SoilJob) =>
       new Promise<VraCells | null>((resolve, reject) => {
         const worker = workerRef.current;
         if (!worker) {
           reject(new Error("Worker non inizializzato."));
           return;
         }
-        const onMessage = (e: MessageEvent<SuoloProgress>) => {
+        const onMessage = (e: MessageEvent<SoilProgress>) => {
           const msg = e.data;
-          if (msg.tipo === "progress") return;
+          if (msg.type === "progress") return;
           worker.removeEventListener("message", onMessage);
-          if (msg.tipo === "error") reject(new Error(msg.message));
+          if (msg.type === "error") reject(new Error(msg.message));
           else resolve(msg.vraCells);
         };
         worker.addEventListener("message", onMessage);
@@ -128,50 +128,50 @@ export function useVraGenerator() {
   );
 
   const generate = useCallback(
-    async (plot: Plot, options: OpzioniGeneraVra) => {
+    async (plot: Plot, options: VraGenerateOptions) => {
       try {
-        setStato({ fase: "lavorazione", label: "Ricerca scena satellitare…" });
+        setStatus({ fase: "lavorazione", label: "Ricerca scena satellitare…" });
         const bbox = boundingBox(plot.geometry);
         const scene = await searchSceneSeries(bbox, {
-          indici: [options.indice],
+          indices: [options.index],
           cloudCoverMax: options.cloudCoverMax ?? 20,
           giorniIndietro: 120,
         });
         if (scene.length === 0) {
-          setStato({
+          setStatus({
             fase: "errore",
             message: "Nessuna scena utile per i filters scelti.",
           });
           return;
         }
 
-        setStato({ fase: "lavorazione", label: "Calcolo indice e celle…" });
+        setStatus({ fase: "lavorazione", label: "Calcolo indice e celle…" });
         const cells = await runJob({
-          tipo: "suolo",
+          type: "suolo",
           scene: [scene[0]],
-          indici: [options.indice],
-          indicePrimario: options.indice,
+          indices: [options.index],
+          primaryIndex: options.index,
           geometria: plot.geometry,
           bbox,
           vra: { step: options.step },
         });
         if (!cells || cells.features.length === 0) {
-          setStato({
+          setStatus({
             fase: "errore",
             message: "Nessuna cella valida nell'appezzamento.",
           });
           return;
         }
 
-        const risultato = generateVraZones(cells, {
+        const result = generateVraZones(cells, {
           zone: options.zone,
-          lavorazione: options.lavorazione,
-          ratei: options.ratei,
+          tillage: options.tillage,
+          rates: options.rates,
         });
-        iniettaVraLayer(plot.id, risultato);
-        setStato({ fase: "completato", risultato });
+        iniettaVraLayer(plot.id, result);
+        setStatus({ fase: "completato", result });
       } catch (error) {
-        setStato({
+        setStatus({
           fase: "errore",
           message: error instanceof Error ? error.message : String(error),
         });
@@ -182,25 +182,25 @@ export function useVraGenerator() {
 
   const runExport = useCallback(
     (formato: "geojson" | "isoxml" | "shapefile", nomeBase: string) => {
-      if (stato.fase !== "completato") return;
+      if (status.fase !== "completato") return;
       const base = nomeBase.replace(/[^\p{L}\p{N}_-]+/gu, "_") || "vra";
       let fileName: string;
       if (formato === "geojson") {
         fileName = `${base}.geojson`;
-        download(fileName, vraToGeoJson(stato.risultato), "application/geo+json");
+        download(fileName, vraToGeoJson(status.result), "application/geo+json");
       } else if (formato === "shapefile") {
         // Uint8Array → Blob; archivio .zip con shp/shx/dbf/prj.
         fileName = `${base}_shapefile.zip`;
         download(
           fileName,
-          vraToShapefileZip(stato.risultato, base),
+          vraToShapefileZip(status.result, base),
           "application/zip",
         );
       } else {
         fileName = `${base}_TASKDATA.xml`;
         download(
           fileName,
-          vraToIsoXml(stato.risultato, { taskName: nomeBase }),
+          vraToIsoXml(status.result, { taskName: nomeBase }),
           "application/xml",
         );
       }
@@ -211,10 +211,10 @@ export function useVraGenerator() {
         file_name: fileName,
       });
     },
-    [stato, recordTransfer],
+    [status, recordTransfer],
   );
 
-  const reset = useCallback(() => setStato({ fase: "idle" }), []);
+  const reset = useCallback(() => setStatus({ fase: "idle" }), []);
 
-  return { stato, generate, runExport, reset };
+  return { status, generate, runExport, reset };
 }

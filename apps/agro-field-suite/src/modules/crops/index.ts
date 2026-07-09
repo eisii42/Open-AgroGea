@@ -18,9 +18,9 @@ export const CROP_MODULES: CropModule[] = [
   vegetablesModule,
 ];
 
-const PER_CATEGORIA = new Map<string, CropModule>(
+const BY_CATEGORY = new Map<string, CropModule>(
   CROP_MODULES.flatMap((module) =>
-    module.categories.map((categoria) => [categoria, module] as const),
+    module.categories.map((category) => [category, module] as const),
   ),
 );
 
@@ -29,7 +29,7 @@ export function cropModuleForCrop(
   crop: string | null | undefined,
 ): CropModule | undefined {
   if (!crop) return undefined;
-  return PER_CATEGORIA.get(crop);
+  return BY_CATEGORY.get(crop);
 }
 
 /** Modulo crop per id stabile (es. "vite"). */

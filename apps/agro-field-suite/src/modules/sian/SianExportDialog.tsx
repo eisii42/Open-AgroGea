@@ -28,7 +28,7 @@ import {
   type SeparatoreCsv,
   type SianColumn,
   type SianExportConfig,
-  type SianFiltri,
+  type SianFilters,
 } from "../../lib/sianExport";
 
 /**
@@ -39,7 +39,7 @@ import {
  * filtra → costruisce → download → registra il tag di export nel giornale.
  */
 
-const TIPI_OPERAZIONE: OperationType[] = [
+const OPERATION_TYPES: OperationType[] = [
   "phytosanitary",
   "fertilization",
   "irrigation",
@@ -49,7 +49,7 @@ const TIPI_OPERAZIONE: OperationType[] = [
   "sampling",
 ];
 
-function typeLabel(t: TFunction, tipo: OperationType): string {
+function typeLabel(t: TFunction, type: OperationType): string {
   const map: Record<OperationType, string> = {
     phytosanitary: t("sianExportDialog.operationType.phytosanitary"),
     fertilization: t("sianExportDialog.operationType.fertilization"),
@@ -59,7 +59,7 @@ function typeLabel(t: TFunction, tipo: OperationType): string {
     harvest: t("sianExportDialog.operationType.harvest"),
     sampling: t("sianExportDialog.operationType.sampling"),
   };
-  return map[tipo];
+  return map[type];
 }
 
 function columnLabel(t: TFunction, col: SianColumn): string {
@@ -97,23 +97,23 @@ export function SianExportDialog({
   // Campagne di TUTTI gli anni (lo store ne tiene solo l'anno active): servono a
   // risolvere i codici SIAN delle operazioni di annate diverse. Caricate
   // all'apertura del dialog; fallback allo store finché non arrivano.
-  const [campiTutti, setCampiTutti] = useState<PlotCampaign[]>([]);
+  const [allFields, setAllFields] = useState<PlotCampaign[]>([]);
   useEffect(() => {
     if (!open || !agroDal) return;
     let alive = true;
     void agroDal.listCampiCampagna({}).then((rows) => {
-      if (alive) setCampiTutti(rows);
+      if (alive) setAllFields(rows);
     });
     return () => {
       alive = false;
     };
   }, [open, agroDal]);
-  const campiExport = campiTutti.length > 0 ? campiTutti : campaignFields;
+  const exportFields = allFields.length > 0 ? allFields : campaignFields;
 
   // Sorgente unica del QDCA: registro treatments + harvests mappate come
   // operazioni sintetiche (operation_type = "harvest"), così l'export copre
   // l'intero Quaderno di Campagna Agraria.
-  const operazioni = useMemo(
+  const operations = useMemo(
     () => [...treatments, ...harvestsToOperations(harvests)],
     [treatments, harvests],
   );
@@ -124,7 +124,7 @@ export function SianExportDialog({
   // -- filters spaziali --
   const [appIds, setAppIds] = useState<string[]>([]);
   const [cropNames, setCropNames] = useState<string[]>([]);
-  const [includiSenzaApp, setIncludiSenzaApp] = useState(true);
+  const [includeWithoutPlot, setIncludeWithoutPlot] = useState(true);
   // -- filtro operazioni --
   const [tipi, setTipi] = useState<OperationType[]>([]);
   // -- struttura CSV --
@@ -142,21 +142,21 @@ export function SianExportDialog({
     return [...set];
   }, [plots, campaignFields, crops]);
 
-  const filters: SianFiltri = useMemo(
+  const filters: SianFilters = useMemo(
     () => ({
       dal: dal || null,
       al: al || null,
       appezzamentoIds: appIds,
       crops: cropNames,
       tipiOperazione: tipi,
-      includiSenzaAppezzamento: includiSenzaApp,
+      includiSenzaAppezzamento: includeWithoutPlot,
     }),
-    [dal, al, appIds, cropNames, tipi, includiSenzaApp],
+    [dal, al, appIds, cropNames, tipi, includeWithoutPlot],
   );
 
   const filteredRows = useMemo(
-    () => filterSianTreatments(operazioni, plots, filters),
-    [operazioni, plots, filters],
+    () => filterSianTreatments(operations, plots, filters),
+    [operations, plots, filters],
   );
 
   const unselectedColumns = COLONNE_SIAN.filter(
@@ -191,7 +191,7 @@ export function SianExportDialog({
       plots,
       company?.business_name,
       config,
-      campiExport,
+      exportFields,
       (col) => columnLabel(t, col),
       // Etichetta del tipo operation nella lingua attiva (mai il codice inglese).
       { resolveOperationType: (op) => typeLabel(t, op) },
@@ -258,11 +258,11 @@ export function SianExportDialog({
                 setAl(`${y}-12-31`);
               }} />
               <PresetData label={t("sianExportDialog.last12Months")} onClick={() => {
-                const oggi = new Date();
-                const prima = new Date(oggi);
-                prima.setFullYear(oggi.getFullYear() - 1);
-                setDal(prima.toISOString().slice(0, 10));
-                setAl(oggi.toISOString().slice(0, 10));
+                const today = new Date();
+                const before = new Date(today);
+                before.setFullYear(today.getFullYear() - 1);
+                setDal(before.toISOString().slice(0, 10));
+                setAl(today.toISOString().slice(0, 10));
               }} />
               <PresetData label={t("sianExportDialog.all")} onClick={() => {
                 setDal("");
@@ -316,8 +316,8 @@ export function SianExportDialog({
               </div>
             )}
             <CheckRow
-              checked={includiSenzaApp}
-              onChange={() => setIncludiSenzaApp((v) => !v)}
+              checked={includeWithoutPlot}
+              onChange={() => setIncludeWithoutPlot((v) => !v)}
               label={t("sianExportDialog.includeWholeFarmOps")}
             />
           </section>
@@ -328,7 +328,7 @@ export function SianExportDialog({
               {t("sianExportDialog.operationTypes")}
             </h3>
             <div className="flex flex-wrap gap-1.5">
-              {TIPI_OPERAZIONE.map((tipoOp) => (
+              {OPERATION_TYPES.map((tipoOp) => (
                 <Chip
                   key={tipoOp}
                   active={tipi.includes(tipoOp)}

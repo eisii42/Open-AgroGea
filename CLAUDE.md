@@ -60,12 +60,16 @@ esistenti. Riferimenti canonici: [`docs/glossary.md`](docs/glossary.md),
 **Lingua**
 - **Codice in inglese fin da subito**: nomi di file/cartelle, variabili,
   funzioni, classi, tipi, interfacce, enum, costanti, chiavi di oggetti/eventi/
-  azioni interne. Usa i termini di `docs/glossary.md` (es. `appezzamento→plot`,
-  `azienda→company`, `raccolta→harvest`, `trattamento→treatment`,
-  `magazzino→warehouse`, `prodotto→product`, `suolo→soil`). Niente nuovi
-  identificatori italiani.
+  azioni interne **e chiavi/namespace i18n**. Usa i termini di
+  `docs/glossary.md` (es. `appezzamento→plot`, `azienda→company`,
+  `raccolta→harvest`, `trattamento→treatment`, `magazzino→warehouse`,
+  `prodotto→product`, `suolo→soil`). Niente nuovi identificatori italiani.
 - **Stringhe UI in italiano, SEMPRE via i18n** (`apps/agro-field-suite/src/i18n/
-  locales/*.json`): mai hard-coded nei componenti.
+  locales/*.json`): mai hard-coded nei componenti. Le **chiavi/namespace** i18n
+  sono in **inglese** (es. `harvestPanel`, `logbookPanel`, `operationForm`); solo
+  i **valori** (il testo mostrato) restano in italiano. Le chiavi di `t()` sono
+  type-checkate contro `en.json`, quindi `npm run typecheck` intercetta ogni
+  chiave rinominata/mancante.
 - **Commenti**: la lingua attuale (italiano) va bene; non è richiesto tradurli.
 
 **Naming/casing** (enforced come warning da `@typescript-eslint/naming-convention`)
@@ -91,11 +95,15 @@ si applica):
   chiave `suolo` in `plots_registry.metadata`): sui device ci sono dati reali.
   Migrazioni solo **additive/idempotenti** in `db/schema.ts`; mai drop/rename
   distruttivi. Le variabili destrutturate da righe DB restano snake_case.
-- **Chiavi i18n** (namespace in `locales/*.json`) e **valori-stringa
-  discriminanti/enum interni** (es. `SelectableKind` `"appezzamento"`,
-  `FieldPanel` `"quaderno"`/`"raccolta"`, `RiskLevel` `"basso"/"alto"`,
-  `CropType` `"viticoltura"`): sono valori accoppiati a UI/persistenza, restano
-  come sono (l'identificatore inglese avvolge il valore, il valore no).
+- **Valori-stringa discriminanti/enum interni** (es. `SelectableKind`
+  `"appezzamento"`, `FieldPanel` `"quaderno"`/`"raccolta"`, `RiskLevel`
+  `"basso"/"alto"`, `CropType` `"viticoltura"`, la fase VRA `"lavorazione"`):
+  sono VALORI accoppiati a UI/persistenza, restano come sono (l'identificatore
+  inglese avvolge il valore, il valore no). ⚠️ Le **chiavi/namespace i18n** NON
+  sono più un'eccezione: vanno in inglese (vedi sezione Lingua). Restano italiane
+  solo le poche chiavi che rispecchiano un valore-discriminante letto
+  dinamicamente (es. `harvestPanel.destinations.<id>`,
+  `cropFormSchema.category.<cropType>`, `sianExportDialog.columns.<campoSian>`).
 - **Nomi dei campi degli export normativi** (SIAN/PAN, SIEX/CUE, tracciato UE):
   invariati come da standard.
 

@@ -35,7 +35,7 @@ describe("buildLegenda", () => {
       legenda.map((v) => v.id),
       ["a"],
     );
-    assert.equal(legenda[0].colore, "#11aa22");
+    assert.equal(legenda[0].color, "#11aa22");
   });
 });
 
@@ -44,8 +44,8 @@ describe("buildPrintSvg", () => {
     title: "Vigna Nuova",
     note: "Domanda PSR 2026",
     legenda: [
-      { id: "a", name: "Appezzamenti", colore: "#11aa22" },
-      { id: "b", name: "POI", colore: "#1f6feb" },
+      { id: "a", name: "Appezzamenti", color: "#11aa22" },
+      { id: "b", name: "POI", color: "#1f6feb" },
     ],
     mostraScala: true,
     scalaTesto: "200 m",

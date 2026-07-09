@@ -41,7 +41,7 @@ export interface DashboardData {
   harvests: Harvest[];
   soilIndices: SoilWaterIndex[];
   weather: WeatherReading[];
-  dssRisultati: DssResult[];
+  dssResults: DssResult[];
 }
 
 export interface PresetDef {
@@ -217,7 +217,7 @@ function weatherDaily(d: DashboardData): [string, WeatherDay][] {
     const c = m.get(k) ?? { temps: [], rh: [], wet: 0, rain: 0 };
     if (w.air_temperature != null) c.temps.push(w.air_temperature);
     if (w.relative_humidity != null) c.rh.push(w.relative_humidity);
-    if (w.leaf_wetness != null) c.wet += w.leaf_wetness; // frazione/ora → ore/giorno
+    if (w.leaf_wetness != null) c.wet += w.leaf_wetness; // frazione/ora → ore/day
     if (w.rain_mm != null) c.rain += w.rain_mm;
     m.set(k, c);
   }
@@ -335,7 +335,7 @@ function buildGddCumulative(d: DashboardData): ChartData {
 }
 
 /** Condizioni favorevoli alle infezioni fungine: bagnatura, RH media e pioggia, ~60gg. */
-function buildInfectionMeteo(d: DashboardData): ChartData {
+function buildInfectionWeather(d: DashboardData): ChartData {
   const rows = weatherDaily(d)
     .slice(-60)
     .map(([k, c]) => ({
@@ -418,7 +418,7 @@ export const PRESETS: PresetDef[] = [
     id: "infection_meteo",
     label: "Condizioni infettive (bagnatura/RH/pioggia)",
     types: ["line", "area", "bar"],
-    build: buildInfectionMeteo,
+    build: buildInfectionWeather,
   },
   {
     id: "nitrogen_cumulative",
@@ -477,6 +477,6 @@ export function filterByRange(
     harvests: data.harvests.filter((r) => inRange(r.harvested_at, range)),
     soilIndices: data.soilIndices.filter((s) => inRange(s.date, range)),
     weather: data.weather.filter((w) => inRange(w.measured_at, range)),
-    dssRisultati: data.dssRisultati.filter((d) => inRange(d.calculated_at, range)),
+    dssResults: data.dssResults.filter((d) => inRange(d.calculated_at, range)),
   };
 }

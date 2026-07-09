@@ -11,7 +11,7 @@ import type {
 import { AgroDalRegistry } from "./dal-registry";
 import { nowIso, type Row } from "./write";
 
-const ETICHETTE_OPERAZIONE: Record<string, string> = {
+const OPERATION_LABELS: Record<string, string> = {
   phytosanitary: "Trattamento",
   fertilization: "Fertilizzazione",
   irrigation: "Irrigazione",
@@ -98,7 +98,7 @@ export class AgroDalLogbook extends AgroDalRegistry {
     );
     const t = result.rows[0];
     if (!t) return null;
-    const opName = ETICHETTE_OPERAZIONE[t.operation_type] ?? t.operation_type;
+    const opName = OPERATION_LABELS[t.operation_type] ?? t.operation_type;
     const data = new Date(t.executed_at).toLocaleDateString("it-IT");
     return {
       plot_id: plotId,
@@ -228,12 +228,12 @@ export class AgroDalLogbook extends AgroDalRegistry {
 
   async listAssets(
     companyId: string,
-    options: { categoria?: "fixed" | "mobile" } = {},
+    options: { category?: "fixed" | "mobile" } = {},
   ): Promise<InfrastructureAsset[]> {
     const conditions = ["company_id = $1", "deleted_at is null"];
     const params: unknown[] = [companyId];
-    if (options.categoria) {
-      params.push(options.categoria);
+    if (options.category) {
+      params.push(options.category);
       conditions.push(`category = $${params.length}`);
     }
     const result = await this.db.query<InfrastructureAsset>(

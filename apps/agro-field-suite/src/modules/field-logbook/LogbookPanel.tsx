@@ -7,9 +7,9 @@ import {
   useAgroStore,
 } from "@agrogea/core";
 import {
-  type CampoCampagnaOption,
+  type FieldCampaignOption,
   FieldSheet,
-  type TrattamentoFormValues,
+  type TreatmentFormValues,
 } from "@agrogea/ui";
 import { Button, cn, Input, Label, Select } from "@geolibre/ui";
 import { Copy, MapPin, MapPinOff, Trash2 } from "lucide-react";
@@ -21,12 +21,12 @@ import { ConfirmDeleteOperation } from "./ConfirmDeleteOperation";
 import { OperationDetailCard } from "./OperationDetailCard";
 import {
   type CropAssignment,
-  OPERAZIONI,
+  OPERATIONS,
   OperationForm,
   operationSpec,
 } from "./OperationForm";
 
-const TIPO_COLOR: Record<string, string> = {
+const TYPE_COLOR: Record<string, string> = {
   phytosanitary: "var(--danger)",
   fertilization: "var(--crop-cereali)",
   irrigation: "var(--accent)",
@@ -50,8 +50,8 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   const valutaCompliance = useGeoCompliance();
   // Cataloghi di stato filtered per il country_code risolto del tenant (Modulo 3):
   // i dropdown Product/Concime mostrano solo le voci del registro nazionale.
-  const { voci: fitosanitari, countryCode } = useCountryCatalog("phytosanitary");
-  const { voci: concimi } = useCountryCatalog("fertilizer");
+  const { items: fitosanitari, countryCode } = useCountryCatalog("phytosanitary");
+  const { items: concimi } = useCountryCatalog("fertilizer");
   // Magazzino (0.2.0): anagrafica e lots per la sezione di issue del form.
   const products = useAgroStore((s) => s.products);
   const lots = useAgroStore((s) => s.lots);
@@ -79,30 +79,30 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   // fa da key del form: rimonta il componente a ogni apertura, così gli
   // initializer di stato rileggono i default.
   const [formDefaults, setFormDefaults] =
-    useState<Partial<TrattamentoFormValues> | null>(null);
+    useState<Partial<TreatmentFormValues> | null>(null);
   const [formNonce, setFormNonce] = useState(0);
 
   // Opzioni di field per la Campagna Agraria attiva (name + codice crop
   // SIAN). Solo campagne APERTE: quelle chiuse dal raccolto (v17) non sono più
   // un target valido per nuove operazioni, e il field risulta "senza coltura"
   // (abilita l'auto-assegnazione alla semina).
-  const campaignFieldOptions = useMemo<CampoCampagnaOption[]>(
+  const campaignFieldOptions = useMemo<FieldCampaignOption[]>(
     () =>
       campaignFields
         .filter((c) => c.closed_at == null && c.deleted_at == null)
         .map((c) => {
           const base =
             plots.find((a) => a.id === c.plot_id)?.user_plot_name ??
-            t("quadernoPanel.fieldFallbackName", { id: c.plot_id.slice(0, 6) });
+            t("logbookPanel.fieldFallbackName", { id: c.plot_id.slice(0, 6) });
           // Badge compliance: dichiarativi incompleti per il sistema del paese
           // (IT → SIAN, ES → SIEX), visibile a ogni selezione del field.
-          const sistema = declarativeSystem(countryCode);
+          const system = declarativeSystem(countryCode);
           const declarativeMissing =
-            sistema != null && missingDeclarative(countryCode, c).length > 0;
+            system != null && missingDeclarative(countryCode, c).length > 0;
           return {
-            campoCampagnaId: c.id,
+            fieldCampaignId: c.id,
             plotId: c.plot_id,
-            name: declarativeMissing ? `${base} · ${sistema} ✗` : base,
+            name: declarativeMissing ? `${base} · ${system} ✗` : base,
             codiceColturaSian: c.crop_external_code,
             superficieHa: c.declared_area_ha,
           };
@@ -110,9 +110,9 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     [campaignFields, plots, countryCode],
   );
 
-  function apriForm(type: OperationType) {
+  function openForm(type: OperationType) {
     setFormType(type);
-    setFormDefaultAppId(filtroAppId);
+    setFormDefaultAppId(filterPlotId);
     setFormDefaults(null);
     setFormNonce((n) => n + 1);
     setChooser(false);
@@ -146,28 +146,28 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     setFormType(op.operation_type);
     setFormNonce((n) => n + 1);
     setChooser(false);
-    setDettaglio(null);
+    setDetail(null);
   }
 
   // Cancellazione protetta: operation in attesa di confirm + notifica esito.
-  const [daEliminare, setDaEliminare] = useState<TreatmentLog | null>(
+  const [toDelete, setToDelete] = useState<TreatmentLog | null>(
     null,
   );
-  const [notifica, setNotifica] = useState<string | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
   // Operazione aperta in scheda dettaglio (modale centrale di sola reading).
-  const [dettaglio, setDettaglio] = useState<TreatmentLog | null>(null);
+  const [detail, setDetail] = useState<TreatmentLog | null>(null);
 
   // Filtri lista.
-  const [filtroAppId, setFiltroAppId] = useState<string>("");
-  const [filtroDa, setFiltroDa] = useState<string>("");
-  const [filtroA, setFiltroA] = useState<string>("");
+  const [filterPlotId, setFilterPlotId] = useState<string>("");
+  const [filterFrom, setFilterFrom] = useState<string>("");
+  const [filterTo, setFilterTo] = useState<string>("");
 
   // Apertura dal click sul field in mappa: mostra la LISTA filtrata sulle
   // lavorazioni di quell'appezzamento (il "Nuovo record" qui sotto eredita il
   // filtro come default, così registrare resta a un tap di distanza).
   useEffect(() => {
     if (logbookOpenPlotId) {
-      setFiltroAppId(logbookOpenPlotId);
+      setFilterPlotId(logbookOpenPlotId);
       setFormType(null);
       setChooser(false);
       consumeLogbookOpen();
@@ -179,7 +179,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   // resta aperto e mostra il messaggio. `assegnazione` (semina di una semente
   // su field libero, v17) crea scheda crop + campagna agraria in automatico.
   async function handleSubmit(
-    values: TrattamentoFormValues,
+    values: TreatmentFormValues,
     issues?: IssueRequest[],
     assegnazione?: CropAssignment | null,
   ) {
@@ -226,10 +226,10 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
 
   // Notifica transitoria (auto-dismiss dopo l'avvenuta rimozione).
   useEffect(() => {
-    if (!notifica) return;
-    const t = setTimeout(() => setNotifica(null), 3500);
+    if (!notification) return;
+    const t = setTimeout(() => setNotification(null), 3500);
     return () => clearTimeout(t);
-  }, [notifica]);
+  }, [notification]);
 
   /** Etichetta sintetica dell'operazione, per il banner di confirm. */
   function operationLabel(t: TreatmentLog): string {
@@ -238,26 +238,26 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   }
 
   async function confirmDeletion() {
-    if (!daEliminare) return;
-    const label = operationLabel(daEliminare);
-    await deleteTreatment(daEliminare.id);
-    setDaEliminare(null);
-    setNotifica(t("quadernoPanel.notification.removed", { label: label }));
+    if (!toDelete) return;
+    const label = operationLabel(toDelete);
+    await deleteTreatment(toDelete.id);
+    setToDelete(null);
+    setNotification(t("logbookPanel.notification.removed", { label: label }));
   }
 
   const filtered = useMemo(() => {
-    const daTs = filtroDa ? new Date(filtroDa).setHours(0, 0, 0, 0) : null;
-    const aTs = filtroA ? new Date(filtroA).setHours(23, 59, 59, 999) : null;
+    const daTs = filterFrom ? new Date(filterFrom).setHours(0, 0, 0, 0) : null;
+    const aTs = filterTo ? new Date(filterTo).setHours(23, 59, 59, 999) : null;
     return treatments.filter((t) => {
-      if (filtroAppId && t.plot_id !== filtroAppId) return false;
+      if (filterPlotId && t.plot_id !== filterPlotId) return false;
       const ts = new Date(t.executed_at).getTime();
       if (daTs != null && ts < daTs) return false;
       if (aTs != null && ts > aTs) return false;
       return true;
     });
-  }, [treatments, filtroAppId, filtroDa, filtroA]);
+  }, [treatments, filterPlotId, filterFrom, filterTo]);
 
-  const activeFilters = Boolean(filtroAppId || filtroDa || filtroA);
+  const activeFilters = Boolean(filterPlotId || filterFrom || filterTo);
 
   // Toggle "Mostra sulla mappa": proietta come simboli SOLO le operazioni
   // attualmente visibili nel registro (rispetta i filters). Mentre è active,
@@ -279,8 +279,8 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
         formType
           ? operationSpec(formType).label
           : chooser
-            ? t("quadernoPanel.title.newOperation")
-            : t("quadernoPanel.title.logbook")
+            ? t("logbookPanel.title.newOperation")
+            : t("logbookPanel.title.logbook")
       }
       onClose={onClose}
       footer={
@@ -296,11 +296,11 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
           <Button
             className="min-h-[var(--touch-min)] w-full"
             onClick={() => {
-              setFormDefaultAppId(filtroAppId);
+              setFormDefaultAppId(filterPlotId);
               setChooser(true);
             }}
           >
-            ＋ {t("quadernoPanel.button.registerOperation")}
+            ＋ {t("logbookPanel.button.registerOperation")}
           </Button>
         )
       }
@@ -329,13 +329,13 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
       ) : chooser ? (
         <div className="flex flex-col gap-2">
           <p className="text-xs text-[var(--ink-3)]">
-            {t("quadernoPanel.chooser.description")}
+            {t("logbookPanel.chooser.description")}
           </p>
-          {OPERAZIONI.map((o) => (
+          {OPERATIONS.map((o) => (
             <button
               key={o.type}
               type="button"
-              onClick={() => apriForm(o.type)}
+              onClick={() => openForm(o.type)}
               className="flex items-center gap-3 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-3 text-left hover:bg-[var(--panel-2)]"
             >
               <span className="min-w-0 flex-1">
@@ -349,33 +349,33 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
       ) : (
         <div className="flex flex-col gap-3">
           {/* Notifica transitoria di avvenuta rimozione. */}
-          {notifica && (
+          {notification && (
             <div
               role="status"
               className="rounded-[var(--r-2)] border border-[var(--ok)] bg-[var(--ok-l,#dcfce7)] px-3 py-2 text-xs text-[var(--ok)]"
             >
-              {notifica}
+              {notification}
             </div>
           )}
           {/* Barra filters: data + plot (geometria). */}
           <div className="flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label htmlFor="qdc-f-da">{t("quadernoPanel.filter.from")}</Label>
+                <Label htmlFor="qdc-f-da">{t("logbookPanel.filter.from")}</Label>
                 <Input
                   id="qdc-f-da"
                   type="date"
-                  value={filtroDa}
-                  onChange={(e) => setFiltroDa(e.target.value)}
+                  value={filterFrom}
+                  onChange={(e) => setFilterFrom(e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="qdc-f-a">{t("quadernoPanel.filter.to")}</Label>
+                <Label htmlFor="qdc-f-a">{t("logbookPanel.filter.to")}</Label>
                 <Input
                   id="qdc-f-a"
                   type="date"
-                  value={filtroA}
-                  onChange={(e) => setFiltroA(e.target.value)}
+                  value={filterTo}
+                  onChange={(e) => setFilterTo(e.target.value)}
                 />
               </div>
             </div>
@@ -383,10 +383,10 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
               <Label htmlFor="qdc-f-app">{t("logbook.common.plot")}</Label>
               <Select
                 id="qdc-f-app"
-                value={filtroAppId}
-                onChange={(e) => setFiltroAppId(e.target.value)}
+                value={filterPlotId}
+                onChange={(e) => setFilterPlotId(e.target.value)}
               >
-                <option value="">{t("quadernoPanel.filter.allPlots")}</option>
+                <option value="">{t("logbookPanel.filter.allPlots")}</option>
                 {plots.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.user_plot_name}
@@ -398,13 +398,13 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
               <button
                 type="button"
                 onClick={() => {
-                  setFiltroAppId("");
-                  setFiltroDa("");
-                  setFiltroA("");
+                  setFilterPlotId("");
+                  setFilterFrom("");
+                  setFilterTo("");
                 }}
                 className="self-start text-xs text-[var(--accent)]"
               >
-                {t("quadernoPanel.filter.reset")}
+                {t("logbookPanel.filter.reset")}
               </button>
             )}
           </div>
@@ -422,16 +422,16 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
             >
               {activeMap ? <MapPinOff size={15} /> : <MapPin size={15} />}
               {activeMap
-                ? t("quadernoPanel.map.hide", { count: filtered.length })
-                : t("quadernoPanel.map.show", { count: filtered.length })}
+                ? t("logbookPanel.map.hide", { count: filtered.length })
+                : t("logbookPanel.map.show", { count: filtered.length })}
             </button>
           )}
 
           {filtered.length === 0 ? (
             <p className="py-8 text-center text-sm text-[var(--ink-3)]">
               {treatments.length === 0
-                ? t("quadernoPanel.empty.noRecords")
-                : t("quadernoPanel.empty.noFilterMatch")}
+                ? t("logbookPanel.empty.noRecords")
+                : t("logbookPanel.empty.noFilterMatch")}
             </p>
           ) : (
             <ul className="flex flex-col gap-2">
@@ -448,13 +448,13 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
                       className="w-1 shrink-0 rounded-full"
                       style={{
                         background:
-                          TIPO_COLOR[treatment.operation_type] ?? "var(--ink-4)",
+                          TYPE_COLOR[treatment.operation_type] ?? "var(--ink-4)",
                       }}
                     />
                     <button
                       type="button"
-                      onClick={() => setDettaglio(treatment)}
-                      title={t("quadernoPanel.list.openDetail")}
+                      onClick={() => setDetail(treatment)}
+                      title={t("logbookPanel.list.openDetail")}
                       className="min-w-0 flex-1 text-left"
                     >
                       <p className="truncate text-sm font-semibold">
@@ -479,7 +479,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
                       </time>
                       {sync.pendingCount > 0 ? (
                         <span className="rounded-full bg-[var(--warn-l)] px-1.5 text-[10px] text-[var(--warn)]">
-                          {t("quadernoPanel.list.queued")}
+                          {t("logbookPanel.list.queued")}
                         </span>
                       ) : (
                         <span className="text-xs text-[var(--ok)]">✓</span>
@@ -489,8 +489,8 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
                     <button
                       type="button"
                       onClick={() => repeatOperation(treatment)}
-                      title={t("quadernoPanel.list.repeatOperation")}
-                      aria-label={t("quadernoPanel.list.repeatOperation")}
+                      title={t("logbookPanel.list.repeatOperation")}
+                      aria-label={t("logbookPanel.list.repeatOperation")}
                       className="flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-[var(--r-2)] text-[var(--accent)] hover:bg-[var(--accent-l)]"
                     >
                       <Copy size={15} />
@@ -498,9 +498,9 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
                     {/* Cancellazione protetta della singola operation (FIX 1). */}
                     <button
                       type="button"
-                      onClick={() => setDaEliminare(treatment)}
-                      title={t("quadernoPanel.list.deleteOperation")}
-                      aria-label={t("quadernoPanel.list.deleteAriaLabel", {
+                      onClick={() => setToDelete(treatment)}
+                      title={t("logbookPanel.list.deleteOperation")}
+                      aria-label={t("logbookPanel.list.deleteAriaLabel", {
                         label: operationLabel(treatment),
                       })}
                       className="flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-[var(--r-2)] text-[#dc2626] hover:bg-[var(--danger-l,#fee2e2)]"
@@ -516,23 +516,23 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
       )}
 
       <ConfirmDeleteOperation
-        open={daEliminare != null}
-        label={daEliminare ? operationLabel(daEliminare) : ""}
+        open={toDelete != null}
+        label={toDelete ? operationLabel(toDelete) : ""}
         onConfirm={confirmDeletion}
-        onClose={() => setDaEliminare(null)}
+        onClose={() => setToDelete(null)}
       />
 
-      {dettaglio && (
+      {detail && (
         <OperationDetailCard
-          operation={dettaglio}
+          operation={detail}
           appezzamentoNome={
-            plots.find((a) => a.id === dettaglio.plot_id)?.user_plot_name ??
+            plots.find((a) => a.id === detail.plot_id)?.user_plot_name ??
             null
           }
-          onClose={() => setDettaglio(null)}
+          onClose={() => setDetail(null)}
           onDelete={() => {
-            setDaEliminare(dettaglio);
-            setDettaglio(null);
+            setToDelete(detail);
+            setDetail(null);
           }}
         />
       )}

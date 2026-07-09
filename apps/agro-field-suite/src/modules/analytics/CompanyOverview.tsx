@@ -60,7 +60,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
   );
   const totalArea = vivi.reduce((s, a) => s + Number(a.area_ha ?? 0), 0);
 
-  const operazioniAnno = useMemo(
+  const yearOperations = useMemo(
     () =>
       treatments.filter(
         (tr) =>
@@ -106,10 +106,10 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
     () => lots.filter((l) => l.deleted_at == null && Number(l.quantity_on_hand) > 0),
     [lots],
   );
-  const lottiScaduti = lotsWithStock.filter(
+  const expiredLots = lotsWithStock.filter(
     (l) => expiryStatus(l.expires_at) === "expired",
   );
-  const lottiInScadenza = lotsWithStock.filter(
+  const expiringLots = lotsWithStock.filter(
     (l) => expiryStatus(l.expires_at) === "expiring",
   );
   // Scorta minima (v17): products sotto la soglia di riordino.
@@ -131,10 +131,10 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
 
   // Compliance dichiarativa (IT → SIAN, ES → SIEX): campagne APERTE dell'annata
   // con dati incompleti. Il click porta alla scheda Dati crop del primo field.
-  const sistema = declarativeSystem(countryCode);
-  const campagneSianKo = useMemo(
+  const system = declarativeSystem(countryCode);
+  const sianKoCampaigns = useMemo(
     () =>
-      sistema
+      system
         ? campaignFields.filter(
             (c) =>
               c.deleted_at == null &&
@@ -142,24 +142,24 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
               missingDeclarative(countryCode, c).length > 0,
           )
         : [],
-    [sistema, countryCode, campaignFields],
+    [system, countryCode, campaignFields],
   );
 
   return (
     <div className="flex flex-col gap-4">
       {/* Alert compliance SIAN: impossibile "dimenticare" i dichiarativi. */}
-      {campagneSianKo.length > 0 && (
+      {sianKoCampaigns.length > 0 && (
         <button
           type="button"
           onClick={() => {
-            openCropForPlot(campagneSianKo[0].plot_id);
+            openCropForPlot(sianKoCampaigns[0].plot_id);
             setActiveView("map");
           }}
           className="flex items-center gap-2 rounded-[var(--r-2)] border border-[var(--warn)] bg-[var(--warn-l)] px-3 py-2 text-left text-sm font-medium text-[var(--warn)] hover:opacity-90"
         >
           ⚠ {t("companyOverview.sianAlert", {
-            count: campagneSianKo.length,
-            system: sistema,
+            count: sianKoCampaigns.length,
+            system: system,
           })}
         </button>
       )}
@@ -179,7 +179,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
           <KpiCard
             Icon={Tractor}
             label={t("companyOverview.kpi.operationsYear")}
-            value={String(operazioniAnno)}
+            value={String(yearOperations)}
             sub={t("companyOverview.kpi.operationsSub")}
           />
           <KpiCard
@@ -226,8 +226,8 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
           <KpiCard
             Icon={PackageX}
             label={t("companyOverview.kpi.expiredLots")}
-            value={String(lottiScaduti.length)}
-            tone={lottiScaduti.length > 0 ? "danger" : undefined}
+            value={String(expiredLots.length)}
+            tone={expiredLots.length > 0 ? "danger" : undefined}
             sub={t("companyOverview.kpi.expiredLotsSub")}
           />
           <KpiCard
@@ -235,8 +235,8 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
             label={t("companyOverview.kpi.expiringLots", {
               days: EXPIRY_WARNING_DAYS_DEFAULT,
             })}
-            value={String(lottiInScadenza.length)}
-            tone={lottiInScadenza.length > 0 ? "warn" : undefined}
+            value={String(expiringLots.length)}
+            tone={expiringLots.length > 0 ? "warn" : undefined}
             sub={t("companyOverview.kpi.expiringLotsSub")}
           />
         </div>

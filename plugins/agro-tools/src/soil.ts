@@ -181,7 +181,7 @@ export interface SaxtonRawlsOptions {
 }
 
 const DEFAULT_OM = 2.5;
-const DEFAULT_PROFONDITA = 0.8;
+const DEFAULT_DEPTH = 0.8;
 const DEFAULT_DEPLEZIONE = 0.5;
 
 /**
@@ -245,7 +245,7 @@ export function saxtonRawlsSoilParameters(
   return {
     fieldCapacity,
     wiltingPoint,
-    rootDepth: opzioni.profonditaRadiciM ?? DEFAULT_PROFONDITA,
+    rootDepth: opzioni.profonditaRadiciM ?? DEFAULT_DEPTH,
     depletionFraction: opzioni.depletionFraction ?? DEFAULT_DEPLEZIONE,
   };
 }

@@ -99,18 +99,18 @@ export function irrigationInputsFromTreatments(
   return treatments
     .filter((t) => t.operation_type === "irrigation")
     .map((t) => ({
-      data: giornoDi(t.executed_at),
+      data: dayOf(t.executed_at),
       mm: irrigationInputMm(irrigationVolumeLiters(t) ?? 0, areaHa),
     }))
     .filter((a) => a.mm > 0);
 }
 
 /** Parte data "YYYY-MM-DD" (UTC) di un timestamp ISO. */
-function giornoDi(iso: string): string {
+function dayOf(iso: string): string {
   return new Date(iso).toISOString().slice(0, 10);
 }
 
-interface GiornoAgrometeo {
+interface AgrometeoDay {
   data: string;
   tMin: number;
   tMax: number;
@@ -136,8 +136,8 @@ function media(valori: number[], fallback: number): number {
 export function agrometeoSeriesFromReadings(
   readings: WeatherReading[],
   altitude = 0,
-): { meteo: WeatherDataDay[]; rain: number[]; date: string[] } {
-  const perGiorno = new Map<
+): { weather: WeatherDataDay[]; rain: number[]; date: string[] } {
+  const perDay = new Map<
     string,
     {
       temp: number[];
@@ -149,11 +149,11 @@ export function agrometeoSeriesFromReadings(
   >();
 
   for (const l of readings) {
-    const data = giornoDi(l.measured_at);
-    let agg = perGiorno.get(data);
+    const data = dayOf(l.measured_at);
+    let agg = perDay.get(data);
     if (!agg) {
       agg = { temp: [], rh: [], vento: [], rad: [], rain: 0 };
-      perGiorno.set(data, agg);
+      perDay.set(data, agg);
     }
     if (l.air_temperature != null) agg.temp.push(l.air_temperature);
     if (l.relative_humidity != null) agg.rh.push(l.relative_humidity);
@@ -164,9 +164,9 @@ export function agrometeoSeriesFromReadings(
     }
   }
 
-  const date = [...perGiorno.keys()].sort();
-  const giorni: GiornoAgrometeo[] = date.map((data) => {
-    const a = perGiorno.get(data)!;
+  const date = [...perDay.keys()].sort();
+  const days: AgrometeoDay[] = date.map((data) => {
+    const a = perDay.get(data)!;
     const temps = a.temp.filter((v) => Number.isFinite(v));
     const tMin = temps.length ? Math.min(...temps) : 0;
     const tMax = temps.length ? Math.max(...temps) : tMin;
@@ -187,8 +187,8 @@ export function agrometeoSeriesFromReadings(
 
   return {
     date,
-    rain: giorni.map((g) => g.rain),
-    meteo: giorni.map((g) => ({
+    rain: days.map((g) => g.rain),
+    weather: days.map((g) => ({
       tMin: g.tMin,
       tMax: g.tMax,
       rhMin: g.rhMin,
@@ -205,12 +205,12 @@ function irrigationPerDay(
   date: string[],
   irrigazioni: ApportoIrriguo[],
 ): number[] {
-  const perGiorno = new Map<string, number>();
+  const perDay = new Map<string, number>();
   for (const a of irrigazioni) {
     const d = a.data.slice(0, 10);
-    perGiorno.set(d, (perGiorno.get(d) ?? 0) + (a.mm ?? 0));
+    perDay.set(d, (perDay.get(d) ?? 0) + (a.mm ?? 0));
   }
-  return date.map((d) => perGiorno.get(d) ?? 0);
+  return date.map((d) => perDay.get(d) ?? 0);
 }
 
 /**
@@ -221,12 +221,12 @@ export function computeWaterBalance(
   params: WaterBalanceParams,
 ): WaterBalanceOutput {
   const kc = getPhaseCalibration(params.crop, params.phase).kc;
-  const { meteo, rain, date } = agrometeoSeriesFromReadings(
+  const { weather, rain, date } = agrometeoSeriesFromReadings(
     params.readings,
     params.altitude ?? 0,
   );
 
-  const et0Serie = meteo.map((m) => et0PenmanMonteith(m));
+  const et0Serie = weather.map((m) => et0PenmanMonteith(m));
   const etcSeries = et0Serie.map((et0) => cropEt(et0, kc));
   const irrSeries = irrigationPerDay(date, params.irrigazioni ?? []);
 

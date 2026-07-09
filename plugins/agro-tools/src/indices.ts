@@ -29,13 +29,13 @@ export const SOIL_BANDS: Record<SoilIndex, { nir: string; red: string }> = {
   msavi2: { nir: "B08", red: "B04" },
 };
 
-const INDICI_SUOLO: ReadonlySet<string> = new Set<SoilIndex>([
+const SOIL_INDICES: ReadonlySet<string> = new Set<SoilIndex>([
   "savi",
   "msavi2",
 ]);
 
 export function isSoilIndex(index: string): index is SoilIndex {
-  return INDICI_SUOLO.has(index);
+  return SOIL_INDICES.has(index);
 }
 
 export interface IndexStats {

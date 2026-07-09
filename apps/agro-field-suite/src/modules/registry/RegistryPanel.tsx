@@ -24,7 +24,7 @@ import { CompanyDataIo } from "./CompanyDataIo";
  */
 
 /** Chiavi testuali dell'azienda modificabili da questa scheda (schema EN `companies`). */
-type CampoChiave =
+type KeyField =
   | "business_name"
   | "legal_form"
   | "national_company_id"
@@ -44,104 +44,104 @@ type CampoChiave =
   | "contact_role";
 
 interface Campo {
-  key: CampoChiave;
+  key: KeyField;
   label: string;
   placeholder?: string;
-  tipo?: "text" | "email" | "tel" | "url" | "textarea";
+  type?: "text" | "email" | "tel" | "url" | "textarea";
 }
 
 interface Sezione {
   id: string;
   label: string;
   Icon: LucideIcon;
-  campi: Campo[];
+  fields: Campo[];
 }
 
 function getSezioni(t: TFunction): Sezione[] {
   return [
     {
       id: "identita",
-      label: t("anagraficaPanel.sections.identity.label"),
+      label: t("registryPanel.sections.identity.label"),
       Icon: Building2,
-      campi: [
-        { key: "business_name", label: t("anagraficaPanel.fields.businessName") },
+      fields: [
+        { key: "business_name", label: t("registryPanel.fields.businessName") },
         {
           key: "legal_form",
-          label: t("anagraficaPanel.fields.legalForm"),
-          placeholder: t("anagraficaPanel.fields.legalFormPlaceholder"),
+          label: t("registryPanel.fields.legalForm"),
+          placeholder: t("registryPanel.fields.legalFormPlaceholder"),
         },
         {
           key: "national_company_id",
-          label: t("anagraficaPanel.fields.nationalCompanyId"),
-          placeholder: t("anagraficaPanel.fields.nationalCompanyIdPlaceholder"),
+          label: t("registryPanel.fields.nationalCompanyId"),
+          placeholder: t("registryPanel.fields.nationalCompanyIdPlaceholder"),
         },
-        { key: "vat_number", label: t("anagraficaPanel.fields.vatNumber") },
+        { key: "vat_number", label: t("registryPanel.fields.vatNumber") },
       ],
     },
     {
       id: "codici",
-      label: t("anagraficaPanel.sections.codes.label"),
+      label: t("registryPanel.sections.codes.label"),
       Icon: FileText,
-      campi: [
-        { key: "sdi_code", label: t("anagraficaPanel.fields.sdiCode") },
-        { key: "pec", label: t("anagraficaPanel.fields.pec"), tipo: "email" },
-        { key: "farm_file_id", label: t("anagraficaPanel.fields.farmFileId") },
+      fields: [
+        { key: "sdi_code", label: t("registryPanel.fields.sdiCode") },
+        { key: "pec", label: t("registryPanel.fields.pec"), type: "email" },
+        { key: "farm_file_id", label: t("registryPanel.fields.farmFileId") },
         {
           key: "paying_agency",
-          label: t("anagraficaPanel.fields.payingAgency"),
-          placeholder: t("anagraficaPanel.fields.payingAgencyPlaceholder"),
+          label: t("registryPanel.fields.payingAgency"),
+          placeholder: t("registryPanel.fields.payingAgencyPlaceholder"),
         },
       ],
     },
     {
       id: "sede",
-      label: t("anagraficaPanel.sections.headquarters.label"),
+      label: t("registryPanel.sections.headquarters.label"),
       Icon: MapPin,
-      campi: [
+      fields: [
         {
           key: "address",
-          label: t("anagraficaPanel.fields.address"),
-          placeholder: t("anagraficaPanel.fields.addressPlaceholder"),
+          label: t("registryPanel.fields.address"),
+          placeholder: t("registryPanel.fields.addressPlaceholder"),
         },
-        { key: "postal_code", label: t("anagraficaPanel.fields.postalCode") },
-        { key: "city", label: t("anagraficaPanel.fields.city") },
+        { key: "postal_code", label: t("registryPanel.fields.postalCode") },
+        { key: "city", label: t("registryPanel.fields.city") },
         {
           key: "province",
-          label: t("anagraficaPanel.fields.province"),
-          placeholder: t("anagraficaPanel.fields.provincePlaceholder"),
+          label: t("registryPanel.fields.province"),
+          placeholder: t("registryPanel.fields.provincePlaceholder"),
         },
-        { key: "region", label: t("anagraficaPanel.fields.region") },
+        { key: "region", label: t("registryPanel.fields.region") },
         {
           key: "country",
-          label: t("anagraficaPanel.fields.country"),
-          placeholder: t("anagraficaPanel.fields.countryPlaceholder"),
+          label: t("registryPanel.fields.country"),
+          placeholder: t("registryPanel.fields.countryPlaceholder"),
         },
-        { key: "email", label: t("anagraficaPanel.fields.email"), tipo: "email" },
+        { key: "email", label: t("registryPanel.fields.email"), type: "email" },
       ],
     },
     {
       id: "referente",
-      label: t("anagraficaPanel.sections.contact.label"),
+      label: t("registryPanel.sections.contact.label"),
       Icon: UserRound,
-      campi: [
-        { key: "contact_name", label: t("anagraficaPanel.fields.contactName") },
+      fields: [
+        { key: "contact_name", label: t("registryPanel.fields.contactName") },
         {
           key: "contact_role",
-          label: t("anagraficaPanel.fields.contactRole"),
-          placeholder: t("anagraficaPanel.fields.contactRolePlaceholder"),
+          label: t("registryPanel.fields.contactRole"),
+          placeholder: t("registryPanel.fields.contactRolePlaceholder"),
         },
       ],
     },
   ];
 }
 
-const CHIAVI: CampoChiave[] = getSezioni(((k: string) => k) as unknown as TFunction).flatMap((s) =>
-  s.campi.map((c) => c.key),
+const CHIAVI: KeyField[] = getSezioni(((k: string) => k) as unknown as TFunction).flatMap((s) =>
+  s.fields.map((c) => c.key),
 );
 
-type FormState = Record<CampoChiave, string>;
+type FormState = Record<KeyField, string>;
 
-function statoIniziale(company: Company | undefined): FormState {
+function initialState(company: Company | undefined): FormState {
   const out = {} as FormState;
   for (const k of CHIAVI) {
     const v = company?.[k];
@@ -161,25 +161,25 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
 
   const SEZIONI = getSezioni(t);
   const [sezioneId, setSezioneId] = useState(SEZIONI[0].id);
-  const [form, setForm] = useState<FormState>(() => statoIniziale(company));
-  const [stato, setStato] = useState<"idle" | "salvo" | "fatto" | "errore">(
+  const [form, setForm] = useState<FormState>(() => initialState(company));
+  const [status, setStatus] = useState<"idle" | "salvo" | "fatto" | "errore">(
     "idle",
   );
   const [erroreMsg, setErroreMsg] = useState<string>();
 
   // Ricarica i campi quando cambia l'azienda attiva (o arriva dal sync).
   useEffect(() => {
-    setForm(statoIniziale(company));
-    setStato("idle");
+    setForm(initialState(company));
+    setStatus("idle");
     // company.updated_at copre sia il cambio company sia l'idratazione da pull.
   }, [activeCompanyId, company?.updated_at]);
 
-  const setField = (key: CampoChiave, value: string) =>
+  const setField = (key: KeyField, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
   const save = async () => {
     if (!company) return;
-    setStato("salvo");
+    setStatus("salvo");
     setErroreMsg(undefined);
     try {
       const patch: Record<string, string | null> = {};
@@ -190,11 +190,11 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
           k === "business_name" ? v || company.business_name : v || null;
       }
       await updateCompany(patch as unknown as Partial<Company>);
-      setStato("fatto");
+      setStatus("fatto");
     } catch (err) {
-      setStato("errore");
+      setStatus("errore");
       setErroreMsg(
-        err instanceof Error ? err.message : t("anagraficaPanel.saveError"),
+        err instanceof Error ? err.message : t("registryPanel.saveError"),
       );
     }
   };
@@ -203,33 +203,33 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <FieldSheet
-      title={t("anagraficaPanel.title")}
+      title={t("registryPanel.title")}
       onClose={onClose}
       footer={
         activeCompanyId ? (
           <Button
             className="min-h-[var(--touch-min)] w-full"
-            disabled={stato === "salvo" || readOnly}
+            disabled={status === "salvo" || readOnly}
             onClick={() => void save()}
           >
             {readOnly
-              ? t("anagraficaPanel.readOnly")
-              : stato === "salvo"
+              ? t("registryPanel.readOnly")
+              : status === "salvo"
                 ? t("logbook.common.saving")
-                : stato === "fatto"
-                  ? t("anagraficaPanel.saved")
-                  : t("anagraficaPanel.save")}
+                : status === "fatto"
+                  ? t("registryPanel.saved")
+                  : t("registryPanel.save")}
           </Button>
         ) : undefined
       }
     >
       <p className="mb-3 text-xs text-[var(--ink-4)]">
-        {t("anagraficaPanel.subtitle")}
+        {t("registryPanel.subtitle")}
       </p>
 
       {!activeCompanyId ? (
         <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] p-2 text-sm text-[var(--ink-3)]">
-          {t("anagraficaPanel.selectCompany")}
+          {t("registryPanel.selectCompany")}
         </p>
       ) : (
         <>
@@ -260,12 +260,12 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
           {/* Campi della sezione attiva */}
           <div className="min-w-0 flex-1">
             <div className="flex flex-col gap-2">
-              {sezione.campi.map((c) => (
+              {sezione.fields.map((c) => (
                 <label key={c.key} className="flex flex-col gap-1 text-sm">
                   <span className="text-xs font-semibold text-[var(--ink-4)]">
                     {c.label}
                   </span>
-                  {c.tipo === "textarea" ? (
+                  {c.type === "textarea" ? (
                     <textarea
                       value={form[c.key]}
                       onChange={(e) => setField(c.key, e.target.value)}
@@ -277,7 +277,7 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
                     <input
                       value={form[c.key]}
                       onChange={(e) => setField(c.key, e.target.value)}
-                      type={c.tipo ?? "text"}
+                      type={c.type ?? "text"}
                       placeholder={c.placeholder}
                       className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-1.5 text-sm"
                     />
@@ -286,7 +286,7 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
               ))}
             </div>
 
-            {stato === "errore" && (
+            {status === "errore" && (
               <div className="mt-2 rounded-[var(--r-2)] bg-[var(--danger-l)] p-2 text-sm text-[var(--danger)]">
                 {erroreMsg}
               </div>

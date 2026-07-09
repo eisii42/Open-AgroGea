@@ -97,10 +97,10 @@ const CROP_KPI_IDS: Record<CropCategory, string[]> = {
  * → "Peronospora", `olivo_occhio-pavone` → "Occhio pavone").
  */
 function prettyModelName(modelName: string): string {
-  const senzaPrefisso = modelName.includes("_")
+  const withoutPrefix = modelName.includes("_")
     ? modelName.slice(modelName.indexOf("_") + 1)
     : modelName;
-  const testo = senzaPrefisso.replace(/[-_]+/g, " ").trim();
+  const testo = withoutPrefix.replace(/[-_]+/g, " ").trim();
   return testo.charAt(0).toUpperCase() + testo.slice(1);
 }
 
@@ -188,7 +188,7 @@ export interface AnalyticsInput {
   campaignFields: PlotCampaign[];
   treatments: TreatmentLog[];
   harvests: Harvest[];
-  dssRisultati: DssResult[];
+  dssResults: DssResult[];
   weather: WeatherReading[];
   soilIndices: SoilWaterIndex[];
   /** Filtri attivi della vista. */
@@ -376,7 +376,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
     campaignFields,
     treatments,
     harvests,
-    dssRisultati,
+    dssResults,
     weather,
     soilIndices,
     campaignYear,
@@ -709,7 +709,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
   // -- Rischio fitopatologico (DSS, coerente con la crop — Modulo 1.2) ---
   // SOLO i modelli pertinenti alla famiglia botanica selezionata: niente
   // fallback a malattie di altre crops (es. olivo_occhio-pavone su seminativo).
-  const pool = dssRisultati.filter(
+  const pool = dssResults.filter(
     (d) =>
       d.plot_id != null &&
       plotIds.has(d.plot_id) &&
@@ -725,7 +725,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
     title: worst ? `Rischio ${prettyModelName(worst.model_name)}` : "Rischio fitopatologico",
     value: worst ? worst.output_value : null,
     display: worst ? RISK_LABEL[worst.risk_level] : "—",
-    unit: worst ? `indice ${worst.output_value.toFixed(1)}` : "nessun calcolo DSS",
+    unit: worst ? `index ${worst.output_value.toFixed(1)}` : "nessun calcolo DSS",
     trendPct: null,
     spark: [],
     severity: worst
@@ -823,7 +823,7 @@ function buildInsights(args: {
     out.push(insight(
       "insight_water",
       "Irrigazione consigliata",
-      `La deplezione radicale media (${Math.round(stressMean * 100)}%) ha superato la soglia di allerta (${Math.round(params.waterStressThreshold * 100)}%). Pianifica un turno irriguo per riportare il profile sotto RAW.`,
+      `La deplezione radicale media (${Math.round(stressMean * 100)}%) ha superato la threshold di allerta (${Math.round(params.waterStressThreshold * 100)}%). Pianifica un turno irriguo per riportare il profile sotto RAW.`,
       "danger",
     ));
   }
@@ -832,7 +832,7 @@ function buildInsights(args: {
     out.push(insight(
       "insight_disease",
       "Finestra di trattamento",
-      `Rischio elevato per ${worst.model_name} (indice ${worst.output_value.toFixed(1)}). Valuta un intervento nei prossimi giorni rispettando i tempi di carenza.`,
+      `Rischio elevato per ${worst.model_name} (index ${worst.output_value.toFixed(1)}). Valuta un intervento nei prossimi days rispettando i tempi di carenza.`,
       "danger",
     ));
   }

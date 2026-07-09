@@ -1,7 +1,7 @@
 import type { CropModule } from "../types";
 import { dssCereali } from "./dss";
 
-export { bilancioCereali } from "./balance";
+export { cerealsBalance } from "./balance";
 export { dssCereali } from "./dss";
 
 /** Modulo crop Seminativi: tracker fenologico, specie di riferimento "frumento". */

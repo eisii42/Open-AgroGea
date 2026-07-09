@@ -22,12 +22,12 @@ import type { DssContext } from "../crops";
  * la persistenza vivono nel hook `useDssCalculation`.
  */
 
-export type CategoriaRischio = "fitopatologico" | "idrico";
+export type RiskCategory = "fitopatologico" | "idrico";
 
 /** Vettore di risk normalizzato per la gauge e la mappa colorata. */
 export interface VettoreRischioDss {
   id: string;
-  categoria: CategoriaRischio;
+  category: RiskCategory;
   label: string;
   target: string;
   /** Rischio normalizzato 0..1 (0 nullo, 1 critico). */
@@ -66,8 +66,8 @@ export function cropKy(crop: CropType): number {
  * 1 fino al punto di appassimento (AWC). Lo 0.5 marca quindi l'ingresso in
  * stress idrico, coerentemente con la legenda della mappa DSS.
  */
-export function waterRisk01(stato: FieldWaterStatus): number {
-  const { depletion, raw, awc } = stato;
+export function waterRisk01(status: FieldWaterStatus): number {
+  const { depletion, raw, awc } = status;
   if (raw <= 0 || awc <= raw) {
     return depletion > 0 ? 1 : 0;
   }
@@ -78,28 +78,28 @@ export function waterRisk01(stato: FieldWaterStatus): number {
 }
 
 /** true se il field è in stress idrico (Dr ≥ RAW). */
-export function underWaterStress(stato: FieldWaterStatus): boolean {
-  return stato.depletion >= stato.raw;
+export function underWaterStress(status: FieldWaterStatus): boolean {
+  return status.depletion >= status.raw;
 }
 
 /** Costruisce il vettore di stress idrico (riduzione resa via Ky, FAO 66). */
 export function waterStressVector(
-  stato: FieldWaterStatus,
+  status: FieldWaterStatus,
   crop: CropType,
 ): VettoreRischioDss {
-  const rischio01 = waterRisk01(stato);
+  const rischio01 = waterRisk01(status);
   const ky = cropKy(crop);
-  const yieldLoss = yieldReductionFao66(stato.depletion, stato.raw, stato.awc, ky);
-  const stress = underWaterStress(stato);
+  const yieldLoss = yieldReductionFao66(status.depletion, status.raw, status.awc, ky);
+  const stress = underWaterStress(status);
   return {
     id: "stress-idrico",
-    categoria: "idrico",
+    category: "idrico",
     label: "Stress idrico",
     target: "Deficit idrico radicale (FAO 66)",
     rischio01,
     message: stress
-      ? `Stress idrico in atto (Dr ${stato.depletion.toFixed(0)}/${stato.raw.toFixed(0)} mm ≥ RAW). Riduzione potenziale di resa stimata ${(yieldLoss * 100).toFixed(0)}% (Ky ${ky}).`
-      : `Riserva idrica adeguata (Dr ${stato.depletion.toFixed(0)} mm < RAW ${stato.raw.toFixed(0)} mm).`,
+      ? `Stress idrico in atto (Dr ${status.depletion.toFixed(0)}/${status.raw.toFixed(0)} mm ≥ RAW). Riduzione potenziale di resa stimata ${(yieldLoss * 100).toFixed(0)}% (Ky ${ky}).`
+      : `Riserva idrica adeguata (Dr ${status.depletion.toFixed(0)} mm < RAW ${status.raw.toFixed(0)} mm).`,
   };
 }
 
@@ -107,7 +107,7 @@ export function waterStressVector(
 export function vettoriPatologici(esiti: DssOutcome[]): VettoreRischioDss[] {
   return esiti.map((e) => ({
     id: e.dss.id,
-    categoria: "fitopatologico" as const,
+    category: "fitopatologico" as const,
     label: e.dss.name,
     target: e.dss.target,
     rischio01: alertA01(e.alert),
@@ -115,7 +115,7 @@ export function vettoriPatologici(esiti: DssOutcome[]): VettoreRischioDss[] {
   }));
 }
 
-export interface EsitoDssEngine {
+export interface DssEngineResult {
   /** Esiti patologici grezzi (per la timeline/messaggi esistenti). */
   esiti: DssOutcome[];
   /** Vettori normalizzati 0..1: patologici + idrico (se available). */
@@ -133,12 +133,12 @@ export function runDssEngine(
   module: CropModule,
   series: DssWeatherDay[],
   context?: DssContext,
-  statoIdrico?: FieldWaterStatus,
-): EsitoDssEngine {
+  waterStatus?: FieldWaterStatus,
+): DssEngineResult {
   const esiti = runDssModule(module, series, context);
   const vettori = vettoriPatologici(esiti);
-  if (statoIdrico) {
-    vettori.push(waterStressVector(statoIdrico, module.mainSpecies));
+  if (waterStatus) {
+    vettori.push(waterStressVector(waterStatus, module.mainSpecies));
   }
   const rischioComplessivo01 = vettori.reduce(
     (max, v) => Math.max(max, v.rischio01),

@@ -195,7 +195,7 @@ function coord2D(value: unknown): unknown {
 }
 
 /** Chiude un anello GeoJSON ripetendo la prima posizione in coda, se serve. */
-function chiudiAnello(ring: Position[]): Position[] {
+function closeRing(ring: Position[]): Position[] {
   const first = ring[0];
   const last = ring[ring.length - 1];
   if (!first || !last) return ring;
@@ -207,7 +207,7 @@ function chiudiAnello(ring: Position[]): Position[] {
 
 function normalizzaAnelliPoligono(coords: Position[][]): Position[][] {
   return coords.map((ring) => {
-    const closed = chiudiAnello(ring);
+    const closed = closeRing(ring);
     if (closed.length < 4) {
       throw new Error(
         "Geometria poligono non valida: anello con meno di 3 vertici.",

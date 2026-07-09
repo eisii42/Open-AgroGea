@@ -62,12 +62,12 @@ const ALIAS = {
   superficieMq: ["area_mq", "area_m2", "sup_mq", "shape_area", "area"],
 } as const;
 
-function normalizza(chiave: string): string {
-  return chiave.trim().toLowerCase().replace(/[\s.]+/g, "_");
+function normalizza(key: string): string {
+  return key.trim().toLowerCase().replace(/[\s.]+/g, "_");
 }
 
 /** Indice case-insensitive delle properties (chiave normalizzata → value). */
-function indicizza(props: SianProperties): Map<string, unknown> {
+function indexBy(props: SianProperties): Map<string, unknown> {
   const map = new Map<string, unknown>();
   for (const [k, v] of Object.entries(props)) map.set(normalizza(k), v);
   return map;
@@ -119,7 +119,7 @@ export function resolveAreaHa(
   props: SianProperties,
   areaGeodeticaHa?: number | null,
 ): number {
-  const idx = indicizza(props);
+  const idx = indexBy(props);
   const dichiarata = italianNumber(pick(idx, ALIAS.area));
   if (dichiarata != null && dichiarata > 0) return arrotonda4(dichiarata);
   const mq = italianNumber(pick(idx, ALIAS.superficieMq));
@@ -139,7 +139,7 @@ export function mapSianFeature(
   geometria: Geometry | null,
   areaGeodeticaHa?: number | null,
 ): SianCampoMappato {
-  const idx = indicizza(props);
+  const idx = indexBy(props);
   return {
     reference_parcel_external_id: asCode(pick(idx, ALIAS.isola)),
     agricultural_parcel_external_id: asCode(pick(idx, ALIAS.plot)),
@@ -199,7 +199,7 @@ export function parseCsvRows(testo: string): SianProperties[] {
 }
 
 /** Vista minima di un plot esistente per l'abbinamento. */
-export interface AppezzamentoEsistente {
+export interface ExistingPlot {
   id: string;
   metadata?: Record<string, unknown> | null;
 }
@@ -212,7 +212,7 @@ export interface AppezzamentoEsistente {
  */
 export function matchExistingPlot(
   field: Pick<SianCampoMappato, "agricultural_parcel_external_id">,
-  esistenti: AppezzamentoEsistente[],
+  esistenti: ExistingPlot[],
 ): string | null {
   if (!field.agricultural_parcel_external_id) return null;
   for (const a of esistenti) {
