@@ -3,7 +3,7 @@
  * ora in `tenant_memberships` (persistiti su PGlite e sincronizzati via outbox):
  * il core `useAgroStore` è la fonte di verità, questi hook compongono l'engine
  * PURO ({@link MembershipGuard}) sui dati idratati. L'identità dell'utente
- * corrente è la sessione del control plane.
+ * current è la sessione del control plane.
  */
 
 import { useAgroStore } from "../store";
@@ -20,13 +20,13 @@ import {
 } from "./membership-guard";
 import type { TeamRole } from "./subscription-limits";
 
-/** Email dell'utente autenticato (sessione cloud, con ripiego sul profilo). */
+/** Email dell'utente autenticato (sessione cloud, con ripiego sul profile). */
 function getCurrentEmail(): string | null {
   const s = useAgroStore.getState();
-  return s.session?.user?.email ?? s.profilo?.email ?? null;
+  return s.session?.user?.email ?? s.profile?.email ?? null;
 }
 
-/** Membership (non eliminate) di una specifica azienda. */
+/** Membership (non eliminate) di una specifica company. */
 export function useCompanyMemberships(
   companyId: string | null,
 ): TenantMembership[] {
@@ -70,11 +70,11 @@ export function useInviteDecision(
   );
 }
 
-/** Ruolo dell'utente corrente in una specifica azienda (o null se esterno/owner). */
+/** Ruolo dell'utente current in una specifica company (o null se esterno/owner). */
 export function useCurrentRole(companyId: string | null): TeamRole | null {
   const memberships = useAgroStore((s) => s.memberships);
   const email = useAgroStore(
-    (s) => s.session?.user?.email ?? s.profilo?.email ?? null,
+    (s) => s.session?.user?.email ?? s.profile?.email ?? null,
   );
   return useMemo(
     () => (companyId ? roleInCompany(memberships, companyId, email) : null),
@@ -83,7 +83,7 @@ export function useCurrentRole(companyId: string | null): TeamRole | null {
 }
 
 /**
- * true se l'utente corrente è in SOLA LETTURA nell'azienda data (ruolo VIEWER):
+ * true se l'utente current è in SOLA LETTURA nell'azienda data (ruolo VIEWER):
  * l'intera interfaccia (Command Center, mappa, Field Attributes) va configurata
  * read-only e le mutazioni disattivate.
  */
@@ -99,7 +99,7 @@ export function useReadOnly(companyId: string | null): boolean {
 /**
  * Invita un collaboratore: valida la quota del ruolo per l'azienda (solleva
  * {@link QuotaExceededError} se saturata) e, se ammesso, persiste la membership
- * con stato `invited`. La verifica usa lo stato corrente del core store.
+ * con stato `invited`. La verifica usa lo stato current del core store.
  */
 export async function inviteMember(input: {
   plan: string | null | undefined;
@@ -114,7 +114,7 @@ export async function inviteMember(input: {
     role: input.role,
     memberships,
   });
-  await useAgroStore.getState().salvaMembership({
+  await useAgroStore.getState().saveMembership({
     company_id: input.companyId,
     email: input.email.trim(),
     role: input.role,
@@ -126,12 +126,12 @@ export async function inviteMember(input: {
 
 /** Revoca (libera il posto) una membership: soft-delete sincronizzato. */
 export async function revokeMembership(id: string): Promise<void> {
-  await useAgroStore.getState().eliminaMembership(id);
+  await useAgroStore.getState().deleteMembership(id);
 }
 
 /**
  * Garantisce il posto OWNER dell'abbonato principale per un'azienda (legacy
- * senza riga owner). Idempotente lato store.
+ * senza row owner). Idempotente lato store.
  */
 export async function ensurePrincipalOwner(companyId: string): Promise<void> {
   const email = getCurrentEmail();

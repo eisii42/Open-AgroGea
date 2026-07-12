@@ -1,9 +1,9 @@
 import { v4 as uuidv4 } from "uuid";
-import { areaEttari, normalizzaGeometria } from "../geo/area";
+import { areaHectares, normalizeGeometry } from "../geo/area";
 import type {
-  Appezzamento,
-  Azienda,
-  CampoCampagna,
+  Plot,
+  Company,
+  PlotCampaign,
   Crop,
   TenantMembership,
 } from "../types";
@@ -11,18 +11,18 @@ import { AgroDalBase } from "./dal-base";
 import { nowIso, type Row } from "./write";
 
 /**
- * Strato anagrafico del DAL: aziende, posti collaboratore, colture,
- * appezzamenti e stato di Campagna Agraria.
+ * Strato anagrafico del DAL: companies, posti collaboratore, crops,
+ * plots e stato di Campagna Agraria.
  */
 export class AgroDalRegistry extends AgroDalBase {
   // -- companies -------------------------------------------------------------
 
-  async upsertAzienda(
-    input: Omit<Azienda, "tenant_id" | "created_at" | "updated_at" | "deleted_at"> &
-      Partial<Pick<Azienda, "created_at">>,
-  ): Promise<Azienda> {
+  async upsertCompany(
+    input: Omit<Company, "tenant_id" | "created_at" | "updated_at" | "deleted_at"> &
+      Partial<Pick<Company, "created_at">>,
+  ): Promise<Company> {
     const ts = nowIso();
-    const row: Azienda = {
+    const row: Company = {
       created_at: ts,
       ...input,
       tenant_id: this.tenantId,
@@ -33,8 +33,8 @@ export class AgroDalRegistry extends AgroDalBase {
     return row;
   }
 
-  async listAziende(): Promise<Azienda[]> {
-    const result = await this.db.query<Azienda>(
+  async listAziende(): Promise<Company[]> {
+    const result = await this.db.query<Company>(
       `select * from companies where deleted_at is null order by business_name`,
     );
     return result.rows;
@@ -43,7 +43,7 @@ export class AgroDalRegistry extends AgroDalBase {
   // -- tenant_memberships (multiutente) --------------------------------------
 
   /**
-   * Crea o aggiorna un posto collaboratore (`tenant_memberships`). Percorso
+   * Crea o update un posto collaboratore (`tenant_memberships`). Percorso
    * transazionale dato+outbox come ogni mutazione di dominio. La quota per
    * ruolo/piano è verificata a monte (client-side); qui si persiste soltanto.
    */
@@ -75,7 +75,7 @@ export class AgroDalRegistry extends AgroDalBase {
     return row;
   }
 
-  /** Posti dell'intero tenant (tutte le aziende), non eliminati. */
+  /** Posti dell'intero tenant (tutte le companies), non eliminati. */
   async listMemberships(): Promise<TenantMembership[]> {
     const result = await this.db.query<TenantMembership>(
       `select * from tenant_memberships
@@ -94,7 +94,7 @@ export class AgroDalRegistry extends AgroDalBase {
   // -- crops -----------------------------------------------------------------
 
   /**
-   * Crea o aggiorna una specie/varietà coltivata (`crops`). Percorso
+   * Crea o update una specie/varietà coltivata (`crops`). Percorso
    * transazionale dato+outbox come ogni mutazione di dominio.
    */
   async upsertCrop(
@@ -139,23 +139,23 @@ export class AgroDalRegistry extends AgroDalBase {
 
   // -- plots_registry --------------------------------------------------------
 
-  async upsertAppezzamento(
+  async upsertPlot(
     input: Omit<
-      Appezzamento,
+      Plot,
       "tenant_id" | "created_at" | "updated_at" | "deleted_at" | "area_ha"
     > &
-      Partial<Pick<Appezzamento, "created_at" | "area_ha">>,
-  ): Promise<Appezzamento> {
+      Partial<Pick<Plot, "created_at" | "area_ha">>,
+  ): Promise<Plot> {
     const ts = nowIso();
     // Geometria normalizzata PRIMA di persistere: il GeoEditor può emettere un
     // poligono con coordinate mal-annidate. Si riavvolge l'annidamento e si
     // chiudono gli anelli; se irrecuperabile, lancia (salvataggio fallisce in
     // modo visibile invece di corrompere DB locale e outbox).
-    const geometry = normalizzaGeometria(input.geometry);
+    const geometry = normalizeGeometry(input.geometry);
     // Area geodetica ricalcolata dalla geometria a ogni upsert: UNICO punto di
-    // verità per la superficie (NUMERIC 10,4), indipendente dal client.
-    const area_ha = areaEttari(geometry);
-    const row: Appezzamento = {
+    // verità per la area (NUMERIC 10,4), indipendente dal client.
+    const area_ha = areaHectares(geometry);
+    const row: Plot = {
       created_at: ts,
       ...input,
       geometry,
@@ -175,21 +175,21 @@ export class AgroDalRegistry extends AgroDalBase {
   /**
    * Aggiorna solo la cache NDVI dell'appezzamento (pipeline STAC). Percorso
    * transazionale dato+outbox come ogni scrittura, ma non ricalcola l'area né
-   * tocca la geometria. La riga deve esistere.
+   * tocca la geometria. La row deve esistere.
    */
-  async aggiornaNdviMedio(id: string, ndviMedio: number): Promise<void> {
+  async updateMeanNdvi(id: string, meanNdvi: number): Promise<void> {
     const ts = nowIso();
-    const result = await this.db.query<Appezzamento>(
+    const result = await this.db.query<Plot>(
       `select * from plots_registry where id = $1 and deleted_at is null`,
       [id],
     );
-    const corrente = result.rows[0];
-    if (!corrente) {
-      throw new Error(`Appezzamento ${id} inesistente: NDVI non salvato.`);
+    const current = result.rows[0];
+    if (!current) {
+      throw new Error(`Plot ${id} inesistente: NDVI non salvato.`);
     }
-    const row: Appezzamento = {
-      ...corrente,
-      last_ndvi_mean: ndviMedio,
+    const row: Plot = {
+      ...current,
+      last_ndvi_mean: meanNdvi,
       updated_at: ts,
     };
     await this.writeWithOutbox(
@@ -199,16 +199,16 @@ export class AgroDalRegistry extends AgroDalBase {
     );
   }
 
-  async deleteAppezzamento(id: string): Promise<void> {
+  async deletePlot(id: string): Promise<void> {
     await this.softDelete("plots_registry", id);
   }
 
-  async listAppezzamenti(aziendaId: string): Promise<Appezzamento[]> {
-    const result = await this.db.query<Appezzamento>(
+  async listPlots(companyId: string): Promise<Plot[]> {
+    const result = await this.db.query<Plot>(
       `select * from plots_registry
        where company_id = $1 and deleted_at is null
        order by user_plot_name`,
-      [aziendaId],
+      [companyId],
     );
     return result.rows;
   }
@@ -216,35 +216,35 @@ export class AgroDalRegistry extends AgroDalBase {
   // -- campi campagna (stato burocratico annuale, SIAN/AGEA) -----------------
 
   /**
-   * Crea o aggiorna lo stato di Campagna Agraria di un appezzamento per un'annata
+   * Crea o update lo stato di Campagna Agraria di un plot per un'annata
    * (upsert sul vincolo univoco plot_id+campaign_year). Percorso transazionale
    * dato+outbox come ogni mutazione di dominio.
    */
   async upsertCampoCampagna(
     input: Omit<
-      CampoCampagna,
+      PlotCampaign,
       "id" | "tenant_id" | "closed_at" | "created_at" | "updated_at" | "deleted_at"
     > &
-      Partial<Pick<CampoCampagna, "closed_at">> & {
+      Partial<Pick<PlotCampaign, "closed_at">> & {
         id?: string;
         created_at?: string;
       },
-  ): Promise<CampoCampagna> {
+  ): Promise<PlotCampaign> {
     const ts = nowIso();
-    // Riusa la riga esistente APERTA (stesso appezzamento+anno) per restare
+    // Riusa la row esistente APERTA (stesso plot+anno) per restare
     // idempotente su re-import del Fascicolo, preservandone id e created_at.
     // Le campagne CHIUSE (closed_at) non si riaprono mai: una nuova semina dopo
-    // il raccolto crea una nuova riga (secondo raccolto nello stesso anno).
-    const esistente = await this.db.query<CampoCampagna>(
+    // il raccolto crea una nuova row (secondo raccolto nello stesso anno).
+    const esistente = await this.db.query<PlotCampaign>(
       `select * from plots_campaign
        where plot_id = $1 and campaign_year = $2
          and deleted_at is null and closed_at is null
        limit 1`,
       [input.plot_id, input.campaign_year],
     );
-    const corrente = esistente.rows[0];
-    const row: CampoCampagna = {
-      id: input.id ?? corrente?.id ?? uuidv4(),
+    const current = esistente.rows[0];
+    const row: PlotCampaign = {
+      id: input.id ?? current?.id ?? uuidv4(),
       tenant_id: this.tenantId,
       plot_id: input.plot_id,
       crop_id: input.crop_id,
@@ -254,8 +254,8 @@ export class AgroDalRegistry extends AgroDalBase {
       crop_external_code: input.crop_external_code ?? null,
       variety_external_code: input.variety_external_code ?? null,
       declared_area_ha: input.declared_area_ha,
-      closed_at: input.closed_at ?? corrente?.closed_at ?? null,
-      created_at: input.created_at ?? corrente?.created_at ?? ts,
+      closed_at: input.closed_at ?? current?.closed_at ?? null,
+      created_at: input.created_at ?? current?.created_at ?? ts,
       updated_at: ts,
       deleted_at: null,
     };
@@ -269,24 +269,24 @@ export class AgroDalRegistry extends AgroDalBase {
 
   /**
    * Chiude il ciclo colturale di una campagna (v17): imposta `closed_at` e
-   * il campo torna libero (mappa neutra, DSS spento, nuova semina possibile).
-   * Percorso transazionale dato+outbox; no-op se la riga non esiste o è già
-   * chiusa. Ritorna la riga aggiornata o null.
+   * il field torna libero (mappa neutra, DSS spento, nuova semina possibile).
+   * Percorso transazionale dato+outbox; no-op se la row non esiste o è già
+   * chiusa. Ritorna la row aggiornata o null.
    */
-  async chiudiCampagna(
+  async closeCampaign(
     id: string,
     closedAt?: string,
-  ): Promise<CampoCampagna | null> {
-    const result = await this.db.query<CampoCampagna>(
+  ): Promise<PlotCampaign | null> {
+    const result = await this.db.query<PlotCampaign>(
       `select * from plots_campaign
        where id = $1 and deleted_at is null and closed_at is null`,
       [id],
     );
-    const corrente = result.rows[0];
-    if (!corrente) return null;
+    const current = result.rows[0];
+    if (!current) return null;
     const ts = nowIso();
-    const row: CampoCampagna = {
-      ...corrente,
+    const row: PlotCampaign = {
+      ...current,
       closed_at: closedAt ?? ts,
       updated_at: ts,
     };
@@ -299,19 +299,19 @@ export class AgroDalRegistry extends AgroDalBase {
   }
 
   async listCampiCampagna(
-    options: { anno?: number; appezzamentoId?: string } = {},
-  ): Promise<CampoCampagna[]> {
+    options: { year?: number; plotId?: string } = {},
+  ): Promise<PlotCampaign[]> {
     const conditions = ["tenant_id = $1", "deleted_at is null"];
     const params: unknown[] = [this.tenantId];
-    if (options.anno != null) {
-      params.push(options.anno);
+    if (options.year != null) {
+      params.push(options.year);
       conditions.push(`campaign_year = $${params.length}`);
     }
-    if (options.appezzamentoId) {
-      params.push(options.appezzamentoId);
+    if (options.plotId) {
+      params.push(options.plotId);
       conditions.push(`plot_id = $${params.length}`);
     }
-    const result = await this.db.query<CampoCampagna>(
+    const result = await this.db.query<PlotCampaign>(
       `select * from plots_campaign
        where ${conditions.join(" and ")}
        order by campaign_year desc`,
@@ -326,12 +326,12 @@ export class AgroDalRegistry extends AgroDalBase {
 
   /** Anni di campagna distinti presenti nel database locale, dal più recente. */
   async listAnniCampagna(): Promise<number[]> {
-    const result = await this.db.query<{ anno: number }>(
-      `select distinct campaign_year as anno from plots_campaign
+    const result = await this.db.query<{ year: number }>(
+      `select distinct campaign_year as year from plots_campaign
        where tenant_id = $1 and deleted_at is null
-       order by anno desc`,
+       order by year desc`,
       [this.tenantId],
     );
-    return result.rows.map((r) => r.anno);
+    return result.rows.map((r) => r.year);
   }
 }

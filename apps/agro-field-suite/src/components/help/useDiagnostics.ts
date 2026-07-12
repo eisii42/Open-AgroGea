@@ -14,9 +14,9 @@ export type DiagnosticSeverity = "error" | "warn";
 export interface DiagnosticIssue {
   id: string;
   severity: DiagnosticSeverity;
-  /** Chiave i18n del titolo dell'avviso. */
+  /** Chiave i18n del title dell'avviso. */
   titleKey: "help.diagnosticsModal.syncError" | "help.diagnosticsModal.pendingQueue" | "help.diagnosticsModal.weatherMissing";
-  /** Valore di interpolazione `{{count}}` per il titolo (es. coda outbox). */
+  /** Valore di interpolazione `{{count}}` per il title (es. coda outbox). */
   count?: number;
   /** Riga di dettaglio in testo libero (es. messaggio d'errore di sync). */
   detail?: string;
@@ -29,8 +29,8 @@ export interface Diagnostics {
 
 export function useDiagnostics(): Diagnostics {
   const sync = useAgroStore((s) => s.sync);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
-  const configMeteo = useAgroStore((s) => s.configMeteo);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
+  const weatherConfig = useAgroStore((s) => s.weatherConfig);
 
   return useMemo(() => {
     const issues: DiagnosticIssue[] = [];
@@ -53,8 +53,8 @@ export function useDiagnostics(): Diagnostics {
       });
     }
 
-    // Azienda attiva senza configurazione meteo: il DSS/cache meteo non parte.
-    if (aziendaAttivaId && !configMeteo) {
+    // Company attiva senza configurazione meteo: il DSS/cache meteo non parte.
+    if (activeCompanyId && !weatherConfig) {
       issues.push({
         id: "weather-missing",
         severity: "warn",
@@ -63,5 +63,5 @@ export function useDiagnostics(): Diagnostics {
     }
 
     return { count: issues.length, issues };
-  }, [sync.state, sync.lastError, sync.pendingCount, aziendaAttivaId, configMeteo]);
+  }, [sync.state, sync.lastError, sync.pendingCount, activeCompanyId, weatherConfig]);
 }

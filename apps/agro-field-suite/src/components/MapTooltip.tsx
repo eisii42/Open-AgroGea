@@ -1,7 +1,13 @@
-import { cropStyle, formatArea, useSettingsStore } from "@agrogea/core";
+import {
+  assetStyle,
+  cropStyle,
+  formatArea,
+  useSettingsStore,
+} from "@agrogea/core";
 import { ndviColor } from "@agrogea/tools";
 import { useTranslation } from "react-i18next";
 import { cropIcon } from "../lib/cropIcon";
+import { assetIcon } from "../lib/assetIcon";
 import type { HoverState } from "../hooks/useHoverTooltips";
 
 /**
@@ -43,33 +49,33 @@ export function MapTooltip({ hover }: { hover: HoverState | null }) {
       className="pointer-events-none absolute z-30 min-w-[180px] max-w-[240px] rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2.5 shadow-[var(--sh-pop)]"
       style={style}
     >
-      {kind === "appezzamento" && <AppezzamentoBody props={props} />}
-      {kind === "infrastruttura" && <InfrastrutturaBody props={props} />}
+      {kind === "appezzamento" && <PlotBody props={props} />}
+      {kind === "infrastruttura" && <InfrastructureBody props={props} />}
       {kind === "poi" && <PoiBody props={props} />}
     </div>
   );
 }
 
-function AppezzamentoBody({ props }: { props: Record<string, unknown> }) {
+function PlotBody({ props }: { props: Record<string, unknown> }) {
   const { t } = useTranslation();
   const areaUnit = useSettingsStore((s) => s.units.area);
-  const nome = str(props.user_plot_name) ?? t("mapTooltip.plot");
-  const coltura = str(props.crop);
-  const colturaKind = str(props.crop_kind);
+  const name = str(props.user_plot_name) ?? t("mapTooltip.plot");
+  const crop = str(props.crop);
+  const cropKind = str(props.crop_kind);
   const area = num(props.area_ha);
   const ndvi = num(props.last_ndvi_mean);
-  const { color: cropClr, icon: cropIconKey } = cropStyle(colturaKind);
+  const { color: cropClr, icon: cropIconKey } = cropStyle(cropKind);
   const CropIcon = cropIcon(cropIconKey);
   return (
     <div className="flex flex-col gap-1">
-      <p className="text-[13px] font-semibold">{nome}</p>
-      {coltura && (
+      <p className="text-[13px] font-semibold">{name}</p>
+      {crop && (
         <Row
           label={t("mapTooltip.crop")}
           value={
             <span className="inline-flex items-center gap-1.5">
               <CropIcon size={13} style={{ color: cropClr }} />
-              {coltura}
+              {crop}
             </span>
           }
         />
@@ -100,25 +106,34 @@ function AppezzamentoBody({ props }: { props: Record<string, unknown> }) {
   );
 }
 
-function InfrastrutturaBody({ props }: { props: Record<string, unknown> }) {
+function InfrastructureBody({ props }: { props: Record<string, unknown> }) {
   const { t } = useTranslation();
-  const nome = str(props.name) ?? str(props.asset_type) ?? t("mapTooltip.infrastructure");
-  const tipo = str(props.asset_type);
-  const categoria = str(props.category);
-  const lunghezza = num(props.length_m);
+  const name = str(props.name) ?? str(props.asset_type) ?? t("mapTooltip.infrastructure");
+  const assetType = str(props.asset_type);
+  const category = str(props.category);
+  const lengthM = num(props.length_m);
+  // Simbologia adattiva per tipo di asset (icona + colore), come per le crops
+  // nel popup dell'appezzamento.
+  const { color, icon } = assetStyle(assetType);
+  const AssetIcon = assetIcon(icon);
   return (
     <div className="flex flex-col gap-1">
-      <p className="text-[13px] font-semibold">{nome}</p>
-      {tipo && <Row label={t("mapTooltip.type")} value={tipo} />}
-      {lunghezza != null && (
+      <p className="flex items-center gap-1.5 text-[13px] font-semibold">
+        <AssetIcon size={13} style={{ color }} />
+        <span className="min-w-0 truncate">{name}</span>
+      </p>
+      {assetType && (
+        <Row label={t("mapTooltip.type")} value={<span className="capitalize">{assetType}</span>} />
+      )}
+      {lengthM != null && (
         <Row
           label={t("mapTooltip.length")}
-          value={<span className="agro-num">{lunghezza} m</span>}
+          value={<span className="agro-num">{lengthM} m</span>}
         />
       )}
       <Row
         label={t("mapTooltip.status")}
-        value={categoria === "mobile" ? t("mapTooltip.mobile") : t("mapTooltip.fixed")}
+        value={category === "mobile" ? t("mapTooltip.mobile") : t("mapTooltip.fixed")}
       />
     </div>
   );
@@ -126,11 +141,17 @@ function InfrastrutturaBody({ props }: { props: Record<string, unknown> }) {
 
 function PoiBody({ props }: { props: Record<string, unknown> }) {
   const { t } = useTranslation();
-  const tipo = str(props.tipo_asset) ?? str(props.kind) ?? t("mapTooltip.poi");
+  const poiType = str(props.tipo_asset) ?? str(props.kind) ?? t("mapTooltip.poi");
   const id = str(props.id);
+  // Simbologia adattiva anche per i POI (soilSample, pozzi, trappole, …).
+  const { color, icon } = assetStyle(poiType);
+  const PoiIcon = assetIcon(icon);
   return (
     <div className="flex flex-col gap-1">
-      <p className="text-[13px] font-semibold capitalize">{tipo}</p>
+      <p className="flex items-center gap-1.5 text-[13px] font-semibold capitalize">
+        <PoiIcon size={13} style={{ color }} />
+        <span className="min-w-0 truncate">{poiType}</span>
+      </p>
       {id && <Row label={t("mapTooltip.id")} value={<span className="agro-num">{id.slice(0, 8)}</span>} />}
     </div>
   );

@@ -1,40 +1,40 @@
 import type { Transaction } from "@electric-sql/pglite";
 import { v4 as uuidv4 } from "uuid";
 import type {
-  CatalogoVoce,
-  ConfigMeteoAzienda,
+  CatalogEntry,
+  CompanyWeatherConfig,
   DataTransferLog,
-  DssRisultato,
-  LetturaMeteo,
+  DssResult,
+  WeatherReading,
   SoilWaterIndex,
-  TipoCatalogo,
+  CatalogType,
 } from "../types";
 import { AgroDalWarehouse } from "./dal-warehouse";
 import { nowIso, type Row, upsertSql } from "./write";
 
 /**
- * Strato "moduli locali" del DAL: letture e configurazione meteo, cache DSS,
+ * Strato "moduli locali" del DAL: readings e configurazione meteo, cache DSS,
  * bilancio idrico FAO 56/66, giornale trasferimenti e cataloghi di stato.
- * Tranne le letture meteo di stazione, sono tabelle LOCAL-ONLY: scritture
+ * Tranne le readings meteo di stazione, sono tabelle LOCAL-ONLY: scritture
  * dirette, mai dall'outbox.
  */
 export class AgroDalLocal extends AgroDalWarehouse {
-  // -- letture meteo (Smart IoT / agrometeo) ---------------------------------
+  // -- readings meteo (Smart IoT / agrometeo) ---------------------------------
 
   /**
    * Ingestione in blocco di metriche di stazione (parsing edge → PGlite). Ogni
-   * lettura passa dal solito percorso transazionale dato+outbox. Idempotente per `id`.
+   * reading passa dal solito percorso transazionale dato+outbox. Idempotente per `id`.
    */
   async insertLettureMeteo(
-    letture: Array<
-      Omit<LetturaMeteo, "tenant_id" | "created_at" | "updated_at" | "deleted_at">
+    readings: Array<
+      Omit<WeatherReading, "tenant_id" | "created_at" | "updated_at" | "deleted_at">
     >,
   ): Promise<number> {
     const ts = nowIso();
-    for (const lettura of letture) {
-      const row: LetturaMeteo = {
-        ...lettura,
-        metadata: lettura.metadata ?? {},
+    for (const reading of readings) {
+      const row: WeatherReading = {
+        ...reading,
+        metadata: reading.metadata ?? {},
         tenant_id: this.tenantId,
         created_at: ts,
         updated_at: ts,
@@ -46,25 +46,25 @@ export class AgroDalLocal extends AgroDalWarehouse {
         row as unknown as Row & { id: string },
       );
     }
-    return letture.length;
+    return readings.length;
   }
 
   /**
-   * Ingestione in blocco di letture meteo RICOMPUTABILI (Open-Meteo): un'unica
+   * Ingestione in blocco di readings meteo RICOMPUTABILI (Open-Meteo): un'unica
    * transazione, nessuna voce di outbox. Idempotente per `id`.
    */
   async insertLettureMeteoLocali(
-    letture: Array<
-      Omit<LetturaMeteo, "tenant_id" | "created_at" | "updated_at" | "deleted_at">
+    readings: Array<
+      Omit<WeatherReading, "tenant_id" | "created_at" | "updated_at" | "deleted_at">
     >,
   ): Promise<number> {
-    if (letture.length === 0) return 0;
+    if (readings.length === 0) return 0;
     const ts = nowIso();
     await this.db.transaction(async (tx: Transaction) => {
-      for (const lettura of letture) {
-        const row: LetturaMeteo = {
-          ...lettura,
-          metadata: lettura.metadata ?? {},
+      for (const reading of readings) {
+        const row: WeatherReading = {
+          ...reading,
+          metadata: reading.metadata ?? {},
           tenant_id: this.tenantId,
           created_at: ts,
           updated_at: ts,
@@ -77,15 +77,15 @@ export class AgroDalLocal extends AgroDalWarehouse {
         await tx.query(sql, values);
       }
     });
-    return letture.length;
+    return readings.length;
   }
 
   async listLettureMeteo(
-    aziendaId: string,
+    companyId: string,
     options: { stazioneId?: string; dopo?: string; limit?: number } = {},
-  ): Promise<LetturaMeteo[]> {
+  ): Promise<WeatherReading[]> {
     const conditions = ["company_id = $1", "deleted_at is null"];
-    const params: unknown[] = [aziendaId];
+    const params: unknown[] = [companyId];
     if (options.stazioneId) {
       params.push(options.stazioneId);
       conditions.push(`station_id = $${params.length}`);
@@ -95,7 +95,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
       conditions.push(`measured_at >= $${params.length}`);
     }
     params.push(options.limit ?? 5000);
-    const result = await this.db.query<LetturaMeteo>(
+    const result = await this.db.query<WeatherReading>(
       `select * from weather_readings
        where ${conditions.join(" and ")}
        order by measured_at asc
@@ -106,56 +106,56 @@ export class AgroDalLocal extends AgroDalWarehouse {
   }
 
   /**
-   * Timestamp della lettura meteo più vecchia dell'azienda (ISO), o null. Usato
+   * Timestamp della reading meteo più vecchia dell'azienda (ISO), o null. Usato
    * dal backfill storico per evitare richieste ridondanti all'Archive API.
    */
-  async minRilevatoMeteo(aziendaId: string): Promise<string | null> {
+  async minRilevatoMeteo(companyId: string): Promise<string | null> {
     const result = await this.db.query<{ m: string | null }>(
       `select min(measured_at) as m from weather_readings
        where company_id = $1 and deleted_at is null`,
-      [aziendaId],
+      [companyId],
     );
     const m = result.rows[0]?.m ?? null;
     return m ? new Date(m).toISOString() : null;
   }
 
-  // -- config meteo azienda (Modulo Meteo, local-only) -----------------------
+  // -- config meteo company (Modulo Meteo, local-only) -----------------------
 
-  async getConfigMeteo(aziendaId: string): Promise<ConfigMeteoAzienda | null> {
-    const result = await this.db.query<ConfigMeteoAzienda>(
+  async getConfigMeteo(companyId: string): Promise<CompanyWeatherConfig | null> {
+    const result = await this.db.query<CompanyWeatherConfig>(
       `select * from weather_config where company_id = $1`,
-      [aziendaId],
+      [companyId],
     );
     return result.rows[0] ?? null;
   }
 
   /**
-   * Crea o aggiorna la configurazione meteo dell'azienda (upsert sull'azienda).
+   * Crea o update la configurazione meteo dell'azienda (upsert sull'azienda).
    * Preserva `last_weather_pull_at` se non passato esplicitamente.
    */
   async upsertConfigMeteo(
-    input: Pick<ConfigMeteoAzienda, "company_id"> &
-      Partial<Omit<ConfigMeteoAzienda, "company_id" | "tenant_id" | "created_at" | "updated_at">>,
-  ): Promise<ConfigMeteoAzienda> {
+    input: Pick<CompanyWeatherConfig, "company_id"> &
+      Partial<Omit<CompanyWeatherConfig, "company_id" | "tenant_id" | "created_at" | "updated_at">>,
+  ): Promise<CompanyWeatherConfig> {
     const ts = nowIso();
-    const corrente = await this.getConfigMeteo(input.company_id);
-    const row: ConfigMeteoAzienda = {
+    const current = await this.getConfigMeteo(input.company_id);
+    const row: CompanyWeatherConfig = {
       company_id: input.company_id,
       tenant_id: this.tenantId,
-      data_source: input.data_source ?? corrente?.data_source ?? "public_api",
-      api_provider: input.api_provider ?? corrente?.api_provider ?? "open-meteo",
-      station_model: input.station_model ?? corrente?.station_model ?? null,
-      station_api_key: input.station_api_key ?? corrente?.station_api_key ?? null,
+      data_source: input.data_source ?? current?.data_source ?? "public_api",
+      api_provider: input.api_provider ?? current?.api_provider ?? "open-meteo",
+      station_model: input.station_model ?? current?.station_model ?? null,
+      station_api_key: input.station_api_key ?? current?.station_api_key ?? null,
       station_device_id:
-        input.station_device_id ?? corrente?.station_device_id ?? null,
+        input.station_device_id ?? current?.station_device_id ?? null,
       visible_variables:
         input.visible_variables ??
-        corrente?.visible_variables ?? ["temperature", "humidity", "rain"],
+        current?.visible_variables ?? ["temperature", "humidity", "rain"],
       last_weather_pull_at:
         input.last_weather_pull_at !== undefined
           ? input.last_weather_pull_at
-          : corrente?.last_weather_pull_at ?? null,
-      created_at: corrente?.created_at ?? ts,
+          : current?.last_weather_pull_at ?? null,
+      created_at: current?.created_at ?? ts,
       updated_at: ts,
     };
     await this.db.query(
@@ -192,11 +192,11 @@ export class AgroDalLocal extends AgroDalWarehouse {
   }
 
   /** Aggiorna SOLO il lucchetto orario dopo un pull meteo riuscito. */
-  async touchWeatherPull(aziendaId: string, quando: string): Promise<void> {
-    const corrente = await this.getConfigMeteo(aziendaId);
-    if (!corrente) {
+  async touchWeatherPull(companyId: string, quando: string): Promise<void> {
+    const current = await this.getConfigMeteo(companyId);
+    if (!current) {
       await this.upsertConfigMeteo({
-        company_id: aziendaId,
+        company_id: companyId,
         last_weather_pull_at: quando,
       });
       return;
@@ -205,7 +205,7 @@ export class AgroDalLocal extends AgroDalWarehouse {
       `update weather_config
        set last_weather_pull_at = $2, updated_at = $2
        where company_id = $1`,
-      [aziendaId, quando],
+      [companyId, quando],
     );
   }
 
@@ -213,35 +213,35 @@ export class AgroDalLocal extends AgroDalWarehouse {
 
   /**
    * Sostituisce in transazione i risultati cache dei modelli passati per un
-   * appezzamento: semantica "ultimo valore per modello".
+   * plot: semantica "ultimo value per modello".
    */
-  async salvaDssRisultati(
-    appezzamentoId: string,
-    risultati: Array<
-      Pick<DssRisultato, "model_name" | "risk_level" | "output_value"> & {
+  async saveDssResults(
+    plotId: string,
+    results: Array<
+      Pick<DssResult, "model_name" | "risk_level" | "output_value"> & {
         calculated_at?: string;
       }
     >,
-  ): Promise<DssRisultato[]> {
+  ): Promise<DssResult[]> {
     const ts = nowIso();
-    const righe: DssRisultato[] = risultati.map((r) => ({
+    const rows: DssResult[] = results.map((r) => ({
       id: uuidv4(),
-      plot_id: appezzamentoId,
+      plot_id: plotId,
       model_name: r.model_name,
       risk_level: r.risk_level,
       output_value: r.output_value,
       calculated_at: r.calculated_at ?? ts,
     }));
     await this.db.transaction(async (tx: Transaction) => {
-      const modelli = risultati.map((r) => r.model_name);
+      const modelli = results.map((r) => r.model_name);
       if (modelli.length > 0) {
         await tx.query(
           `delete from dss_results
            where plot_id = $1 and model_name = any($2::text[])`,
-          [appezzamentoId, modelli],
+          [plotId, modelli],
         );
       }
-      for (const r of righe) {
+      for (const r of rows) {
         await tx.query(
           `insert into dss_results
              (id, plot_id, model_name, risk_level, output_value, calculated_at)
@@ -257,19 +257,19 @@ export class AgroDalLocal extends AgroDalWarehouse {
         );
       }
     });
-    return righe;
+    return rows;
   }
 
   async listDssRisultati(
-    appezzamentoId: string,
+    plotId: string,
     options: { limit?: number } = {},
-  ): Promise<DssRisultato[]> {
-    const result = await this.db.query<DssRisultato>(
+  ): Promise<DssResult[]> {
+    const result = await this.db.query<DssResult>(
       `select * from dss_results
        where plot_id = $1
        order by calculated_at desc
        limit $2`,
-      [appezzamentoId, options.limit ?? 200],
+      [plotId, options.limit ?? 200],
     );
     return result.rows;
   }
@@ -278,20 +278,20 @@ export class AgroDalLocal extends AgroDalWarehouse {
 
   /**
    * Sostituisce in transazione l'INTERA serie del bilancio idrico di una
-   * campagna del campo: il calcolo è ricomputato per intero ad ogni run, quindi
+   * campagna del field: il calcolo è ricomputato per intero ad ogni run, quindi
    * la semantica è "rimpiazza tutto per plot_campaign_id" (come dss_results per
    * modello). Local-only: nessuna voce di outbox.
    */
-  async salvaIndiciIdrici(
+  async saveWaterIndices(
     plotCampaignId: string,
-    righe: Array<
+    rows: Array<
       Omit<SoilWaterIndex, "id" | "plot_campaign_id" | "calculated_at"> & {
         calculated_at?: string;
       }
     >,
   ): Promise<SoilWaterIndex[]> {
     const ts = nowIso();
-    const out: SoilWaterIndex[] = righe.map((r) => ({
+    const out: SoilWaterIndex[] = rows.map((r) => ({
       id: uuidv4(),
       plot_campaign_id: plotCampaignId,
       date: r.date,
@@ -407,36 +407,36 @@ export class AgroDalLocal extends AgroDalWarehouse {
   // -- cataloghi di stato multiregionali (Modulo 3, local-only) --------------
 
   /**
-   * Voci di catalogo del paese dato e del tipo dato, ordinate per nome.
-   * Scrittura/lettura diretta, MAI dall'outbox: è reference data per nazione.
+   * Voci di catalog del paese dato e del tipo dato, sortedList per name.
+   * Scrittura/reading diretta, MAI dall'outbox: è reference data per nazione.
    */
   async listCatalogo(
     countryCode: string,
-    tipo: TipoCatalogo,
-  ): Promise<CatalogoVoce[]> {
-    const result = await this.db.query<CatalogoVoce>(
+    type: CatalogType,
+  ): Promise<CatalogEntry[]> {
+    const result = await this.db.query<CatalogEntry>(
       `select * from product_catalogs
        where country_code = $1 and type = $2
        order by name`,
-      [countryCode, tipo],
+      [countryCode, type],
     );
     return result.rows;
   }
 
   /**
-   * Carica in blocco voci di catalogo. Upsert idempotente sulla chiave naturale
+   * Carica in blocco voci di catalog. Upsert idempotente sulla chiave naturale
    * (country_code, type, code). Local-only.
    */
   async upsertCatalogoVoci(
-    voci: Array<
-      Pick<CatalogoVoce, "country_code" | "type" | "code" | "name"> &
-        Partial<Pick<CatalogoVoce, "id" | "active_substance" | "registration_number" | "metadata">>
+    items: Array<
+      Pick<CatalogEntry, "country_code" | "type" | "code" | "name"> &
+        Partial<Pick<CatalogEntry, "id" | "active_substance" | "registration_number" | "metadata">>
     >,
   ): Promise<number> {
-    if (voci.length === 0) return 0;
+    if (items.length === 0) return 0;
     const ts = nowIso();
     await this.db.transaction(async (tx: Transaction) => {
-      for (const v of voci) {
+      for (const v of items) {
         await tx.query(
           `insert into product_catalogs
              (id, country_code, type, code, name, active_substance, registration_number, metadata, created_at, updated_at)
@@ -461,6 +461,6 @@ export class AgroDalLocal extends AgroDalWarehouse {
         );
       }
     });
-    return voci.length;
+    return items.length;
   }
 }

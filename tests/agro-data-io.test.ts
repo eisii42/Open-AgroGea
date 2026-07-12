@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import type { FeatureCollection } from "geojson";
 import {
   ADD_DATA_ACCEPT,
-  formatoDaNomeFile,
+  formatFromFileName,
 } from "../apps/agro-field-suite/src/modules/add-data/add-data";
 import {
   combinaLayer,
@@ -45,11 +45,11 @@ const POLIGONO: FeatureCollection = {
 
 describe("riconoscimento formati (Add Data)", () => {
   it("riconosce kml e gpx oltre ai formati esistenti", () => {
-    assert.equal(formatoDaNomeFile("tracce.kml"), "kml");
-    assert.equal(formatoDaNomeFile("percorso.GPX"), "gpx");
-    assert.equal(formatoDaNomeFile("campi.geojson"), "geojson");
-    assert.equal(formatoDaNomeFile("zone.zip"), "shapefile");
-    assert.equal(formatoDaNomeFile("ignoto.xyz"), null);
+    assert.equal(formatFromFileName("tracce.kml"), "kml");
+    assert.equal(formatFromFileName("percorso.GPX"), "gpx");
+    assert.equal(formatFromFileName("campi.geojson"), "geojson");
+    assert.equal(formatFromFileName("zone.zip"), "shapefile");
+    assert.equal(formatFromFileName("ignoto.xyz"), null);
   });
   it("l'attributo accept include .kml e .gpx", () => {
     assert.ok(ADD_DATA_ACCEPT.includes(".kml"));
@@ -106,7 +106,7 @@ describe("geojsonToCsv", () => {
 });
 
 describe("serializzaVettoriale (dispatcher)", () => {
-  it("mappa estensione/mime per ogni formato", () => {
+  it("mappa extension/mime per ogni formato", () => {
     assert.equal(serializzaVettoriale(PUNTO, "geojson", "x").filename, "x.geojson");
     assert.equal(serializzaVettoriale(PUNTO, "kml", "x").filename, "x.kml");
     assert.equal(serializzaVettoriale(PUNTO, "gpx", "x").filename, "x.gpx");

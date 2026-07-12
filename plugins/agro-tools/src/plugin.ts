@@ -10,16 +10,16 @@ import type { GeoLibreAppAPI, GeoLibrePlugin } from "@geolibre/plugins";
  * qui nei prossimi incrementi.
  */
 
-export const AGRO_INDICI_PLUGIN_ID = "agro-indici-vegetazionali";
+export const AGRO_INDICES_PLUGIN_ID = "agro-indici-vegetazionali";
 
 let hostApp: GeoLibreAppAPI | null = null;
 
-export function getAgroIndiciHost(): GeoLibreAppAPI | null {
+export function getAgroIndicesHost(): GeoLibreAppAPI | null {
   return hostApp;
 }
 
-export const agroIndiciPlugin: GeoLibrePlugin = {
-  id: AGRO_INDICI_PLUGIN_ID,
+export const agroIndicesPlugin: GeoLibrePlugin = {
+  id: AGRO_INDICES_PLUGIN_ID,
   name: "Indici vegetazionali AgroGea",
   version: "0.1.0",
   activeByDefault: true,

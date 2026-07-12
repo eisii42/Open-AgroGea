@@ -1,4 +1,4 @@
-import { type OutboxMutazione, useAgroStore } from "@agrogea/core";
+import { type OutboxMutation, useAgroStore } from "@agrogea/core";
 import { FieldSheet } from "@agrogea/ui";
 import { Button } from "@geolibre/ui";
 import { AlertTriangle, RefreshCw, Trash2 } from "lucide-react";
@@ -39,33 +39,33 @@ export function SyncPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const sync = useAgroStore((s) => s.sync);
   const syncRouter = useAgroStore((s) => s.syncRouter);
-  const caricaCodaSync = useAgroStore((s) => s.caricaCodaSync);
-  const eliminaMutazioneCoda = useAgroStore((s) => s.eliminaMutazioneCoda);
-  const svuotaCodaSync = useAgroStore((s) => s.svuotaCodaSync);
+  const loadSyncQueue = useAgroStore((s) => s.loadSyncQueue);
+  const deleteQueuedMutation = useAgroStore((s) => s.deleteQueuedMutation);
+  const clearSyncQueue = useAgroStore((s) => s.clearSyncQueue);
 
-  const [coda, setCoda] = useState<OutboxMutazione[]>([]);
+  const [coda, setCoda] = useState<OutboxMutation[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
-  const ricarica = useCallback(async () => {
+  const reload = useCallback(async () => {
     setLoading(true);
     try {
-      setCoda(await caricaCodaSync());
+      setCoda(await loadSyncQueue());
     } finally {
       setLoading(false);
     }
-  }, [caricaCodaSync]);
+  }, [loadSyncQueue]);
 
   // Ricarica all'apertura e a ogni cambio del conteggio in coda.
   useEffect(() => {
-    void ricarica();
-  }, [ricarica, sync.pendingCount]);
+    void reload();
+  }, [reload, sync.pendingCount]);
 
-  const elimina = async (id: string) => {
+  const remove = async (id: string) => {
     setBusy(true);
     try {
-      await eliminaMutazioneCoda(id);
-      await ricarica();
+      await deleteQueuedMutation(id);
+      await reload();
     } finally {
       setBusy(false);
     }
@@ -74,8 +74,8 @@ export function SyncPanel({ onClose }: { onClose: () => void }) {
   const svuota = async () => {
     setBusy(true);
     try {
-      await svuotaCodaSync();
-      await ricarica();
+      await clearSyncQueue();
+      await reload();
     } finally {
       setBusy(false);
     }
@@ -167,7 +167,7 @@ export function SyncPanel({ onClose }: { onClose: () => void }) {
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => void elimina(m.mutation_id)}
+                    onClick={() => void remove(m.mutation_id)}
                     title={t("syncPanel.list.removeFromQueue")}
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--r-2)] text-[#dc2626] hover:bg-[#dc2626]/10 disabled:opacity-50"
                   >

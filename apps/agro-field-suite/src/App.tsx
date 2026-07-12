@@ -9,7 +9,7 @@ const CommandCenter = lazy(() =>
   import("./screens/CommandCenter").then((m) => ({ default: m.CommandCenter })),
 );
 
-/** true se il tasto premuto "appartiene" a un campo editabile o alla mappa. */
+/** true se il tasto premuto "appartiene" a un field editabile o alla mappa. */
 function isArrowTargetReserved(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
   if (!el) return false;
@@ -28,7 +28,7 @@ function isArrowTargetReserved(target: EventTarget | null): boolean {
  * Router dell'edizione **Open Source** (standalone, offline).
  *
  * Nessun login né onboarding: si avvia una sessione locale (claims sintetiche
- * + azienda di default) e si entra dritti nella dashboard. Un'eventuale
+ * + company di default) e si entra dritti nella dashboard. Un'eventuale
  * edizione con servizi remoti fornirebbe il proprio router al posto di questo
  * file (e il proprio `edition.ts`); il layer funzionale (mappa, moduli
  * agronomici, Quaderno, DSS, import/export, auto-update) resta lo stesso.
@@ -41,10 +41,10 @@ function isArrowTargetReserved(target: EventTarget | null): boolean {
  * dimensioni del canvas → nessun resize/flash al rientro.
  */
 export function App() {
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const activeView = useAgroStore((s) => s.activeView);
   // Il Command Center si monta alla prima visita e poi resta vivo (lazy +
-  // keep-alive): anche i suoi filtri/stato sopravvivono al cambio vista.
+  // keep-alive): anche i suoi filters/stato sopravvivono al cambio vista.
   const ccVisited = useRef(false);
   if (activeView === "command-center") ccVisited.current = true;
 
@@ -71,7 +71,7 @@ export function App() {
 
   // Finché il bootstrap non ha impostato l'azienda locale: schermata vuota
   // (frazioni di secondo, tutto in locale).
-  if (!aziendaAttivaId) return null;
+  if (!activeCompanyId) return null;
 
   const mapActive = activeView !== "command-center";
 
@@ -88,7 +88,7 @@ export function App() {
           }
           aria-hidden={!mapActive}
         >
-          <FieldDashboard key={aziendaAttivaId} />
+          <FieldDashboard key={activeCompanyId} />
         </div>
         {ccVisited.current && (
           <div
@@ -100,7 +100,7 @@ export function App() {
             aria-hidden={mapActive}
           >
             <Suspense fallback={null}>
-              <CommandCenter key={aziendaAttivaId} />
+              <CommandCenter key={activeCompanyId} />
             </Suspense>
           </div>
         )}

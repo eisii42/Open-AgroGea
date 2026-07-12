@@ -4,19 +4,19 @@
  *
  * Due sorgenti, in ordine di autorevolezza:
  *   1. **Anagrafica (primaria):** il paese impostato nell'indirizzo legale
- *      dell'azienda (`Azienda.paese`, ISO 3166-1 alpha-2).
+ *      dell'azienda (`Company.paese`, ISO 3166-1 alpha-2).
  *   2. **Validazione spaziale (cross-check):** le coordinate reali dei poligoni
- *      degli appezzamenti. Se i campi cadono fuori dai confini nazionali
- *      dell'indirizzo, si emette un alert e/o si aggiorna il contesto normativo
- *      del singolo sotto-appezzamento. Include il rilevamento rapido di
+ *      degli plots. Se i campi cadono fuori dai confini nazionali
+ *      dell'indirizzo, si emette un alert e/o si update il contesto normativo
+ *      del singolo sotto-plot. Include il rilevamento rapido di
  *      coordinate invertite (lat/lon scambiate), causa comune di drift.
  *
  * Modulo **PURO**: nessun DOM/React, nessun accesso DB (accetta geometrie
- * GeoJSON, non righe di tabella). Sopravvive intatto al rename dello schema e
+ * GeoJSON, non rows di tabella). Sopravvive intatto al rename dello schema e
  * resta testabile sotto `node --test`.
  */
 import type { MultiPolygon, Polygon } from "geojson";
-import { boundingBox, centroide } from "../geo/area";
+import { boundingBox, centroid } from "../geo/area";
 
 /**
  * Codici paese supportati dagli adapter regionali (ISO 3166-1 alpha-2), più il
@@ -79,7 +79,7 @@ export function detectCountryAtPoint(
   return null;
 }
 
-/** Normalizza una stringa paese (alpha-2, nome o vuoto) in {@link CountryCode}. */
+/** Normalizza una stringa paese (alpha-2, name o vuoto) in {@link CountryCode}. */
 export function normalizeCountryCode(raw: string | null | undefined): CountryCode | null {
   if (!raw) return null;
   const v = raw.trim().toUpperCase();
@@ -93,7 +93,7 @@ export function normalizeCountryCode(raw: string | null | undefined): CountryCod
 /** Sorgente che ha determinato il codice paese risolto. */
 export type CountrySource = "address" | "coordinates" | "default";
 
-/** Esito del cross-check spaziale di un singolo appezzamento. */
+/** Esito del cross-check spaziale di un singolo plot. */
 export interface PlotCountryCheck {
   /** Identificativo opaco dell'appezzamento (passato dal chiamante). */
   plotId: string;
@@ -108,7 +108,7 @@ export interface PlotCountryCheck {
   swappedCoordinates: boolean;
 }
 
-/** Geometria di un appezzamento con il suo id, input del cross-check. */
+/** Geometria di un plot con il suo id, input del cross-check. */
 export interface PlotGeometry {
   plotId: string;
   geometria: Polygon | MultiPolygon;
@@ -122,7 +122,7 @@ export interface CountryResolution {
   source: CountrySource;
   /** Paese dell'anagrafica (se impostato e valido). */
   declared: CountryCode | null;
-  /** Cross-check per appezzamento (vuoto se non sono passate geometrie). */
+  /** Cross-check per plot (vuoto se non sono passate geometrie). */
   checks: PlotCountryCheck[];
   /**
    * Avvisi informativi per la UI (i18n key + parametri), es. campi fuori
@@ -143,12 +143,12 @@ export interface CountryWarning {
   params?: Record<string, string | number>;
 }
 
-/** Cross-check di un singolo appezzamento contro il paese dichiarato. */
+/** Cross-check di un singolo plot contro il paese dichiarato. */
 export function checkPlotCountry(
   plot: PlotGeometry,
   declared: CountryCode | null,
 ): PlotCountryCheck {
-  const [lon, lat] = centroide(plot.geometria);
+  const [lon, lat] = centroid(plot.geometria);
   const detected = detectCountryAtPoint(lon, lat);
   const matchesDeclared =
     declared != null && declared !== "EU" && pointInCountry(lon, lat, declared);
@@ -163,23 +163,23 @@ export function checkPlotCountry(
 
 /**
  * Risolve il `country_code` del tenant combinando l'anagrafica (primaria) e il
- * cross-check spaziale sulle geometrie degli appezzamenti.
+ * cross-check spaziale sulle geometrie degli plots.
  *
  * Logica:
  *   - se l'anagrafica indica un paese valido → è la sorgente autorevole;
  *   - altrimenti si tenta la rilevazione dalle coordinate (paese maggioritario
- *     fra gli appezzamenti);
+ *     fra gli plots);
  *   - altrimenti `fallback` (default {@link DEFAULT_COUNTRY}).
  *
  * In tutti i casi popola `checks`/`warnings` con le anomalie spaziali, così la
- * UI può alzare un alert o ricontestualizzare il singolo sotto-appezzamento
+ * UI può alzare un alert o ricontestualizzare il singolo sotto-plot
  * senza cambiare il paese globale del tenant.
  */
 export function resolveCountry(
   input: {
-    /** Paese dell'indirizzo legale (ISO alpha-2 o nome); `null` se assente. */
+    /** Paese dell'indirizzo legale (ISO alpha-2 o name); `null` se assente. */
     addressCountry?: string | null;
-    /** Geometrie degli appezzamenti per il cross-check (opzionale). */
+    /** Geometrie degli plots per il cross-check (opzionale). */
     plots?: PlotGeometry[];
   },
   fallback: CountryCode = DEFAULT_COUNTRY,
@@ -242,9 +242,9 @@ export function resolveCountry(
 }
 
 /**
- * Versione "per sotto-appezzamento": ritorna, per ciascun appezzamento, il paese
- * che ne governa il contesto normativo. Un campo fuori dal paese del tenant è
- * regolato dal paese in cui ricade davvero (se supportato), permettendo aziende
+ * Versione "per sotto-appezzamento": ritorna, per ciascun plot, il paese
+ * che ne governa il contesto normativo. Un field fuori dal paese del tenant è
+ * regolato dal paese in cui ricade davvero (se supportato), permettendo companies
  * transfrontaliere. Usa il bounding box, quindi è rapido e privo di dipendenze.
  */
 export function resolvePerPlotCountry(
@@ -253,14 +253,14 @@ export function resolvePerPlotCountry(
 ): Map<string, CountryCode> {
   const out = new Map<string, CountryCode>();
   for (const p of plots) {
-    const [lon, lat] = centroide(p.geometria);
+    const [lon, lat] = centroid(p.geometria);
     const detected = detectCountryAtPoint(lon, lat);
     out.set(p.plotId, detected ?? tenantCountry);
   }
   return out;
 }
 
-/** Utility: bbox combinato di più appezzamenti (per inquadrare la mappa). */
+/** Utility: bbox combinato di più plots (per inquadrare la mappa). */
 export function plotsBoundingBox(
   plots: PlotGeometry[],
 ): [number, number, number, number] | null {

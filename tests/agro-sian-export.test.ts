@@ -1,25 +1,25 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type {
-  Appezzamento,
-  CampoCampagna,
-  Raccolta,
-  RegistroTrattamento,
+  Plot,
+  PlotCampaign,
+  Harvest,
+  TreatmentLog,
 } from "@agrogea/core";
 import {
   buildSianCsv,
   COLONNE_SIAN,
-  filtraTrattamentiSian,
-  raccolteToOperazioni,
-  risolviColonne,
+  filterSianTreatments,
+  harvestsToOperations,
+  resolveColumns,
 } from "../apps/agro-field-suite/src/lib/sianExport";
 
-function app(id: string, nome: string): Appezzamento {
+function app(id: string, name: string): Plot {
   return {
     id,
     tenant_id: "t",
     company_id: "az",
-    user_plot_name: nome,
+    user_plot_name: name,
     cadastral_sheet: null,
     cadastral_parcel: null,
     area_ha: 2,
@@ -39,15 +39,15 @@ function tratt(
   id: string,
   plot_id: string | null,
   executed_at: string,
-  tipo: RegistroTrattamento["operation_type"] = "phytosanitary",
-): RegistroTrattamento {
+  type: TreatmentLog["operation_type"] = "phytosanitary",
+): TreatmentLog {
   return {
     id,
     tenant_id: "t",
     company_id: "az",
     plot_id,
     plot_campaign_id: plot_id ? `cc-${plot_id}` : null,
-    operation_type: tipo,
+    operation_type: type,
     product_name: "Rame",
     registration_number: null,
     dose_value: 1,
@@ -73,17 +73,17 @@ function tratt(
   };
 }
 
-function campo(
+function field(
   plot_id: string,
-  anno: number,
-  over: Partial<CampoCampagna> = {},
-): CampoCampagna {
+  year: number,
+  over: Partial<PlotCampaign> = {},
+): PlotCampaign {
   return {
     id: `cc-${plot_id}`,
     tenant_id: "t",
     plot_id,
     crop_id: `crop-${plot_id}`,
-    campaign_year: anno,
+    campaign_year: year,
     reference_parcel_external_id: "IS-1",
     agricultural_parcel_external_id: "AP-9",
     crop_external_code: "060",
@@ -97,12 +97,12 @@ function campo(
   };
 }
 
-function raccolta(
+function harvest(
   id: string,
   plot_id: string | null,
   harvested_at: string,
-  over: Partial<Raccolta> = {},
-): Raccolta {
+  over: Partial<Harvest> = {},
+): Harvest {
   return {
     id,
     tenant_id: "t",
@@ -130,9 +130,9 @@ const TRATT = [
   tratt("t3", null, "2026-06-01T08:00:00.000Z", "tillage"),
 ];
 
-describe("filtraTrattamentiSian · temporale", () => {
+describe("filterSianTreatments · temporale", () => {
   it("filtra per intervallo di date inclusivo", () => {
-    const out = filtraTrattamentiSian(TRATT, APPS, {
+    const out = filterSianTreatments(TRATT, APPS, {
       dal: "2026-05-01",
       al: "2026-05-31",
     });
@@ -140,25 +140,25 @@ describe("filtraTrattamentiSian · temporale", () => {
   });
 
   it("senza date restituisce tutto", () => {
-    assert.equal(filtraTrattamentiSian(TRATT, APPS, {}).length, 3);
+    assert.equal(filterSianTreatments(TRATT, APPS, {}).length, 3);
   });
 });
 
-describe("filtraTrattamentiSian · spaziale", () => {
-  it("filtra per appezzamento ed esclude le operazioni intera azienda", () => {
-    const out = filtraTrattamentiSian(TRATT, APPS, { appezzamentoIds: ["a1"] });
+describe("filterSianTreatments · spaziale", () => {
+  it("filtra per plot ed esclude le operazioni intera azienda", () => {
+    const out = filterSianTreatments(TRATT, APPS, { appezzamentoIds: ["a1"] });
     assert.deepEqual(out.map((t) => t.id), ["t1"]);
   });
 
   it("può escludere le operazioni intera azienda", () => {
-    const out = filtraTrattamentiSian(TRATT, APPS, {
+    const out = filterSianTreatments(TRATT, APPS, {
       includiSenzaAppezzamento: false,
     });
     assert.deepEqual(out.map((t) => t.id).sort(), ["t1", "t2"]);
   });
 
   it("filtra per tipo di operazione", () => {
-    const out = filtraTrattamentiSian(TRATT, APPS, {
+    const out = filterSianTreatments(TRATT, APPS, {
       tipiOperazione: ["fertilization"],
     });
     assert.deepEqual(out.map((t) => t.id), ["t2"]);
@@ -168,20 +168,20 @@ describe("filtraTrattamentiSian · spaziale", () => {
 describe("buildSianCsv · struttura", () => {
   it("rispetta l'ordine e la selezione delle colonne", () => {
     const csv = buildSianCsv([TRATT[0]], APPS, {
-      colonne: ["appezzamento", "data", "prodotto"],
-      separatore: ";",
+      columns: ["appezzamento", "data", "prodotto"],
+      separator: ";",
       includiIntestazioni: true,
       bom: true,
     });
-    const [header, riga] = csv.split("\n");
-    assert.equal(header, "Appezzamento;Data;Prodotto");
-    assert.equal(riga, "Vigna Alta;2026-03-10;Rame");
+    const [header, row] = csv.split("\n");
+    assert.equal(header, "Plot;Data;Product");
+    assert.equal(row, "Vigna Alta;2026-03-10;Rame");
   });
 
-  it("onora il separatore e l'assenza di intestazioni", () => {
+  it("onora il separator e l'assenza di intestazioni", () => {
     const csv = buildSianCsv([TRATT[0]], APPS, {
-      colonne: ["data", "prodotto"],
-      separatore: ",",
+      columns: ["data", "prodotto"],
+      separator: ",",
       includiIntestazioni: false,
       bom: false,
     });
@@ -191,8 +191,8 @@ describe("buildSianCsv · struttura", () => {
   it("quota le celle che contengono il separatore", () => {
     const conNote = { ...TRATT[0], note: "riga; con; separatore" };
     const csv = buildSianCsv([conNote], APPS, {
-      colonne: ["note"],
-      separatore: ";",
+      columns: ["note"],
+      separator: ";",
       includiIntestazioni: false,
       bom: false,
     });
@@ -200,7 +200,7 @@ describe("buildSianCsv · struttura", () => {
   });
 
   it("risolviColonne ignora gli id sconosciuti", () => {
-    const cols = risolviColonne(["data", "inesistente", "prodotto"]);
+    const cols = resolveColumns(["data", "inesistente", "prodotto"]);
     assert.deepEqual(cols.map((c) => c.id), ["data", "prodotto"]);
     assert.ok(COLONNE_SIAN.length >= cols.length);
   });
@@ -208,79 +208,79 @@ describe("buildSianCsv · struttura", () => {
 
 describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
   it("popola i codici ministeriali dal join per plot_campaign_id", () => {
-    const campi = [campo("a1", 2026)];
+    const fields = [field("a1", 2026)];
     const csv = buildSianCsv(
       [TRATT[0]],
       APPS,
       {
-        colonne: [
+        columns: [
           "reference_parcel_external_id",
           "agricultural_parcel_external_id",
           "crop_external_code",
           "campaign_year",
         ],
-        separatore: ";",
+        separator: ";",
         includiIntestazioni: true,
         bom: true,
       },
-      campi,
+      fields,
     );
-    const [header, riga] = csv.split("\n");
+    const [header, row] = csv.split("\n");
     assert.equal(
       header,
-      "ID Isola SIAN;ID Appezzamento SIAN;Codice coltura SIAN;Anno campagna",
+      "ID Isola SIAN;ID Plot SIAN;Codice crop SIAN;Anno campagna",
     );
-    assert.equal(riga, "IS-1;AP-9;060;2026");
+    assert.equal(row, "IS-1;AP-9;060;2026");
   });
 
   it("lascia vuoti i riferimenti senza campagna agganciata", () => {
     const csv = buildSianCsv(
-      [TRATT[2]], // operazione intera azienda, plot_campaign_id null e plot_id null
+      [TRATT[2]], // operation intera company, plot_campaign_id null e plot_id null
       APPS,
       {
-        colonne: ["tipo_operazione", "crop_external_code"],
-        separatore: ";",
+        columns: ["tipo_operazione", "crop_external_code"],
+        separator: ";",
         includiIntestazioni: false,
         bom: false,
       },
-      [campo("a1", 2026)],
+      [field("a1", 2026)],
     );
-    // Tipo operazione in italiano (mai il codice interno "tillage"); ref vuoto.
+    // Tipo operation in italiano (mai il codice interno "tillage"); ref vuoto.
     assert.equal(csv, "Lavorazione;");
   });
 
-  it("FALLBACK: risolve i codici per appezzamento+anno se plot_campaign_id è null", () => {
+  it("FALLBACK: risolve i codici per plot+anno se plot_campaign_id è null", () => {
     // Operazione su a1 senza aggancio diretto (es. semina auto-assegnata):
     // i codici SIAN vengono comunque dalla campagna del plot per quell'anno.
-    const senzaAggancio = { ...tratt("t9", "a1", "2026-04-01T08:00:00.000Z"), plot_campaign_id: null };
+    const withoutLink = { ...tratt("t9", "a1", "2026-04-01T08:00:00.000Z"), plot_campaign_id: null };
     const csv = buildSianCsv(
-      [senzaAggancio],
+      [withoutLink],
       APPS,
       {
-        colonne: ["crop_external_code", "reference_parcel_external_id"],
-        separatore: ";",
+        columns: ["crop_external_code", "reference_parcel_external_id"],
+        separator: ";",
         includiIntestazioni: false,
         bom: false,
       },
-      [campo("a1", 2026)],
+      [field("a1", 2026)],
     );
     assert.equal(csv, "060;IS-1");
   });
 
   it("il fallback preferisce la campagna APERTA su quella chiusa", () => {
-    const chiusa = campo("a1", 2026, {
+    const chiusa = field("a1", 2026, {
       id: "cc-old",
       crop_external_code: "999",
       closed_at: "2026-05-01T00:00:00.000Z",
     });
-    const aperta = campo("a1", 2026, { id: "cc-new", crop_external_code: "060" });
+    const aperta = field("a1", 2026, { id: "cc-new", crop_external_code: "060" });
     const op = { ...tratt("t10", "a1", "2026-07-01T08:00:00.000Z"), plot_campaign_id: null };
     const csv = buildSianCsv(
       [op],
       APPS,
       {
-        colonne: ["crop_external_code"],
-        separatore: ";",
+        columns: ["crop_external_code"],
+        separator: ";",
         includiIntestazioni: false,
         bom: false,
       },
@@ -290,11 +290,11 @@ describe("buildSianCsv · riferimenti SIAN (join campi_campagna)", () => {
   });
 });
 
-describe("buildSianCsv · tipo operazione localizzato", () => {
+describe("buildSianCsv · tipo operation localizzato", () => {
   it("default italiano leggibile, mai il codice interno", () => {
     const csv = buildSianCsv([TRATT[1]], APPS, {
-      colonne: ["tipo_operazione"],
-      separatore: ";",
+      columns: ["tipo_operazione"],
+      separator: ";",
       includiIntestazioni: false,
       bom: false,
     });
@@ -305,7 +305,7 @@ describe("buildSianCsv · tipo operazione localizzato", () => {
     const csv = buildSianCsv(
       [TRATT[0]],
       APPS,
-      { colonne: ["tipo_operazione"], separatore: ";", includiIntestazioni: false, bom: false },
+      { columns: ["tipo_operazione"], separator: ";", includiIntestazioni: false, bom: false },
       [],
       undefined,
       { resolveOperationType: (op) => (op === "phytosanitary" ? "Treatment" : op) },
@@ -314,10 +314,10 @@ describe("buildSianCsv · tipo operazione localizzato", () => {
   });
 });
 
-describe("raccolteToOperazioni · le raccolte rientrano nel QDCA", () => {
-  it("mappa cultivar→prodotto, kg→quantità, destinazione e tipo harvest", () => {
-    const ops = raccolteToOperazioni([
-      raccolta("r1", "a1", "2026-09-15T08:00:00.000Z", {
+describe("raccolteToOperazioni · le harvests rientrano nel QDCA", () => {
+  it("mappa cultivar→product, kg→quantità, destinazione e tipo harvest", () => {
+    const ops = harvestsToOperations([
+      harvest("r1", "a1", "2026-09-15T08:00:00.000Z", {
         plot_campaign_id: "cc-a1",
       }),
     ]);
@@ -326,30 +326,30 @@ describe("raccolteToOperazioni · le raccolte rientrano nel QDCA", () => {
       ops,
       APPS,
       {
-        colonne: ["tipo_operazione", "prodotto", "raccolta_kg", "destinazione", "crop_external_code"],
-        separatore: ";",
+        columns: ["tipo_operazione", "prodotto", "raccolta_kg", "destinazione", "crop_external_code"],
+        separator: ";",
         includiIntestazioni: false,
         bom: false,
       },
-      [campo("a1", 2026)],
+      [field("a1", 2026)],
     );
-    // Tipo "Raccolta", cultivar, kg, destinazione e codice SIAN dalla campagna.
-    assert.equal(csv, "Raccolta;Sangiovese;3200;Cantina Sociale;060");
+    // Tipo "Harvest", cultivar, kg, destinazione e codice SIAN dalla campagna.
+    assert.equal(csv, "Harvest;Sangiovese;3200;Cantina Sociale;060");
   });
 
-  it("le colonne raccolta restano vuote sulle operazioni non-harvest", () => {
+  it("le columns harvest restano vuote sulle operazioni non-harvest", () => {
     const csv = buildSianCsv([TRATT[0]], APPS, {
-      colonne: ["raccolta_kg", "destinazione"],
-      separatore: ";",
+      columns: ["raccolta_kg", "destinazione"],
+      separator: ";",
       includiIntestazioni: false,
       bom: false,
     });
     assert.equal(csv, ";");
   });
 
-  it("esclude le raccolte cancellate (tombstone)", () => {
-    const ops = raccolteToOperazioni([
-      raccolta("r1", "a1", "2026-09-15T08:00:00.000Z", {
+  it("esclude le harvests cancellate (tombstone)", () => {
+    const ops = harvestsToOperations([
+      harvest("r1", "a1", "2026-09-15T08:00:00.000Z", {
         deleted_at: "2026-10-01T00:00:00.000Z",
       }),
     ]);

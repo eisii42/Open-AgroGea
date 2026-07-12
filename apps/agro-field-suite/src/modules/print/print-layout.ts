@@ -6,29 +6,29 @@
  */
 import type { GeoLibreLayer } from "@geolibre/core";
 
-export interface VoceLegenda {
+export interface LegendItem {
   id: string;
-  nome: string;
-  colore: string;
+  name: string;
+  color: string;
 }
 
-const COLORE_DEFAULT = "#1f6feb";
+const DEFAULT_COLOR = "#1f6feb";
 
 /** Colore rappresentativo di un layer per la legenda. */
-function coloreLayer(layer: GeoLibreLayer): string {
+function layerColor(layer: GeoLibreLayer): string {
   const style = layer.style as unknown as Record<string, unknown> | undefined;
   const candidato =
     (style?.fillColor as string) ||
     (style?.strokeColor as string) ||
     (style?.circleColor as string);
-  return typeof candidato === "string" && candidato ? candidato : COLORE_DEFAULT;
+  return typeof candidato === "string" && candidato ? candidato : DEFAULT_COLOR;
 }
 
 /**
  * Legenda dinamica dai layer visibili: esclude basemap e gli sketch grezzi del
  * geo-editor (non sono dati da legenda). Mantiene l'ordine dei layer.
  */
-export function buildLegenda(layers: GeoLibreLayer[]): VoceLegenda[] {
+export function buildLegenda(layers: GeoLibreLayer[]): LegendItem[] {
   return layers
     .filter((layer) => {
       if (!layer.visible) return false;
@@ -38,15 +38,15 @@ export function buildLegenda(layers: GeoLibreLayer[]): VoceLegenda[] {
     })
     .map((layer) => ({
       id: layer.id,
-      nome: layer.name,
-      colore: coloreLayer(layer),
+      name: layer.name,
+      color: layerColor(layer),
     }));
 }
 
 export interface PrintOptions {
-  titolo: string;
+  title: string;
   note?: string;
-  legenda: VoceLegenda[];
+  legenda: LegendItem[];
   mostraScala: boolean;
   /** Testo della scala grafica (es. "200 m"). */
   scalaTesto?: string;
@@ -81,7 +81,7 @@ export function buildPrintSvg(opts: PrintOptions): string {
   const mappa = opts.mappaDataUrl
     ? `<image x="${mapX}" y="${mapY}" width="${mapW}" height="${mapH}" preserveAspectRatio="xMidYMid slice" href="${opts.mappaDataUrl}"/>`
     : `<rect x="${mapX}" y="${mapY}" width="${mapW}" height="${mapH}" fill="#eef2f6"/>` +
-      `<text x="${mapX + mapW / 2}" y="${mapY + mapH / 2}" text-anchor="middle" font-size="14" fill="#90a0b0">Anteprima mappa non disponibile</text>`;
+      `<text x="${mapX + mapW / 2}" y="${mapY + mapH / 2}" text-anchor="middle" font-size="14" fill="#90a0b0">Anteprima mappa non available</text>`;
 
   // Pannello laterale: legenda, scala, nord, logo, note.
   const blocchi: string[] = [];
@@ -91,10 +91,10 @@ export function buildPrintSvg(opts: PrintOptions): string {
     `<text x="${panelX}" y="${y}" font-size="13" font-weight="700" fill="#1a2733">Legenda</text>`,
   );
   y += 22;
-  for (const voce of opts.legenda) {
+  for (const item of opts.legenda) {
     blocchi.push(
-      `<rect x="${panelX}" y="${y - 11}" width="14" height="14" rx="3" fill="${esc(voce.colore)}" stroke="#ffffff"/>`,
-      `<text x="${panelX + 22}" y="${y}" font-size="12" fill="#333d47">${esc(voce.nome)}</text>`,
+      `<rect x="${panelX}" y="${y - 11}" width="14" height="14" rx="3" fill="${esc(item.color)}" stroke="#ffffff"/>`,
+      `<text x="${panelX + 22}" y="${y}" font-size="12" fill="#333d47">${esc(item.name)}</text>`,
     );
     y += 22;
   }
@@ -129,10 +129,10 @@ export function buildPrintSvg(opts: PrintOptions): string {
       `<text x="${panelX}" y="${y}" font-size="11" font-weight="700" fill="#1a2733">Note</text>`,
     );
     y += 18;
-    // Spezza le note su più righe (~38 caratteri).
-    for (const riga of spezza(opts.note, 38)) {
+    // Spezza le note su più rows (~38 caratteri).
+    for (const row of spezza(opts.note, 38)) {
       blocchi.push(
-        `<text x="${panelX}" y="${y}" font-size="11" fill="#333d47">${esc(riga)}</text>`,
+        `<text x="${panelX}" y="${y}" font-size="11" fill="#333d47">${esc(row)}</text>`,
       );
       y += 16;
     }
@@ -145,7 +145,7 @@ export function buildPrintSvg(opts: PrintOptions): string {
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">` +
     `<rect width="${W}" height="${H}" fill="#ffffff"/>` +
-    `<text x="${margine}" y="40" font-size="20" font-weight="800" fill="#1a2733">${esc(opts.titolo)}</text>` +
+    `<text x="${margine}" y="40" font-size="20" font-weight="800" fill="#1a2733">${esc(opts.title)}</text>` +
     mappa +
     `<rect x="${mapX}" y="${mapY}" width="${mapW}" height="${mapH}" fill="none" stroke="#cdd6df"/>` +
     blocchi.join("") +
@@ -154,19 +154,19 @@ export function buildPrintSvg(opts: PrintOptions): string {
   );
 }
 
-/** Spezza un testo in righe di al più `max` caratteri, senza tagliare le parole. */
+/** Spezza un testo in rows di al più `max` caratteri, senza tagliare le parole. */
 export function spezza(testo: string, max: number): string[] {
   const parole = testo.split(/\s+/).filter(Boolean);
-  const righe: string[] = [];
-  let corrente = "";
+  const rows: string[] = [];
+  let current = "";
   for (const parola of parole) {
-    if (corrente.length + parola.length + 1 > max && corrente) {
-      righe.push(corrente);
-      corrente = parola;
+    if (current.length + parola.length + 1 > max && current) {
+      rows.push(current);
+      current = parola;
     } else {
-      corrente = corrente ? `${corrente} ${parola}` : parola;
+      current = current ? `${current} ${parola}` : parola;
     }
   }
-  if (corrente) righe.push(corrente);
-  return righe;
+  if (current) rows.push(current);
+  return rows;
 }

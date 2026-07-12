@@ -1,6 +1,6 @@
 /**
  * Vettorizzazione del raster di un indice (es. NDVI) in una griglia di celle
- * quadrate georeferenziate, ciascuna col valore medio dell'indice. È l'input
+ * quadrate georeferenziate, ciascuna col value medio dell'indice. È l'input
  * vettoriale della zonazione VRA (clustering K-means + ratei).
  *
  * Parte PURA (solo `utmToLonLat`): testabile sotto Node.
@@ -42,18 +42,18 @@ export function rasterToGridCells(
   masked: Float32Array | number[],
   window: RasterWindow,
   step = 4,
-): FeatureCollection<Polygon, { valore: number }> {
+): FeatureCollection<Polygon, { value: number }> {
   const passo = Math.max(1, Math.floor(step));
-  const features: FeatureCollection<Polygon, { valore: number }>["features"] = [];
+  const features: FeatureCollection<Polygon, { value: number }>["features"] = [];
 
   for (let row0 = 0; row0 < window.height; row0 += passo) {
     const rowEnd = Math.min(row0 + passo, window.height);
-    // Nord decresce con la riga (origine in alto a sinistra).
+    // Nord decresce con la row (origine in alto a sinistra).
     const nordTop = window.originNorthing - row0 * window.pixelHeight;
     const nordBottom = window.originNorthing - rowEnd * window.pixelHeight;
     for (let col0 = 0; col0 < window.width; col0 += passo) {
-      const valore = mediaBlocco(masked, window, row0, col0, passo);
-      if (valore == null) continue;
+      const value = mediaBlocco(masked, window, row0, col0, passo);
+      if (value == null) continue;
       const colEnd = Math.min(col0 + passo, window.width);
       const estLeft = window.originEasting + col0 * window.pixelWidth;
       const estRight = window.originEasting + colEnd * window.pixelWidth;
@@ -77,7 +77,7 @@ export function rasterToGridCells(
             ],
           ],
         },
-        properties: { valore: Math.round(valore * 1000) / 1000 },
+        properties: { value: Math.round(value * 1000) / 1000 },
       });
     }
   }

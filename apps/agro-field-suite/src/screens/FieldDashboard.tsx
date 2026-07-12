@@ -8,18 +8,19 @@ import { BottomSheet } from "../components/BottomSheet";
 import { usePlatform } from "../hooks/usePlatform";
 import { AppHeader } from "../components/AppHeader";
 import { BasemapSwitcher } from "../components/BasemapSwitcher";
-import { CropLegend } from "../components/CropLegend";
+import { CropLegend } from "../modules/crops/CropLegend";
 import { GeometryEditToolbar } from "../components/GeometryEditToolbar";
 import { Colorbar } from "../modules/colorbar/Colorbar";
 import { CommandPalette } from "../modules/command-palette/CommandPalette";
 import { MapControls } from "../components/MapControls";
 import { MapTooltip } from "../components/MapTooltip";
 import { OperationMarkers } from "../components/OperationMarkers";
+import { HarvestMarkers } from "../components/HarvestMarkers";
 import { ModuleSidebar } from "../components/ModuleSidebar";
 import { TransferTagsFeed } from "../components/TransferTagsFeed";
 import { useReadOnly } from "@agrogea/core";
 import { useGeometryUndoRedo } from "../hooks/useGeometryUndoRedo";
-import { useAppezzamentiLayer } from "../hooks/useAppezzamentiLayer";
+import { usePlotsLayer } from "../hooks/usePlotsLayer";
 import { useFeatureSelection } from "../hooks/useFeatureSelection";
 import { useFieldLayers } from "../hooks/useFieldLayers";
 import { useFieldPlugins } from "../hooks/useFieldPlugins";
@@ -29,39 +30,39 @@ import { useMapStyleEpoch } from "../hooks/useMapStyleEpoch";
 /**
  * Pannelli overlay caricati on-demand (code-splitting): non servono al primo
  * render della mappa e trascinano dipendenze pesanti (Recharts nel pannello
- * Suolo, moduli coltura, export quaderno). Lazy → fuori dal chunk iniziale,
+ * Suolo, moduli crop, export logbook). Lazy → fuori dal chunk iniziale,
  * caricati solo all'apertura del relativo strumento.
  */
-const QuadernoPanel = lazy(() =>
-  import("../components/QuadernoPanel").then((m) => ({ default: m.QuadernoPanel })),
+const LogbookPanel = lazy(() =>
+  import("../modules/field-logbook/LogbookPanel").then((m) => ({ default: m.LogbookPanel })),
 );
-const RaccoltaPanel = lazy(() =>
-  import("../components/RaccoltaPanel").then((m) => ({ default: m.RaccoltaPanel })),
+const HarvestPanel = lazy(() =>
+  import("../modules/field-logbook/HarvestPanel").then((m) => ({ default: m.HarvestPanel })),
 );
-const MagazzinoPanel = lazy(() =>
-  import("../components/MagazzinoPanel").then((m) => ({
-    default: m.MagazzinoPanel,
+const WarehousePanel = lazy(() =>
+  import("../modules/warehouse/WarehousePanel").then((m) => ({
+    default: m.WarehousePanel,
   })),
 );
-const SuoloPanel = lazy(() =>
-  import("../components/SuoloPanel").then((m) => ({ default: m.SuoloPanel })),
+const SoilPanel = lazy(() =>
+  import("../modules/soil/SoilPanel").then((m) => ({ default: m.SoilPanel })),
 );
-const ColturaDatiPanel = lazy(() =>
-  import("../modules/crops/ColturaPanel").then((m) => ({
-    default: m.ColturaDatiPanel,
+const CropDataPanel = lazy(() =>
+  import("../modules/crops/CropPanel").then((m) => ({
+    default: m.CropDataPanel,
   })),
 );
-const ColturaDssPanel = lazy(() =>
-  import("../modules/crops/ColturaPanel").then((m) => ({
-    default: m.ColturaDssPanel,
+const CropDssPanel = lazy(() =>
+  import("../modules/crops/CropPanel").then((m) => ({
+    default: m.CropDssPanel,
   })),
 );
 const VraPanel = lazy(() =>
   import("../modules/vra/VraPanel").then((m) => ({ default: m.VraPanel })),
 );
-const BilancioIdricoPanel = lazy(() =>
-  import("../components/BilancioIdricoPanel").then((m) => ({
-    default: m.BilancioIdricoPanel,
+const WaterBalancePanel = lazy(() =>
+  import("../modules/water-balance/WaterBalancePanel").then((m) => ({
+    default: m.WaterBalancePanel,
   })),
 );
 const PrintComposer = lazy(() =>
@@ -79,26 +80,26 @@ const DetailEditSheet = lazy(() =>
     default: m.DetailEditSheet,
   })),
 );
-const RegistroGeometrie = lazy(() =>
-  import("../components/RegistroGeometrie").then((m) => ({
-    default: m.RegistroGeometrie,
+const GeometryRegistry = lazy(() =>
+  import("../components/GeometryRegistry").then((m) => ({
+    default: m.GeometryRegistry,
   })),
 );
 const SyncPanel = lazy(() =>
   import("../components/SyncPanel").then((m) => ({ default: m.SyncPanel })),
 );
-const ImpostazioniPanel = lazy(() =>
-  import("../components/ImpostazioniPanel").then((m) => ({
-    default: m.ImpostazioniPanel,
+const SettingsPanel = lazy(() =>
+  import("../modules/settings/SettingsPanel").then((m) => ({
+    default: m.SettingsPanel,
   })),
 );
-const AnagraficaPanel = lazy(() =>
-  import("../components/AnagraficaPanel").then((m) => ({
-    default: m.AnagraficaPanel,
+const RegistryPanel = lazy(() =>
+  import("../modules/registry/RegistryPanel").then((m) => ({
+    default: m.RegistryPanel,
   })),
 );
 const GeoCompliancePanel = lazy(() =>
-  import("../components/GeoCompliancePanel").then((m) => ({
+  import("../modules/compliance/GeoCompliancePanel").then((m) => ({
     default: m.GeoCompliancePanel,
   })),
 );
@@ -128,8 +129,8 @@ export function FieldDashboard() {
   const { t } = useTranslation();
   const openPanels = useAgroStore((s) => s.openPanels);
   const togglePanel = useAgroStore((s) => s.togglePanel);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
-  const readOnly = useReadOnly(aziendaAttivaId);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
+  const readOnly = useReadOnly(activeCompanyId);
   const sidebarCollapsed = useAgroStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useAgroStore((s) => s.toggleSidebar);
   const pendingGeometry = useAgroStore((s) => s.pendingGeometry);
@@ -174,7 +175,7 @@ export function FieldDashboard() {
   const styleEpoch = useMapStyleEpoch(mapControllerRef, mapReady);
 
   useFieldPlugins(mapControllerRef, mapReady);
-  useAppezzamentiLayer(mapControllerRef, styleEpoch);
+  usePlotsLayer(mapControllerRef, styleEpoch);
   useFieldLayers(styleEpoch);
   const hover = useHoverTooltips(mapControllerRef, mapReady);
   useFeatureSelection(mapControllerRef, mapReady);
@@ -196,7 +197,7 @@ export function FieldDashboard() {
         {/* Mappa persistente: mai rimontata, mai ridimensionata dai pannelli.
             `data-sidebar` permette al CSS di scostare i controlli nativi top-left
             (es. pannello Misura) a destra della colonna bottoni, così la scheda
-            si apre di fianco al bottone senza finire dietro la barra moduli. */}
+            si apre di fianco al bottone without finire dietro la barra moduli. */}
         <div
           className="agro-field-map absolute inset-0"
           data-sidebar={sidebarCollapsed ? "collapsed" : "open"}
@@ -205,7 +206,7 @@ export function FieldDashboard() {
             controllerRef={mapControllerRef}
             onControllerReady={() => setMapReady(true)}
             // Vista 2D fissa (Mercatore): ottimale per il disegno tecnico di
-            // appezzamenti e infrastrutture; niente toggle globo.
+            // plots e infrastrutture; niente toggle globo.
             projection={{ type: "mercator" }}
           />
         </div>
@@ -265,9 +266,11 @@ export function FieldDashboard() {
           <GeometryEditToolbar />
         </div>
 
-        {/* Simboli operazioni del Quaderno (toggle "Mostra sulla mappa"):
-            marker on-demand, creati solo quando il toggle è attivo. */}
+        {/* Simboli operazioni del Quaderno e harvests (toggle "Mostra sulla
+            mappa"): marker HTML on-demand, creati solo quando il toggle è
+            active e rimossi allo spegnimento. Le harvests non sono un layer. */}
         <OperationMarkers mapControllerRef={mapControllerRef} mapReady={mapReady} />
+        <HarvestMarkers mapControllerRef={mapControllerRef} mapReady={mapReady} />
 
         {/* Tooltip hover (Modulo UI §2). */}
         <MapTooltip hover={hover} />
@@ -275,7 +278,7 @@ export function FieldDashboard() {
         {/* Legenda a gradiente degli indici: compare con gli overlay attivi. */}
         <Colorbar />
 
-        {/* Legenda colture: colore/icona per specie negli appezzamenti attivi. */}
+        {/* Legenda crops: colore/icona per specie negli plots attivi. */}
         {!platform.isMobile && (
           <CropLegend mapControllerRef={mapControllerRef} />
         )}
@@ -294,16 +297,16 @@ export function FieldDashboard() {
             il fallback è nullo perché sono overlay e il caricamento è breve. */}
         <Suspense fallback={null}>
           {openPanels.includes("quaderno") && (
-            <QuadernoPanel onClose={() => togglePanel("quaderno")} />
+            <LogbookPanel onClose={() => togglePanel("quaderno")} />
           )}
           {openPanels.includes("raccolta") && (
-            <RaccoltaPanel onClose={() => togglePanel("raccolta")} />
+            <HarvestPanel onClose={() => togglePanel("raccolta")} />
           )}
           {openPanels.includes("magazzino") && (
-            <MagazzinoPanel onClose={() => togglePanel("magazzino")} />
+            <WarehousePanel onClose={() => togglePanel("magazzino")} />
           )}
           {openPanels.includes("ndvi") && (
-            <SuoloPanel onClose={() => togglePanel("ndvi")} />
+            <SoilPanel onClose={() => togglePanel("ndvi")} />
           )}
           {openPanels.includes("vra") && (
             <VraPanel onClose={() => togglePanel("vra")} />
@@ -315,30 +318,30 @@ export function FieldDashboard() {
             />
           )}
           {openPanels.includes("coltura") && (
-            <ColturaDatiPanel onClose={() => togglePanel("coltura")} />
+            <CropDataPanel onClose={() => togglePanel("coltura")} />
           )}
           {openPanels.includes("coltura-dss") && (
-            <ColturaDssPanel onClose={() => togglePanel("coltura-dss")} />
+            <CropDssPanel onClose={() => togglePanel("coltura-dss")} />
           )}
           {openPanels.includes("acqua") && (
-            <BilancioIdricoPanel onClose={() => togglePanel("acqua")} />
+            <WaterBalancePanel onClose={() => togglePanel("acqua")} />
           )}
           {openPanels.includes("sync") && (
             <SyncPanel onClose={() => togglePanel("sync")} />
           )}
           {openPanels.includes("anagrafica") && (
-            <AnagraficaPanel onClose={() => togglePanel("anagrafica")} />
+            <RegistryPanel onClose={() => togglePanel("anagrafica")} />
           )}
           {openPanels.includes("impostazioni") && (
-            <ImpostazioniPanel onClose={() => togglePanel("impostazioni")} />
+            <SettingsPanel onClose={() => togglePanel("impostazioni")} />
           )}
           {openPanels.includes("geocompliance") && (
             <GeoCompliancePanel onClose={() => togglePanel("geocompliance")} />
           )}
           {/* Impostazioni Profilo: pagina a tutto schermo (non un drawer), sopra
-              mappa e pannelli. Raggiunta dal menù profilo e dalla Command Palette. */}
-          {openPanels.includes("profilo") && (
-            <UserProfileSettingsPage onClose={() => togglePanel("profilo")} />
+              mappa e pannelli. Raggiunta dal menù profile e dalla Command Palette. */}
+          {openPanels.includes("profile") && (
+            <UserProfileSettingsPage onClose={() => togglePanel("profile")} />
           )}
           {/* Registro: drawer destro come la scheda dettaglio. Quando un
               elemento è selezionato lascia il posto alla scheda e riappare alla
@@ -346,7 +349,7 @@ export function FieldDashboard() {
           {openPanels.includes("registro") &&
             !selectedFeature &&
             !pendingGeometry && (
-              <RegistroGeometrie
+              <GeometryRegistry
                 onClose={() => togglePanel("registro")}
                 mapControllerRef={mapControllerRef}
               />

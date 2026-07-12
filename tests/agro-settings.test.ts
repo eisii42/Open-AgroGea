@@ -44,7 +44,7 @@ describe("mergeDashboardLayout", () => {
 
 describe("module visibility predicate", () => {
   // Riproduce il gating usato da sidebar/command palette: una voce è visibile
-  // se non ha flag, oppure se il suo flag è attivo nel layout.
+  // se non ha flag, oppure se il suo flag è active nel layout.
   const visible = (
     layout: Record<DashboardModuleId, boolean>,
     flag?: DashboardModuleId,

@@ -1,9 +1,9 @@
 import {
-  dichiarativiMancanti,
+  missingDeclarative,
   EXPIRY_WARNING_DAYS_DEFAULT,
-  type CostoProdottiCampo,
-  sistemaDichiarativo,
-  statoScadenza,
+  type FieldProductCost,
+  declarativeSystem,
+  expiryStatus,
   useAgroStore,
 } from "@agrogea/core";
 import { Boxes, Euro, MapPinned, PackageX, Timer, Tractor, Wheat } from "lucide-react";
@@ -13,116 +13,116 @@ import { useTranslation } from "react-i18next";
 import { useTenantCountry } from "../../hooks/useTenantCountry";
 
 /**
- * Pagina "Azienda" del Data Command Center: andamento GENERALE dell'azienda
- * (superficie, campi, operazioni e raccolto dell'annata) e stato del Magazzino
- * (valore giacenze a CUMP, lotti scaduti/in scadenza, costo prodotti imputato
- * per campo). Complementare alla pagina "Colture e appezzamenti", che resta
- * focalizzata sull'analisi agronomica per coltura/campo.
+ * Pagina "Company" del Data Command Center: andamento GENERALE dell'azienda
+ * (area, campi, operazioni e raccolto dell'annata) e stato del Magazzino
+ * (value giacenze a CUMP, lots scaduti/in scadenza, costo products imputato
+ * per field). Complementare alla pagina "Colture e plots", che resta
+ * focalizzata sull'analisi agronomica per crop/field.
  */
 export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
   const { t } = useTranslation();
   const dal = useAgroStore((s) => s.dal);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
-  const trattamenti = useAgroStore((s) => s.trattamenti);
-  const raccolte = useAgroStore((s) => s.raccolte);
-  const prodotti = useAgroStore((s) => s.prodotti);
-  const lotti = useAgroStore((s) => s.lotti);
-  const campiCampagna = useAgroStore((s) => s.campiCampagna);
-  const apriColturaPerAppezzamento = useAgroStore(
-    (s) => s.apriColturaPerAppezzamento,
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
+  const plots = useAgroStore((s) => s.plots);
+  const treatments = useAgroStore((s) => s.treatments);
+  const harvests = useAgroStore((s) => s.harvests);
+  const products = useAgroStore((s) => s.products);
+  const lots = useAgroStore((s) => s.lots);
+  const campaignFields = useAgroStore((s) => s.campaignFields);
+  const openCropForPlot = useAgroStore(
+    (s) => s.openCropForPlot,
   );
   const setActiveView = useAgroStore((s) => s.setActiveView);
   const { countryCode } = useTenantCountry();
 
-  // Costo prodotti per campo dell'annata (aggregato DAL su activity_products).
-  const [costiCampo, setCostiCampo] = useState<CostoProdottiCampo[]>([]);
+  // Costo products per field dell'annata (aggregato DAL su activity_products).
+  const [costiCampo, setCostiCampo] = useState<FieldProductCost[]>([]);
   useEffect(() => {
-    if (!dal || !aziendaAttivaId) return;
-    let attivo = true;
+    if (!dal || !activeCompanyId) return;
+    let active = true;
     void dal
-      .costiProdottiPerCampo(aziendaAttivaId, {
+      .productCostsPerField(activeCompanyId, {
         dal: `${campaignYear}-01-01T00:00:00.000Z`,
         al: `${campaignYear}-12-31T23:59:59.999Z`,
       })
       .then((rows) => {
-        if (attivo) setCostiCampo(rows);
+        if (active) setCostiCampo(rows);
       });
     return () => {
-      attivo = false;
+      active = false;
     };
-    // `lotti` come dipendenza: ogni scarico/storno cambia i costi imputati.
-  }, [dal, aziendaAttivaId, campaignYear, lotti]);
+    // `lots` come dipendenza: ogni issue/storno cambia i costi imputati.
+  }, [dal, activeCompanyId, campaignYear, lots]);
 
   const vivi = useMemo(
-    () => appezzamenti.filter((a) => a.deleted_at == null),
-    [appezzamenti],
+    () => plots.filter((a) => a.deleted_at == null),
+    [plots],
   );
-  const superficieTotale = vivi.reduce((s, a) => s + Number(a.area_ha ?? 0), 0);
+  const totalArea = vivi.reduce((s, a) => s + Number(a.area_ha ?? 0), 0);
 
-  const operazioniAnno = useMemo(
+  const yearOperations = useMemo(
     () =>
-      trattamenti.filter(
+      treatments.filter(
         (tr) =>
           tr.deleted_at == null &&
           new Date(tr.executed_at).getUTCFullYear() === campaignYear,
       ).length,
-    [trattamenti, campaignYear],
+    [treatments, campaignYear],
   );
-  const raccoltoAnnoKg = useMemo(
+  const harvestYearKg = useMemo(
     () =>
-      raccolte
+      harvests
         .filter(
           (r) =>
             r.deleted_at == null &&
             new Date(r.harvested_at).getUTCFullYear() === campaignYear,
         )
         .reduce((s, r) => s + Number(r.quantity_kg ?? 0), 0),
-    [raccolte, campaignYear],
+    [harvests, campaignYear],
   );
 
-  // -- stato magazzino ---------------------------------------------------------
-  const giacenzaPerProdotto = useMemo(() => {
+  // -- stato warehouse ---------------------------------------------------------
+  const stockPerProduct = useMemo(() => {
     const map = new Map<string, number>();
-    for (const l of lotti) {
+    for (const l of lots) {
       if (l.deleted_at != null) continue;
       map.set(l.product_id, (map.get(l.product_id) ?? 0) + Number(l.quantity_on_hand));
     }
     return map;
-  }, [lotti]);
+  }, [lots]);
 
-  // Valore delle giacenze valorizzate al CUMP corrente di ciascun prodotto.
-  const valoreGiacenze = useMemo(
+  // Valore delle giacenze valorizzate al CUMP current di ciascun product.
+  const stockValue = useMemo(
     () =>
-      prodotti.reduce(
+      products.reduce(
         (sum, p) =>
-          sum + (giacenzaPerProdotto.get(p.id) ?? 0) * Number(p.avg_unit_cost),
+          sum + (stockPerProduct.get(p.id) ?? 0) * Number(p.avg_unit_cost),
         0,
       ),
-    [prodotti, giacenzaPerProdotto],
+    [products, stockPerProduct],
   );
 
-  const lottiConGiacenza = useMemo(
-    () => lotti.filter((l) => l.deleted_at == null && Number(l.quantity_on_hand) > 0),
-    [lotti],
+  const lotsWithStock = useMemo(
+    () => lots.filter((l) => l.deleted_at == null && Number(l.quantity_on_hand) > 0),
+    [lots],
   );
-  const lottiScaduti = lottiConGiacenza.filter(
-    (l) => statoScadenza(l.expires_at) === "expired",
+  const expiredLots = lotsWithStock.filter(
+    (l) => expiryStatus(l.expires_at) === "expired",
   );
-  const lottiInScadenza = lottiConGiacenza.filter(
-    (l) => statoScadenza(l.expires_at) === "expiring",
+  const expiringLots = lotsWithStock.filter(
+    (l) => expiryStatus(l.expires_at) === "expiring",
   );
-  // Scorta minima (v17): prodotti sotto la soglia di riordino.
-  const sottoScorta = prodotti.filter((p) => {
+  // Scorta minima (v17): products sotto la soglia di riordino.
+  const sottoScorta = products.filter((p) => {
     const min = p.metadata?.["min_stock"];
     return (
-      typeof min === "number" && (giacenzaPerProdotto.get(p.id) ?? 0) < min
+      typeof min === "number" && (stockPerProduct.get(p.id) ?? 0) < min
     );
   }).length;
 
-  const nomeCampo = (plotId: string | null): string =>
+  const fieldName = (plotId: string | null): string =>
     plotId
-      ? appezzamenti.find((a) => a.id === plotId)?.user_plot_name ??
+      ? plots.find((a) => a.id === plotId)?.user_plot_name ??
         plotId.slice(0, 8)
       : t("companyOverview.wholeFarm");
 
@@ -130,36 +130,36 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
     v.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   // Compliance dichiarativa (IT → SIAN, ES → SIEX): campagne APERTE dell'annata
-  // con dati incompleti. Il click porta alla scheda Dati coltura del primo campo.
-  const sistema = sistemaDichiarativo(countryCode);
-  const campagneSianKo = useMemo(
+  // con dati incompleti. Il click porta alla scheda Dati crop del primo field.
+  const system = declarativeSystem(countryCode);
+  const sianKoCampaigns = useMemo(
     () =>
-      sistema
-        ? campiCampagna.filter(
+      system
+        ? campaignFields.filter(
             (c) =>
               c.deleted_at == null &&
               c.closed_at == null &&
-              dichiarativiMancanti(countryCode, c).length > 0,
+              missingDeclarative(countryCode, c).length > 0,
           )
         : [],
-    [sistema, countryCode, campiCampagna],
+    [system, countryCode, campaignFields],
   );
 
   return (
     <div className="flex flex-col gap-4">
       {/* Alert compliance SIAN: impossibile "dimenticare" i dichiarativi. */}
-      {campagneSianKo.length > 0 && (
+      {sianKoCampaigns.length > 0 && (
         <button
           type="button"
           onClick={() => {
-            apriColturaPerAppezzamento(campagneSianKo[0].plot_id);
+            openCropForPlot(sianKoCampaigns[0].plot_id);
             setActiveView("map");
           }}
           className="flex items-center gap-2 rounded-[var(--r-2)] border border-[var(--warn)] bg-[var(--warn-l)] px-3 py-2 text-left text-sm font-medium text-[var(--warn)] hover:opacity-90"
         >
           ⚠ {t("companyOverview.sianAlert", {
-            count: campagneSianKo.length,
-            system: sistema,
+            count: sianKoCampaigns.length,
+            system: system,
           })}
         </button>
       )}
@@ -173,19 +173,19 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
           <KpiCard
             Icon={MapPinned}
             label={t("companyOverview.kpi.totalArea")}
-            value={`${superficieTotale.toFixed(2)} ha`}
+            value={`${totalArea.toFixed(2)} ha`}
             sub={t("companyOverview.kpi.plots", { count: vivi.length })}
           />
           <KpiCard
             Icon={Tractor}
             label={t("companyOverview.kpi.operationsYear")}
-            value={String(operazioniAnno)}
+            value={String(yearOperations)}
             sub={t("companyOverview.kpi.operationsSub")}
           />
           <KpiCard
             Icon={Wheat}
             label={t("companyOverview.kpi.harvestYear")}
-            value={`${(raccoltoAnnoKg / 100).toFixed(1)} q`}
+            value={`${(harvestYearKg / 100).toFixed(1)} q`}
             sub={t("companyOverview.kpi.harvestSub")}
           />
           <KpiCard
@@ -197,7 +197,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
         </div>
       </section>
 
-      {/* Stato del magazzino */}
+      {/* Stato del warehouse */}
       <section>
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-[var(--ink-4)]">
           {t("companyOverview.warehouseTitle")}
@@ -206,11 +206,11 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
           <KpiCard
             Icon={Boxes}
             label={t("companyOverview.kpi.products")}
-            value={String(prodotti.length)}
+            value={String(products.length)}
             tone={sottoScorta > 0 ? "warn" : undefined}
             sub={
               t("companyOverview.kpi.productsSub", {
-                count: lottiConGiacenza.length,
+                count: lotsWithStock.length,
               }) +
               (sottoScorta > 0
                 ? ` · ${t("companyOverview.kpi.belowMinStock", { count: sottoScorta })}`
@@ -220,14 +220,14 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
           <KpiCard
             Icon={Euro}
             label={t("companyOverview.kpi.stockValue")}
-            value={`${euro(valoreGiacenze)} €`}
+            value={`${euro(stockValue)} €`}
             sub={t("companyOverview.kpi.stockValueSub")}
           />
           <KpiCard
             Icon={PackageX}
             label={t("companyOverview.kpi.expiredLots")}
-            value={String(lottiScaduti.length)}
-            tone={lottiScaduti.length > 0 ? "danger" : undefined}
+            value={String(expiredLots.length)}
+            tone={expiredLots.length > 0 ? "danger" : undefined}
             sub={t("companyOverview.kpi.expiredLotsSub")}
           />
           <KpiCard
@@ -235,14 +235,14 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
             label={t("companyOverview.kpi.expiringLots", {
               days: EXPIRY_WARNING_DAYS_DEFAULT,
             })}
-            value={String(lottiInScadenza.length)}
-            tone={lottiInScadenza.length > 0 ? "warn" : undefined}
+            value={String(expiringLots.length)}
+            tone={expiringLots.length > 0 ? "warn" : undefined}
             sub={t("companyOverview.kpi.expiringLotsSub")}
           />
         </div>
       </section>
 
-      {/* Costo prodotti imputato per campo (base del bilancio di campo 0.4.0) */}
+      {/* Costo products imputato per field (base del bilancio di field 0.4.0) */}
       <section className="rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] p-3">
         <h3 className="mb-2 text-sm font-semibold text-[var(--ink)]">
           {t("companyOverview.costsByField", { year: campaignYear })}
@@ -264,14 +264,14 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
               </tr>
             </thead>
             <tbody>
-              {costiCampo.map((riga) => (
+              {costiCampo.map((row) => (
                 <tr
-                  key={riga.plot_id ?? "azienda"}
+                  key={row.plot_id ?? "azienda"}
                   className="border-b border-[var(--line)] last:border-0"
                 >
-                  <td className="py-1.5 pr-2">{nomeCampo(riga.plot_id)}</td>
+                  <td className="py-1.5 pr-2">{fieldName(row.plot_id)}</td>
                   <td className="agro-num py-1.5 text-right">
-                    {euro(Number(riga.total_cost))} €
+                    {euro(Number(row.total_cost))} €
                   </td>
                 </tr>
               ))}

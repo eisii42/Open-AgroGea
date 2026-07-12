@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Feature, Polygon } from "geojson";
 import {
-  areaEttari,
-  classificaGeometria,
-  geometriaHaCoordinate,
+  areaHectares,
+  classifyGeometry,
+  geometryHasCoordinates,
   geometryFamily,
-  normalizzaGeometria,
+  normalizeGeometry,
   pickEditedFeature,
   sameGeometryFamily,
 } from "../packages/agro-core/src/geo/area";
@@ -61,10 +61,10 @@ describe("geometryFamily / sameGeometryFamily", () => {
     assert.equal(geometryFamily("GeometryCollection"), null);
   });
 
-  it("classificaGeometria delega a geometryFamily", () => {
-    assert.equal(classificaGeometria(line.geometry), "line");
-    assert.equal(classificaGeometria(polygon.geometry), "polygon");
-    assert.equal(classificaGeometria(vertexHandle.geometry), "point");
+  it("classifyGeometry delega a geometryFamily", () => {
+    assert.equal(classifyGeometry(line.geometry), "line");
+    assert.equal(classifyGeometry(polygon.geometry), "polygon");
+    assert.equal(classifyGeometry(vertexHandle.geometry), "point");
   });
 
   it("sameGeometryFamily distingue le famiglie e respinge il drift", () => {
@@ -84,7 +84,7 @@ describe("pickEditedFeature", () => {
   });
 
   it("non promuove un poligono fantasma a bozza di una linea", () => {
-    // Se il GeoEditor avesse erroneamente chiuso la linea in un poligono, la
+    // Se il GeoEditor avesse erroneamente closed la linea in un poligono, la
     // feature poligonale NON deve essere scelta come bozza della linea.
     const picked = pickEditedFeature([polygon], "LineString");
     // Nessun match di famiglia → fallback alla prima feature; la guardia in
@@ -106,8 +106,8 @@ describe("pickEditedFeature", () => {
   });
 });
 
-describe("normalizzaGeometria + areaEttari", () => {
-  // Anello quadrato valido (~1.2 ha), chiuso e annidato correttamente.
+describe("normalizeGeometry + areaHectares", () => {
+  // Anello quadrato valido (~1.2 ha), closed e annidato correttamente.
   const ringChiuso: number[][] = [
     [0, 0],
     [0.001, 0],
@@ -122,19 +122,19 @@ describe("normalizzaGeometria + areaEttari", () => {
       type: "Polygon",
       coordinates: ringChiuso,
     } as unknown as Polygon;
-    const fixed = normalizzaGeometria(malformato);
+    const fixed = normalizeGeometry(malformato);
     assert.equal(fixed.type, "Polygon");
     // Ora la profondità è corretta: coordinates[0] è l'anello, [0][0] la posizione.
     assert.ok(Array.isArray(fixed.coordinates[0]));
     assert.ok(Array.isArray(fixed.coordinates[0][0]));
     assert.equal(typeof fixed.coordinates[0][0][0], "number");
     // E l'area torna positiva e plausibile (~1.24 ha), non negativa/garbage.
-    assert.ok(areaEttari(fixed) > 0);
+    assert.ok(areaHectares(fixed) > 0);
   });
 
   it("lascia invariato un Polygon già ben formato e ne chiude l'anello", () => {
     const valido: Polygon = { type: "Polygon", coordinates: [ringChiuso] };
-    const fixed = normalizzaGeometria(valido);
+    const fixed = normalizeGeometry(valido);
     assert.deepEqual(fixed.coordinates, [ringChiuso]);
   });
 
@@ -143,7 +143,7 @@ describe("normalizzaGeometria + areaEttari", () => {
       type: "Polygon",
       coordinates: [[[0, 0], [0.001, 0], [0.001, 0.001], [0, 0.001]]],
     };
-    const fixed = normalizzaGeometria(aperto);
+    const fixed = normalizeGeometry(aperto);
     const ring = fixed.coordinates[0];
     assert.deepEqual(ring[0], ring[ring.length - 1]);
   });
@@ -153,9 +153,9 @@ describe("normalizzaGeometria + areaEttari", () => {
       type: "MultiPolygon",
       coordinates: [ringChiuso], // depth 3 invece di 4
     } as unknown as import("geojson").MultiPolygon;
-    const fixed = normalizzaGeometria(malformato);
+    const fixed = normalizeGeometry(malformato);
     assert.equal(fixed.type, "MultiPolygon");
-    assert.ok(areaEttari(fixed) > 0);
+    assert.ok(areaHectares(fixed) > 0);
   });
 
   it("tronca le coordinate 3D a 2D (rimuove la Z)", () => {
@@ -165,20 +165,20 @@ describe("normalizzaGeometria + areaEttari", () => {
       type: "Polygon",
       coordinates: [[[0, 0, 5], [0.001, 0, 5], [0.001, 0.001, 5], [0, 0, 5]]],
     } as unknown as Polygon;
-    const fixed = normalizzaGeometria(z3d);
+    const fixed = normalizeGeometry(z3d);
     for (const ring of fixed.coordinates) {
       for (const pos of ring) assert.equal(pos.length, 2);
     }
-    assert.ok(areaEttari(fixed) > 0);
+    assert.ok(areaHectares(fixed) > 0);
   });
 
   it("tronca la Z anche su Point e LineString", () => {
-    const pt = normalizzaGeometria({
+    const pt = normalizeGeometry({
       type: "Point",
       coordinates: [9, 45, 120],
     } as unknown as import("geojson").Point);
     assert.deepEqual(pt.coordinates, [9, 45]);
-    const ln = normalizzaGeometria({
+    const ln = normalizeGeometry({
       type: "LineString",
       coordinates: [[0, 0, 1], [1, 1, 2]],
     } as unknown as import("geojson").LineString);
@@ -190,43 +190,43 @@ describe("normalizzaGeometria + areaEttari", () => {
       type: "Polygon",
       coordinates: [[[0, 0], [1, 1]]],
     } as unknown as Polygon;
-    assert.throws(() => normalizzaGeometria(degenere));
+    assert.throws(() => normalizeGeometry(degenere));
   });
 
-  it("areaEttari è sempre ≥ 0 anche su anello a verso orario", () => {
+  it("areaHectares è sempre ≥ 0 anche su anello a verso orario", () => {
     const cw: Polygon = {
       type: "Polygon",
       coordinates: [[[0, 0], [0, 0.001], [0.001, 0.001], [0.001, 0], [0, 0]]],
     };
-    assert.ok(areaEttari(cw) > 0);
+    assert.ok(areaHectares(cw) > 0);
   });
 
-  it("areaEttari NON lancia su geometria con coordinate undefined → 0", () => {
+  it("areaHectares NON lancia su geometria con coordinate undefined → 0", () => {
     // Caso reale del crash: Geoman emette {type:"Polygon"} senza coordinates
     // durante il drag. Prima lanciava TypeError → schermata bianca.
     const incompleto = { type: "Polygon" } as unknown as Polygon;
-    assert.equal(areaEttari(incompleto), 0);
+    assert.equal(areaHectares(incompleto), 0);
     const vuoto = { type: "Polygon", coordinates: [] } as unknown as Polygon;
-    assert.equal(areaEttari(vuoto), 0);
+    assert.equal(areaHectares(vuoto), 0);
   });
 });
 
-describe("geometriaHaCoordinate", () => {
+describe("geometryHasCoordinates", () => {
   it("false su coordinate assenti o vuote, true su geometria completa", () => {
     assert.equal(
-      geometriaHaCoordinate({ type: "Polygon" } as never),
+      geometryHasCoordinates({ type: "Polygon" } as never),
       false,
     );
     assert.equal(
-      geometriaHaCoordinate({ type: "Polygon", coordinates: [] } as never),
+      geometryHasCoordinates({ type: "Polygon", coordinates: [] } as never),
       false,
     );
     assert.equal(
-      geometriaHaCoordinate({ type: "Point", coordinates: [9, 45] }),
+      geometryHasCoordinates({ type: "Point", coordinates: [9, 45] }),
       true,
     );
     assert.equal(
-      geometriaHaCoordinate({
+      geometryHasCoordinates({
         type: "Polygon",
         coordinates: [[[0, 0], [0, 1], [1, 1], [0, 0]]],
       }),

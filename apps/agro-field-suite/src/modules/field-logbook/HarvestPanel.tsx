@@ -1,0 +1,539 @@
+import {
+  missingDeclarative,
+  type Harvest,
+  declarativeSystem,
+  useAgroStore,
+} from "@agrogea/core";
+import { FieldSheet } from "@agrogea/ui";
+import { Button, cn, Input, Label, Select } from "@geolibre/ui";
+import { MapPin, MapPinOff, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
+import { useTenantCountry } from "../../hooks/useTenantCountry";
+import { ConfirmDeleteOperation } from "./ConfirmDeleteOperation";
+import { HarvestDetailCard } from "./HarvestDetailCard";
+
+/**
+ * Modulo Harvest: lista degli eventi di harvest + form di registrazione. Ogni
+ * insert passa da `saveHarvest` (PGlite + outbox nella stessa transazione) e
+ * idrata lo store. Le harvests NON sono un layer cartografico: si mostrano
+ * on-demand come simboli HTML (toggle "Mostra sulla mappa" → HarvestMarkers),
+ * come le operazioni del Quaderno, così non lasciano un punto permanente né una
+ * voce nella legenda dei layer.
+ */
+
+const DESTINATION_IDS = [
+  "vinificazione",
+  "mensa",
+  "industria",
+  "olio",
+  "conferimento",
+  "essiccazione",
+] as const;
+
+function getDestinations(t: TFunction): { id: string; label: string }[] {
+  return DESTINATION_IDS.map((id) => ({
+    id,
+    label: t(`harvestPanel.destinations.${id}`),
+  }));
+}
+
+function todayInputDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function HarvestPanel({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
+  const harvests = useAgroStore((s) => s.harvests);
+  const plots = useAgroStore((s) => s.plots);
+  const campaignFields = useAgroStore((s) => s.campaignFields);
+  const crops = useAgroStore((s) => s.crops);
+  const activeCampaign = useAgroStore((s) => s.activeCampaign);
+  const saveHarvest = useAgroStore((s) => s.saveHarvest);
+  const deleteHarvest = useAgroStore((s) => s.deleteHarvest);
+  const closeCampaign = useAgroStore((s) => s.closeCampaign);
+  const openCropForPlot = useAgroStore(
+    (s) => s.openCropForPlot,
+  );
+  const sync = useAgroStore((s) => s.sync);
+  // Toggle "Mostra sulla mappa": come per le operazioni del Quaderno, le
+  // harvests compaiono on-demand come simboli HTML (nessun layer/legenda).
+  const mapHarvestIds = useAgroStore((s) => s.mapHarvestIds);
+  const setMapHarvestIds = useAgroStore((s) => s.setMapHarvestIds);
+  // Compliance dichiarativa: il paese risolto sceglie il sistema (IT → SIAN,
+  // ES → SIEX/CUE); gli altri paesi non hanno gate.
+  const { countryCode } = useTenantCountry();
+  const system = declarativeSystem(countryCode);
+
+  const [toDelete, setToDelete] = useState<Harvest | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
+  // Harvest aperta in scheda dettaglio (modale centrale di sola reading).
+  const [detail, setDetail] = useState<Harvest | null>(null);
+
+  const [showForm, setShowForm] = useState(false);
+  const [appId, setAppId] = useState("");
+  const [cultivar, setCultivar] = useState("");
+  const [destination, setDestination] = useState("");
+  // Quantità in QUINTALI (q): convertita in kg per la persistenza (1 q = 100 kg).
+  const [quintals, setQuintals] = useState("");
+  const [lotDestination, setLotDestination] = useState("");
+  const [data, setData] = useState(todayInputDate());
+  const [saving, setSaving] = useState(false);
+
+  const quintalsNum = quintals.trim() === "" ? null : Number(quintals);
+  const validQuintals = quintalsNum == null || Number.isFinite(quintalsNum);
+
+  // -- ciclo colturale (v17): campagna APERTA del field scelto ---------------
+  const openField = useMemo(
+    () =>
+      appId
+        ? campaignFields.find(
+            (c) =>
+              c.plot_id === appId &&
+              c.deleted_at == null &&
+              c.closed_at == null,
+          ) ?? null
+        : null,
+    [campaignFields, appId],
+  );
+  const fieldCrop = useMemo(
+    () =>
+      openField
+        ? crops.find((c) => c.id === openField.crop_id) ?? null
+        : null,
+    [crops, openField],
+  );
+  // Solo le ANNUALI si chiudono col raccolto (le perenni restano in field).
+  const fieldCategory =
+    typeof fieldCrop?.crop_metadata?.["category"] === "string"
+      ? (fieldCrop.crop_metadata["category"] as string)
+      : null;
+  const isAnnual =
+    fieldCategory === "seminativo" || fieldCategory === "orticoltura";
+  const [shouldClose, setShouldClose] = useState(false);
+
+  // Al cambio field: proponi la chiusura per le annuali e precompila la
+  // cultivar dalla crop di campagna (se il field cultivar è ancora vuoto).
+  useEffect(() => {
+    setShouldClose(isAnnual);
+    if (fieldCrop) {
+      const label = fieldCrop.variety_name ?? fieldCrop.common_name;
+      setCultivar((current) => current || label);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appId, isAnnual, fieldCrop?.id]);
+
+  // -- compliance dichiarativa (SIAN/SIEX): campi mancanti sulla campagna -----
+  // Gate consapevole, non blocco duro: senza dati dichiarativi il salvataggio
+  // richiede la spunta esplicita "Registra comunque" (o la compilazione via CTA).
+  const missingSian = useMemo(
+    () => (openField ? missingDeclarative(countryCode, openField) : []),
+    [countryCode, openField],
+  );
+  const [withoutSian, setWithoutSian] = useState(false);
+  useEffect(() => {
+    setWithoutSian(false); // ogni cambio field richiede una nuova scelta esplicita
+  }, [appId]);
+  const sianOk = missingSian.length === 0 || withoutSian;
+
+  const canSubmit = data !== "" && validQuintals && sianOk && !saving;
+
+  /** Etichette leggibili dei campi mancanti, nella semantica del paese. */
+  const missingLabels = missingSian
+    .map((field) => t(`harvestPanel.declField.${countryCode}.${field}` as never))
+    .join(", ");
+
+  // Badge "SIAN/SIEX ✗" nel selettore: campi con campagna aperta ma
+  // dichiarativi incompleti — visibili PRIMA di arrivare al salvataggio.
+  const plotsSianIncompleti = useMemo(() => {
+    const out = new Set<string>();
+    if (!system) return out;
+    for (const c of campaignFields) {
+      if (
+        c.deleted_at == null &&
+        c.closed_at == null &&
+        missingDeclarative(countryCode, c).length > 0
+      ) {
+        out.add(c.plot_id);
+      }
+    }
+    return out;
+  }, [system, countryCode, campaignFields]);
+
+  function resetForm() {
+    setAppId("");
+    setCultivar("");
+    setDestination("");
+    setQuintals("");
+    setLotDestination("");
+    setData(todayInputDate());
+  }
+
+  // Notifica transitoria (auto-dismiss dopo l'avvenuta rimozione).
+  useEffect(() => {
+    if (!notification) return;
+    const t = setTimeout(() => setNotification(null), 3500);
+    return () => clearTimeout(t);
+  }, [notification]);
+
+  function harvestLabel(r: Harvest): string {
+    const data = new Date(r.harvested_at).toLocaleDateString("it-IT");
+    return `${r.cultivar ?? t("harvestPanel.harvestFallbackLabel")} · ${data}`;
+  }
+
+  async function confirmDeletion() {
+    if (!toDelete) return;
+    const label = harvestLabel(toDelete);
+    await deleteHarvest(toDelete.id);
+    setToDelete(null);
+    setNotification(t("harvestPanel.removedNotice", { label: label }));
+  }
+
+  async function handleSubmit() {
+    if (!canSubmit) return;
+    setSaving(true);
+    try {
+      await saveHarvest({
+        plot_id: appId || null,
+        // Aggancio alla campagna APERTA del field (le chiuse sono storia).
+        plot_campaign_id: openField?.id ?? null,
+        cultivar: cultivar.trim() || null,
+        destination_logistics: destination.trim() || null,
+        // Quintali → kg per la persistenza (la metrica aggregata resta in kg).
+        quantity_kg: quintalsNum != null ? quintalsNum * 100 : null,
+        harvested_at: new Date(`${data}T12:00:00`).toISOString(),
+        metadata: lotDestination.trim()
+          ? { destinazione_lotto: lotDestination.trim() }
+          : {},
+      });
+      // v17: il raccolto di un'annuale chiude il ciclo colturale — il field
+      // torna libero (mappa neutra, DSS spento, nuova semina possibile).
+      if (shouldClose && openField) {
+        await closeCampaign(openField.id);
+      }
+      resetForm();
+      setShowForm(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const destinations = getDestinations(t);
+
+  // Mentre il toggle è active, il set di ID resta allineato alla lista delle
+  // harvests (le rimozioni si propagano ai marker).
+  const activeMap = mapHarvestIds !== null;
+  useEffect(() => {
+    if (!activeMap) return;
+    setMapHarvestIds(harvests.map((r) => r.id));
+  }, [harvests, activeMap, setMapHarvestIds]);
+
+  const toggleMap = () => {
+    if (activeMap) setMapHarvestIds(null);
+    else setMapHarvestIds(harvests.map((r) => r.id));
+  };
+
+  return (
+    <FieldSheet
+      title={showForm ? t("harvestPanel.newHarvest") : t("harvestPanel.title")}
+      onClose={onClose}
+      footer={
+        showForm ? undefined : (
+          <Button
+            className="min-h-[var(--touch-min)] w-full"
+            onClick={() => setShowForm(true)}
+          >
+            {t("harvestPanel.newHarvest")}
+          </Button>
+        )
+      }
+    >
+      {/* Notifica transitoria di avvenuta rimozione. */}
+      {notification && !showForm && (
+        <div
+          role="status"
+          className="mb-3 rounded-[var(--r-2)] border border-[var(--ok)] bg-[var(--ok-l,#dcfce7)] px-3 py-2 text-xs text-[var(--ok)]"
+        >
+          {notification}
+        </div>
+      )}
+      {showForm ? (
+        <div className="flex flex-col gap-3">
+          <div>
+            <Label htmlFor="rac-app">{t("logbook.common.plot")}</Label>
+            <Select
+              id="rac-app"
+              value={appId}
+              onChange={(e) => setAppId(e.target.value)}
+            >
+              <option value="">{t("logbook.common.wholeFarm")}</option>
+              {plots.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.user_plot_name}
+                  {plotsSianIncompleti.has(a.id) ? ` · ${system} ✗` : ""}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          {/* Compliance dichiarativa (SIAN/SIEX): campi mancanti sulla campagna
+              del field chosen. CTA per completare subito o override consapevole. */}
+          {missingSian.length > 0 && (
+            <div className="flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--warn)] bg-[var(--warn-l)] px-3 py-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--warn)]">
+                {t("harvestPanel.sianMissingTitle", { system: system })}
+              </p>
+              <p className="text-xs text-[var(--ink-2)]">
+                {t("harvestPanel.sianMissingHint", {
+                  fields: missingLabels,
+                  system: system,
+                })}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-[36px] self-start px-2 text-xs"
+                onClick={() => openCropForPlot(appId)}
+              >
+                {t("harvestPanel.sianCompleteNow")}
+              </Button>
+              <label className="flex items-center gap-2 text-xs text-[var(--ink-2)]">
+                <input
+                  type="checkbox"
+                  checked={withoutSian}
+                  onChange={(e) => setWithoutSian(e.target.checked)}
+                  className="h-4 w-4 accent-[var(--warn)]"
+                />
+                {t("harvestPanel.sianOverride", { system: system })}
+              </label>
+            </div>
+          )}
+          <div>
+            <Label htmlFor="rac-cultivar">{t("harvestPanel.cultivar")}</Label>
+            <Input
+              id="rac-cultivar"
+              value={cultivar}
+              placeholder={t("harvestPanel.cultivarPlaceholder")}
+              onChange={(e) => setCultivar(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="rac-dest">{t("harvestPanel.destination")}</Label>
+            <Select
+              id="rac-dest"
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+            >
+              <option value="">{t("harvestPanel.destinationUnspecified")}</option>
+              {destinations.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="rac-lotto">{t("harvestPanel.lotDestination")}</Label>
+            <Input
+              id="rac-lotto"
+              value={lotDestination}
+              placeholder={t("harvestPanel.lotDestinationPlaceholder")}
+              onChange={(e) => setLotDestination(e.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label htmlFor="rac-qta">{t("harvestPanel.quantity")}</Label>
+              <Input
+                id="rac-qta"
+                type="number"
+                inputMode="decimal"
+                min="0"
+                value={quintals}
+                placeholder="0"
+                aria-invalid={!validQuintals || undefined}
+                onChange={(e) => setQuintals(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="rac-data">{t("harvestPanel.harvestDate")}</Label>
+              <Input
+                id="rac-data"
+                type="date"
+                value={data}
+                onChange={(e) => setData(e.target.value)}
+              />
+            </div>
+          </div>
+          {quintalsNum != null && validQuintals && (
+            <p className="text-xs text-[var(--ink-4)]">
+              = {(quintalsNum * 100).toLocaleString("it-IT")} kg
+            </p>
+          )}
+          {!validQuintals && (
+            <p className="text-xs text-[var(--danger)]">
+              {t("harvestPanel.quantityMustBeNumber")}
+            </p>
+          )}
+
+          {/* v17: chiusura del ciclo colturale al raccolto (solo campagne
+              aperte; proposta pre-attiva per le annuali). */}
+          {openField && fieldCrop && (
+            <label className="flex items-start gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2">
+              <input
+                type="checkbox"
+                checked={shouldClose}
+                onChange={(e) => setShouldClose(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium">
+                  {t("harvestPanel.closeCampaign", {
+                    crop: fieldCrop.variety_name
+                      ? `${fieldCrop.common_name} (${fieldCrop.variety_name})`
+                      : fieldCrop.common_name,
+                    year: activeCampaign,
+                  })}
+                </span>
+                <span className="block text-[11px] text-[var(--ink-3)]">
+                  {isAnnual
+                    ? t("harvestPanel.closeCampaignHintAnnual")
+                    : t("harvestPanel.closeCampaignHintPerennial")}
+                </span>
+              </span>
+            </label>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="min-h-[var(--touch-min)] flex-1"
+              onClick={() => {
+                resetForm();
+                setShowForm(false);
+              }}
+            >
+              {t("logbook.common.cancel")}
+            </Button>
+            <Button
+              className="min-h-[var(--touch-min)] flex-1"
+              disabled={!canSubmit}
+              onClick={() => void handleSubmit()}
+            >
+              {t("harvestPanel.saveAction")}
+            </Button>
+          </div>
+        </div>
+      ) : harvests.length === 0 ? (
+        <p className="py-8 text-center text-sm text-[var(--ink-3)]">
+          {t("harvestPanel.emptyState")}
+        </p>
+      ) : (
+        <div className="flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={toggleMap}
+          className={cn(
+            "flex items-center justify-center gap-2 rounded-[var(--r-2)] border px-3 py-2 text-sm font-medium transition-colors",
+            activeMap
+              ? "border-[var(--accent)] bg-[var(--accent-l)] text-[var(--accent)]"
+              : "border-[var(--line)] text-[var(--ink-2)] hover:bg-[var(--panel-2)]",
+          )}
+        >
+          {activeMap ? <MapPinOff size={15} /> : <MapPin size={15} />}
+          {activeMap
+            ? t("harvestPanel.map.hide", { count: harvests.length })
+            : t("harvestPanel.map.show", { count: harvests.length })}
+        </button>
+        <ul className="flex flex-col gap-2">
+          {harvests.map((r) => {
+            const plot = plots.find(
+              (a) => a.id === r.plot_id,
+            );
+            return (
+              <li
+                key={r.id}
+                className="flex items-stretch gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2"
+              >
+                <span
+                  className="w-1 shrink-0 rounded-full"
+                  style={{ background: "var(--crop-frutta, var(--accent))" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setDetail(r)}
+                  title={t("harvestPanel.openCard")}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <p className="truncate text-sm font-semibold">
+                    {r.cultivar ?? t("harvestPanel.harvestFallbackLabel")}
+                  </p>
+                  <p className="truncate text-xs text-[var(--ink-3)]">
+                    {[
+                      plot?.user_plot_name ?? t("harvestPanel.wholeFarmLower"),
+                      r.destination_logistics,
+                      r.quantity_kg != null
+                        ? `${r.quantity_kg.toLocaleString("it-IT")} kg`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                </button>
+                <div className="flex shrink-0 flex-col items-end justify-between">
+                  <time className="agro-num text-xs text-[var(--ink-3)]">
+                    {new Date(r.harvested_at).toLocaleDateString("it-IT")}
+                  </time>
+                  {sync.pendingCount > 0 ? (
+                    <span className="rounded-full bg-[var(--warn-l)] px-1.5 text-[10px] text-[var(--warn)]">
+                      {t("harvestPanel.queueBadge")}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-[var(--ok)]">✓</span>
+                  )}
+                </div>
+                {/* Cancellazione protetta della singola harvest. */}
+                <button
+                  type="button"
+                  onClick={() => setToDelete(r)}
+                  title={t("harvestPanel.deleteHarvest")}
+                  aria-label={t("harvestPanel.deleteHarvestAria", { label: harvestLabel(r) })}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-[var(--r-2)] text-[#dc2626] hover:bg-[var(--danger-l,#fee2e2)]"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        </div>
+      )}
+
+      <ConfirmDeleteOperation
+        open={toDelete != null}
+        label={toDelete ? harvestLabel(toDelete) : ""}
+        title={t("harvestPanel.deleteHarvest")}
+        messaggio={t("harvestPanel.deleteConfirmMessage")}
+        consensoLabel={t("harvestPanel.deleteConfirmConsent")}
+        onConfirm={confirmDeletion}
+        onClose={() => setToDelete(null)}
+      />
+
+      {detail && (
+        <HarvestDetailCard
+          harvest={detail}
+          appezzamentoNome={
+            plots.find((a) => a.id === detail.plot_id)?.user_plot_name ??
+            null
+          }
+          onClose={() => setDetail(null)}
+          onDelete={() => {
+            setToDelete(detail);
+            setDetail(null);
+          }}
+        />
+      )}
+    </FieldSheet>
+  );
+}

@@ -1,8 +1,8 @@
 import {
   type DashboardModuleId,
   type FieldPanel,
-  type GeometriaDisegnata,
-  statoScadenza,
+  type DrawnGeometry,
+  expiryStatus,
   useAgroStore,
   useSettingsStore,
 } from "@agrogea/core";
@@ -35,7 +35,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useReadOnly } from "@agrogea/core";
 import { STANDALONE } from "../standalone";
-import { SianExportDialog } from "./SianExportDialog";
+import { SianExportDialog } from "../modules/sian/SianExportDialog";
 
 /**
  * Sidebar moduli a scomparsa (Modulo UI §5 + §6). Raccoglie gli strumenti
@@ -47,7 +47,7 @@ import { SianExportDialog } from "./SianExportDialog";
 
 type ToolAction =
   | { kind: "panel"; panel: FieldPanel }
-  | { kind: "draw"; intent: GeometriaDisegnata }
+  | { kind: "draw"; intent: DrawnGeometry }
   | { kind: "run"; run: () => void }
   | { kind: "soon" };
 
@@ -74,7 +74,7 @@ export function ModuleSidebar({
 }: {
   /**
    * true quando è annidato nel BottomSheet mobile "Moduli" (FieldDashboard),
-   * che fornisce già titolo, chiusura e larghezza piena: sopprime l'intestazione
+   * che fornisce già title, chiusura e larghezza piena: sopprime l'intestazione
    * e i vincoli di layout desktop (larghezza fissa, bordo, altezza piena) per
    * evitare la doppia intestazione "MODULI AGRONOMICI".
    */
@@ -86,21 +86,21 @@ export function ModuleSidebar({
   const drawIntent = useAgroStore((s) => s.drawIntent);
   const setDrawIntent = useAgroStore((s) => s.setDrawIntent);
   const flags = useSettingsStore((s) => s.dashboardLayout);
-  // Sola lettura (ruolo VIEWER): gli strumenti che MUTANO la geometria/i Field
+  // Sola reading (ruolo VIEWER): gli strumenti che MUTANO la geometria/i Field
   // Attributes (disegno, Modifica/Elimina) vanno disattivati.
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
-  const readOnly = useReadOnly(aziendaAttivaId);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
+  const readOnly = useReadOnly(activeCompanyId);
 
-  // Dialog di configurazione dell'export SIAN (filtri + struttura CSV).
+  // Dialog di configurazione dell'export SIAN (filters + struttura CSV).
   const [sianOpen, setSianOpen] = useState(false);
 
-  // Badge alert Magazzino (v17): lotti con giacenza scaduti o in scadenza.
-  const lotti = useAgroStore((s) => s.lotti);
-  const magazzinoAlerts = lotti.filter(
+  // Badge alert Magazzino (v17): lots con stock scaduti o in scadenza.
+  const lots = useAgroStore((s) => s.lots);
+  const warehouseAlerts = lots.filter(
     (l) =>
       l.deleted_at == null &&
       Number(l.quantity_on_hand) > 0 &&
-      statoScadenza(l.expires_at) !== "valid",
+      expiryStatus(l.expires_at) !== "valid",
   ).length;
 
   const moduli: ModuleDef[] = [
@@ -291,7 +291,7 @@ export function ModuleSidebar({
         </p>
       )}
       {moduli.map((mod) => {
-        // I tool disattivati nel layout dell'utente spariscono; un modulo senza
+        // I tool disattivati nel layout dell'utente spariscono; un module senza
         // più tool visibili viene nascosto del tutto (UI pulita).
         const visibleTools = mod.tools.filter(
           (tool) =>
@@ -311,14 +311,14 @@ export function ModuleSidebar({
             >
               <mod.Icon size={16} className="text-[var(--accent)]" />
               <span className="flex-1">{t(mod.labelKey as never)}</span>
-              {mod.id === "magazzino" && magazzinoAlerts > 0 && (
+              {mod.id === "magazzino" && warehouseAlerts > 0 && (
                 <span
                   title={t("moduleSidebar.warehouseAlerts", {
-                    count: magazzinoAlerts,
+                    count: warehouseAlerts,
                   })}
                   className="rounded-full bg-[var(--warn-l)] px-1.5 text-[10px] font-semibold text-[var(--warn)]"
                 >
-                  {magazzinoAlerts} ⚠
+                  {warehouseAlerts} ⚠
                 </span>
               )}
               <ChevronRight
@@ -337,7 +337,7 @@ export function ModuleSidebar({
                       openPanels.includes(tool.action.panel)) ||
                     (tool.action.kind === "draw" &&
                       drawIntent === tool.action.intent);
-                  // In sola lettura blocco disegno e gestione (Modifica/Elimina).
+                  // In sola reading blocco disegno e gestione (Modifica/Elimina).
                   const mutating =
                     tool.action.kind === "draw" ||
                     (tool.action.kind === "panel" &&
@@ -359,7 +359,7 @@ export function ModuleSidebar({
                         const action = tool.action;
                         if (action.kind === "panel") {
                           // Aprire il registro = entrare in modalità gestione:
-                          // si esce dal disegno così il tap seleziona gli elementi.
+                          // si esce dal disegno così il tap select gli elementi.
                           if (action.panel === "registro") {
                             setDrawIntent(null);
                             disableGeoEditorModes();

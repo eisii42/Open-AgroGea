@@ -4,27 +4,27 @@ import type { FeatureCollection } from "geojson";
 import { Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { EXTERNAL_LAYER_FLAG } from "../add-data/add-data";
-import { ETICHETTE_VINCOLO, type TipoVincolo } from "./geo-compliance";
+import { CONSTRAINT_LABELS, type ConstraintType } from "./geo-compliance";
 import { useComplianceLayerAnalysis } from "./useComplianceLayerAnalysis";
 
 /**
- * Workflow Geo-compliance riprogettato (FEATURE 3): non carica più file (compito
+ * Workflow Geo-compliance riprogettato (FEATURE 3): non load più file (compito
  * dell'Add Data globale). Espone un SELETTORE dei layer esterni attivi nel Layer
  * Store; alla scelta di un layer e del tipo di vincolo che rappresenta, marca il
- * layer (`metadata.compliance`) — così i badge per-appezzamento reagiscono in
+ * layer (`metadata.compliance`) — così i badge per-plot reagiscono in
  * tutta l'app — e innesca il motore spaziale DuckDB per calcolare quali
- * appezzamenti del tenant intersecano il layer, aggiornando i badge di allerta.
+ * plots del tenant intersecano il layer, aggiornando i badge di allerta.
  */
 
-const TIPI: TipoVincolo[] = ["zvn", "sic", "zps", "eudr"];
+const TIPI: ConstraintType[] = ["zvn", "sic", "zps", "eudr"];
 
 export function ComplianceLayerSelector() {
   const layers = useAppStore((s) => s.layers);
   const updateLayer = useAppStore((s) => s.updateLayer);
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
+  const plots = useAgroStore((s) => s.plots);
 
   const [layerId, setLayerId] = useState<string>("");
-  const [tipo, setTipo] = useState<TipoVincolo>("zvn");
+  const [type, setType] = useState<ConstraintType>("zvn");
 
   // Tutti i layer esterni attivi caricati via Add Data (con geometria).
   const layerEsterni = useMemo(
@@ -35,34 +35,34 @@ export function ComplianceLayerSelector() {
     [layers],
   );
 
-  const layerScelto = layerEsterni.find((l) => l.id === layerId) ?? null;
-  const geojson = (layerScelto?.geojson as FeatureCollection | undefined) ?? null;
+  const chosenLayer = layerEsterni.find((l) => l.id === layerId) ?? null;
+  const geojson = (chosenLayer?.geojson as FeatureCollection | undefined) ?? null;
 
-  const analisi = useComplianceLayerAnalysis(appezzamenti, geojson);
+  const analisi = useComplianceLayerAnalysis(plots, geojson);
 
   /** Classifica il layer selezionato come vincolo `tipo` (tag app-wide). */
-  function classifica(nextTipo: TipoVincolo) {
-    setTipo(nextTipo);
-    if (layerScelto) {
-      updateLayer(layerScelto.id, {
-        metadata: { ...layerScelto.metadata, compliance: nextTipo },
+  function classification(nextType: ConstraintType) {
+    setType(nextType);
+    if (chosenLayer) {
+      updateLayer(chosenLayer.id, {
+        metadata: { ...chosenLayer.metadata, compliance: nextType },
       });
     }
   }
 
-  function selezionaLayer(id: string) {
+  function selectLayer(id: string) {
     setLayerId(id);
     const l = layerEsterni.find((x) => x.id === id);
     if (!l) return;
-    // Eredita una classificazione già assegnata, altrimenti applica quella corrente.
-    const corrente = l.metadata?.compliance;
-    const nextTipo =
-      typeof corrente === "string" && (TIPI as string[]).includes(corrente)
-        ? (corrente as TipoVincolo)
-        : tipo;
-    setTipo(nextTipo);
+    // Eredita una classificazione già assegnata, altrimenti applica quella current.
+    const current = l.metadata?.compliance;
+    const nextType =
+      typeof current === "string" && (TIPI as string[]).includes(current)
+        ? (current as ConstraintType)
+        : type;
+    setType(nextType);
     updateLayer(l.id, {
-      metadata: { ...l.metadata, compliance: nextTipo },
+      metadata: { ...l.metadata, compliance: nextType },
     });
   }
 
@@ -76,7 +76,7 @@ export function ComplianceLayerSelector() {
         </p>
         <p className="mb-2 text-xs text-[var(--ink-4)]">
           Seleziona un layer esterno caricato con «Aggiungi dati» e indica quale
-          vincolo rappresenta. L'analisi di intersezione con gli appezzamenti è
+          vincolo rappresenta. L'analisi di intersezione con gli plots è
           istantanea.
         </p>
       </div>
@@ -98,7 +98,7 @@ export function ComplianceLayerSelector() {
             <select
               id="gc-layer"
               value={layerId}
-              onChange={(e) => selezionaLayer(e.target.value)}
+              onChange={(e) => selectLayer(e.target.value)}
               className="w-full rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-2 text-sm"
             >
               <option value="">— scegli un layer —</option>
@@ -119,21 +119,21 @@ export function ComplianceLayerSelector() {
             </label>
             <select
               id="gc-tipo"
-              value={tipo}
-              disabled={!layerScelto}
-              onChange={(e) => classifica(e.target.value as TipoVincolo)}
+              value={type}
+              disabled={!chosenLayer}
+              onChange={(e) => classification(e.target.value as ConstraintType)}
               className="w-full rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-2 text-sm disabled:opacity-50"
             >
               {TIPI.map((t) => (
                 <option key={t} value={t}>
-                  {ETICHETTE_VINCOLO[t]}
+                  {CONSTRAINT_LABELS[t]}
                 </option>
               ))}
             </select>
           </div>
 
           {/* Esito analisi spaziale → badge di allerta. */}
-          {layerScelto && (
+          {chosenLayer && (
             <div className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2.5">
               {analisi.loading ? (
                 <p className="flex items-center gap-2 text-xs text-[var(--ink-3)]">
@@ -150,28 +150,28 @@ export function ComplianceLayerSelector() {
                     className="inline-flex items-center gap-1.5 self-start rounded-[var(--r-2)] px-2 py-1 text-xs font-medium"
                     style={{
                       background:
-                        tipo === "zvn" || tipo === "eudr"
+                        type === "zvn" || type === "eudr"
                           ? "var(--danger-l, #fee2e2)"
                           : "var(--warn-l)",
                       color:
-                        tipo === "zvn" || tipo === "eudr"
+                        type === "zvn" || type === "eudr"
                           ? "var(--danger)"
                           : "var(--warn)",
                     }}
                   >
-                    {tipo === "zvn" && "⚠ ZVN"}
-                    {tipo === "eudr" && "⛔ EUDR"}
-                    {(tipo === "sic" || tipo === "zps") && "⛰ Area protetta"}
+                    {type === "zvn" && "⚠ ZVN"}
+                    {type === "eudr" && "⛔ EUDR"}
+                    {(type === "sic" || type === "zps") && "⛰ Area protetta"}
                     {` · ${colpiti} appezzament${colpiti === 1 ? "o" : "i"} interessat${colpiti === 1 ? "o" : "i"}`}
                   </span>
                   <p className="text-[11px] text-[var(--ink-4)]">
                     I badge di dettaglio (tetto azoto, due diligence) sono
-                    aggiornati sulle schede degli appezzamenti coinvolti.
+                    aggiornati sulle schede degli plots coinvolti.
                   </p>
                 </div>
               ) : analisi.eseguita ? (
                 <p className="text-xs text-[var(--ok)]">
-                  ✓ Nessun appezzamento interseca questo layer.
+                  ✓ Nessun plot interseca questo layer.
                 </p>
               ) : null}
             </div>

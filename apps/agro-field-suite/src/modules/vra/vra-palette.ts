@@ -1,9 +1,9 @@
 /**
  * Palette agronomica per la colorazione choropleth (per classi) delle zone VRA.
  *
- * Pura e testabile. Le zone sono ordinate per indice crescente (zona 0 = vigore
+ * Pura e testabile. Le zone sono sortedList per indice crescente (zona 0 = vigore
  * più basso): la rampa RdYlGn 5 classi mappa il basso vigore sul rosso e l'alto
- * sul verde, lettura immediata della mappa di prescrizione.
+ * sul verde, reading immediata della mappa di prescrizione.
  */
 import type { VectorStyleStop } from "@geolibre/core";
 
@@ -17,7 +17,7 @@ const PALETTE_RDYLGN = [
 ] as const;
 
 /** Colore della zona `index` su `total` zone, campionando la palette. */
-export function coloreZona(index: number, total: number): string {
+export function zoneColor(index: number, total: number): string {
   if (total <= 1) return PALETTE_RDYLGN[PALETTE_RDYLGN.length - 1];
   const ratio = Math.min(1, Math.max(0, index / (total - 1)));
   const pos = Math.round(ratio * (PALETTE_RDYLGN.length - 1));
@@ -31,7 +31,7 @@ export function coloreZona(index: number, total: number): string {
 export function stopsVra(numeroZone: number): VectorStyleStop[] {
   return Array.from({ length: numeroZone }, (_, zona) => ({
     value: String(zona),
-    color: coloreZona(zona, numeroZone),
+    color: zoneColor(zona, numeroZone),
     label: `Zona ${zona + 1}`,
   }));
 }

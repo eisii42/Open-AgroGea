@@ -1,11 +1,11 @@
 import type {
-  Appezzamento,
-  CampoCampagna,
+  Plot,
+  PlotCampaign,
   Crop,
-  DssRisultato,
-  LetturaMeteo,
-  Raccolta,
-  RegistroTrattamento,
+  DssResult,
+  WeatherReading,
+  Harvest,
+  TreatmentLog,
   SoilWaterIndex,
 } from "@agrogea/core";
 
@@ -32,16 +32,16 @@ export interface ChartData {
   empty: boolean;
 }
 
-/** Bundle di dominio (già nello scope dei filtri) passato ai builder. */
+/** Bundle di dominio (già nello scope dei filters) passato ai builder. */
 export interface DashboardData {
-  appezzamenti: Appezzamento[];
+  plots: Plot[];
   crops: Crop[];
-  campaigns: CampoCampagna[];
-  trattamenti: RegistroTrattamento[];
-  raccolte: Raccolta[];
+  campaigns: PlotCampaign[];
+  treatments: TreatmentLog[];
+  harvests: Harvest[];
   soilIndices: SoilWaterIndex[];
-  weather: LetturaMeteo[];
-  dssRisultati: DssRisultato[];
+  weather: WeatherReading[];
+  dssResults: DssResult[];
 }
 
 export interface PresetDef {
@@ -87,7 +87,7 @@ export function r1(n: number): number {
 // Preset multi-serie
 // ---------------------------------------------------------------------------
 
-/** Bilancio idrico giornaliero (media sugli appezzamenti nello scope, ultimi ~75gg). */
+/** Bilancio idrico giornaliero (media sugli plots nello scope, ultimi ~75gg). */
 function buildWaterBalance(d: DashboardData): ChartData {
   const byDay = new Map<
     string,
@@ -178,7 +178,7 @@ interface SoilDay {
   n: number;
 }
 
-/** Media giornaliera (tra appezzamenti) degli indici idrici, ordinata per data. */
+/** Media giornaliera (tra plots) degli indici idrici, ordinata per data. */
 function soilDaily(d: DashboardData): [string, SoilDay][] {
   const m = new Map<string, SoilDay>();
   for (const s of d.soilIndices) {
@@ -208,7 +208,7 @@ interface WeatherDay {
   rain: number;
 }
 
-/** Aggregazione giornaliera delle letture meteo (orarie → giorno), ordinata. */
+/** Aggregazione giornaliera delle readings meteo (orarie → giorno), ordinata. */
 function weatherDaily(d: DashboardData): [string, WeatherDay][] {
   const m = new Map<string, WeatherDay>();
   for (const w of d.weather) {
@@ -217,7 +217,7 @@ function weatherDaily(d: DashboardData): [string, WeatherDay][] {
     const c = m.get(k) ?? { temps: [], rh: [], wet: 0, rain: 0 };
     if (w.air_temperature != null) c.temps.push(w.air_temperature);
     if (w.relative_humidity != null) c.rh.push(w.relative_humidity);
-    if (w.leaf_wetness != null) c.wet += w.leaf_wetness; // frazione/ora → ore/giorno
+    if (w.leaf_wetness != null) c.wet += w.leaf_wetness; // frazione/ora → ore/day
     if (w.rain_mm != null) c.rain += w.rain_mm;
     m.set(k, c);
   }
@@ -228,7 +228,7 @@ function mean(v: number[]): number {
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0;
 }
 
-/** N% dal titolo NPK ("15-15-15" → 15). null se non interpretabile. */
+/** N% dal title NPK ("15-15-15" → 15). null se non interpretabile. */
 function nitrogenPct(npk: string | null): number | null {
   if (!npk) return null;
   const first = npk.split(/[-/\s]+/)[0]?.replace(",", ".");
@@ -335,7 +335,7 @@ function buildGddCumulative(d: DashboardData): ChartData {
 }
 
 /** Condizioni favorevoli alle infezioni fungine: bagnatura, RH media e pioggia, ~60gg. */
-function buildInfectionMeteo(d: DashboardData): ChartData {
+function buildInfectionWeather(d: DashboardData): ChartData {
   const rows = weatherDaily(d)
     .slice(-60)
     .map(([k, c]) => ({
@@ -356,10 +356,10 @@ function buildInfectionMeteo(d: DashboardData): ChartData {
   };
 }
 
-/** Azoto distribuito CUMULATO (kg) dalle fertilizzazioni (titolo NPK × quantità). */
+/** Azoto distribuito CUMULATO (kg) dalle fertilizzazioni (title NPK × quantità). */
 function buildNitrogenCumulative(d: DashboardData): ChartData {
   const byDay = new Map<string, number>();
-  for (const t of d.trattamenti) {
+  for (const t of d.treatments) {
     if (t.deleted_at != null || t.operation_type !== "fertilization") continue;
     const npct = nitrogenPct(t.npk_ratio);
     const qty = t.total_quantity;
@@ -418,7 +418,7 @@ export const PRESETS: PresetDef[] = [
     id: "infection_meteo",
     label: "Condizioni infettive (bagnatura/RH/pioggia)",
     types: ["line", "area", "bar"],
-    build: buildInfectionMeteo,
+    build: buildInfectionWeather,
   },
   {
     id: "nitrogen_cumulative",
@@ -463,7 +463,7 @@ function inRange(v: string | Date, range: TemporalRange): boolean {
 
 /**
  * Restringe il bundle al periodo dato per CAMPO DATA di ogni entità (operazioni,
- * raccolte, indici idrici, meteo, DSS). Anagrafiche/colture/campagne restano (sono
+ * harvests, indici idrici, meteo, DSS). Anagrafiche/crops/campagne restano (sono
  * metadati, non eventi datati). `from`/`to` entrambi null = nessun filtro.
  */
 export function filterByRange(
@@ -473,10 +473,10 @@ export function filterByRange(
   if (!range.from && !range.to) return data;
   return {
     ...data,
-    trattamenti: data.trattamenti.filter((t) => inRange(t.executed_at, range)),
-    raccolte: data.raccolte.filter((r) => inRange(r.harvested_at, range)),
+    treatments: data.treatments.filter((t) => inRange(t.executed_at, range)),
+    harvests: data.harvests.filter((r) => inRange(r.harvested_at, range)),
     soilIndices: data.soilIndices.filter((s) => inRange(s.date, range)),
     weather: data.weather.filter((w) => inRange(w.measured_at, range)),
-    dssRisultati: data.dssRisultati.filter((d) => inRange(d.calculated_at, range)),
+    dssResults: data.dssResults.filter((d) => inRange(d.calculated_at, range)),
   };
 }

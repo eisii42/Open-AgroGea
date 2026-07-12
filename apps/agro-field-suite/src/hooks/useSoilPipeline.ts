@@ -1,0 +1,309 @@
+import { boundingBox, useAgroStore } from "@agrogea/core";
+import type { Plot } from "@agrogea/core";
+import {
+  searchSceneSeries,
+  filterWindowFromLatest,
+  type VegetationIndex,
+} from "@agrogea/tools";
+import {
+  DEFAULT_LAYER_STYLE,
+  type GeoLibreLayer,
+  useAppStore,
+} from "@geolibre/core";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type {
+  OverlayRaster,
+  SeriesPoint,
+  SoilJob,
+  SoilProgress,
+} from "../workers/soil.worker";
+
+/**
+ * Pipeline indici del module Suolo (refactor STAC). Orchestrazione main-thread
+ * della ricerca STAC (multi-index, multi-plot, filtro cloud cover,
+ * strategie temporali) e del worker di calcolo. Per ogni plot:
+ *
+ *   1. bbox del poligono → `searchSceneSeries` (series storica filtrata);
+ *   2. worker `soil.worker` → medie per index e per data + overlay RGBA
+ *      dell'index primario sulla scena più recente;
+ *   3. l'overlay viene iniettato come layer `image` georeferenziato nello store
+ *      GeoLibre (sopra la basemap, persistente al cambio basemap via syncLayers);
+ *   4. la media NDVI più recente è salvata nella cache offline (DAL).
+ */
+
+export type StrategiaTemporale =
+  | { type: "ultima" }
+  | { type: "intervallo"; days: number }
+  /** Intervallo esplicito (ISO date "YYYY-MM-DD"), max 60 giorni. */
+  | { type: "personalizzato"; inizio: string; fine: string };
+
+/** Tetto dell'analisi personalizzata: l'intervallo non può superare i 60 giorni. */
+export const MAX_CUSTOM_DAYS = 60;
+
+export interface SoilOptions {
+  indices: VegetationIndex[];
+  primaryIndex: VegetationIndex;
+  cloudCoverMax: number;
+  strategia: StrategiaTemporale;
+}
+
+export interface PlotResult {
+  plotId: string;
+  name: string;
+  series: SeriesPoint[];
+}
+
+export type SoilStatus =
+  | { phase: "idle" }
+  | {
+      phase: "lavorazione";
+      label: string;
+      appezzamentoCorrente: number;
+      appezzamentiTotali: number;
+    }
+  | {
+      phase: "completato";
+      results: PlotResult[];
+      indices: VegetationIndex[];
+      primaryIndex: VegetationIndex;
+    }
+  | { phase: "errore"; message: string };
+
+const OVERLAY_PREFIX = "agrogea-overlay-";
+
+/**
+ * Normalizza l'intervallo personalizzato: ordina gli estremi e taglia la durata
+ * a {@link MAX_CUSTOM_DAYS} giorni (difesa lato pipeline, oltre alla
+ * validazione UI). La fine è inclusa fino a fine giornata.
+ */
+function clampRange(
+  inizioISO: string,
+  fineISO: string,
+): { inizio: Date; fine: Date } {
+  let inizio = new Date(inizioISO);
+  let fine = new Date(fineISO);
+  if (fine < inizio) [inizio, fine] = [fine, inizio];
+  // La fine copre l'intera giornata selezionata.
+  fine.setHours(23, 59, 59, 999);
+  const maxMs = MAX_CUSTOM_DAYS * 24 * 3600 * 1000;
+  if (fine.getTime() - inizio.getTime() > maxMs) {
+    inizio = new Date(fine.getTime() - maxMs);
+  }
+  return { inizio, fine };
+}
+
+/** Converte il buffer RGBA dell'overlay in un data-URL PNG (solo main thread). */
+function rgbaToDataUrl(overlay: OverlayRaster): string {
+  const canvas = document.createElement("canvas");
+  canvas.width = overlay.width;
+  canvas.height = overlay.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D non available per l'overlay.");
+  // Copia in un buffer ArrayBuffer dedicato: dopo il transfer dal worker il
+  // tipo è Uint8ClampedArray<ArrayBufferLike>, che ImageData non accetta.
+  const pixels = new Uint8ClampedArray(overlay.rgba);
+  ctx.putImageData(
+    new ImageData(pixels, overlay.width, overlay.height),
+    0,
+    0,
+  );
+  return canvas.toDataURL("image/png");
+}
+
+/** Rimuove tutti gli overlay d'index dallo store (prima di un nuovo calcolo). */
+function removeOverlay(): void {
+  const store = useAppStore.getState();
+  for (const layer of store.layers) {
+    if (layer.id.startsWith(OVERLAY_PREFIX)) store.removeLayer(layer.id);
+  }
+}
+
+/** Inietta l'overlay raster come layer `image` sopra gli altri layer (in cima). */
+function iniettaOverlay(plotId: string, overlay: OverlayRaster): void {
+  const store = useAppStore.getState();
+  const id = `${OVERLAY_PREFIX}${plotId}`;
+  const layer: GeoLibreLayer = {
+    id,
+    name: `Indice ${overlay.index.toUpperCase()}`,
+    type: "image",
+    source: {
+      type: "image",
+      url: rgbaToDataUrl(overlay),
+      coordinates: overlay.coordinates,
+    },
+    visible: true,
+    opacity: 0.85,
+    style: { ...DEFAULT_LAYER_STYLE },
+    metadata: { agrogea: true, overlay: true, index: overlay.index },
+    sourcePath: `agrogea://overlay-${plotId}`,
+  };
+  if (store.layers.some((l) => l.id === id)) {
+    store.updateLayer(id, {
+      source: layer.source,
+      name: layer.name,
+      metadata: layer.metadata,
+    });
+  } else {
+    // Append (in cima): il raster dell'index resta visibile sopra il poligono.
+    store.addLayer(layer);
+  }
+}
+
+export function useSoilPipeline() {
+  const saveMeanNdvi = useAgroStore((s) => s.saveMeanNdvi);
+  const [status, setStatus] = useState<SoilStatus>({ phase: "idle" });
+  const workerRef = useRef<Worker | null>(null);
+
+  useEffect(() => {
+    const worker = new Worker(
+      new URL("../workers/soil.worker.ts", import.meta.url),
+      { type: "module" },
+    );
+    workerRef.current = worker;
+    return () => {
+      worker.terminate();
+      workerRef.current = null;
+    };
+  }, []);
+
+  const runJob = useCallback(
+    (job: SoilJob, onProgress: (p: SoilProgress) => void) =>
+      new Promise<{ series: SeriesPoint[]; overlay: OverlayRaster | null }>(
+        (resolve, reject) => {
+          const worker = workerRef.current;
+          if (!worker) {
+            reject(new Error("Worker non inizializzato."));
+            return;
+          }
+          const onMessage = (e: MessageEvent<SoilProgress>) => {
+            const msg = e.data;
+            if (msg.type === "progress") {
+              onProgress(msg);
+              return;
+            }
+            worker.removeEventListener("message", onMessage);
+            if (msg.type === "error") reject(new Error(msg.message));
+            else resolve({ series: msg.series, overlay: msg.overlay });
+          };
+          worker.addEventListener("message", onMessage);
+          worker.postMessage(job);
+        },
+      ),
+    [],
+  );
+
+  const compute = useCallback(
+    async (plots: Plot[], options: SoilOptions) => {
+      if (plots.length === 0 || options.indices.length === 0) return;
+      removeOverlay();
+      const results: PlotResult[] = [];
+
+      try {
+        const strategia = options.strategia;
+        // Parametri di ricerca STAC comuni a tutti gli plots: intervallo
+        // esplicito per l'analisi personalizzata (capato a 60 gg), altrimenti N
+        // giorni indietro ("ultima" usa una finestra ampia per trovare l'ultimo
+        // passaggio utile).
+        const datetimeRange =
+          strategia.type === "personalizzato"
+            ? clampRange(strategia.inizio, strategia.fine)
+            : undefined;
+        // Finestra di RICERCA STAC: sempre generosa, così si aggancia l'ultimo
+        // passaggio utile anche se più vecchio del periodo richiesto (i passaggi
+        // recenti possono essere tutti nuvolosi). Per le strategie a intervallo
+        // la series viene poi ancorata agli ultimi N giorni dall'ultima scena.
+        const searchDays =
+          strategia.type === "intervallo" ? strategia.days + 90 : 120;
+
+        for (let i = 0; i < plots.length; i++) {
+          const plot = plots[i];
+          setStatus({
+            phase: "lavorazione",
+            label: `Ricerca scene · ${plot.user_plot_name}`,
+            appezzamentoCorrente: i + 1,
+            appezzamentiTotali: plots.length,
+          });
+
+          const bbox = boundingBox(plot.geometry);
+          let sceneSeries = await searchSceneSeries(bbox, {
+            indices: options.indices,
+            cloudCoverMax: options.cloudCoverMax,
+            ...(datetimeRange
+              ? { datetimeRange }
+              : { giorniIndietro: searchDays }),
+          });
+          // Intervallo "ultimi N gg": ancora la finestra all'ultima scena utile.
+          if (strategia.type === "intervallo") {
+            sceneSeries = filterWindowFromLatest(sceneSeries, strategia.days);
+          }
+          if (sceneSeries.length === 0) {
+            results.push({
+              plotId: plot.id,
+              name: plot.user_plot_name,
+              series: [],
+            });
+            continue;
+          }
+
+          // "ultima": solo la scena più recente; intervallo/personalizzato:
+          // tutta la series (per il grafico di trend).
+          const scene =
+            strategia.type === "ultima" ? [sceneSeries[0]] : sceneSeries;
+
+          const job: SoilJob = {
+            type: "suolo",
+            scene,
+            indices: options.indices,
+            primaryIndex: options.primaryIndex,
+            geometria: plot.geometry,
+            bbox,
+          };
+          const { series, overlay } = await runJob(job, (p) => {
+            if (p.type !== "progress") return;
+            setStatus({
+              phase: "lavorazione",
+              label: `Calcolo indices · ${plot.user_plot_name} (scena ${p.scenaCorrente}/${p.sceneTotali})`,
+              appezzamentoCorrente: i + 1,
+              appezzamentiTotali: plots.length,
+            });
+          });
+
+          if (overlay) iniettaOverlay(plot.id, overlay);
+
+          // Cache offline della media NDVI più recente (series crescente: ultimo
+          // = più recente), così la scheda plot la mostra offline.
+          const ndviRecente = series.at(-1)?.medie.ndvi;
+          if (ndviRecente != null && !Number.isNaN(ndviRecente)) {
+            await saveMeanNdvi(plot.id, Math.round(ndviRecente * 1000) / 1000);
+          }
+
+          results.push({
+            plotId: plot.id,
+            name: plot.user_plot_name,
+            series,
+          });
+        }
+
+        setStatus({
+          phase: "completato",
+          results,
+          indices: options.indices,
+          primaryIndex: options.primaryIndex,
+        });
+      } catch (error) {
+        setStatus({
+          phase: "errore",
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+    [runJob, saveMeanNdvi],
+  );
+
+  const reset = useCallback(() => {
+    removeOverlay();
+    setStatus({ phase: "idle" });
+  }, []);
+
+  return { status, compute, reset };
+}

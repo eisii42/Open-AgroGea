@@ -188,7 +188,7 @@
       "notifyTitle": "AgroGea updates"
     }
   },
-  "quadernoPanel": {
+  "logbookPanel": {
     "fieldFallbackName": "Field {{id}}",
     "notification": {
       "removed": "Operation removed: {{label}}"
@@ -262,7 +262,7 @@
       "error": "error"
     }
   },
-  "useDssCalcolo": {
+  "useDssCalculation": {
     "offlineFallback": "Offline or fetch failed ({{error}}). Using local data.",
     "useLocalWeatherData": "Using local weather data.",
     "noWeatherData": "No weather data available: configure the source or connect for the first download.",
@@ -270,7 +270,7 @@
     "plotCalculationError": "Calculation error for this plot.",
     "dssCalculationError": "DSS calculation error."
   },
-  "importaFascicolo": {
+  "importDossier": {
     "noActiveCompany": "No active company: cannot import the Fascicolo.",
     "sianCrop": "SIAN crop",
     "sianPlotName": "SIAN {{reference}}/{{parcel}}",
@@ -288,7 +288,7 @@
     "missingStationConfig": "Missing weather station configuration.",
     "noPlotGeometryForStation": "No plot with geometry: cannot locate the weather station."
   },
-  "bilancioIdricoPanel": {
+  "waterBalancePanel": {
     "title": "Water · Water balance",
     "computing": "Computing…",
     "computeBalance": "Compute balance",
@@ -329,7 +329,7 @@
     "exportMoistureHistory": "Export moisture history",
     "registerCropHint": "Register the crop in the Farm Campaign to archive the historical water index series."
   },
-  "anagraficaPanel": {
+  "registryPanel": {
     "title": "Company Registry",
     "subtitle": "Company data and codes · synced like all other data.",
     "selectCompany": "Select a company to edit its registry data.",
@@ -378,7 +378,7 @@
       "contactRolePlaceholder": "e.g. owner, agronomist"
     }
   },
-  "raccoltaPanel": {
+  "harvestPanel": {
     "title": "Harvests",
     "newHarvest": "New harvest",
     "harvestFallbackLabel": "Harvest",
@@ -412,6 +412,10 @@
       }
     },
     "saveAction": "Save",
+    "map": {
+      "hide": "Hide from map ({{count}})",
+      "show": "Show on map ({{count}})"
+    },
     "emptyState": "No harvests recorded for this company.",
     "openCard": "Open harvest record",
     "wholeFarmLower": "whole farm",
@@ -429,7 +433,7 @@
       "essiccazione": "drying"
     }
   },
-  "impostazioniPanel": {
+  "settingsPanel": {
     "title": "Weather source & variables",
     "saved": "Saved ✓",
     "saveConfig": "Save configuration",
@@ -526,7 +530,7 @@
     "titleCloud": "Company data transfer",
     "titleStandalone": "Data safety (backup/restore)"
   },
-  "confirmDeleteOperazione": {
+  "confirmDeleteOperation": {
     "confirmDelete": "Yes, delete permanently",
     "defaultConsentLabel": "I confirm I want to permanently delete this operation.",
     "defaultMessage": "deleting this operation will invalidate the Field Logbook history for this plot. This action is irreversible.",
@@ -545,7 +549,7 @@
     "noCrop": "No crop",
     "title": "Crops"
   },
-  "meteoCard": {
+  "weatherCard": {
     "today": "Today",
     "unavailable": "Weather unavailable: connect to the internet for the first download.",
     "refreshNow": "Refresh now",
@@ -689,7 +693,7 @@
     "title": "Download offline area",
     "west": "West"
   },
-  "registroGeometrie": {
+  "geometryRegistry": {
     "pointsOfInterest": "Points of interest",
     "samplingLabel": "Sampling {{id}}",
     "title": "Geometry register ({{count}})",
@@ -735,7 +739,7 @@
     "tabOffline": "Offline",
     "tabScouting": "GPS Survey"
   },
-  "operazioneForm": {
+  "operationForm": {
     "onSurface": "on {{area}} ha",
     "selectEllipsis": "Select…",
     "selectFromNationalRegister": "Select from national register…",
@@ -802,9 +806,12 @@
     "warehouseSection": "Warehouse withdrawal",
     "warehouseProduct": "Product (warehouse)",
     "warehouseLot": "Lot",
-    "warehouseQuantity": "Quantity to withdraw ({{unit}})",
+    "warehouseQuantity": "Quantity ({{unit}})",
     "warehouseAvailable": "avail. {{qty}} {{unit}}",
+    "warehouseExpiresAt": "exp. {{date}}",
     "warehouseAddRow": "+ Add withdrawal",
+    "otherProductToggle": "Other (product not in warehouse)…",
+    "useWarehouseToggle": "← Use warehouse products",
     "warehouseRemoveRow": "Remove withdrawal",
     "warehouseNoLots": "No lot available for this product: load one from the Warehouse.",
     "warehouseFreeText": "Without a withdrawal the record stays free-text (no stock movement).",
@@ -1072,7 +1079,7 @@
     "recalcAllTitle": "Calculate satellite indices, DSS and water balance for all plots",
     "refreshTitle": "Reload DSS, water balance and weather from the database"
   },
-  "suoloPanel": {
+  "soilPanel": {
     "calculateButton": "Compute from Sentinel-2 (STAC)",
     "calculating": "Calculating…",
     "charts": {
@@ -1193,7 +1200,7 @@
     "varietyFromCatalog": "Variety from catalog",
     "varietyPlaceholder": "e.g. Sangiovese, Leccino"
   },
-  "colturaPanel": {
+  "cropPanel": {
     "calculateModels": "Calculate Models",
     "calculateModelsCount": "Calculate Models ({{count}})",
     "dataTitle": "Crop data",
@@ -1445,7 +1452,7 @@
       "water": "Water input"
     }
   },
-  "operazioneDettaglioCard": {
+  "operationDetailCard": {
     "opLabel": {
       "phytosanitary": "Plant protection treatment",
       "fertilization": "Fertilization",
@@ -1485,7 +1492,7 @@
     "delete": "Delete",
     "close": "Close"
   },
-  "raccoltaDettaglioCard": {
+  "harvestDetailCard": {
     "harvest": "Harvest",
     "section": {
       "cropPlot": "Crop & plot",

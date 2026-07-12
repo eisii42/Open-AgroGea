@@ -5,10 +5,10 @@ import { useCallback, useEffect } from "react";
  * Undo/Redo delle modifiche geometriche, DAL-aware.
  *
  * GeoLibre core ha un undo/redo nativo (zundo `useAppStore.temporal`), ma traccia
- * i LAYER: nel modello agro la verità è in PGlite (i layer sono solo proiezione),
+ * i LAYER: nel model agro la verità è in PGlite (i layer sono solo proiezione),
  * quindi annullarlo a livello layer desincronizzerebbe layer↔DB. Qui l'undo/redo
  * opera sullo store agronomico: riapplica al DAL la geometria PRIMA/DOPO ogni
- * salvataggio (vedi `undoGeometria`/`redoGeometria` + le pile in `@agrogea/core`),
+ * salvataggio (vedi `undoGeometry`/`redoGeometry` + le pile in `@agrogea/core`),
  * e il layer si riproietta da sé. Scorciatoie Ctrl/Cmd+Z (annulla),
  * Ctrl/Cmd+Shift+Z o Ctrl+Y (ripristina), inattive nei campi di testo.
  */
@@ -33,15 +33,15 @@ function isEditableTarget(target: EventTarget | null): boolean {
 export function useGeometryUndoRedo(): UndoRedoApi {
   const canUndo = useAgroStore((s) => s.geometryUndo.length > 0);
   const canRedo = useAgroStore((s) => s.geometryRedo.length > 0);
-  const undoGeometria = useAgroStore((s) => s.undoGeometria);
-  const redoGeometria = useAgroStore((s) => s.redoGeometria);
+  const undoGeometry = useAgroStore((s) => s.undoGeometry);
+  const redoGeometry = useAgroStore((s) => s.redoGeometry);
 
   const undo = useCallback(() => {
-    void undoGeometria();
-  }, [undoGeometria]);
+    void undoGeometry();
+  }, [undoGeometry]);
   const redo = useCallback(() => {
-    void redoGeometria();
-  }, [redoGeometria]);
+    void redoGeometry();
+  }, [redoGeometry]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -56,10 +56,10 @@ export function useGeometryUndoRedo(): UndoRedoApi {
       const s = useAgroStore.getState();
       if (isUndo && s.geometryUndo.length > 0) {
         e.preventDefault();
-        void s.undoGeometria();
+        void s.undoGeometry();
       } else if (isRedo && s.geometryRedo.length > 0) {
         e.preventDefault();
-        void s.redoGeometria();
+        void s.redoGeometry();
       }
     };
     window.addEventListener("keydown", onKey);

@@ -1,10 +1,10 @@
 import { v4 as uuidv4 } from "uuid";
 
 /**
- * Helper condivisi di scrittura del DAL: serializzazione riga → SQL e
- * costruzione dell'upsert idempotente. Unico punto in cui si genera la
+ * Helper condivisi di scrittura del DAL: serializzazione row → SQL e
+ * costruzione dell'upsert idempotente. Unico punto in cui si generate la
  * clausola `on conflict (id) do update`, usata da scritture con outbox,
- * ingestioni local-only e applicazione delle righe remote.
+ * ingestioni local-only e applicazione delle rows remote.
  */
 
 export type Row = Record<string, unknown>;
@@ -47,7 +47,7 @@ export function columnsAndValues(row: Row): {
 
 /**
  * SQL di upsert per id: `insert … on conflict (id) do update` su tutte le
- * colonne tranne chiavi e `created_at`. Con `lww: true` l'update è condizionato
+ * columns tranne chiavi e `created_at`. Con `lww: true` l'update è condizionato
  * a `updated_at` non più recente in locale (Last-Write-Wins del pull remoto).
  */
 export function upsertSql(

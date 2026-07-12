@@ -188,7 +188,7 @@
       "notifyTitle": "Aggiornamenti AgroGea"
     }
   },
-  "quadernoPanel": {
+  "logbookPanel": {
     "fieldFallbackName": "Campo {{id}}",
     "notification": {
       "removed": "Operazione rimossa: {{label}}"
@@ -262,7 +262,7 @@
       "error": "errore"
     }
   },
-  "useDssCalcolo": {
+  "useDssCalculation": {
     "offlineFallback": "Offline o fetch non riuscito ({{error}}). Uso i dati locali.",
     "useLocalWeatherData": "Uso i dati meteo locali.",
     "noWeatherData": "Nessun dato meteo disponibile: configura la fonte o connettiti per il primo scaricamento.",
@@ -270,7 +270,7 @@
     "plotCalculationError": "Errore di calcolo per questo appezzamento.",
     "dssCalculationError": "Errore di calcolo DSS."
   },
-  "importaFascicolo": {
+  "importDossier": {
     "noActiveCompany": "Nessuna azienda attiva: impossibile importare il Fascicolo.",
     "sianCrop": "Coltura SIAN",
     "sianPlotName": "SIAN {{reference}}/{{parcel}}",
@@ -288,7 +288,7 @@
     "missingStationConfig": "Configurazione centralina mancante.",
     "noPlotGeometryForStation": "Nessun appezzamento con geometria: impossibile localizzare la stazione meteo."
   },
-  "bilancioIdricoPanel": {
+  "waterBalancePanel": {
     "title": "Acqua · Bilancio idrico",
     "computing": "Calcolo…",
     "computeBalance": "Calcola bilancio",
@@ -329,7 +329,7 @@
     "exportMoistureHistory": "Esporta storico umidità",
     "registerCropHint": "Registra la coltura in Campagna Agraria per archiviare la serie storica degli indici idrici."
   },
-  "anagraficaPanel": {
+  "registryPanel": {
     "title": "Anagrafica Azienda",
     "subtitle": "Dati e codici dell'azienda · sincronizzati come gli altri dati.",
     "selectCompany": "Seleziona un'azienda per modificarne l'anagrafica.",
@@ -378,7 +378,7 @@
       "contactRolePlaceholder": "es. titolare, agronomo"
     }
   },
-  "raccoltaPanel": {
+  "harvestPanel": {
     "title": "Raccolte",
     "newHarvest": "Nuova raccolta",
     "harvestFallbackLabel": "Raccolta",
@@ -412,6 +412,10 @@
       }
     },
     "saveAction": "Salva",
+    "map": {
+      "hide": "Nascondi dalla mappa ({{count}})",
+      "show": "Mostra sulla mappa ({{count}})"
+    },
     "emptyState": "Nessuna raccolta registrata per quest'azienda.",
     "openCard": "Apri scheda raccolta",
     "wholeFarmLower": "intera azienda",
@@ -429,7 +433,7 @@
       "essiccazione": "essiccazione"
     }
   },
-  "impostazioniPanel": {
+  "settingsPanel": {
     "title": "Fonte meteo & variabili",
     "saved": "Salvato ✓",
     "saveConfig": "Salva configurazione",
@@ -526,7 +530,7 @@
     "titleCloud": "Trasferimento dati azienda",
     "titleStandalone": "Sicurezza dati (backup/ripristino)"
   },
-  "confirmDeleteOperazione": {
+  "confirmDeleteOperation": {
     "confirmDelete": "Sì, elimina definitivamente",
     "defaultConsentLabel": "Confermo di voler eliminare definitivamente questa operazione.",
     "defaultMessage": "l'eliminazione di questa operazione invaliderà lo storico del Quaderno di Campagna per questo appezzamento. L'azione è irreversibile.",
@@ -545,7 +549,7 @@
     "noCrop": "Senza coltura",
     "title": "Colture"
   },
-  "meteoCard": {
+  "weatherCard": {
     "today": "Oggi",
     "unavailable": "Meteo non disponibile: connettiti per il primo scaricamento.",
     "refreshNow": "Aggiorna ora",
@@ -689,7 +693,7 @@
     "title": "Download area offline",
     "west": "Ovest"
   },
-  "registroGeometrie": {
+  "geometryRegistry": {
     "pointsOfInterest": "Punti di interesse",
     "samplingLabel": "Campionamento {{id}}",
     "title": "Registro geometrie ({{count}})",
@@ -735,7 +739,7 @@
     "tabOffline": "Offline",
     "tabScouting": "Rilievo GPS"
   },
-  "operazioneForm": {
+  "operationForm": {
     "onSurface": "su {{area}} ha",
     "selectEllipsis": "Seleziona…",
     "selectFromNationalRegister": "Seleziona dal registro nazionale…",
@@ -802,9 +806,12 @@
     "warehouseSection": "Scarico da magazzino",
     "warehouseProduct": "Prodotto (magazzino)",
     "warehouseLot": "Lotto",
-    "warehouseQuantity": "Quantità da scaricare ({{unit}})",
+    "warehouseQuantity": "Quantità ({{unit}})",
     "warehouseAvailable": "disp. {{qty}} {{unit}}",
+    "warehouseExpiresAt": "scad. {{date}}",
     "warehouseAddRow": "+ Aggiungi scarico",
+    "otherProductToggle": "Altro (prodotto non in magazzino)…",
+    "useWarehouseToggle": "← Usa i prodotti del magazzino",
     "warehouseRemoveRow": "Rimuovi scarico",
     "warehouseNoLots": "Nessun lotto disponibile per questo prodotto: caricane uno dal Magazzino.",
     "warehouseFreeText": "Senza scarico la registrazione resta a testo libero (nessun movimento di giacenza).",
@@ -1072,7 +1079,7 @@
     "recalcAllTitle": "Calcola indici satellitari, DSS e bilancio idrico per tutti gli appezzamenti",
     "refreshTitle": "Ricarica DSS, bilancio idrico e meteo dal database"
   },
-  "suoloPanel": {
+  "soilPanel": {
     "calculateButton": "Calcola da Sentinel-2 (STAC)",
     "calculating": "Calcolo in corso…",
     "charts": {
@@ -1193,7 +1200,7 @@
     "varietyFromCatalog": "Varietà da catalogo",
     "varietyPlaceholder": "es. Sangiovese, Leccino"
   },
-  "colturaPanel": {
+  "cropPanel": {
     "calculateModels": "Calcola Modelli",
     "calculateModelsCount": "Calcola Modelli ({{count}})",
     "dataTitle": "Dati coltura",
@@ -1445,7 +1452,7 @@
       "water": "Apporti irrigui"
     }
   },
-  "operazioneDettaglioCard": {
+  "operationDetailCard": {
     "opLabel": {
       "phytosanitary": "Trattamento fitosanitario",
       "fertilization": "Fertilizzazione",
@@ -1485,7 +1492,7 @@
     "delete": "Elimina",
     "close": "Chiudi"
   },
-  "raccoltaDettaglioCard": {
+  "harvestDetailCard": {
     "harvest": "Raccolta",
     "section": {
       "cropPlot": "Coltura & appezzamento",

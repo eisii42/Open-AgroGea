@@ -17,11 +17,11 @@ import type { TFunction } from "i18next";
 import agrogeaLogo from "../assets/agrogea-logo.png";
 import { AddDataControl } from "./AddDataControl";
 import { HelpMenu } from "./help/HelpMenu";
-import { MeteoCard } from "./MeteoCard";
+import { WeatherCard } from "../modules/weather/WeatherCard";
 
 /**
- * Header della suite (Modulo UI §6): logo, switcher azienda, LED di stato sync
- * (verde/ambra/rosso/grigio sull'outbox PGlite), selettore tema e menu profilo.
+ * Header della suite (Modulo UI §6): logo, switcher company, LED di stato sync
+ * (verde/ambra/rosso/grigio sull'outbox PGlite), selettore tema e menu profile.
  * Barra fissa in alto; la mappa vive sotto e non viene mai rimontata.
  */
 
@@ -48,13 +48,13 @@ export function AppHeader({
 }: {
   /**
    * Apre la Command Palette globale (gestita dalla FieldDashboard). Assente nel
-   * Data Command Center, dove la palette mappa-centrica non è disponibile.
+   * Data Command Center, dove la palette mappa-centrica non è available.
    */
   onOpenCommandPalette?: () => void;
 }) {
   const { t } = useTranslation();
-  const aziende = useAgroStore((s) => s.aziende);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
+  const companies = useAgroStore((s) => s.companies);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const sync = useAgroStore((s) => s.sync);
   const theme = useAgroStore((s) => s.theme);
   const setTheme = useAgroStore((s) => s.setTheme);
@@ -63,7 +63,7 @@ export function AppHeader({
   const setActiveView = useAgroStore((s) => s.setActiveView);
   const flags = useSettingsStore((s) => s.dashboardLayout);
 
-  const azienda = aziende.find((a) => a.id === aziendaAttivaId);
+  const company = companies.find((a) => a.id === activeCompanyId);
   const led = syncLed(sync.state, sync.pendingCount, t);
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -97,22 +97,22 @@ export function AppHeader({
         </span>
       </div>
 
-      {/* Indicatore azienda: una sola azienda attiva, nessun cambio possibile.
-          Display statico (non più un pulsante): mostra "-" finché il nome non è
-          impostato, poi il nome dell'azienda. */}
+      {/* Indicatore company: una sola company attiva, nessun cambio possibile.
+          Display statico (non più un pulsante): mostra "-" finché il name non è
+          impostato, poi il name dell'azienda. */}
       <div
         className="flex min-h-[36px] min-w-0 shrink items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] px-2 text-left"
-        title={azienda?.business_name ?? undefined}
+        title={company?.business_name ?? undefined}
       >
         <Building2 size={15} className="shrink-0 text-[var(--ink-3)]" />
         <span className="truncate text-sm font-medium">
-          {azienda?.business_name ?? "-"}
+          {company?.business_name ?? "-"}
         </span>
       </div>
 
       {/* Add Data globale (GeoLibre 1.2): ingresso unico dei file esterni.
           Nascosto sotto sm: sui telefoni la barra si affollava troppo, e
-          l'import dati esterni non è un'azione da campo di prima necessità. */}
+          l'import dati esterni non è un'azione da field di before necessità. */}
       {flags.headerAddData && (
         <div className="hidden shrink-0 sm:block">
           <AddDataControl />
@@ -123,7 +123,7 @@ export function AppHeader({
           Nascosta sotto sm per lo stesso motivo dell'Add Data. */}
       {flags.headerMeteoCard && (
         <div className="hidden shrink-0 sm:block">
-          <MeteoCard />
+          <WeatherCard />
         </div>
       )}
 
@@ -183,7 +183,7 @@ export function AppHeader({
           </button>
         )}
 
-        {/* Selettore tema: su mobile solo l'icona del tema attivo (tap = ciclo
+        {/* Selettore tema: su mobile solo l'icona del tema active (tap = ciclo
             tra i 3 temi) per non affollare l'header; da sm in su tutti e 3. */}
         <div className="hidden items-center gap-0.5 rounded-[var(--r-2)] bg-[var(--panel-2)] p-0.5 sm:flex">
           {THEME_OPTIONS.map(({ id, labelKey, Icon }) => (
@@ -222,10 +222,10 @@ export function AppHeader({
         </button>
 
         {/* Menu di Aiuto: Command Palette, scorciatoie, diagnostica, feedback,
-            aggiornamenti, informazioni. Accanto al menu profilo. */}
+            aggiornamenti, informazioni. Accanto al menu profile. */}
         <HelpMenu onOpenCommandPalette={onOpenCommandPalette ?? (() => {})} />
 
-        {/* Menu profilo */}
+        {/* Menu profile */}
         <div className="relative" ref={menuRef}>
           <button
             type="button"
@@ -241,8 +241,8 @@ export function AppHeader({
                 type="button"
                 onClick={() => {
                   setMenuOpen(false);
-                  if (!useAgroStore.getState().openPanels.includes("profilo")) {
-                    togglePanel("profilo");
+                  if (!useAgroStore.getState().openPanels.includes("profile")) {
+                    togglePanel("profile");
                   }
                 }}
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--panel-2)]"

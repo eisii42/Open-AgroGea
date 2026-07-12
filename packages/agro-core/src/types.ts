@@ -20,17 +20,17 @@ export interface AuthSession {
 export type StorageConfig =
   | {
       /** Data plane gestito dall'edizione (backend remoto dell'adapter). */
-      tipo: "cloud";
+      kind: "cloud";
     }
   | {
-      tipo: "on_premise";
+      kind: "on_premise";
       /**
-       * Identificatore del profilo di connessione PostgreSQL privato del
+       * Identificatore del profile di connessione PostgreSQL privato del
        * cliente. La stringa di connessione vera non transita mai nel JS: vive
        * nello store cifrato di Tauri ed è risolta dal comando Rust
        * `agro_push_mutations` a partire da questo id.
        */
-      profilo_connessione: string;
+      connection_profile: string;
     }
   | {
       /**
@@ -39,16 +39,16 @@ export type StorageConfig =
        * intatto), ma nessuna push raggiunge un data plane remoto — il router usa
        * il {@link LocalOnlySyncTarget}.
        */
-      tipo: "local";
+      kind: "local";
     };
 
-/** Claims di licenza del workspace attivo. */
+/** Claims di licenza del workspace active. */
 export interface TenantClaims {
   tenantId: string;
-  licenzaAttiva: boolean;
-  configStorage: StorageConfig;
+  licenseActive: boolean;
+  storageConfig: StorageConfig;
   /** Moduli colturali sbloccati dalla licenza (es. "viticoltura"). */
-  moduli: string[];
+  modules: string[];
   /**
    * true quando il `tenantId` deriva dall'uid dell'utente (onboarding
    * self-service) anziché da una claim `tenant_id` provisionata nel JWT.
@@ -61,22 +61,22 @@ export interface TenantClaims {
 // ---------------------------------------------------------------------------
 
 /** Stato della licenza manuale gestito in `user_profiles.license_status`. */
-export type StatoLicenza = "active" | "inactive";
+export type LicenseStatus = "active" | "inactive";
 
 /**
- * Piano licenza: governa quote di aziende e posti collaboratore (lineup unico a
- * 3 livelli: `base` single-user/1 azienda, `standard` 5 aziende+team, `plus`
- * aziende illimitate+team ampio). I codici legacy (`free`/`flat_3`/`enterprise`)
+ * Piano licenza: governa quote di companies e posti collaboratore (lineup unico a
+ * 3 livelli: `base` single-user/1 company, `standard` 5 companies+team, `plus`
+ * companies illimitate+team ampio). I codici legacy (`free`/`flat_3`/`enterprise`)
  * restano accettati a runtime e ricondotti dal client (`normalizePlan`).
  */
-export type PianoLicenza = "base" | "standard" | "plus" | (string & {});
+export type LicensePlan = "base" | "standard" | "plus" | (string & {});
 
 /**
  * Preferenze d'interfaccia dell'utente, persistite cross-device su
  * `user_profiles.preferences`.
  */
-export interface UserPreferenze {
-  /** Unità di misura agronomiche (superficie, resa, apporti idrici). */
+export interface UserPreferences {
+  /** Unità di misura agronomiche (area, resa, apporti idrici). */
   units?: {
     area: "ha" | "ac";
     yield: "q" | "t" | "kg";
@@ -90,11 +90,11 @@ export interface UserPreferenze {
  * Profilo dell'utente autenticato (`public.user_profiles`), fonte autorevole
  * dello stato di licenza per il gate di onboarding.
  */
-export interface ProfiloUtente {
+export interface UserProfile {
   id: string;
   email: string;
-  license_plan: PianoLicenza;
-  license_status: StatoLicenza;
+  license_plan: LicensePlan;
+  license_status: LicenseStatus;
   /**
    * Layout della dashboard (visibilità dei moduli): flag booleani per id di
    * {@link DashboardModuleId}. Local-first su localStorage, sincronizzato qui
@@ -102,7 +102,7 @@ export interface ProfiloUtente {
    */
   dashboard_layout_config?: Record<string, boolean> | null;
   /** Altre preferenze d'interfaccia cross-device (unità, lingua). */
-  preferences?: UserPreferenze | null;
+  preferences?: UserPreferences | null;
   updated_at: string;
 }
 
@@ -111,15 +111,15 @@ export interface ProfiloUtente {
 // ---------------------------------------------------------------------------
 
 /** Categoria colturale per il dispatch dei moduli DSS (derivata da crops.common_name). */
-export type Coltura =
+export type CropType =
   | "viticoltura"
   | "cereali"
   | "olivicoltura"
   | "frutticoltura"
   | (string & {});
 
-/** Azienda agricola (`companies`). */
-export interface Azienda {
+/** Company agricola (`companies`). */
+export interface Company {
   id: string;
   tenant_id: string;
   /** Ragione sociale (ex ragione_sociale). */
@@ -189,10 +189,10 @@ export interface Crop {
 }
 
 /** Anagrafica FISICA immutabile dell'appezzamento (`plots_registry`, LPIS). */
-export interface Appezzamento {
+export interface Plot {
   id: string;
   tenant_id: string;
-  /** Azienda proprietaria (ex azienda_id, FK companies). */
+  /** Company proprietaria (ex azienda_id, FK companies). */
   company_id: string;
   /** Nome libero scelto dall'utente per l'appezzamento (LPIS: user plot name). */
   user_plot_name: string;
@@ -202,7 +202,7 @@ export interface Appezzamento {
   cadastral_parcel: string | null;
   /**
    * Superficie geodetica in ettari (NUMERIC 10,4): UNICO punto di verità per la
-   * superficie, ricalcolata dal DAL con `@turf/area` a ogni upsert. Fonte
+   * area, ricalcolata dal DAL con `@turf/area` a ogni upsert. Fonte
    * autorevole per dosi e quantità totali.
    */
   area_ha: number;
@@ -213,7 +213,7 @@ export interface Appezzamento {
   irrigation_type: string | null;
   /** Anno d'impianto (ex anno_impianto). */
   planting_year: number | null;
-  /** Note storiche del campo come entità FISICA immutabile (ex note_storiche). */
+  /** Note storiche del field come entità FISICA immutabile (ex note_storiche). */
   historical_notes?: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
@@ -222,23 +222,23 @@ export interface Appezzamento {
 }
 
 /**
- * Stato BUROCRATICO annuale di un appezzamento per una Campagna Agraria
- * (`plots_campaign`, SIAN/AGEA, LPIS/IACS). Associa un appezzamento fisico a una
- * coltura ({@link Crop}) per una determinata annata.
+ * Stato BUROCRATICO annuale di un plot per una Campagna Agraria
+ * (`plots_campaign`, SIAN/AGEA, LPIS/IACS). Associa un plot fisico a una
+ * crop ({@link Crop}) per una determinata annata.
  */
-export interface CampoCampagna {
+export interface PlotCampaign {
   id: string;
   tenant_id: string;
   plot_id: string;
-  /** Coltura della campagna (FK crops). */
+  /** CropType della campagna (FK crops). */
   crop_id: string;
   /** Anno della campagna agraria (es. 2026). */
   campaign_year: number;
   /** Identificativo Isola SIAN (reference parcel). */
   reference_parcel_external_id: string | null;
-  /** Identificativo Appezzamento SIAN (agricultural parcel). */
+  /** Identificativo Plot SIAN (agricultural parcel). */
   agricultural_parcel_external_id: string | null;
-  /** Codifica rigida ministeriale della coltura. */
+  /** Codifica rigida ministeriale della crop. */
   crop_external_code: string | null;
   /** Codifica rigida ministeriale della varietà. */
   variety_external_code: string | null;
@@ -246,7 +246,7 @@ export interface CampoCampagna {
   declared_area_ha: number;
   /**
    * Chiusura del ciclo colturale (ISO): il raccolto di un'ANNUALE termina la
-   * campagna e il campo torna libero (mappa neutra, DSS spento, nuova semina
+   * campagna e il field torna libero (mappa neutra, DSS spento, nuova semina
    * possibile nello stesso anno). `null` = campagna aperta; le perenni non si
    * chiudono mai automaticamente.
    */
@@ -256,10 +256,10 @@ export interface CampoCampagna {
   deleted_at: string | null;
 }
 
-/** Sintesi dell'ultima operazione di campagna su un appezzamento (vista dettaglio). */
-export interface UltimaOperazione {
+/** Sintesi dell'ultima operation di campagna su un plot (vista dettaglio). */
+export interface LastOperation {
   plot_id: string;
-  operation_type: TipoOperazione;
+  operation_type: OperationType;
   /** ISO della data di esecuzione (`executed_at`). */
   executed_at: string;
   product_name: string | null;
@@ -267,7 +267,7 @@ export interface UltimaOperazione {
   etichetta: string;
 }
 
-export type TipoOperazione =
+export type OperationType =
   | "phytosanitary"
   | "fertilization"
   | "irrigation"
@@ -276,22 +276,22 @@ export type TipoOperazione =
   | "harvest"
   | "sampling";
 
-export type DoseUnita = "kg/ha" | "l/ha" | "kg/hl" | "l/hl" | "g/hl" | "m3";
+export type DoseUnit = "kg/ha" | "l/ha" | "kg/hl" | "l/hl" | "g/hl" | "m3";
 
 /** Registro operazioni del Quaderno di Campagna (`treatment_logs`). */
-export interface RegistroTrattamento {
+export interface TreatmentLog {
   id: string;
   tenant_id: string;
   company_id: string;
   plot_id: string | null;
-  /** Aggancio allo stato di Campagna Agraria del campo (FK plots_campaign). */
+  /** Aggancio allo stato di Campagna Agraria del field (FK plots_campaign). */
   plot_campaign_id: string | null;
-  operation_type: TipoOperazione;
+  operation_type: OperationType;
   product_name: string | null;
   registration_number: string | null;
   dose_value: number | null;
-  dose_unit: DoseUnita | null;
-  /** dose × superficie appezzamento, congelata al momento della registrazione. */
+  dose_unit: DoseUnit | null;
+  /** dose × area plot, congelata al momento della registrazione. */
   total_quantity: number | null;
   /** Avversità/patogeno bersaglio (ex avversita_target). */
   target_disease: string | null;
@@ -324,7 +324,7 @@ export interface RegistroTrattamento {
 }
 
 /** Metrica di stazione meteo (`weather_readings`, Smart IoT / agrometeo). */
-export interface LetturaMeteo {
+export interface WeatherReading {
   id: string;
   tenant_id: string;
   company_id: string;
@@ -348,10 +348,10 @@ export interface LetturaMeteo {
 // ---------------------------------------------------------------------------
 
 /** Sorgente dei dati meteo configurata per l'azienda. */
-export type FonteDatiMeteo = "public_api" | "private_station";
+export type WeatherDataSource = "public_api" | "private_station";
 
 /** Metriche meteo che l'utente può scegliere di mostrare a schermo. */
-export type VariabileMeteo =
+export type WeatherVariable =
   | "temperature"
   | "humidity"
   | "rain"
@@ -363,16 +363,16 @@ export type VariabileMeteo =
  * Configurazione della fonte meteo dell'azienda (`weather_config`). Tabella
  * LOCAL-ONLY: non si sincronizza (contiene la `station_api_key`).
  */
-export interface ConfigMeteoAzienda {
+export interface CompanyWeatherConfig {
   company_id: string;
   tenant_id: string;
-  data_source: FonteDatiMeteo;
+  data_source: WeatherDataSource;
   api_provider: string | null;
   station_model: string | null;
   station_api_key: string | null;
   station_device_id: string | null;
   /** Variabili meteo abilitate nella UI. */
-  visible_variables: VariabileMeteo[];
+  visible_variables: WeatherVariable[];
   /** Lucchetto orario del WeatherSyncService: ultimo pull riuscito. */
   last_weather_pull_at: string | null;
   created_at: string;
@@ -380,21 +380,21 @@ export interface ConfigMeteoAzienda {
 }
 
 /** Livello di rischio sintetico di un DSS (cache `dss_results`). */
-export type LivelloRischioDss = "low" | "medium" | "high";
+export type DssRiskLevel = "low" | "medium" | "high";
 
 /** Riga di cache di un indice DSS calcolato in locale (`dss_results`). */
-export interface DssRisultato {
+export interface DssResult {
   id: string;
   plot_id: string | null;
   model_name: string;
-  risk_level: LivelloRischioDss;
+  risk_level: DssRiskLevel;
   output_value: number;
   calculated_at: string;
 }
 
 /**
  * Riga giornaliera del bilancio idrico FAO 56/66 (`soil_water_indices`).
- * LOCAL-ONLY: ricomputabile dalle letture meteo e dai log irrigui.
+ * LOCAL-ONLY: ricomputabile dalle readings meteo e dai log irrigui.
  */
 export interface SoilWaterIndex {
   id: string;
@@ -411,31 +411,31 @@ export interface SoilWaterIndex {
   deep_percolation_mm: number;
   /** Deplezione radicale Dr,t (mm). */
   depletion_mm: number;
-  /** Acqua facilmente disponibile RAW (mm). */
+  /** Acqua facilmente available RAW (mm). */
   raw_mm: number;
-  /** Acqua disponibile totale AWC (mm). */
+  /** Acqua available totale AWC (mm). */
   awc_mm: number;
   /** true se Dr,t ≥ RAW. */
   water_stress: boolean;
   calculated_at: string;
 }
 
-/** Evento di raccolta (`harvest_logs`, Modulo Raccolta). */
-export interface Raccolta {
+/** Evento di harvest (`harvest_logs`, Modulo Harvest). */
+export interface Harvest {
   id: string;
   tenant_id: string;
   company_id: string;
   plot_id: string | null;
-  /** Aggancio allo stato di Campagna Agraria del campo (FK plots_campaign). */
+  /** Aggancio allo stato di Campagna Agraria del field (FK plots_campaign). */
   plot_campaign_id: string | null;
-  /** Cultivar/varietà raccolta (categoria primaria dei grafici). */
+  /** Cultivar/varietà harvest (categoria primaria dei grafici). */
   cultivar: string | null;
-  /** Destinazione/logistica del prodotto (ex destinazione). */
+  /** Destinazione/logistica del product (ex destinazione). */
   destination_logistics: string | null;
-  /** Quantità raccolta in kg (metrica numerica aggregata: Somma/Media). */
+  /** Quantità harvest in kg (metrica numerica aggregata: Somma/Media). */
   quantity_kg: number | null;
   harvested_at: string;
-  /** Posizione del conferimento; di norma il centroide dell'appezzamento. */
+  /** Posizione del conferimento; di norma il centroid dell'appezzamento. */
   geometry: import("geojson").Point | null;
   notes: string | null;
   metadata: Record<string, unknown>;
@@ -444,8 +444,8 @@ export interface Raccolta {
   deleted_at: string | null;
 }
 
-/** Analisi di laboratorio georeferenziata del suolo (`soil_samples`). */
-export interface CampionamentoSuolo {
+/** Analisi di laboratorio georeferenziata del soil (`soil_samples`). */
+export interface SoilSample {
   id: string;
   tenant_id: string;
   company_id: string;
@@ -466,7 +466,7 @@ export interface CampionamentoSuolo {
 }
 
 /** Infrastruttura aziendale fissa o mobile (`infrastructure_assets`, CAD-GIS). */
-export interface AssetInfrastruttura {
+export interface InfrastructureAsset {
   id: string;
   tenant_id: string;
   company_id: string;
@@ -487,10 +487,10 @@ export interface AssetInfrastruttura {
 // ---------------------------------------------------------------------------
 
 /** Verso di un trasferimento dati tracciato. */
-export type TipoTrasferimento = "import" | "export";
+export type TransferType = "import" | "export";
 
 /** Formato del file trasferito (mappa spaziale o tabellare). */
-export type FormatoFile =
+export type FileFormat =
   | "csv"
   | "geojson"
   | "isoxml"
@@ -503,8 +503,8 @@ export type FormatoFile =
 export interface DataTransferLog {
   id: string;
   tenant_id: string;
-  operation_type: TipoTrasferimento;
-  file_format: FormatoFile;
+  operation_type: TransferType;
+  file_format: FileFormat;
   file_name: string;
   /** Timestamp ISO del trasferimento. */
   executed_at: string;
@@ -515,25 +515,25 @@ export interface DataTransferLog {
 // Cataloghi di stato multiregionali (Modulo 3)
 // ---------------------------------------------------------------------------
 
-/** Tipo di voce di catalogo ministeriale. */
-export type TipoCatalogo = "crop" | "phytosanitary" | "fertilizer" | "variety";
+/** Tipo di voce di catalog ministeriale. */
+export type CatalogType = "crop" | "phytosanitary" | "fertilizer" | "variety";
 
 /**
  * Voce dei cataloghi di stato (`product_catalogs`). Reference data LOCAL-ONLY
  * filtrata per `country_code`.
  */
-export interface CatalogoVoce {
+export interface CatalogEntry {
   id: string;
   /** Paese (ISO 3166-1 alpha-2) che governa la disponibilità della voce. */
   country_code: string;
-  type: TipoCatalogo;
+  type: CatalogType;
   /** Codice ministeriale rigido (ex codice). */
   code: string;
-  /** Denominazione leggibile da mostrare nei dropdown (ex nome). */
+  /** Denominazione leggibile da mostrare nei dropdown (ex name). */
   name: string;
   /** Sostanza attiva (per i fitosanitari) (ex sostanza_attiva). */
   active_substance: string | null;
-  /** Numero di registrazione nazionale del prodotto (ex numero_registrazione). */
+  /** Numero di registrazione nazionale del product (ex numero_registrazione). */
   registration_number: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
@@ -541,15 +541,15 @@ export interface CatalogoVoce {
 }
 
 // ---------------------------------------------------------------------------
-// Magazzino (0.2.0): anagrafica prodotti, lotti, scarichi per attività
+// Magazzino (0.2.0): anagrafica products, lots, issues per attività
 // ---------------------------------------------------------------------------
 
 /**
- * Categoria RIGIDA del prodotto di magazzino: determina i campi obbligatori
- * dell'anagrafica (vedi `validateProdotto` nel modulo warehouse). `other` è la
+ * Categoria RIGIDA del product di warehouse: determina i campi obbligatori
+ * dell'anagrafica (vedi `validateProduct` nel module warehouse). `other` è la
  * categoria residuale (lubrificanti, materiali di consumo) senza campi extra.
  */
-export type CategoriaProdotto =
+export type ProductCategory =
   | "phytosanitary"
   | "fertilizer"
   | "seed"
@@ -557,19 +557,19 @@ export type CategoriaProdotto =
   | "other";
 
 /**
- * Anagrafica prodotto di magazzino (`products`). I campi specifici di categoria
+ * Anagrafica product di warehouse (`products`). I campi specifici di categoria
  * sono nullable a schema; l'obbligatorietà per categoria è enforced lato TS:
- * agrofarmaci → {@link Prodotto.registration_number} (registro PAN); concimi →
- * titoli N-P-K; carburante → {@link Prodotto.uma_code} (assegnazione UMA).
+ * agrofarmaci → {@link Product.registration_number} (registro PAN); concimi →
+ * titoli N-P-K; carburante → {@link Product.uma_code} (assegnazione UMA).
  */
-export interface Prodotto {
+export interface Product {
   id: string;
   tenant_id: string;
   company_id: string;
-  category: CategoriaProdotto;
+  category: ProductCategory;
   /** Denominazione commerciale. */
   name: string;
-  /** Unità di misura della giacenza (es. "kg", "l"). */
+  /** Unità di misura della stock (es. "kg", "l"). */
   unit: string;
   /** N. di registrazione ministeriale PAN (obbligatorio per gli agrofarmaci). */
   registration_number: string | null;
@@ -586,18 +586,18 @@ export interface Prodotto {
   /** Fornitore abituale (tracciabilità e riordini). */
   supplier: string | null;
   /**
-   * CUMP corrente (Costo Unitario Medio Ponderato): media ponderata mobile
-   * sulle giacenze, aggiornata in transazione a ogni carico lotto.
+   * CUMP current (Costo Unitario Medio Ponderato): media ponderata mobile
+   * sulle giacenze, aggiornata in transazione a ogni carico lot.
    */
   avg_unit_cost: number;
   notes: string | null;
   /**
    * Proprietà estensibili per categoria (JSONB). Chiavi convenzionali:
    * sementi → `species`, `scientific_name`, `variety_name`, `crop_category`
-   * ("seminativo"|"orticoltura", alimenta l'auto-assegnazione coltura alla
+   * ("seminativo"|"orticoltura", alimenta l'auto-assegnazione crop alla
    * semina); agrofarmaci → `safety_period_days`, `reentry_interval_h` (default
    * precompilati nel Quaderno); comune → `min_stock` (soglia di riordino
-   * nell'unità del prodotto).
+   * nell'unità del product).
    */
   metadata: Record<string, unknown>;
   created_at: string;
@@ -605,18 +605,18 @@ export interface Prodotto {
   deleted_at: string | null;
 }
 
-/** Lotto di magazzino (`product_lots`): scadenza, giacenza e costo di carico. */
-export interface LottoProdotto {
+/** Lotto di warehouse (`product_lots`): scadenza, stock e costo di carico. */
+export interface ProductLot {
   id: string;
   tenant_id: string;
   product_id: string;
-  /** Numero lotto di produzione. */
+  /** Numero lot di produzione. */
   lot_number: string | null;
   /** Data di scadenza (ISO "YYYY-MM-DD"), null se non deperibile. */
   expires_at: string | null;
-  /** Quantità caricata all'origine (nell'unità del prodotto). */
+  /** Quantità caricata all'origine (nell'unità del product). */
   initial_quantity: number;
-  /** Giacenza corrente; il CHECK `>= 0` a DB è la guardia atomica dello scarico. */
+  /** Giacenza current; il CHECK `>= 0` a DB è la guardia atomica dello issue. */
   quantity_on_hand: number;
   /** Costo unitario di carico (input del CUMP). */
   unit_cost: number;
@@ -626,17 +626,17 @@ export interface LottoProdotto {
 }
 
 /**
- * Scarico di un lotto in un'attività di campo (`activity_products`): quantità
- * e costo imputato con CUMP congelato al momento dello scarico.
+ * Scarico di un lot in un'attività di field (`activity_products`): quantità
+ * e costo imputato con CUMP congelato al momento dello issue.
  */
-export interface ScaricoAttivita {
+export interface ActivityProduct {
   id: string;
   tenant_id: string;
   treatment_log_id: string;
   product_lot_id: string;
-  /** Quantità scaricata (nell'unità del prodotto). */
+  /** Quantità scaricata (nell'unità del product). */
   quantity: number;
-  /** CUMP del prodotto al momento dello scarico (congelato). */
+  /** CUMP del product al momento dello issue (congelato). */
   unit_cost: number;
   /** Costo imputato = quantity × unit_cost. */
   total_cost: number;
@@ -645,43 +645,43 @@ export interface ScaricoAttivita {
   deleted_at: string | null;
 }
 
-/** Richiesta di scarico emessa dal form attività (lotto + quantità). */
-export interface ScaricoRichiesta {
+/** Richiesta di issue emessa dal form attività (lot + quantità). */
+export interface IssueRequest {
   product_lot_id: string;
   quantity: number;
 }
 
-/** Costo vivo dei prodotti imputato a un campo (aggregato per il bilancio 0.4.0). */
-export interface CostoProdottiCampo {
-  /** Appezzamento trattato; null = operazioni "intera azienda". */
+/** Costo vivo dei products imputato a un field (aggregato per il bilancio 0.4.0). */
+export interface FieldProductCost {
+  /** Plot trattato; null = operazioni "intera azienda". */
   plot_id: string | null;
   total_cost: number;
 }
 
 // ---------------------------------------------------------------------------
-// Multiutente — posti collaboratore per azienda (`tenant_memberships`)
+// Multiutente — posti collaboratore per company (`tenant_memberships`)
 // ---------------------------------------------------------------------------
 
-/** Ruolo di un membro all'interno di una singola azienda. */
-export type RuoloMembro = "OWNER" | "MANAGER" | "VIEWER";
+/** Ruolo di un membro all'interno di una singola company. */
+export type MemberRole = "OWNER" | "MANAGER" | "VIEWER";
 
-/** Stato del posto: un invito pendente occupa il posto quanto un membro attivo. */
-export type StatoMembership = "active" | "invited" | "revoked";
+/** Stato del posto: un invito pendente occupa il posto quanto un membro active. */
+export type MembershipStatus = "active" | "invited" | "revoked";
 
 /**
  * Appartenenza al team di un'azienda (`tenant_memberships`). Sincronizzata via
  * outbox. Mappa terminologica: la "singola azienda" della specifica multiutente
- * è `company_id` (riga di `companies`); il `tenant_id` è il workspace
+ * è `company_id` (row di `companies`); il `tenant_id` è il workspace
  * dell'abbonato master. I limiti per ruolo/piano sono enforced lato client
- * (modulo `subscription-limits`/`MembershipGuard` della field-suite).
+ * (module `subscription-limits`/`MembershipGuard` della field-suite).
  */
 export interface TenantMembership {
   id: string;
   tenant_id: string;
   company_id: string;
   email: string;
-  role: RuoloMembro;
-  status: StatoMembership;
+  role: MemberRole;
+  status: MembershipStatus;
   invited_at: string | null;
   joined_at: string | null;
   created_at: string;
@@ -693,7 +693,7 @@ export interface TenantMembership {
 // Outbox / sync
 // ---------------------------------------------------------------------------
 
-export type TabellaSync =
+export type SyncTable =
   | "companies"
   | "crops"
   | "plots_registry"
@@ -709,22 +709,22 @@ export type TabellaSync =
   | "product_lots"
   | "activity_products";
 
-export type OperazioneMutazione = "insert" | "update" | "delete";
+export type MutationOperation = "insert" | "update" | "delete";
 
-export type SyncStatusMutazione = "pending" | "in_flight" | "synced" | "error";
+export type MutationSyncStatus = "pending" | "in_flight" | "synced" | "error";
 
 /** Una voce della coda transazionale locale (tabella `sync_outbox`). */
-export interface OutboxMutazione {
+export interface OutboxMutation {
   mutation_id: string;
-  table_name: TabellaSync;
+  table_name: SyncTable;
   row_id: string;
-  operation: OperazioneMutazione;
+  operation: MutationOperation;
   /** Riga completa serializzata, come accettata da `agro_apply_mutations`. */
   payload: Record<string, unknown> | null;
   /** Timestamp client ad alta precisione: base della risoluzione LWW. */
   mutated_at: string;
   device_id: string;
-  sync_status: SyncStatusMutazione;
+  sync_status: MutationSyncStatus;
   attempts: number;
   last_error: string | null;
 }
@@ -739,7 +739,7 @@ export interface SyncSnapshot {
   lastPulledAt: string | null;
   lastError: string | null;
   /** Dove sta riversando i dati: 'cloud' | 'on_premise' | 'local'. */
-  target: StorageConfig["tipo"] | null;
+  target: StorageConfig["kind"] | null;
 }
 
 /** Esito di un drain dell'outbox verso il data plane. */
@@ -774,10 +774,10 @@ export type FieldPanel =
   | "anagrafica"
   | "impostazioni"
   | "geocompliance"
-  | "profilo"
+  | "profile"
   | "scouting";
 
-/** Rilievo GPS in campo, sincronizzato via outbox come le altre tabelle. */
+/** Rilievo GPS in field, sincronizzato via outbox come le altre tabelle. */
 export interface ScoutingObservation {
   id: string;
   tenant_id: string;
@@ -794,7 +794,7 @@ export interface ScoutingObservation {
   deleted_at: string | null;
 }
 
-export type AppezzamentiFeatureCollection = FeatureCollection<
+export type PlotsFeatureCollection = FeatureCollection<
   Polygon | MultiPolygon,
   {
     id: string;
@@ -802,20 +802,20 @@ export type AppezzamentiFeatureCollection = FeatureCollection<
     area_ha: number;
     last_ndvi_mean: number | null;
     /**
-     * Coltura associata nella Campagna Agraria attiva (`plots_campaign` →
+     * CropType associata nella Campagna Agraria attiva (`plots_campaign` →
      * `crops`), pronta per il tooltip hover. `null` se l'appezzamento non ha una
-     * coltura associata per l'annata corrente.
+     * crop associata per l'annata current.
      */
     crop: string | null;
     /**
-     * Specie (nome comune, senza varietà) della coltura associata: chiave per la
-     * mappatura colore/icona (`cropStyle`). `null` se senza coltura.
+     * Specie (name comune, senza varietà) della crop associata: chiave per la
+     * mappatura colore/icona (`cropStyle`). `null` se senza crop.
      */
     crop_kind: string | null;
     /**
      * Colore di riempimento per-feature (simplestyle-spec `fill`): grigio neutro
-     * se l'appezzamento non ha coltura, colore ad hoc della specie altrimenti.
-     * Onorato dal renderer quando `simpleStyleEnabled` è attivo sul layer.
+     * se l'appezzamento non ha crop, colore ad hoc della specie altrimenti.
+     * Onorato dal renderer quando `simpleStyleEnabled` è active sul layer.
      */
     fill: string;
     /** Colore del bordo per-feature (simplestyle-spec `stroke`). */
@@ -832,10 +832,10 @@ export type AppezzamentiFeatureCollection = FeatureCollection<
 >;
 
 /**
- * Layer delle raccolte: punti (o feature senza geometria) le cui properties
- * alimentano i grafici del Modulo Raccolta nella tabella attributi.
+ * Layer delle harvests: punti (o feature senza geometria) le cui properties
+ * alimentano i grafici del Modulo Harvest nella tabella attributi.
  */
-export type RaccolteFeatureCollection = FeatureCollection<
+export type HarvestsFeatureCollection = FeatureCollection<
   Point,
   {
     id: string;

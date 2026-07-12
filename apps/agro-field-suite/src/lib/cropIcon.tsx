@@ -46,7 +46,7 @@ const ICON_BY_KEY: Record<CropIconKey, LucideIcon> = {
   none: Sprout,
 };
 
-/** Componente icona lucide associato alla specie coltura. */
+/** Componente icona lucide associato alla specie crop. */
 export function cropIcon(key: CropIconKey): LucideIcon {
   return ICON_BY_KEY[key] ?? Leaf;
 }

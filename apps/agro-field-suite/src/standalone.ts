@@ -1,5 +1,5 @@
 /**
- * Edizione standalone dell'app di campo (build OSS, solo dati locali).
+ * Edizione standalone dell'app di field (build OSS, solo dati locali).
  *
  * Attivata a build-time dalla flag `VITE_STANDALONE_MODE`. Quando è attiva:
  *   - il router a stadi (App.tsx) salta i gate cloud (login / licenza / tenant)
@@ -9,7 +9,7 @@
  *   - il Sync Engine usa il target `local` (nessuna push verso il cloud).
  *
  * I moduli agronomici (dss/soil/analytics/vra/crops) NON cambiano: leggono già
- * solo lo store locale filtrato per `aziendaAttivaId`, che il bootstrap qui
+ * solo lo store locale filtrato per `activeCompanyId`, che il bootstrap qui
  * sotto popola senza alcuna dipendenza dal control plane.
  */
 
@@ -26,7 +26,7 @@ let bootstrapPromise: Promise<void> | null = null;
 
 /**
  * Avvia la sessione locale standalone: claims sintetiche (licenza attiva,
- * storage `local`), poi garantisce un'azienda di default come tenant attivo.
+ * storage `local`), poi garantisce un'azienda di default come tenant active.
  * Idempotente: una sessione già aperta non viene reinizializzata, e chiamate
  * concorrenti condividono la stessa promise (evita doppi bootstrap in StrictMode).
  */
@@ -41,14 +41,14 @@ export function bootstrapStandalone(): Promise<void> {
       offlineUnlocked: true,
     });
 
-    // Apre l'azienda esistente o crea quella di default. `creaAzienda` e
-    // `switchTenant` impostano da sé `aziendaAttivaId`, sbloccando la dashboard.
-    const aziende = useAgroStore.getState().aziende;
-    const prima = aziende.find((a) => a.deleted_at == null) ?? aziende[0];
-    if (prima) {
-      await useAgroStore.getState().switchTenant(prima.id);
+    // Apre l'azienda esistente o crea quella di default. `createCompany` e
+    // `switchTenant` impostano da sé `activeCompanyId`, sbloccando la dashboard.
+    const companies = useAgroStore.getState().companies;
+    const before = companies.find((a) => a.deleted_at == null) ?? companies[0];
+    if (before) {
+      await useAgroStore.getState().switchTenant(before.id);
     } else {
-      await useAgroStore.getState().creaAzienda(LOCAL_COMPANY_DEFAULT);
+      await useAgroStore.getState().createCompany(LOCAL_COMPANY_DEFAULT);
     }
   })();
   return bootstrapPromise;

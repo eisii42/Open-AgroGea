@@ -1,32 +1,32 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  estensioneFile,
-  formatoDaNomeFile,
+  fileExtension,
+  formatFromFileName,
   isGeoJson,
   toFeatureCollection,
 } from "../apps/agro-field-suite/src/modules/add-data/add-data";
 
 describe("add-data · riconoscimento formato", () => {
   it("estrae l'estensione minuscola", () => {
-    assert.equal(estensioneFile("Mappa.GeoJSON"), "geojson");
-    assert.equal(estensioneFile("dati.tar.gz"), "gz");
-    assert.equal(estensioneFile("senza-estensione"), "");
+    assert.equal(fileExtension("Mappa.GeoJSON"), "geojson");
+    assert.equal(fileExtension("dati.tar.gz"), "gz");
+    assert.equal(fileExtension("senza-estensione"), "");
   });
 
   it("mappa le estensioni sui formati tracciati", () => {
-    assert.equal(formatoDaNomeFile("zvn.geojson"), "geojson");
-    assert.equal(formatoDaNomeFile("zone.json"), "geojson");
-    assert.equal(formatoDaNomeFile("rese.csv"), "csv");
-    assert.equal(formatoDaNomeFile("catasto.zip"), "shapefile");
-    assert.equal(formatoDaNomeFile("particelle.shp"), "shapefile");
-    assert.equal(formatoDaNomeFile("task.isoxml"), "isoxml");
-    assert.equal(formatoDaNomeFile("task.xml"), "isoxml");
+    assert.equal(formatFromFileName("zvn.geojson"), "geojson");
+    assert.equal(formatFromFileName("zone.json"), "geojson");
+    assert.equal(formatFromFileName("rese.csv"), "csv");
+    assert.equal(formatFromFileName("catasto.zip"), "shapefile");
+    assert.equal(formatFromFileName("particelle.shp"), "shapefile");
+    assert.equal(formatFromFileName("task.isoxml"), "isoxml");
+    assert.equal(formatFromFileName("task.xml"), "isoxml");
   });
 
   it("rifiuta i formati non riconosciuti", () => {
-    assert.equal(formatoDaNomeFile("immagine.png"), null);
-    assert.equal(formatoDaNomeFile("nessuna-estensione"), null);
+    assert.equal(formatFromFileName("immagine.png"), null);
+    assert.equal(formatFromFileName("nessuna-estensione"), null);
   });
 
   it("isGeoJson è vero solo per geojson/json", () => {

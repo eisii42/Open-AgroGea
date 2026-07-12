@@ -15,9 +15,9 @@ import type {
   Polygon,
 } from "geojson";
 
-export type TipoVincolo = "zvn" | "sic" | "zps" | "eudr";
+export type ConstraintType = "zvn" | "sic" | "zps" | "eudr";
 
-export const ETICHETTE_VINCOLO: Record<TipoVincolo, string> = {
+export const CONSTRAINT_LABELS: Record<ConstraintType, string> = {
   zvn: "Zona Vulnerabile ai Nitrati",
   sic: "Sito di Importanza Comunitaria (SIC)",
   zps: "Zona di Protezione Speciale (ZPS)",
@@ -25,20 +25,20 @@ export const ETICHETTE_VINCOLO: Record<TipoVincolo, string> = {
 };
 
 /** Tetto azoto in ZVN: 170 kg N/ha/anno (Direttiva Nitrati 91/676/CEE). */
-export const AZOTO_MAX_ZVN_KG_HA = 170;
+export const NITROGEN_MAX_ZVN_KG_HA = 170;
 
 export interface LayerCompliance {
-  tipo: TipoVincolo;
+  type: ConstraintType;
   fc: FeatureCollection;
 }
 
-export interface RisultatoCompliance {
+export interface ComplianceResult {
   inZvn: boolean;
   inAreaProtetta: boolean;
   /** Interseca un'area a rischio deforestazione (EUDR). */
   inEudr: boolean;
   /** Vincoli intersecati, in ordine zvn, sic, zps, eudr. */
-  vincoli: TipoVincolo[];
+  constraints: ConstraintType[];
   /** Massimale di azoto kg/ha (null = nessun vincolo sull'azoto). */
   azotoMaxKgHa: number | null;
   /** Note leggibili per la UI. */
@@ -55,7 +55,7 @@ function estendiBbox(bbox: Bbox, lon: number, lat: number): void {
 }
 
 /** Bounding box di una geometria (prefiltro economico prima di booleanIntersects). */
-export function geometriaBbox(geometry: Geometry): Bbox {
+export function geometryBbox(geometry: Geometry): Bbox {
   const bbox: Bbox = [Infinity, Infinity, -Infinity, -Infinity];
   const visita = (coords: unknown): void => {
     if (!Array.isArray(coords)) return;
@@ -68,7 +68,7 @@ export function geometriaBbox(geometry: Geometry): Bbox {
   if ("coordinates" in geometry) visita(geometry.coordinates);
   else if (geometry.type === "GeometryCollection") {
     for (const g of geometry.geometries) {
-      const b = geometriaBbox(g);
+      const b = geometryBbox(g);
       estendiBbox(bbox, b[0], b[1]);
       estendiBbox(bbox, b[2], b[3]);
     }
@@ -82,15 +82,15 @@ function bboxDisgiunti(a: Bbox, b: Bbox): boolean {
 
 /** True se l'appezzamento interseca almeno una feature del layer. */
 function intersecaLayer(
-  appezzamento: Feature<Polygon | MultiPolygon>,
+  plot: Feature<Polygon | MultiPolygon>,
   appBbox: Bbox,
   fc: FeatureCollection,
 ): boolean {
   for (const feature of fc.features) {
     if (!feature.geometry) continue;
     // Prefiltro bbox: salta le feature lontane senza il test costoso.
-    if (bboxDisgiunti(appBbox, geometriaBbox(feature.geometry))) continue;
-    if (booleanIntersects(appezzamento, feature)) return true;
+    if (bboxDisgiunti(appBbox, geometryBbox(feature.geometry))) continue;
+    if (booleanIntersects(plot, feature)) return true;
   }
   return false;
 }
@@ -99,48 +99,48 @@ function intersecaLayer(
  * Verifica i vincoli geografici dell'appezzamento sui layer forniti e ricava il
  * massimale di azoto. L'ordine dei vincoli restituiti è sempre zvn, sic, zps.
  */
-export function verificaCompliance(
+export function checkCompliance(
   geometria: Polygon | MultiPolygon,
   layers: LayerCompliance[],
-): RisultatoCompliance {
-  const appezzamento: Feature<Polygon | MultiPolygon> = {
+): ComplianceResult {
+  const plot: Feature<Polygon | MultiPolygon> = {
     type: "Feature",
     geometry: geometria,
     properties: {},
   };
-  const appBbox = geometriaBbox(geometria);
+  const appBbox = geometryBbox(geometria);
 
-  const colpiti = new Set<TipoVincolo>();
+  const colpiti = new Set<ConstraintType>();
   for (const layer of layers) {
-    if (intersecaLayer(appezzamento, appBbox, layer.fc)) colpiti.add(layer.tipo);
+    if (intersecaLayer(plot, appBbox, layer.fc)) colpiti.add(layer.type);
   }
 
-  const ordine: TipoVincolo[] = ["zvn", "sic", "zps", "eudr"];
-  const vincoli = ordine.filter((t) => colpiti.has(t));
+  const ordine: ConstraintType[] = ["zvn", "sic", "zps", "eudr"];
+  const constraints = ordine.filter((t) => colpiti.has(t));
   const inZvn = colpiti.has("zvn");
   const inAreaProtetta = colpiti.has("sic") || colpiti.has("zps");
   const inEudr = colpiti.has("eudr");
 
-  const note = vincoli.map((t) => {
+  const note = constraints.map((t) => {
     if (t === "zvn")
-      return `In ZVN: azoto ≤ ${AZOTO_MAX_ZVN_KG_HA} kg/ha/anno (Direttiva Nitrati).`;
+      return `In ZVN: azoto ≤ ${NITROGEN_MAX_ZVN_KG_HA} kg/ha/year (Direttiva Nitrati).`;
     if (t === "eudr")
       return "Area a rischio deforestazione: richiesta due diligence EUDR (cut-off 31/12/2020).";
-    return `In ${ETICHETTE_VINCOLO[t]}: verificare le prescrizioni dell'area protetta.`;
+    return `In ${CONSTRAINT_LABELS[t]}: verificare le prescrizioni dell'area protetta.`;
   });
 
   return {
     inZvn,
     inAreaProtetta,
     inEudr,
-    vincoli,
-    azotoMaxKgHa: inZvn ? AZOTO_MAX_ZVN_KG_HA : null,
+    constraints,
+    azotoMaxKgHa: inZvn ? NITROGEN_MAX_ZVN_KG_HA : null,
     note,
   };
 }
 
-/** Massimale di azoto in valore assoluto (kg) per la superficie data. */
-export function azotoTotaleMax(
+/** Massimale di azoto in value assoluto (kg) per la area data. */
+export function totalNitrogenMax(
   superficieHa: number | null,
   maxKgHa: number | null,
 ): number | null {
@@ -149,15 +149,15 @@ export function azotoTotaleMax(
 }
 
 /**
- * True se la quantità totale di azoto (kg) supera il massimale per la superficie.
+ * True se la quantità totale di azoto (kg) supera il massimale per la area.
  * Senza vincolo (maxKgHa null) o senza dati ritorna false.
  */
-export function superaMassimaleAzoto(
+export function exceedsNitrogenCap(
   quantitaTotaleKg: number | null,
   superficieHa: number | null,
   maxKgHa: number | null,
 ): boolean {
-  const tetto = azotoTotaleMax(superficieHa, maxKgHa);
+  const tetto = totalNitrogenMax(superficieHa, maxKgHa);
   if (tetto == null || quantitaTotaleKg == null) return false;
   return quantitaTotaleKg > tetto;
 }

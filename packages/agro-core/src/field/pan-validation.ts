@@ -7,7 +7,7 @@
  * `validation`), risolta dalla UI con `t()`. Testabile sotto `node --test`.
  */
 
-/** Errore di validazione: campo + chiave i18n del messaggio. */
+/** Errore di validazione: field + chiave i18n del messaggio. */
 export interface ValidationError {
   field: string;
   messageKey: string;
@@ -44,7 +44,7 @@ function isPositiveNumber(v: unknown): boolean {
   return typeof v === "number" && Number.isFinite(v) && v > 0;
 }
 
-/** Bozza di un trattamento fitosanitario (campi PAN obbligatori). */
+/** Bozza di un treatment fitosanitario (campi PAN obbligatori). */
 export interface TreatmentDraft {
   operation_date?: string | null;
   target_disease?: string | null;
@@ -56,7 +56,7 @@ export interface TreatmentDraft {
   operator_license_number?: string | null;
 }
 
-/** Valida un trattamento fitosanitario secondo le regole PAN europee. */
+/** Valida un treatment fitosanitario secondo le regole PAN europee. */
 export function validateTreatmentLog(d: TreatmentDraft): ValidationError[] {
   const errors: ValidationError[] = [];
   const required: [keyof TreatmentDraft, string][] = [

@@ -21,7 +21,7 @@ export interface GeoLocationState {
  * sia nel browser standard (PWA mode).
  *
  * `requestPosition()` è un'acquisizione one-shot ad alta precisione; la
- * promessa risolve con la posizione o rifiuta con il messaggio di errore.
+ * promessa risolve con la posizione o rifiuta con il message di errore.
  */
 export function useGeoLocation() {
   const [state, setState] = useState<GeoLocationState>({
@@ -36,7 +36,7 @@ export function useGeoLocation() {
     setState({ status: "loading", position: null, error: null });
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        const msg = "GPS non disponibile su questo dispositivo.";
+        const msg = "GPS non available su questo dispositivo.";
         setState({ status: "error", position: null, error: msg });
         reject(new Error(msg));
         return;
@@ -57,7 +57,7 @@ export function useGeoLocation() {
             err.code === 1
               ? "Permesso GPS negato. Abilita la geolocalizzazione nelle impostazioni."
               : err.code === 2
-                ? "GPS non disponibile. Controlla il segnale."
+                ? "GPS non available. Controlla il segnale."
                 : "Timeout GPS. Riprova all'aperto.";
           setState({ status: "error", position: null, error: msg });
           reject(new Error(msg));

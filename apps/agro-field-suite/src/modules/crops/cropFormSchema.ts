@@ -1,18 +1,18 @@
 import type { TFunction } from "i18next";
 
 /**
- * Schemi dichiarativi del form "Dati coltura" (una scheda per tipo di coltura).
+ * Schemi dichiarativi del form "Dati coltura" (una scheda per tipo di crop).
  *
- * Ogni categoria (allineata a `CropModule.categorie` → `colturaPerAppezzamento`)
+ * Ogni categoria (allineata a `CropModule.categories` → `cropForPlot`)
  * definisce i campi di filiera SPECIFICI che finiscono in `crops.crop_metadata`
- * (JSONB dinamico), oltre ai campi comuni (nome comune/scientifico/varietà) e ai
+ * (JSONB dinamico), oltre ai campi comuni (name comune/scientifico/varietà) e ai
  * campi annuali di `plots_campaign`. La `category` salvata in `crop_metadata`
- * è ciò che il DSS legge per risolvere il modulo verticale dell'appezzamento.
+ * è ciò che il DSS legge per risolvere il module verticale dell'appezzamento.
  *
  * Le etichette sono chiavi i18n risolte a runtime da `cropFormSchema()`/
- * `allCropFormSchemas()`: il nome scientifico (binomio latino) resta invariato
- * in tutte le lingue, il resto (etichette, placeholder, opzioni select) è
- * tradotto tramite il catalogo `cropFormSchema.*` in `locales/<lang>.json`.
+ * `allCropFormSchemas()`: il name scientifico (binomio latino) resta invariato
+ * in tutte le lingue, il resto (etichette, placeholder, options select) è
+ * tradotto tramite il catalog `cropFormSchema.*` in `locales/<lang>.json`.
  */
 
 export type CropFieldType = "text" | "number" | "select";
@@ -180,12 +180,12 @@ function resolveSchema(t: TFunction, def: CropFormSchemaDef): CropFormSchema {
   };
 }
 
-/** Tutte le schede coltura, tradotte, per il selettore di categoria. */
+/** Tutte le schede crop, tradotte, per il selettore di categoria. */
 export function allCropFormSchemas(t: TFunction): CropFormSchema[] {
   return CROP_FORM_SCHEMA_DEFS.map((def) => resolveSchema(t, def));
 }
 
-/** Scheda coltura per una categoria, tradotta a runtime. */
+/** Scheda crop per una categoria, tradotta a runtime. */
 export function cropFormSchema(
   t: TFunction,
   category: string | null | undefined,

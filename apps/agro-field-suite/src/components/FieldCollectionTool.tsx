@@ -1,11 +1,11 @@
 /**
- * FieldCollectionTool — Rilievo in campo (Scouting GPS).
+ * FieldCollectionTool — Rilievo in field (Scouting GPS).
  *
- * Punti di osservazione geotaggati (focolai di infezione, trappole,
+ * Punti di observation geotaggati (focolai di infezione, trappole,
  * anomalie colturali) salvati in `scouting_observations` (PGlite + outbox).
  * Le foto passano dall'adapter dell'edizione (`uploadScoutingPhoto`), che le
- * carica su uno storage remoto e ritorna l'URL; senza adapter (standalone)
- * il campo foto è nascosto e l'osservazione si salva senza immagine.
+ * load su uno storage remoto e ritorna l'URL; senza adapter (standalone)
+ * il field foto è nascosto e l'osservazione si save senza immagine.
  */
 import { controlPlane, type ScoutingObservation, useAgroStore } from "@agrogea/core";
 import { FieldSheet } from "@agrogea/ui";
@@ -60,12 +60,12 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
   const addLayer = useAppStore((s) => s.addLayer);
   const updateLayer = useAppStore((s) => s.updateLayer);
   const layers = useAppStore((s) => s.layers);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const dal = useAgroStore((s) => s.dal);
-  const scoutingApriOsservazioneId = useAgroStore(
-    (s) => s.scoutingApriOsservazioneId,
+  const scoutingOpenObservationId = useAgroStore(
+    (s) => s.scoutingOpenObservationId,
   );
-  const consumaScoutingApri = useAgroStore((s) => s.consumaScoutingApri);
+  const consumeScoutingOpen = useAgroStore((s) => s.consumeScoutingOpen);
   const setScoutingPlacing = useAgroStore((s) => s.setScoutingPlacing);
 
   const [mode, setMode] = useState<Mode>("idle");
@@ -93,35 +93,35 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
 
   useEffect(() => {
     void loadObservations();
-  }, [dal, aziendaAttivaId]);
+  }, [dal, activeCompanyId]);
 
   // Click sul punto in mappa (useFeatureSelection → store): apre la scheda della
   // nota corrispondente, caricando il registro se necessario.
   useEffect(() => {
-    if (!scoutingApriOsservazioneId) return;
-    const apri = async () => {
+    if (!scoutingOpenObservationId) return;
+    const open = async () => {
       let lista = observations;
-      if (lista.length === 0 && dal && aziendaAttivaId) {
+      if (lista.length === 0 && dal && activeCompanyId) {
         try {
-          lista = await dal.listOsservazioniScouting(aziendaAttivaId);
+          lista = await dal.listOsservazioniScouting(activeCompanyId);
           setObservations(lista);
           syncLayerToStore(lista);
         } catch {
           /* tabella non pronta */
         }
       }
-      const trovata = lista.find((o) => o.id === scoutingApriOsservazioneId);
-      if (trovata) setDetailObs(trovata);
-      consumaScoutingApri();
+      const found = lista.find((o) => o.id === scoutingOpenObservationId);
+      if (found) setDetailObs(found);
+      consumeScoutingOpen();
     };
-    void apri();
+    void open();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scoutingApriOsservazioneId]);
+  }, [scoutingOpenObservationId]);
 
   async function loadObservations() {
-    if (!dal || !aziendaAttivaId) return;
+    if (!dal || !activeCompanyId) return;
     try {
-      const obs = await dal.listOsservazioniScouting(aziendaAttivaId);
+      const obs = await dal.listOsservazioniScouting(activeCompanyId);
       setObservations(obs);
       syncLayerToStore(obs);
     } catch {
@@ -207,15 +207,15 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
     if (!upload) return null;
     try {
       const ext = file.name.split(".").pop() ?? "jpg";
-      const path = `${tenantId}/${aziendaAttivaId}/${obsId}.${ext}`;
+      const path = `${tenantId}/${activeCompanyId}/${obsId}.${ext}`;
       return await upload(path, file);
     } catch {
       return null;
     }
   }
 
-  async function salva() {
-    if (!pendingPoint || !aziendaAttivaId || !dal) return;
+  async function save() {
+    if (!pendingPoint || !activeCompanyId || !dal) return;
     setSaving(true);
     setError(null);
     try {
@@ -227,9 +227,9 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
         ? await uploadPhoto(form.photoFile, id, dal.tenantId)
         : null;
 
-      const obs = await dal.salvaOsservazioneScouting({
+      const obs = await dal.saveScoutingObservation({
         id,
-        company_id: aziendaAttivaId,
+        company_id: activeCompanyId,
         lat: pendingPoint.lat,
         lng: pendingPoint.lng,
         accuracy_m: pendingPoint.accuracy ?? null,
@@ -258,7 +258,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
     }
   }
 
-  async function elimina(id: string) {
+  async function remove(id: string) {
     if (!dal) return;
     try {
       // Elimina l'eventuale foto dallo storage remoto (se l'edizione ne ha uno).
@@ -266,7 +266,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
       if (obs?.photo_url) {
         await controlPlane().removeScoutingPhoto?.(obs.photo_url);
       }
-      await dal.eliminaOsservazioneScouting(id);
+      await dal.deleteScoutingObservation(id);
       const updated = observations.filter((o) => o.id !== id);
       setObservations(updated);
       syncLayerToStore(updated);
@@ -275,7 +275,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
     }
   }
 
-  function annulla() {
+  function cancel() {
     setPendingPoint(null);
     setMode("idle");
     setError(null);
@@ -291,14 +291,14 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={annulla}
+                onClick={cancel}
                 className="flex-1 rounded-[var(--r-2)] border border-[var(--line)] py-2.5 text-sm font-medium hover:bg-[var(--panel-2)]"
               >
                 {t("logbook.common.cancel")}
               </button>
               <button
                 type="button"
-                onClick={() => void salva()}
+                onClick={() => void save()}
                 disabled={saving}
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--r-2)] bg-[var(--accent)] py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
               >
@@ -351,7 +351,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
             </Field>
 
             {/* Campo foto solo se l'edizione ha uno storage remoto registrato:
-                senza uploader la foto non avrebbe dove essere caricata. */}
+                without uploader la foto non avrebbe dove essere caricata. */}
             {controlPlane().uploadScoutingPhoto && (
               <Field label={t("fieldCollectionTool.photo")}>
                 <input
@@ -466,7 +466,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => void elimina(o.id)}
+                    onClick={() => void remove(o.id)}
                     className="shrink-0 rounded p-1 text-[var(--ink-4)] hover:bg-[var(--panel-3)] hover:text-[var(--danger)]"
                     title={t("fieldCollectionTool.deleteObservation")}
                   >
@@ -492,7 +492,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
           obs={detailObs}
           onClose={() => setDetailObs(null)}
           onDelete={async () => {
-            await elimina(detailObs.id);
+            await remove(detailObs.id);
             setDetailObs(null);
           }}
         />

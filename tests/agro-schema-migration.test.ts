@@ -4,10 +4,10 @@ import { PGlite } from "@electric-sql/pglite";
 import { AGRO_LOCAL_SCHEMA_SQL } from "../packages/agro-core/src/db/schema";
 
 /**
- * Schema locale v12 (clean rewrite EN + normalizzazione colture). Verifica che
+ * Schema locale v12 (clean rewrite EN + normalizzazione crops). Verifica che
  * lo schema inglese si applichi pulito e idempotente su un'installazione nuova,
- * che le entità di dominio abbiano la nomenclatura EU-agnostica, che la coltura
- * sia normalizzata in `crops` (FK da `plots_campaign`) e che la superficie sia
+ * che le entità di dominio abbiano la nomenclatura EU-agnostica, che la crop
+ * sia normalizzata in `crops` (FK da `plots_campaign`) e che la area sia
  * un'unica colonna `area_ha` (niente più duplicati).
  */
 
@@ -66,7 +66,7 @@ describe("schema v12 / installazione nuova", () => {
     }
   });
 
-  it("plots_registry: superficie unica area_ha, niente colonne colturali", async () => {
+  it("plots_registry: area unica area_ha, niente columns colturali", async () => {
     const db = new PGlite();
     await db.exec(AGRO_LOCAL_SCHEMA_SQL);
     const cols = await columnNames(db, "plots_registry");

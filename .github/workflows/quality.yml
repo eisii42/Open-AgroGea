@@ -1,0 +1,33 @@
+name: quality
+
+# Quality gate for the Community edition: typecheck, domain tests and lint on
+# every push and pull request. The native (Tauri/Rust) build and the release
+# installers are handled by `release.yml`; this job stays fast and JS-only.
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm install --legacy-peer-deps
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test
+
+      - name: Lint
+        run: npm run lint

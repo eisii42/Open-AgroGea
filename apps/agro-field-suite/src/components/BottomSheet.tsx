@@ -48,7 +48,7 @@ export function BottomSheet({
         onClick={onClose}
       />
 
-      {/* Sheet: scorre fuori schermo via translateY quando chiuso. */}
+      {/* Sheet: scorre fuori schermo via translateY quando closed. */}
       <div
         style={{ maxHeight }}
         className={cn(

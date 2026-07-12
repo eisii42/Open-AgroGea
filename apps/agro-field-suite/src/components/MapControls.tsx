@@ -46,7 +46,7 @@ export function MapControls({
     isSearchPlacesPanelVisible,
   );
   const showMeasure = useSettingsStore((s) => s.dashboardLayout.mapMeasure);
-  // Esri Wayback: il flag rende disponibile il TOOL; la scheda storica e il suo
+  // Esri Wayback: il flag rende available il TOOL; la scheda storica e il suo
   // layer compaiono solo al click sul tool (e spariscono al click di chiusura).
   const showWayback = useSettingsStore(
     (s) => s.dashboardLayout.mapBasemapWayback,
@@ -88,7 +88,7 @@ export function MapControls({
     }
   };
 
-  // Se il flag viene spento mentre Wayback è attivo, smonta scheda + layer.
+  // Se il flag viene spento mentre Wayback è active, smonta scheda + layer.
   useEffect(() => {
     if (showWayback || !waybackOn) return;
     try {

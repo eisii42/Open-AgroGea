@@ -1,23 +1,23 @@
-import type { Appezzamento, CampionamentoSuolo } from "@agrogea/core";
+import type { Plot, SoilSample } from "@agrogea/core";
 import {
-  type FrazioniTessitura,
-  frazioniDaTessitura,
-  normalizzaFrazioni,
-  type ParametriSuolo,
-  parametriSuoloSaxtonRawls,
+  type TextureFractions,
+  fractionsFromTexture,
+  normalizeFractions,
+  type SoilParameters,
+  saxtonRawlsSoilParameters,
 } from "@agrogea/tools";
 import type { Feature, FeatureCollection } from "geojson";
 
 /**
- * SoilDataResolver — risoluzione idro-pedologica del campo (Modulo Suolo §2).
+ * SoilDataResolver — risoluzione idro-pedologica del field (Modulo Suolo §2).
  *
- * Ricava i {@link ParametriSuolo} (θFC, θPWP, profondità, deplezione) necessari
+ * Ricava i {@link SoilParameters} (θFC, θPWP, profondità, depletion) necessari
  * al bilancio idrico FAO 66 applicando una GERARCHIA CONDIZIONALE basata SOLO su
  * dati interni del tenant (nessuna API pubblica: no SoilGrids/Geoscopio):
  *
  *   TIER 1 — Mappa custom: uno strato vettoriale (Shapefile/GeoJSON da Add Data)
  *            di EC_a o tessitura caricato dall'utente. Sorgente primaria della
- *            variabilità spaziale del suolo.
+ *            variabilità spaziale del soil.
  *   TIER 2 — Campionamenti georeferenziati: query spaziale DuckDB Spatial che
  *            interseca la geometria dell'appezzamento (`plots_registry.geometry`)
  *            con i punti di `soil_samples` interni o nelle immediate vicinanze;
@@ -26,27 +26,27 @@ import type { Feature, FeatureCollection } from "geojson";
  *
  * Le funzioni di mappatura attributi e aggregazione sono PURE (testabili sotto
  * Node). La parte spaziale importa {@link SpatialAnalysisEngine} dinamicamente,
- * così il grafo statico del modulo resta privo di DuckDB-WASM.
+ * così il grafo statico del module resta privo di DuckDB-WASM.
  */
 
 /** Sorgente effettiva dei parametri risolti (per diagnostica/UI). */
-export type SorgenteSuolo =
+export type SoilSource =
   | "custom-map"
   | "soil-samples"
   | "manual"
   | "metadata"
   | "default";
 
-/** Chiave in `appezzamento.metadata` per la composizione del suolo inserita a mano. */
-export const METADATA_SUOLO_KEY = "suolo";
+/** Chiave in `appezzamento.metadata` per la composizione del soil inserita a mano. */
+export const SOIL_METADATA_KEY = "suolo";
 
 /**
- * Composizione idro-pedologica inserita MANUALMENTE nella scheda appezzamento
+ * Composizione idro-pedologica inserita MANUALMENTE nella scheda plot
  * (`metadata.suolo`). I campi sono tutti opzionali: la tessitura (classe o
  * percentuali) alimenta Saxton-Rawls; in alternativa si possono fornire
  * direttamente le costanti idrauliche θFC/θPWP per l'utente esperto.
  */
-export interface SuoloManuale {
+export interface ManualSoil {
   /** Classe tessiturale testuale (IT/EN/ES). */
   tessitura?: string;
   /** Percentuali granulometriche (somma ~100). */
@@ -63,39 +63,39 @@ export interface SuoloManuale {
   potassio?: number;
   /** Profondità della zona radicale (m). */
   profondita_radici?: number;
-  /** Frazione di deplezione FAO p (0..1). */
+  /** Frazione di depletion FAO p (0..1). */
   frazione_deplezione?: number;
   /** Costanti idrauliche dirette (override esperto). */
   capacita_campo?: number;
   punto_appassimento?: number;
 }
 
-export interface ParametriSuoloRisolti {
-  parametri: ParametriSuolo;
-  sorgente: SorgenteSuolo;
+export interface ResolvedSoilParameters {
+  parametri: SoilParameters;
+  sorgente: SoilSource;
   /** Numero di campioni/feature che hanno concorso al calcolo. */
   campioniUsati: number;
   /** Tessitura aggregata usata da Saxton-Rawls (null se da metadata/default). */
-  tessitura: FrazioniTessitura | null;
+  tessitura: TextureFractions | null;
   /** Messaggio sintetico per la UI. */
   dettaglio: string;
 }
 
 /** Parametri di default: terreno FRANCO (FAO-56 tab.19, valori conservativi). */
-export const SUOLO_FRANCO_DEFAULT: ParametriSuolo = {
-  capacitaCampo: 0.3,
-  puntoAppassimento: 0.12,
-  profonditaRadici: 0.8,
-  frazioneDeplezione: 0.5,
+export const DEFAULT_LOAM_SOIL: SoilParameters = {
+  fieldCapacity: 0.3,
+  wiltingPoint: 0.12,
+  rootDepth: 0.8,
+  depletionFraction: 0.5,
 };
 
-export interface OpzioniRisoluzione {
+export interface ResolutionOptions {
   /** Strato vettoriale custom (EC_a/tessitura) da Add Data, se presente. */
   mappaCustom?: FeatureCollection | null;
-  /** Profondità radicale (m): override coltura/appezzamento. */
+  /** Profondità radicale (m): override crop/plot. */
   profonditaRadiciM?: number;
-  /** Frazione di deplezione FAO p (0..1). */
-  frazioneDeplezione?: number;
+  /** Frazione di depletion FAO p (0..1). */
+  depletionFraction?: number;
   /** Tolleranza spaziale (gradi) per i campioni "nelle immediate vicinanze". */
   tolleranzaVicinanzaDeg?: number;
 }
@@ -107,7 +107,7 @@ const TOLLERANZA_VICINANZA_DEG = 0.0005;
 // Mappatura attributi (PURA)
 // ---------------------------------------------------------------------------
 
-function numero(value: unknown): number | null {
+function number(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string") {
     const n = Number(value.replace(",", "."));
@@ -116,31 +116,31 @@ function numero(value: unknown): number | null {
   return null;
 }
 
-/** Primo valore numerico tra più chiavi candidate (case-insensitive). */
-function primoNumero(
+/** Primo value numerico tra più chiavi candidate (case-insensitive). */
+function firstNumber(
   props: Record<string, unknown>,
   chiavi: string[],
 ): number | null {
   const lower = new Map(
     Object.entries(props).map(([k, v]) => [k.toLowerCase(), v]),
   );
-  for (const chiave of chiavi) {
-    const n = numero(lower.get(chiave.toLowerCase()));
+  for (const key of chiavi) {
+    const n = number(lower.get(key.toLowerCase()));
     if (n != null) return n;
   }
   return null;
 }
 
 /** Prima stringa non vuota tra più chiavi candidate (case-insensitive). */
-function primaStringa(
+function firstString(
   props: Record<string, unknown>,
   chiavi: string[],
 ): string | null {
   const lower = new Map(
     Object.entries(props).map(([k, v]) => [k.toLowerCase(), v]),
   );
-  for (const chiave of chiavi) {
-    const v = lower.get(chiave.toLowerCase());
+  for (const key of chiavi) {
+    const v = lower.get(key.toLowerCase());
     if (typeof v === "string" && v.trim().length > 0) return v;
   }
   return null;
@@ -148,29 +148,29 @@ function primaStringa(
 
 /**
  * Estrae le frazioni granulometriche da un set di proprietà (feature custom o
- * campionamento): prima le percentuali esplicite sabbia/limo/argilla (multi
+ * soilSample): prima le percentuali esplicite sabbia/limo/argilla (multi
  * spelling IT/EN/ES), poi la classe tessiturale testuale. EC_a da sola non
  * determina la tessitura: in quel caso restituisce null (guida solo la zonazione).
  */
 export function frazioniDaProprieta(
   props: Record<string, unknown>,
-): FrazioniTessitura | null {
-  const sabbia = primoNumero(props, ["sabbia", "sand", "arena", "sand_pct", "sand_perc"]);
-  const limo = primoNumero(props, ["limo", "silt", "limos", "silt_pct"]);
-  const argilla = primoNumero(props, ["argilla", "clay", "arcilla", "clay_pct"]);
+): TextureFractions | null {
+  const sabbia = firstNumber(props, ["sabbia", "sand", "arena", "sand_pct", "sand_perc"]);
+  const limo = firstNumber(props, ["limo", "silt", "limos", "silt_pct"]);
+  const argilla = firstNumber(props, ["argilla", "clay", "arcilla", "clay_pct"]);
   if (sabbia != null || limo != null || argilla != null) {
-    const fr = normalizzaFrazioni(sabbia ?? 0, limo ?? 0, argilla ?? 0);
+    const fr = normalizeFractions(sabbia ?? 0, limo ?? 0, argilla ?? 0);
     if (fr) return fr;
   }
-  const classe = primaStringa(props, ["tessitura", "texture", "textura", "classe", "soil_texture"]);
-  return frazioniDaTessitura(classe);
+  const textureClass = firstString(props, ["tessitura", "texture", "textura", "classe", "soil_texture"]);
+  return fractionsFromTexture(textureClass);
 }
 
 /** Sostanza organica (%) dalle proprietà, multi spelling. */
 export function sostanzaOrganicaDaProprieta(
   props: Record<string, unknown>,
 ): number | null {
-  return primoNumero(props, [
+  return firstNumber(props, [
     "organic_matter",
     "sostanza_organica",
     "om",
@@ -179,39 +179,39 @@ export function sostanzaOrganicaDaProprieta(
   ]);
 }
 
-/** Frazioni di un campionamento: tessitura testuale o percentuali in metadata. */
-export function frazioniDaCampione(
-  c: CampionamentoSuolo,
-): FrazioniTessitura | null {
-  const daClasse = frazioniDaTessitura(c.texture);
-  if (daClasse) return daClasse;
+/** Frazioni di un soilSample: tessitura testuale o percentuali in metadata. */
+export function fractionsFromSample(
+  c: SoilSample,
+): TextureFractions | null {
+  const fromClass = fractionsFromTexture(c.texture);
+  if (fromClass) return fromClass;
   const meta = (c.metadata ?? {}) as Record<string, unknown>;
   return frazioniDaProprieta(meta);
 }
 
 interface Aggregato {
-  frazioni: FrazioniTessitura;
+  frazioni: TextureFractions;
   sostanzaOrganica: number | null;
   n: number;
 }
 
 /** Media delle frazioni e della SO su una lista di campioni/feature validi. */
-export function aggregaTessitura(
-  voci: Array<{ frazioni: FrazioniTessitura; sostanzaOrganica: number | null }>,
+export function aggregateTexture(
+  items: Array<{ frazioni: TextureFractions; sostanzaOrganica: number | null }>,
 ): Aggregato | null {
-  if (voci.length === 0) return null;
+  if (items.length === 0) return null;
   let sabbia = 0;
   let limo = 0;
   let argilla = 0;
   const so: number[] = [];
-  for (const v of voci) {
+  for (const v of items) {
     sabbia += v.frazioni.sabbia;
     limo += v.frazioni.limo;
     argilla += v.frazioni.argilla;
     if (v.sostanzaOrganica != null) so.push(v.sostanzaOrganica);
   }
-  const n = voci.length;
-  const frazioni = normalizzaFrazioni(sabbia / n, limo / n, argilla / n);
+  const n = items.length;
+  const frazioni = normalizeFractions(sabbia / n, limo / n, argilla / n);
   if (!frazioni) return null;
   return {
     frazioni,
@@ -221,67 +221,67 @@ export function aggregaTessitura(
 }
 
 /**
- * Parametri suolo dalla composizione inserita MANUALMENTE nella scheda
- * appezzamento (`metadata.suolo`). Ordine: costanti idrauliche dirette → da
+ * Parametri soil dalla composizione inserita MANUALMENTE nella scheda
+ * plot (`metadata.suolo`). Ordine: costanti idrauliche dirette → da
  * tessitura/percentuali via Saxton-Rawls → null. Profondità e frazione di
- * deplezione manuali hanno la precedenza sugli override del chiamante.
+ * depletion manuali hanno la precedenza sugli override del chiamante.
  */
-export function parametriDaSuoloManuale(
-  appezzamento: Appezzamento,
-  opzioni: { profonditaRadiciM?: number; frazioneDeplezione?: number } = {},
-): ParametriSuolo | null {
-  const meta = (appezzamento.metadata ?? {}) as Record<string, unknown>;
-  const raw = meta[METADATA_SUOLO_KEY];
+export function parametersFromManualSoil(
+  plot: Plot,
+  options: { profonditaRadiciM?: number; depletionFraction?: number } = {},
+): SoilParameters | null {
+  const meta = (plot.metadata ?? {}) as Record<string, unknown>;
+  const raw = meta[SOIL_METADATA_KEY];
   if (!raw || typeof raw !== "object") return null;
   const s = raw as Record<string, unknown>;
 
-  const profondita =
-    numero(s.profondita_radici) ??
-    opzioni.profonditaRadiciM ??
-    SUOLO_FRANCO_DEFAULT.profonditaRadici;
-  const deplezione =
-    numero(s.frazione_deplezione) ??
-    opzioni.frazioneDeplezione ??
-    SUOLO_FRANCO_DEFAULT.frazioneDeplezione;
+  const depth =
+    number(s.profondita_radici) ??
+    options.profonditaRadiciM ??
+    DEFAULT_LOAM_SOIL.rootDepth;
+  const depletion =
+    number(s.frazione_deplezione) ??
+    options.depletionFraction ??
+    DEFAULT_LOAM_SOIL.depletionFraction;
 
   // Costanti idrauliche dirette (utente esperto).
-  const cc = numero(s.capacita_campo);
-  const pa = numero(s.punto_appassimento);
+  const cc = number(s.capacita_campo);
+  const pa = number(s.punto_appassimento);
   if (cc != null && pa != null) {
     return {
-      capacitaCampo: cc,
-      puntoAppassimento: pa,
-      profonditaRadici: profondita,
-      frazioneDeplezione: deplezione,
+      fieldCapacity: cc,
+      wiltingPoint: pa,
+      rootDepth: depth,
+      depletionFraction: depletion,
     };
   }
 
-  // Tessitura/percentuali → Saxton-Rawls (con SO se disponibile).
+  // Tessitura/percentuali → Saxton-Rawls (con SO se available).
   const frazioni = frazioniDaProprieta(s);
   if (!frazioni) return null;
-  return parametriSuoloSaxtonRawls(frazioni, {
+  return saxtonRawlsSoilParameters(frazioni, {
     sostanzaOrganicaPct: sostanzaOrganicaDaProprieta(s) ?? undefined,
-    profonditaRadiciM: profondita,
-    frazioneDeplezione: deplezione,
+    profonditaRadiciM: depth,
+    depletionFraction: depletion,
   });
 }
 
-/** Parametri suolo dal metadata dell'appezzamento, se completi; altrimenti null. */
+/** Parametri soil dal metadata dell'appezzamento, se completi; altrimenti null. */
 export function parametriDaMetadata(
-  appezzamento: Appezzamento,
-): ParametriSuolo | null {
-  const meta = (appezzamento.metadata ?? {}) as Record<string, unknown>;
+  plot: Plot,
+): SoilParameters | null {
+  const meta = (plot.metadata ?? {}) as Record<string, unknown>;
   const raw = meta.parametri_suolo;
   if (!raw || typeof raw !== "object") return null;
   const p = raw as Record<string, unknown>;
-  const cc = numero(p.capacitaCampo);
-  const pa = numero(p.puntoAppassimento);
+  const cc = number(p.fieldCapacity);
+  const pa = number(p.wiltingPoint);
   if (cc == null || pa == null) return null;
   return {
-    capacitaCampo: cc,
-    puntoAppassimento: pa,
-    profonditaRadici: numero(p.profonditaRadici) ?? SUOLO_FRANCO_DEFAULT.profonditaRadici,
-    frazioneDeplezione: numero(p.frazioneDeplezione) ?? SUOLO_FRANCO_DEFAULT.frazioneDeplezione,
+    fieldCapacity: cc,
+    wiltingPoint: pa,
+    rootDepth: number(p.rootDepth) ?? DEFAULT_LOAM_SOIL.rootDepth,
+    depletionFraction: number(p.depletionFraction) ?? DEFAULT_LOAM_SOIL.depletionFraction,
   };
 }
 
@@ -290,30 +290,30 @@ export function parametriDaMetadata(
 // ---------------------------------------------------------------------------
 
 /** FeatureCollection con il solo poligono dell'appezzamento. */
-function plotFeatureCollection(appezzamento: Appezzamento): FeatureCollection {
+function plotFeatureCollection(plot: Plot): FeatureCollection {
   return {
     type: "FeatureCollection",
     features: [
       {
         type: "Feature",
-        geometry: appezzamento.geometry,
-        properties: { id: appezzamento.id },
+        geometry: plot.geometry,
+        properties: { id: plot.id },
       },
     ],
   };
 }
 
 /**
- * FeatureCollection dei punti di campionamento (solo quelli con posizione e non
+ * FeatureCollection dei punti di soilSample (solo quelli con posizione e non
  * cancellati). Porta come properties il solo `sample_id`: chimica e tessitura
  * restano in JS (mappa per id), così DuckDB esegue unicamente il filtro spaziale.
  */
 function sampleFeatureCollection(
-  campionamenti: CampionamentoSuolo[],
-): { fc: FeatureCollection; byId: Map<string, CampionamentoSuolo> } {
-  const byId = new Map<string, CampionamentoSuolo>();
+  soilSamples: SoilSample[],
+): { fc: FeatureCollection; byId: Map<string, SoilSample> } {
+  const byId = new Map<string, SoilSample>();
   const features: Feature[] = [];
-  for (const c of campionamenti) {
+  for (const c of soilSamples) {
     if (c.deleted_at != null || !c.sampling_position) continue;
     byId.set(c.id, c);
     features.push({
@@ -336,22 +336,22 @@ export class SoilDataResolver {
    * tessitura, errore spaziale) ricade sul successivo.
    */
   async risolvi(
-    appezzamento: Appezzamento,
-    campionamenti: CampionamentoSuolo[],
-    opzioni: OpzioniRisoluzione = {},
-  ): Promise<ParametriSuoloRisolti> {
+    plot: Plot,
+    soilSamples: SoilSample[],
+    options: ResolutionOptions = {},
+  ): Promise<ResolvedSoilParameters> {
     const opzSaxton = {
-      profonditaRadiciM: opzioni.profonditaRadiciM,
-      frazioneDeplezione: opzioni.frazioneDeplezione,
+      profonditaRadiciM: options.profonditaRadiciM,
+      depletionFraction: options.depletionFraction,
     };
 
     // TIER 1 — Mappa custom (EC_a/tessitura).
-    if (opzioni.mappaCustom && opzioni.mappaCustom.features.length > 0) {
+    if (options.mappaCustom && options.mappaCustom.features.length > 0) {
       try {
-        const agg = await this.daMappaCustom(appezzamento, opzioni.mappaCustom);
+        const agg = await this.daMappaCustom(plot, options.mappaCustom);
         if (agg) {
           return {
-            parametri: parametriSuoloSaxtonRawls(agg.frazioni, {
+            parametri: saxtonRawlsSoilParameters(agg.frazioni, {
               ...opzSaxton,
               sostanzaOrganicaPct: agg.sostanzaOrganica ?? undefined,
             }),
@@ -362,67 +362,67 @@ export class SoilDataResolver {
           };
         }
       } catch {
-        // mappa custom illeggibile/senza tessitura: si prova coi campionamenti.
+        // mappa custom illeggibile/senza tessitura: si prova coi soilSamples.
       }
     }
 
     // TIER 2 — Campionamenti georeferenziati (DuckDB Spatial → Saxton-Rawls).
     try {
       const agg = await this.daCampionamenti(
-        appezzamento,
-        campionamenti,
-        opzioni.tolleranzaVicinanzaDeg ?? TOLLERANZA_VICINANZA_DEG,
+        plot,
+        soilSamples,
+        options.tolleranzaVicinanzaDeg ?? TOLLERANZA_VICINANZA_DEG,
       );
       if (agg) {
         return {
-          parametri: parametriSuoloSaxtonRawls(agg.frazioni, {
+          parametri: saxtonRawlsSoilParameters(agg.frazioni, {
             ...opzSaxton,
             sostanzaOrganicaPct: agg.sostanzaOrganica ?? undefined,
           }),
           sorgente: "soil-samples",
           campioniUsati: agg.n,
           tessitura: agg.frazioni,
-          dettaglio: `Tessitura da ${agg.n} campionamento/i georeferenziato/i → Saxton-Rawls.`,
+          dettaglio: `Tessitura da ${agg.n} soilSample/i georeferenziato/i → Saxton-Rawls.`,
         };
       }
     } catch {
-      // motore spaziale non disponibile: si ripiega su metadata/default.
+      // motore spaziale non available: si ripiega su metadata/default.
     }
 
-    // TIER 3 — Composizione inserita manualmente nella scheda appezzamento.
-    const manuale = parametriDaSuoloManuale(appezzamento, opzSaxton);
+    // TIER 3 — Composizione inserita manualmente nella scheda plot.
+    const manuale = parametersFromManualSoil(plot, opzSaxton);
     if (manuale) {
       return {
         parametri: manuale,
         sorgente: "manual",
         campioniUsati: 0,
         tessitura: null,
-        dettaglio: "Composizione del suolo inserita manualmente nella scheda appezzamento.",
+        dettaglio: "Composizione del soil inserita manualmente nella scheda plot.",
       };
     }
 
     // TIER 4 — Metadata legacy (`parametri_suolo`), infine default franco.
-    const daMeta = parametriDaMetadata(appezzamento);
+    const daMeta = parametriDaMetadata(plot);
     if (daMeta) {
       return {
         parametri: {
           ...daMeta,
-          profonditaRadici: opzSaxton.profonditaRadiciM ?? daMeta.profonditaRadici,
-          frazioneDeplezione: opzSaxton.frazioneDeplezione ?? daMeta.frazioneDeplezione,
+          rootDepth: opzSaxton.profonditaRadiciM ?? daMeta.rootDepth,
+          depletionFraction: opzSaxton.depletionFraction ?? daMeta.depletionFraction,
         },
         sorgente: "metadata",
         campioniUsati: 0,
         tessitura: null,
-        dettaglio: "Parametri suolo dai metadata dell'appezzamento.",
+        dettaglio: "Parametri soil dai metadata dell'appezzamento.",
       };
     }
     return {
       parametri: {
-        ...SUOLO_FRANCO_DEFAULT,
-        profonditaRadici:
-          opzSaxton.profonditaRadiciM ?? SUOLO_FRANCO_DEFAULT.profonditaRadici,
-        frazioneDeplezione:
-          opzSaxton.frazioneDeplezione ?? SUOLO_FRANCO_DEFAULT.frazioneDeplezione,
+        ...DEFAULT_LOAM_SOIL,
+        rootDepth:
+          opzSaxton.profonditaRadiciM ?? DEFAULT_LOAM_SOIL.rootDepth,
+        depletionFraction:
+          opzSaxton.depletionFraction ?? DEFAULT_LOAM_SOIL.depletionFraction,
       },
       sorgente: "default",
       campioniUsati: 0,
@@ -433,33 +433,33 @@ export class SoilDataResolver {
 
   /** Tier 1: interseca lo strato custom col poligono e ne aggrega la tessitura. */
   private async daMappaCustom(
-    appezzamento: Appezzamento,
+    plot: Plot,
     mappa: FeatureCollection,
   ): Promise<Aggregato | null> {
     const { SpatialAnalysisEngine } = await import(
       "../../services/gis/SpatialAnalysisEngine"
     );
     const engine = SpatialAnalysisEngine.instance();
-    const plotTbl = await engine.registerGeoJson("soil_plot", plotFeatureCollection(appezzamento));
+    const plotTbl = await engine.registerGeoJson("soil_plot", plotFeatureCollection(plot));
     const layerTbl = await engine.registerGeoJson("soil_custom_layer", mappa);
     const intersecate = await engine.selectByLocation({
       targetTable: layerTbl,
       maskTable: plotTbl,
       predicate: "intersects",
     });
-    const voci = intersecate.features
-      .map((f) => mappaFeatureAVoce(f))
+    const items = intersecate.features
+      .map((f) => featureToEntry(f))
       .filter((v): v is NonNullable<typeof v> => v != null);
-    return aggregaTessitura(voci);
+    return aggregateTexture(items);
   }
 
   /** Tier 2: filtra i campioni interni/vicini al poligono e aggrega la tessitura. */
   private async daCampionamenti(
-    appezzamento: Appezzamento,
-    campionamenti: CampionamentoSuolo[],
+    plot: Plot,
+    soilSamples: SoilSample[],
     tolleranzaDeg: number,
   ): Promise<Aggregato | null> {
-    const { fc, byId } = sampleFeatureCollection(campionamenti);
+    const { fc, byId } = sampleFeatureCollection(soilSamples);
     if (fc.features.length === 0) return null;
 
     const { SpatialAnalysisEngine } = await import(
@@ -467,7 +467,7 @@ export class SoilDataResolver {
     );
     const { quoteIdentifier } = await import("../../services/gis/spatial-sql");
     const engine = SpatialAnalysisEngine.instance();
-    const plotTbl = await engine.registerGeoJson("soil_plot", plotFeatureCollection(appezzamento));
+    const plotTbl = await engine.registerGeoJson("soil_plot", plotFeatureCollection(plot));
     const sampleTbl = await engine.registerGeoJson("soil_sample_pts", fc);
 
     // Campioni interni al poligono O nelle immediate vicinanze (ST_DWithin).
@@ -480,26 +480,26 @@ export class SoilDataResolver {
       `OR ST_DWithin(${s}.${quoteIdentifier("geom")}, ${p}.${quoteIdentifier("geom")}, ${tolleranzaDeg})`;
     const rows = await engine.query(sql);
 
-    const voci: Array<{ frazioni: FrazioniTessitura; sostanzaOrganica: number | null }> = [];
+    const items: Array<{ frazioni: TextureFractions; sostanzaOrganica: number | null }> = [];
     const visti = new Set<string>();
     for (const row of rows) {
       const id = row.sample_id;
       if (typeof id !== "string" || visti.has(id)) continue;
       visti.add(id);
-      const campione = byId.get(id);
-      if (!campione) continue;
-      const frazioni = frazioniDaCampione(campione);
+      const sample = byId.get(id);
+      if (!sample) continue;
+      const frazioni = fractionsFromSample(sample);
       if (!frazioni) continue;
-      voci.push({ frazioni, sostanzaOrganica: campione.organic_matter });
+      items.push({ frazioni, sostanzaOrganica: sample.organic_matter });
     }
-    return aggregaTessitura(voci);
+    return aggregateTexture(items);
   }
 }
 
 /** Mappa una feature dello strato custom in una voce (frazioni + SO) o null. */
-function mappaFeatureAVoce(
+function featureToEntry(
   feature: Feature,
-): { frazioni: FrazioniTessitura; sostanzaOrganica: number | null } | null {
+): { frazioni: TextureFractions; sostanzaOrganica: number | null } | null {
   const props = (feature.properties ?? {}) as Record<string, unknown>;
   const frazioni = frazioniDaProprieta(props);
   if (!frazioni) return null;

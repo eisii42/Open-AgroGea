@@ -1,6 +1,6 @@
 import { useAppStore } from "@geolibre/core";
 import type { Feature, MultiPolygon, Polygon } from "geojson";
-import { areaEttari, classificaGeometria, geometriaHaCoordinate } from "../geo/area";
+import { areaHectares, classifyGeometry, geometryHasCoordinates } from "../geo/area";
 import { useAgroStore } from "../store";
 
 /**
@@ -73,20 +73,20 @@ export function bindGeoEditorCapture(): () => void {
     for (const feature of sketches.geojson.features) {
       const key = featureKey(feature);
       if (handled.has(key)) continue;
-      const kind = classificaGeometria(feature.geometry);
+      const kind = classifyGeometry(feature.geometry);
       if (!kind) continue;
       // Sketch residuo/transitorio senza coordinate valide: non aprire la scheda
       // dati né calcolarne l'area (turf lancerebbe). Si ignora finché non è completo.
-      if (!geometriaHaCoordinate(feature.geometry)) continue;
+      if (!geometryHasCoordinates(feature.geometry)) continue;
       handled.add(key);
 
       const agro = useAgroStore.getState();
-      // Nessun contesto azienda: resta solo sketch GIS, niente data-entry.
-      if (!agro.dal || !agro.aziendaAttivaId) continue;
+      // Nessun contesto company: resta solo sketch GIS, niente data-entry.
+      if (!agro.dal || !agro.activeCompanyId) continue;
 
       const areaHa =
         kind === "polygon"
-          ? areaEttari(feature.geometry as Polygon | MultiPolygon)
+          ? areaHectares(feature.geometry as Polygon | MultiPolygon)
           : null;
       agro.setPendingGeometry({ feature, kind, sketchKey: key, areaHa });
       break;

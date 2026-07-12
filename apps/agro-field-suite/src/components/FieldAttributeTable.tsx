@@ -10,17 +10,17 @@ import { type RefObject, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import {
-  scaricaArtifact,
+  downloadArtifact,
   serializzaVettoriale,
 } from "../services/gis/geo-export";
 import { DetachedWindow } from "./DetachedWindow";
 
 /**
- * Preset di espressioni agronomiche per il Field Calculator (Modulo Raccolta /
+ * Preset di espressioni agronomiche per il Field Calculator (Modulo Harvest /
  * gestione del territorio). Inseriti nel calcolatore come chip cliccabili via
  * `insertExpressionSnippet`, così l'agronomo applica una formula validata senza
  * digitarla. Usano l'accesso `props["campo"]` per essere robusti a nomi con
- * spazi/maiuscole e per non dipendere dalla validità del campo come identificatore.
+ * spazi/maiuscole e per non dipendere dalla validità del field come identificatore.
  */
 function getAgroExpressionSnippets(t: TFunction): ExpressionSnippet[] {
   return [
@@ -46,21 +46,20 @@ function getAgroExpressionSnippets(t: TFunction): ExpressionSnippet[] {
  * Tabelle analizzabili dalla tabella attributi. L'utente le sceglie dal selettore
  * in barra; non si attiva più in base al layer selezionato in mappa. Gli id
  * corrispondono ai layer proiettati nello store GeoLibre (vedi useFieldLayers /
- * useAppezzamentiLayer).
+ * usePlotsLayer).
  */
 function getTableOptions(t: TFunction): { layerId: string; label: string }[] {
-  return [
-    { layerId: "agrogea-raccolte", label: t("fieldAttributeTable.harvests") },
-    { layerId: "agrogea-appezzamenti", label: t("fieldAttributeTable.plots") },
-  ];
+  // Le harvests non sono più un layer cartografico (compaiono on-demand come
+  // simboli HTML, come le operazioni del Quaderno): resta la tabella plots.
+  return [{ layerId: "agrogea-plots", label: t("fieldAttributeTable.plots") }];
 }
 
 /**
- * Host campo della tabella attributi condivisa (`@geolibre/attribute-table`).
- * Sceglie le opzioni specifiche di AgroGea:
+ * Host field della tabella attributi condivisa (`@geolibre/attribute-table`).
+ * Sceglie le options specifiche di AgroGea:
  *  - selettore esplicito tra le 3 tabelle ammesse (non auto-attivazione per layer);
- *  - schema bloccato: niente add/rename/move/delete colonne né dati — solo
- *    nascondere colonne o modificare celle; il calcolatore deriva solo NUOVI campi;
+ *  - schema bloccato: niente add/rename/move/delete columns né dati — solo
+ *    nascondere columns o modificare celle; il calcolatore deriva solo NUOVI campi;
  *  - niente pulsante Dashboard (non c'è una dashboard host in field-suite);
  *  - "#" e "id" nascosti di default;
  *  - export leggero solo testuale (GeoJSON/CSV) e `deferResize` nella webview Tauri;
@@ -79,8 +78,8 @@ export function FieldAttributeTable({
 
   const tableOptions = getTableOptions(t);
 
-  // All'apertura (o se la selezione non è una delle tabelle ammesse) seleziona la
-  // prima tabella disponibile, così la vista parte popolata invece che vuota.
+  // All'apertura (o se la selezione non è una delle tabelle ammesse) select la
+  // prima tabella available, così la vista parte popolata invece che vuota.
   useEffect(() => {
     const ids = tableOptions.map((o) => o.layerId);
     if (selectedLayerId && ids.includes(selectedLayerId)) return;
@@ -110,10 +109,10 @@ export function FieldAttributeTable({
         if (format === "csv" || format === "geojson") {
           return downloadTextVectorLayer(geojson, format, baseName);
         }
-        // Shapefile (.zip): writer puro condiviso col modulo VRA.
+        // Shapefile (.zip): writer puro condiviso col module VRA.
         if (format === "shapefile") {
           const artifact = serializzaVettoriale(geojson, "shapefile", baseName);
-          scaricaArtifact(artifact);
+          downloadArtifact(artifact);
           return Promise.resolve(artifact.filename);
         }
         return Promise.resolve(null);

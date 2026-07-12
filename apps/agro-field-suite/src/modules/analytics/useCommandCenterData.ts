@@ -1,7 +1,7 @@
 import {
-  type CampoCampagna,
-  type DssRisultato,
-  type LetturaMeteo,
+  type PlotCampaign,
+  type DssResult,
+  type WeatherReading,
   type SoilWaterIndex,
   useAgroStore,
 } from "@agrogea/core";
@@ -15,9 +15,9 @@ import type { KpiParams } from "./kpi-config";
 /**
  * Hook di caricamento del Data Command Center. Materializza dal DAL i dati NON
  * presenti nello store di dominio (campagne di TUTTE le annate per il confronto
- * storico, letture meteo, cache DSS, indici idrici) e li combina con il dominio
- * già idratato (appezzamenti, colture, operazioni, raccolte) per alimentare il
- * motore analitico puro. Ricalcola al cambio di azienda, annata, coltura o
+ * storico, readings meteo, cache DSS, indici idrici) e li combina con il dominio
+ * già idratato (plots, crops, operazioni, harvests) per alimentare il
+ * motore analitico puro. Ricalcola al cambio di company, annata, crop o
  * parametri KPI.
  */
 
@@ -25,12 +25,12 @@ export interface CommandCenterData {
   loading: boolean;
   result: AnalyticsResult | null;
   /** Campagne di tutte le annate (per i selettori e l'inspector). */
-  allCampaigns: CampoCampagna[];
+  allCampaigns: PlotCampaign[];
   /** Anni di campagna distinti, dal più recente (per il selettore d'annata). */
   years: number[];
-  dssRisultati: DssRisultato[];
+  dssResults: DssResult[];
   soilIndices: SoilWaterIndex[];
-  weather: LetturaMeteo[];
+  weather: WeatherReading[];
   /**
    * Ricarica dal DAL meteo, campagne, cache DSS e indici idrici. Da chiamare
    * dopo aver eseguito calcoli DSS/bilancio idrico altrove (mappa) per riflettere
@@ -46,15 +46,15 @@ export function useCommandCenterData(
   params: KpiParams,
 ): CommandCenterData {
   const dal = useAgroStore((s) => s.dal);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
+  const plots = useAgroStore((s) => s.plots);
   const crops = useAgroStore((s) => s.crops);
-  const trattamenti = useAgroStore((s) => s.trattamenti);
-  const raccolte = useAgroStore((s) => s.raccolte);
+  const treatments = useAgroStore((s) => s.treatments);
+  const harvests = useAgroStore((s) => s.harvests);
 
-  const [allCampaigns, setAllCampaigns] = useState<CampoCampagna[]>([]);
-  const [weather, setWeather] = useState<LetturaMeteo[]>([]);
-  const [dssRisultati, setDssRisultati] = useState<DssRisultato[]>([]);
+  const [allCampaigns, setAllCampaigns] = useState<PlotCampaign[]>([]);
+  const [weather, setWeather] = useState<WeatherReading[]>([]);
+  const [dssResults, setDssResults] = useState<DssResult[]>([]);
   const [soilIndices, setSoilIndices] = useState<SoilWaterIndex[]>([]);
   const [loadingBase, setLoadingBase] = useState(true);
   const [loadingScope, setLoadingScope] = useState(true);
@@ -62,10 +62,10 @@ export function useCommandCenterData(
   const [reloadToken, setReloadToken] = useState(0);
   const refresh = useCallback(() => setReloadToken((t) => t + 1), []);
 
-  // Base: campagne di tutte le annate + letture meteo dell'azienda.
+  // Base: campagne di tutte le annate + readings meteo dell'azienda.
   useEffect(() => {
     let alive = true;
-    if (!dal || !aziendaAttivaId) {
+    if (!dal || !activeCompanyId) {
       setAllCampaigns([]);
       setWeather([]);
       setLoadingBase(false);
@@ -77,7 +77,7 @@ export function useCommandCenterData(
       // Limite alto: la serie include lo storico orario PIÙ la previsione a +16gg
       // (forecast in coda); un limite basso con ORDER BY asc taglierebbe proprio
       // i giorni futuri necessari alla proiezione GDD (Modulo 3.2).
-      dal.listLettureMeteo(aziendaAttivaId, { limit: 40000 }),
+      dal.listLettureMeteo(activeCompanyId, { limit: 40000 }),
     ]).then(([campaigns, readings]) => {
       if (!alive) return;
       setAllCampaigns(campaigns);
@@ -87,9 +87,9 @@ export function useCommandCenterData(
     return () => {
       alive = false;
     };
-  }, [dal, aziendaAttivaId, reloadToken]);
+  }, [dal, activeCompanyId, reloadToken]);
 
-  // Scope: cache DSS (per appezzamento) e indici idrici (per campagna).
+  // Scope: cache DSS (per plot) e indici idrici (per campagna).
   const scopedCampaigns = useMemo(
     () =>
       allCampaigns.filter(
@@ -102,16 +102,16 @@ export function useCommandCenterData(
   );
 
   // Appezzamenti dello scope da cui caricare i `dss_results`. ALLINEATO al motore:
-  // se l'annata non ha record di Campagna Agraria e non c'è filtro coltura, il
-  // fallback è company-wide (TUTTI gli appezzamenti) — così i DSS calcolati su
-  // plot senza campagna vengono comunque caricati e il Command Center si aggiorna.
+  // se l'annata non ha record di Campagna Agraria e non c'è filtro crop, il
+  // fallback è company-wide (TUTTI gli plots) — così i DSS calcolati su
+  // plot senza campagna vengono comunque caricati e il Command Center si update.
   const companyWide = scopedCampaigns.length === 0 && !cropId;
   const scopePlotIds = useMemo(
     () =>
       companyWide
-        ? appezzamenti.filter((a) => a.deleted_at == null).map((a) => a.id)
+        ? plots.filter((a) => a.deleted_at == null).map((a) => a.id)
         : [...new Set(scopedCampaigns.map((c) => c.plot_id))],
-    [companyWide, appezzamenti, scopedCampaigns],
+    [companyWide, plots, scopedCampaigns],
   );
   // Gli indici idrici sono legati a plots_campaign: si caricano solo per le
   // campagne effettive (in fallback company-wide non ce ne sono).
@@ -127,7 +127,7 @@ export function useCommandCenterData(
   useEffect(() => {
     let alive = true;
     if (!dal || scopePlotIds.length === 0) {
-      setDssRisultati([]);
+      setDssResults([]);
       setSoilIndices([]);
       setLoadingScope(false);
       return;
@@ -138,7 +138,7 @@ export function useCommandCenterData(
       Promise.all(scopeCampaignIds.map((id) => dal.listIndiciIdrici(id))),
     ]).then(([dssByPlot, idxByCamp]) => {
       if (!alive) return;
-      setDssRisultati(dssByPlot.flat());
+      setDssResults(dssByPlot.flat());
       setSoilIndices(idxByCamp.flat());
       setLoadingScope(false);
     });
@@ -153,14 +153,14 @@ export function useCommandCenterData(
   const plotFilterKey = [...selectedPlotIds].sort().join(",");
 
   const result = useMemo<AnalyticsResult | null>(() => {
-    if (!aziendaAttivaId) return null;
+    if (!activeCompanyId) return null;
     return runCommandCenterEngine({
-      appezzamenti,
+      plots,
       crops,
-      campiCampagna: allCampaigns,
-      trattamenti,
-      raccolte,
-      dssRisultati,
+      campaignFields: allCampaigns,
+      treatments,
+      harvests,
+      dssResults,
       weather,
       soilIndices,
       campaignYear,
@@ -171,13 +171,13 @@ export function useCommandCenterData(
     // plotFilterKey riassume selectedPlotIds (array nuovo a ogni render).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    aziendaAttivaId,
-    appezzamenti,
+    activeCompanyId,
+    plots,
     crops,
     allCampaigns,
-    trattamenti,
-    raccolte,
-    dssRisultati,
+    treatments,
+    harvests,
+    dssResults,
     weather,
     soilIndices,
     campaignYear,
@@ -197,7 +197,7 @@ export function useCommandCenterData(
     result,
     allCampaigns,
     years,
-    dssRisultati,
+    dssResults,
     soilIndices,
     weather,
     refresh,

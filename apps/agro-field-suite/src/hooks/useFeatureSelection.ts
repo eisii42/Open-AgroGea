@@ -11,21 +11,21 @@ import { type RefObject, useEffect } from "react";
 /**
  * Click su un elemento esistente sui layer vettoriali agro. Il comportamento
  * dipende dal tipo:
- *   * appezzamento → apre il Quaderno di Campagna filtrato sulle SUE lavorazioni
+ *   * plot → apre il Quaderno di Campagna filtrato sulle SUE lavorazioni
  *     (l'editing geometria/metadati e l'eliminazione restano nel "Modifica /
  *     Elimina" → Registro geometrie);
- *   * infrastruttura / POI → apre la scheda di dettaglio/editing.
+ *   * infrastructure / POI → apre la scheda di dettaglio/editing.
  *
  * Si usa UN listener globale `click` + `queryRenderedFeatures` filtrato sui
  * layer agro esistenti, anziché i listener per-layer di MapLibre: questi ultimi
  * sono fragili con gli id stringa (UUID) e con i layer creati dopo il bind, ed
- * erano la causa per cui il tap su un appezzamento non apriva nulla.
+ * erano la causa per cui il tap su un plot non apriva nulla.
  *
  * Il click è inibito mentre si disegna o si modifica una geometria (in quei
  * casi serve all'engine per posare/spostare vertici).
  */
 
-const APPEZZAMENTI_ID = "agrogea-appezzamenti";
+const PLOTS_ID = "agrogea-plots";
 const INFRASTRUTTURE_ID = "agrogea-infrastrutture";
 const POI_ID = "agrogea-poi";
 const SCOUTING_ID = "agrogea-scouting";
@@ -36,13 +36,13 @@ interface LayerKind {
 }
 
 // Ordine di priorità a parità di hit: prima i punti/linee (più piccoli e
-// specifici), poi i poligoni di appezzamento (sfondo).
+// specifici), poi i poligoni di plot (sfondo).
 const LAYER_KINDS: LayerKind[] = [
   { id: circleLayerId(POI_ID), kind: "poi" },
   { id: circleLayerId(INFRASTRUTTURE_ID), kind: "infrastruttura" },
   { id: lineLayerId(INFRASTRUTTURE_ID), kind: "infrastruttura" },
   { id: fillLayerId(INFRASTRUTTURE_ID), kind: "infrastruttura" },
-  { id: fillLayerId(APPEZZAMENTI_ID), kind: "appezzamento" },
+  { id: fillLayerId(PLOTS_ID), kind: "appezzamento" },
 ];
 
 function featureRecordId(
@@ -65,11 +65,11 @@ export function useFeatureSelection(
   mapReady: boolean,
 ): void {
   const selectFeatureOnMap = useAgroStore((s) => s.selectFeatureOnMap);
-  const apriQuadernoPerAppezzamento = useAgroStore(
-    (s) => s.apriQuadernoPerAppezzamento,
+  const openLogbookForPlot = useAgroStore(
+    (s) => s.openLogbookForPlot,
   );
-  const apriScoutingPerOsservazione = useAgroStore(
-    (s) => s.apriScoutingPerOsservazione,
+  const openScoutingForObservation = useAgroStore(
+    (s) => s.openScoutingForObservation,
   );
 
   useEffect(() => {
@@ -106,15 +106,15 @@ export function useFeatureSelection(
 
       // Punto scouting → scheda della nota nel pannello Scouting.
       if (top.layer.id === SCOUTING_LAYER) {
-        apriScoutingPerOsservazione(id);
+        openScoutingForObservation(id);
         return;
       }
 
       const layerKind = LAYER_KINDS.find((l) => l.id === top.layer.id);
       if (!layerKind) return;
-      // Appezzamento → Quaderno filtrato sulle sue lavorazioni; altri → dettaglio.
+      // Plot → Quaderno filtrato sulle sue lavorazioni; altri → dettaglio.
       if (layerKind.kind === "appezzamento") {
-        apriQuadernoPerAppezzamento(id);
+        openLogbookForPlot(id);
       } else {
         void selectFeatureOnMap({ kind: layerKind.kind, id });
       }
@@ -128,7 +128,7 @@ export function useFeatureSelection(
     mapControllerRef,
     mapReady,
     selectFeatureOnMap,
-    apriQuadernoPerAppezzamento,
-    apriScoutingPerOsservazione,
+    openLogbookForPlot,
+    openScoutingForObservation,
   ]);
 }

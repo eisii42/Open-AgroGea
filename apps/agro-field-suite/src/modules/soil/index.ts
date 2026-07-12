@@ -3,7 +3,7 @@
  *
  * Punti d'ingresso:
  *   * {@link SoilDataResolver} — risoluzione θFC/θPWP da mappa custom (Tier 1),
- *     campionamenti georeferenziati via DuckDB Spatial + Saxton-Rawls (Tier 2),
+ *     soilSamples georeferenziati via DuckDB Spatial + Saxton-Rawls (Tier 2),
  *     metadata/default (Tier 3);
  *   * export dello storico umidità in GeoJSON/Shapefile/CSV localizzato.
  *
@@ -11,24 +11,24 @@
  * (orchestrazione FAO 56/66) e l'overlay tematico DSS in `../dss/dss-overlay`.
  */
 export {
-  aggregaTessitura,
-  frazioniDaCampione,
+  aggregateTexture,
+  fractionsFromSample,
   frazioniDaProprieta,
-  METADATA_SUOLO_KEY,
+  SOIL_METADATA_KEY,
   parametriDaMetadata,
-  parametriDaSuoloManuale,
+  parametersFromManualSoil,
   SoilDataResolver,
   sostanzaOrganicaDaProprieta,
-  SUOLO_FRANCO_DEFAULT,
-  type OpzioniRisoluzione,
-  type ParametriSuoloRisolti,
-  type SorgenteSuolo,
-  type SuoloManuale,
+  DEFAULT_LOAM_SOIL,
+  type ResolutionOptions,
+  type ResolvedSoilParameters,
+  type SoilSource,
+  type ManualSoil,
 } from "./SoilDataResolver";
 
 export {
-  costruisciStoricoUmiditaFc,
-  serializzaStoricoUmidita,
-  type FormatoStoricoUmidita,
-  type RigaStoricoUmidita,
+  buildMoistureHistoryFc,
+  serializeMoistureHistory,
+  type MoistureHistoryFormat,
+  type MoistureHistoryRow,
 } from "./soil-export";

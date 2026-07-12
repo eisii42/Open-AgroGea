@@ -6,14 +6,14 @@ import { createSyncTarget, type SyncTarget } from "./targets";
  * Router di sincronizzazione ibrido (Sync Engine).
  *
  * Osserva la connettività; quando torna la rete drena `outbox_mutazioni` a
- * batch verso il target deciso da `config_storage.tipo` della licenza:
+ * batch verso il target deciso da `config_storage.kind` della licenza:
  * il data plane gestito dall'edizione oppure PostgreSQL on-premise (comando Rust +
  * tokio-postgres). I conflitti si risolvono Last-Write-Wins lato server sul
  * timestamp certificato dal client.
  *
  * È deliberatamente isolato dalla UI: comunica solo via `onSnapshot`, quindi
  * un cambio di SDK o di schema remoto può rompere il router ma mai
- * l'operatività offline in campo.
+ * l'operatività offline in field.
  */
 
 const BATCH_SIZE = 200;
@@ -22,7 +22,7 @@ const RETRY_MAX_MS = 5 * 60_000;
 
 export interface SyncRouterOptions {
   dal: AgroDal;
-  configStorage: StorageConfig;
+  storageConfig: StorageConfig;
   onSnapshot?: (snapshot: SyncSnapshot) => void;
   /** Override per i test; di default usa navigator.onLine + eventi window. */
   isOnline?: () => boolean;
@@ -43,7 +43,7 @@ export class SyncRouter {
 
   constructor(options: SyncRouterOptions) {
     this.dal = options.dal;
-    this.target = createSyncTarget(options.configStorage, options.dal.tenantId);
+    this.target = createSyncTarget(options.storageConfig, options.dal.tenantId);
     this.onSnapshot = options.onSnapshot ?? (() => {});
     this.isOnline =
       options.isOnline ??
@@ -54,7 +54,7 @@ export class SyncRouter {
       lastSyncedAt: null,
       lastPulledAt: null,
       lastError: null,
-      target: this.target.tipo,
+      target: this.target.kind,
     };
   }
 

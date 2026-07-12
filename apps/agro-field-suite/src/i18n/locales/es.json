@@ -188,7 +188,7 @@
       "notifyTitle": "Actualizaciones de AgroGea"
     }
   },
-  "quadernoPanel": {
+  "logbookPanel": {
     "fieldFallbackName": "Campo {{id}}",
     "notification": {
       "removed": "Operación eliminada: {{label}}"
@@ -262,7 +262,7 @@
       "error": "error"
     }
   },
-  "useDssCalcolo": {
+  "useDssCalculation": {
     "offlineFallback": "Sin conexión o error al obtener datos ({{error}}). Se usan los datos locales.",
     "useLocalWeatherData": "Se usan los datos meteorológicos locales.",
     "noWeatherData": "No hay datos meteorológicos disponibles: configure la fuente o conéctese para la primera descarga.",
@@ -270,7 +270,7 @@
     "plotCalculationError": "Error de cálculo para esta parcela.",
     "dssCalculationError": "Error de cálculo DSS."
   },
-  "importaFascicolo": {
+  "importDossier": {
     "noActiveCompany": "Ninguna empresa activa: no se puede importar el Fascicolo.",
     "sianCrop": "Cultivo SIAN",
     "sianPlotName": "SIAN {{reference}}/{{parcel}}",
@@ -288,7 +288,7 @@
     "missingStationConfig": "Falta la configuración de la estación meteorológica.",
     "noPlotGeometryForStation": "Ninguna parcela con geometría: no se puede localizar la estación meteorológica."
   },
-  "bilancioIdricoPanel": {
+  "waterBalancePanel": {
     "title": "Agua · Balance hídrico",
     "computing": "Calculando…",
     "computeBalance": "Calcular balance",
@@ -329,7 +329,7 @@
     "exportMoistureHistory": "Exportar histórico de humedad",
     "registerCropHint": "Registra el cultivo en la Campaña Agrícola para archivar la serie histórica de índices hídricos."
   },
-  "anagraficaPanel": {
+  "registryPanel": {
     "title": "Datos de la Empresa",
     "subtitle": "Datos y códigos de la empresa · sincronizados como el resto de los datos.",
     "selectCompany": "Selecciona una empresa para editar sus datos.",
@@ -378,7 +378,7 @@
       "contactRolePlaceholder": "ej. titular, agrónomo"
     }
   },
-  "raccoltaPanel": {
+  "harvestPanel": {
     "title": "Cosechas",
     "newHarvest": "Nueva cosecha",
     "harvestFallbackLabel": "Cosecha",
@@ -412,6 +412,10 @@
       }
     },
     "saveAction": "Guardar",
+    "map": {
+      "hide": "Ocultar del mapa ({{count}})",
+      "show": "Mostrar en el mapa ({{count}})"
+    },
     "emptyState": "No hay cosechas registradas para esta empresa.",
     "openCard": "Abrir ficha de cosecha",
     "wholeFarmLower": "toda la empresa",
@@ -429,7 +433,7 @@
       "essiccazione": "secado"
     }
   },
-  "impostazioniPanel": {
+  "settingsPanel": {
     "title": "Fuente meteorológica y variables",
     "saved": "Guardado ✓",
     "saveConfig": "Guardar configuración",
@@ -526,7 +530,7 @@
     "titleCloud": "Transferencia de datos de la empresa",
     "titleStandalone": "Seguridad de datos (copia de seguridad/restauración)"
   },
-  "confirmDeleteOperazione": {
+  "confirmDeleteOperation": {
     "confirmDelete": "Sí, eliminar definitivamente",
     "defaultConsentLabel": "Confirmo que deseo eliminar definitivamente esta operación.",
     "defaultMessage": "eliminar esta operación invalidará el historial del Cuaderno de Campo de esta parcela. Esta acción es irreversible.",
@@ -545,7 +549,7 @@
     "noCrop": "Sin cultivo",
     "title": "Cultivos"
   },
-  "meteoCard": {
+  "weatherCard": {
     "today": "Hoy",
     "unavailable": "Meteorología no disponible: conéctate para la primera descarga.",
     "refreshNow": "Actualizar ahora",
@@ -689,7 +693,7 @@
     "title": "Descargar área sin conexión",
     "west": "Oeste"
   },
-  "registroGeometrie": {
+  "geometryRegistry": {
     "pointsOfInterest": "Puntos de interés",
     "samplingLabel": "Muestreo {{id}}",
     "title": "Registro de geometrías ({{count}})",
@@ -735,7 +739,7 @@
     "tabOffline": "Sin conexión",
     "tabScouting": "Relevamiento GPS"
   },
-  "operazioneForm": {
+  "operationForm": {
     "onSurface": "en {{area}} ha",
     "selectEllipsis": "Seleccionar…",
     "selectFromNationalRegister": "Seleccionar del registro nacional…",
@@ -802,9 +806,12 @@
     "warehouseSection": "Salida de almacén",
     "warehouseProduct": "Producto (almacén)",
     "warehouseLot": "Lote",
-    "warehouseQuantity": "Cantidad a descargar ({{unit}})",
+    "warehouseQuantity": "Cantidad ({{unit}})",
     "warehouseAvailable": "disp. {{qty}} {{unit}}",
+    "warehouseExpiresAt": "cad. {{date}}",
     "warehouseAddRow": "+ Añadir salida",
+    "otherProductToggle": "Otro (producto no presente en el almacén)…",
+    "useWarehouseToggle": "← Usar los productos del almacén",
     "warehouseRemoveRow": "Quitar salida",
     "warehouseNoLots": "No hay lotes disponibles para este producto: carga uno desde el Almacén.",
     "warehouseFreeText": "Sin salida, el registro queda como texto libre (sin movimiento de existencias).",
@@ -1072,7 +1079,7 @@
     "recalcAllTitle": "Calcula índices satelitales, DSS y balance hídrico para todas las parcelas",
     "refreshTitle": "Recargar DSS, balance hídrico y meteorología desde la base de datos"
   },
-  "suoloPanel": {
+  "soilPanel": {
     "calculateButton": "Calcular desde Sentinel-2 (STAC)",
     "calculating": "Calculando…",
     "charts": {
@@ -1193,7 +1200,7 @@
     "varietyFromCatalog": "Variedad del catálogo",
     "varietyPlaceholder": "ej. Sangiovese, Leccino"
   },
-  "colturaPanel": {
+  "cropPanel": {
     "calculateModels": "Calcular Modelos",
     "calculateModelsCount": "Calcular Modelos ({{count}})",
     "dataTitle": "Datos del cultivo",
@@ -1445,7 +1452,7 @@
       "water": "Aporte de agua"
     }
   },
-  "operazioneDettaglioCard": {
+  "operationDetailCard": {
     "opLabel": {
       "phytosanitary": "Tratamiento fitosanitario",
       "fertilization": "Fertilización",
@@ -1485,7 +1492,7 @@
     "delete": "Eliminar",
     "close": "Cerrar"
   },
-  "raccoltaDettaglioCard": {
+  "harvestDetailCard": {
     "harvest": "Cosecha",
     "section": {
       "cropPlot": "Cultivo y parcela",

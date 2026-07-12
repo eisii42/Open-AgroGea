@@ -1,4 +1,4 @@
-import type { Appezzamento } from "@agrogea/core";
+import type { Plot } from "@agrogea/core";
 import type { Feature, FeatureCollection, Point, Position } from "geojson";
 import {
   type ExportArtifact,
@@ -7,15 +7,15 @@ import {
 } from "../../services/gis/geo-export";
 
 /**
- * Export dello STORICO UMIDITÀ (Modulo Suolo §3): proietta la serie giornaliera
+ * Export dello STORICO UMIDITÀ (Modulo Suolo §3): proietta la series giornaliera
  * del bilancio idrico (`soil_water_indices`) in formati GIS della filiera —
- * GeoJSON, Shapefile (.zip) e CSV localizzato (`;` + BOM UTF-8). Ogni giorno
+ * GeoJSON, Shapefile (.zip) e CSV localizzato (`;` + BOM UTF-8). Ogni day
  * diventa un punto al baricentro dell'appezzamento con gli indici idrici come
  * attributi. Compone i serializzatori puri di `geo-export` (priorità peso bundle).
  */
 
 /** Riga giornaliera dello storico idrico (schema `soil_water_indices`). */
-export interface RigaStoricoUmidita {
+export interface MoistureHistoryRow {
   date: string;
   et0: number;
   etc: number;
@@ -29,10 +29,10 @@ export interface RigaStoricoUmidita {
 }
 
 /** Formati ammessi per l'export dello storico umidità. */
-export type FormatoStoricoUmidita = "geojson" | "shapefile" | "csv";
+export type MoistureHistoryFormat = "geojson" | "shapefile" | "csv";
 
 /** Baricentro grezzo (media dei vertici) del poligono, senza dipendenze pesanti. */
-function baricentro(geometry: Appezzamento["geometry"]): Position {
+function baricentro(geometry: Plot["geometry"]): Position {
   const punti: Position[] = [];
   const raccogli = (rings: Position[][]) => {
     for (const ring of rings) for (const p of ring) punti.push(p);
@@ -48,20 +48,20 @@ function baricentro(geometry: Appezzamento["geometry"]): Position {
 }
 
 /**
- * Costruisce la FeatureCollection dello storico: un punto per giorno al
+ * Costruisce la FeatureCollection dello storico: un punto per day al
  * baricentro dell'appezzamento, con gli indici idrici come attributi numerici.
  */
-export function costruisciStoricoUmiditaFc(
-  appezzamento: Appezzamento,
-  serie: RigaStoricoUmidita[],
+export function buildMoistureHistoryFc(
+  plot: Plot,
+  series: MoistureHistoryRow[],
 ): FeatureCollection {
-  const centro = baricentro(appezzamento.geometry);
-  const features: Feature<Point>[] = serie.map((r) => ({
+  const centro = baricentro(plot.geometry);
+  const features: Feature<Point>[] = series.map((r) => ({
     type: "Feature",
     geometry: { type: "Point", coordinates: centro },
     properties: {
-      plot_id: appezzamento.id,
-      plot_name: appezzamento.user_plot_name,
+      plot_id: plot.id,
+      plot_name: plot.user_plot_name,
       date: r.date,
       et0_mm: r.et0,
       etc_mm: r.etc,
@@ -82,9 +82,9 @@ export function costruisciStoricoUmiditaFc(
  * delegano a {@link serializzaVettoriale}; il CSV usa la variante localizzata
  * europea (`;` + BOM UTF-8) attesa da Excel IT/ES.
  */
-export function serializzaStoricoUmidita(
+export function serializeMoistureHistory(
   fc: FeatureCollection,
-  formato: FormatoStoricoUmidita,
+  formato: MoistureHistoryFormat,
   baseName: string,
 ): ExportArtifact {
   if (formato === "csv") {

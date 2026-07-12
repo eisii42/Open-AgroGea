@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import {
   assertWritable,
   MAX_GEOMETRY_HISTORY,
-  persistiGeometriaSuDal,
+  persistGeometryToDal,
 } from "./helpers";
 import type { GeometrySlice, StoreGet, StoreSet } from "./state";
 
@@ -20,15 +20,15 @@ export function createGeometrySlice(
     geometryUndo: [],
     geometryRedo: [],
 
-    salvaAppezzamentoDisegnato: async (geometria, attrs = {}) => {
+    saveDrawnPlot: async (geometria, attrs = {}) => {
       assertWritable(get);
-      const { dal, aziendaAttivaId, syncRouter, appezzamenti } = get();
-      if (!dal || !aziendaAttivaId) return null;
+      const { dal, activeCompanyId, syncRouter, plots } = get();
+      if (!dal || !activeCompanyId) return null;
       // L'area geodetica (area_ha) è calcolata dal DAL dalla geometria.
-      const record = await dal.upsertAppezzamento({
+      const record = await dal.upsertPlot({
         id: attrs.id ?? uuidv4(),
-        company_id: aziendaAttivaId,
-        user_plot_name: attrs.name ?? `Appezzamento ${appezzamenti.length + 1}`,
+        company_id: activeCompanyId,
+        user_plot_name: attrs.name ?? `Plot ${plots.length + 1}`,
         cadastral_sheet: attrs.cadastral_sheet ?? null,
         cadastral_parcel: attrs.cadastral_parcel ?? null,
         last_ndvi_mean: null,
@@ -39,20 +39,20 @@ export function createGeometrySlice(
         metadata: { origine: "geo-editor" },
       });
       set((s) => {
-        const others = s.appezzamenti.filter((a) => a.id !== record.id);
-        return { appezzamenti: [...others, record] };
+        const others = s.plots.filter((a) => a.id !== record.id);
+        return { plots: [...others, record] };
       });
       syncRouter?.notifyLocalWrite();
       return record;
     },
 
-    salvaAssetDisegnato: async (geometria, attrs = {}) => {
+    saveDrawnAsset: async (geometria, attrs = {}) => {
       assertWritable(get);
-      const { dal, aziendaAttivaId, syncRouter } = get();
-      if (!dal || !aziendaAttivaId) return null;
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return null;
       const record = await dal.upsertAsset({
         id: attrs.id ?? uuidv4(),
-        company_id: aziendaAttivaId,
+        company_id: activeCompanyId,
         asset_type: attrs.asset_type ?? "generico",
         category: attrs.category ?? "fixed",
         name: attrs.name ?? null,
@@ -79,9 +79,9 @@ export function createGeometrySlice(
 
     selectFeatureOnMap: async (ref) => {
       set({ selectedFeature: ref });
-      // L'appezzamento selezionato pilota anche le schede analitiche (NDVI/coltura).
+      // L'appezzamento selezionato pilota anche le schede analitiche (NDVI/crop).
       if (ref?.kind === "appezzamento") {
-        await get().selectAppezzamento(ref.id);
+        await get().selectPlot(ref.id);
       }
     },
 
@@ -102,18 +102,18 @@ export function createGeometrySlice(
       assertWritable(get);
       const { geomEdit } = get();
       if (!geomEdit) return;
-      const esito = await persistiGeometriaSuDal(
+      const outcome = await persistGeometryToDal(
         get,
         set,
         geomEdit.kind,
         geomEdit.id,
         geometry,
       );
-      if (esito) {
+      if (outcome) {
         set((s) => ({
           geometryUndo: [
             ...s.geometryUndo,
-            { kind: geomEdit.kind, id: geomEdit.id, before: esito.before, after: geometry },
+            { kind: geomEdit.kind, id: geomEdit.id, before: outcome.before, after: geometry },
           ].slice(-MAX_GEOMETRY_HISTORY),
           geometryRedo: [],
         }));
@@ -121,44 +121,44 @@ export function createGeometrySlice(
       set({ geomEdit: null, geomEditRequest: null });
     },
 
-    undoGeometria: async () => {
+    undoGeometry: async () => {
       assertWritable(get);
       const stack = get().geometryUndo;
       const snap = stack[stack.length - 1];
       if (!snap) return;
-      await persistiGeometriaSuDal(get, set, snap.kind, snap.id, snap.before);
+      await persistGeometryToDal(get, set, snap.kind, snap.id, snap.before);
       set((s) => ({
         geometryUndo: s.geometryUndo.slice(0, -1),
         geometryRedo: [...s.geometryRedo, snap],
       }));
     },
 
-    redoGeometria: async () => {
+    redoGeometry: async () => {
       assertWritable(get);
       const stack = get().geometryRedo;
       const snap = stack[stack.length - 1];
       if (!snap) return;
-      await persistiGeometriaSuDal(get, set, snap.kind, snap.id, snap.after);
+      await persistGeometryToDal(get, set, snap.kind, snap.id, snap.after);
       set((s) => ({
         geometryRedo: s.geometryRedo.slice(0, -1),
         geometryUndo: [...s.geometryUndo, snap],
       }));
     },
 
-    eliminaElemento: async (kind, id) => {
+    deleteElement: async (kind, id) => {
       assertWritable(get);
       const { dal, syncRouter } = get();
       if (!dal) return;
       if (kind === "appezzamento") {
-        await dal.deleteAppezzamento(id);
-        set((s) => ({ appezzamenti: s.appezzamenti.filter((a) => a.id !== id) }));
+        await dal.deletePlot(id);
+        set((s) => ({ plots: s.plots.filter((a) => a.id !== id) }));
       } else if (kind === "infrastruttura") {
         await dal.deleteAsset(id);
         set((s) => ({ assets: s.assets.filter((a) => a.id !== id) }));
       } else {
-        await dal.deleteCampionamento(id);
+        await dal.deleteSoilSample(id);
         set((s) => ({
-          campionamenti: s.campionamenti.filter((c) => c.id !== id),
+          soilSamples: s.soilSamples.filter((c) => c.id !== id),
         }));
       }
       syncRouter?.notifyLocalWrite();
@@ -166,30 +166,30 @@ export function createGeometrySlice(
         selectedFeature:
           s.selectedFeature?.id === id ? null : s.selectedFeature,
         geomEdit: s.geomEdit?.id === id ? null : s.geomEdit,
-        appezzamentoSelezionatoId:
-          s.appezzamentoSelezionatoId === id
+        selectedPlotId:
+          s.selectedPlotId === id
             ? null
-            : s.appezzamentoSelezionatoId,
+            : s.selectedPlotId,
       }));
     },
 
-    aggiornaAppezzamento: async (id, patch) => {
+    updatePlot: async (id, patch) => {
       assertWritable(get);
       const { dal, syncRouter } = get();
       if (!dal) return;
-      const existing = get().appezzamenti.find((a) => a.id === id);
+      const existing = get().plots.find((a) => a.id === id);
       if (!existing) return;
-      const record = await dal.upsertAppezzamento({ ...existing, ...patch });
+      const record = await dal.upsertPlot({ ...existing, ...patch });
       set((s) => ({
-        appezzamenti: [
-          ...s.appezzamenti.filter((a) => a.id !== record.id),
+        plots: [
+          ...s.plots.filter((a) => a.id !== record.id),
           record,
         ],
       }));
       syncRouter?.notifyLocalWrite();
     },
 
-    aggiornaAsset: async (id, patch) => {
+    updateAsset: async (id, patch) => {
       assertWritable(get);
       const { dal, syncRouter } = get();
       if (!dal) return;

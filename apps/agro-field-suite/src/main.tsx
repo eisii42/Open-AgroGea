@@ -5,10 +5,10 @@ import { App } from "./App";
 import { initEdition } from "./edition";
 import { registerMapTileProxy } from "./lib/mapTileProxy";
 // Inizializza l'i18n (react-i18next) prima del primo render: registra il
-// singleton i18next e seleziona la lingua persistita. Stesso ordine di
+// singleton i18next e select la lingua persistita. Stesso ordine di
 // `applyTheme(loadTheme())` qui sotto — niente flash di lingua sbagliata.
 import "./i18n";
-// Fogli di stile dei control nativi attivati dall'app di campo. Senza questi i
+// Fogli di stile dei control nativi attivati dall'app di field. Senza questi i
 // control perdono il posizionamento agli angoli della mappa e finiscono nel
 // flusso normale coprendo il canvas. Ogni libreria espone il proprio CSS; il
 // barrel JS di `maplibre-gl-components` (che dipende da three.js) è stubbato
@@ -29,14 +29,14 @@ import "./index.css";
 // Applica il tema persistito prima del primo render (niente flash di tema).
 applyTheme(loadTheme());
 
-// Service worker PWA: attivo solo fuori da Tauri (browser/PWA standalone).
+// Service worker PWA: active solo fuori da Tauri (browser/PWA standalone).
 // In Tauri l'offline è garantito dal bundle nativo; il SW serve la modalità web.
 if ("serviceWorker" in navigator && !("__TAURI_INTERNALS__" in window)) {
   void navigator.serviceWorker.register("/sw.js", { scope: "/" });
 }
 
 // Registra il protocollo MapLibre per i tile WMS (riproiezione CRS + proxy CORS),
-// attivo su web e Tauri. Va fatto prima che la mappa monti le sorgenti.
+// active su web e Tauri. Va fatto prima che la mappa monti le sorgenti.
 registerMapTileProxy();
 
 async function bootstrap(): Promise<void> {

@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * Controlla GitHub Releases all'avvio (endpoint `latest.json` configurato in
  * tauri.conf.json, generato automaticamente da tauri-action), espone lo stato
  * per una UI non silente (banner con changelog + "Aggiorna ora") e, su
- * richiesta, scarica con avanzamento, installa e riavvia. Tutto è no-op fuori
+ * richiesta, download con avanzamento, installa e riavvia. Tutto è no-op fuori
  * da Tauri desktop: su web/PWA e su mobile la
  * funzione `check` non viene nemmeno invocata, così l'app non crasha dove
  * l'updater non esiste.
@@ -24,7 +24,7 @@ export type UpdaterPhase =
 
 export interface UpdaterState {
   phase: UpdaterPhase;
-  /** Versione disponibile (es. "1.0.1"). */
+  /** Versione available (es. "1.0.1"). */
   version?: string;
   /** Note di rilascio / changelog. */
   notes?: string;

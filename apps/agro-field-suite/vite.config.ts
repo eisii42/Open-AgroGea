@@ -85,7 +85,7 @@ export default defineConfig({
     // Allinea le copie condivise (un solo React/MapLibre nel bundle).
     dedupe: ["react", "react-dom", "maplibre-gl"],
     alias: {
-      // I plugin GeoLibre usati in campo non includono control 3D, ma il
+      // I plugin GeoLibre usati in field non includono control 3D, ma il
       // barrel @geolibre/plugins trascina maplibre-gl-components → three.js.
       // Lo stub soddisfa le import senza il peso (e gli addon irrisolvibili)
       // di three. Vedi src/stubs/maplibre-three-plugin.ts.

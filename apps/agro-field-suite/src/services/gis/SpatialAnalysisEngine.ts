@@ -7,7 +7,7 @@
  * GeoJSON in `jsonb`, vedi packages/agro-core/src/db/schema.ts): tutto il lavoro
  * spaziale pesante è quindi delegato qui, senza dipendere da server esterni.
  *
- * Le import `?url` di DuckDB-WASM sono specifiche di Vite, perciò questo modulo
+ * Le import `?url` di DuckDB-WASM sono specifiche di Vite, perciò questo module
  * gira solo a runtime. La logica pura (costruttori SQL) è in ./spatial-sql,
  * dove può essere testata sotto Node.
  */
@@ -97,7 +97,7 @@ export class SpatialAnalysisEngine {
     return this.dbPromise;
   }
 
-  /** Installa e carica l'estensione spatial una volta sola per istanza DB. */
+  /** Installa e load l'estensione spatial una volta sola per istanza DB. */
   private async ensureSpatial(
     connection: duckdb.AsyncDuckDBConnection,
   ): Promise<void> {
@@ -126,7 +126,7 @@ export class SpatialAnalysisEngine {
     }
   }
 
-  /** Esegue SQL arbitrario e restituisce le righe normalizzate. */
+  /** Esegue SQL arbitrario e restituisce le rows normalizzate. */
   async query(sql: string): Promise<Record<string, unknown>[]> {
     return this.withConnection(async (connection) =>
       rowsFromResult(await connection.query(sql)),
@@ -159,11 +159,11 @@ export class SpatialAnalysisEngine {
   }
 
   /**
-   * Legge le righe di una tabella PGlite del tenant (con geometria GeoJSON in
+   * Legge le rows di una tabella PGlite del tenant (con geometria GeoJSON in
    * una colonna `jsonb`) e le registra come tabella DuckDB. Ponte OLTP→OLAP.
    *
    * @param pg          Istanza PGlite del tenant (vedi openTenantDb).
-   * @param source.table       Tabella sorgente (es. `appezzamenti`).
+   * @param source.table       Tabella sorgente (es. `plots`).
    * @param source.geomColumn  Colonna geometria GeoJSON (es. `geometria`).
    * @param source.where       Filtro opzionale (già sanificato dal chiamante).
    */
@@ -263,7 +263,7 @@ async function dropFilesQuietly(
   }
 }
 
-/** Costruisce una FeatureCollection da righe PGlite con geometria GeoJSON jsonb. */
+/** Costruisce una FeatureCollection da rows PGlite con geometria GeoJSON jsonb. */
 function rowsToFeatureCollection(
   rows: Record<string, unknown>[],
   geomColumn: string,

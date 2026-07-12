@@ -2,7 +2,7 @@ import { PGlite, types } from "@electric-sql/pglite";
 import { AGRO_LOCAL_SCHEMA_SQL, AGRO_LOCAL_SCHEMA_VERSION } from "./schema";
 
 /**
- * Parser di tipo per le colonne `numeric` (OID 1700). Postgres/PGlite le
+ * Parser di tipo per le columns `numeric` (OID 1700). Postgres/PGlite le
  * serializza come STRINGA per preservare la precisione arbitraria; ma il nostro
  * modello (area_ha, last_ndvi_mean, declared_area_ha, output_value DSS) le
  * tipizza come `number` e ne fa aritmetica / `toFixed`. Senza questo parser una
@@ -16,7 +16,7 @@ const NUMERIC_PARSERS = {
 
 /**
  * Gestione delle istanze PGlite locali: un database isolato per tenant, così
- * un agronomo che gestisce più aziende non può mai mescolarne i dati e lo
+ * un agronomo che gestisce più companies non può mai mescolarne i dati e lo
  * sblocco offline (PIN/biometria) apre solo l'istanza del tenant associato.
  *
  * Persistenza: IndexedDB (`idb://`) sia nel browser sia nella WebView Tauri.
@@ -78,7 +78,7 @@ export async function dumpTenantDb(tenantId: string): Promise<Blob> {
   return db.dumpDataDir();
 }
 
-// Ordine parent → child: il dump si ricarica rispettando le foreign key
+// Ordine parent → child: il dump si reload rispettando le foreign key
 // (products→companies, product_lots→products, activity_products→treatment_logs+lots).
 const SQL_DUMP_TABLES = [
   "companies",
@@ -124,7 +124,7 @@ export async function exportSqlDump(tenantId: string): Promise<string> {
     );
     if (result.rows.length === 0) continue;
     const columns = Object.keys(result.rows[0]);
-    parts.push(`\n-- ${table} (${result.rows.length} righe)`);
+    parts.push(`\n-- ${table} (${result.rows.length} rows)`);
     for (const row of result.rows) {
       const values = columns.map((column) => sqlLiteral(row[column]));
       parts.push(

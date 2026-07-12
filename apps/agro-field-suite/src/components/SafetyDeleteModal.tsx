@@ -13,8 +13,8 @@ import { useTranslation } from "react-i18next";
 
 /**
  * Modal di cancellazione protetta (Modulo 5). Procedura blindata: il pulsante
- * di conferma resta disabilitato finché il testo digitato non corrisponde al
- * 100% al nome esatto dell'elemento. Solo allora esegue il DELETE (via il
+ * di confirm resta disabilitato finché il testo digitato non corrisponde al
+ * 100% al name esatto dell'elemento. Solo allora esegue il DELETE (via il
  * callback `onConfirm`, che chiama il DAL) e chiude.
  */
 export function SafetyDeleteModal({
@@ -33,7 +33,7 @@ export function SafetyDeleteModal({
   const [text, setText] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  // Azzera il campo a ogni apertura: nessun residuo dalla sessione precedente.
+  // Azzera il field a ogni apertura: nessun residuo dalla sessione precedente.
   useEffect(() => {
     if (open) {
       setText("");
@@ -95,7 +95,7 @@ export function SafetyDeleteModal({
               className="flex-1 rounded-[var(--r-2)] bg-[#dc2626] px-3 py-2 text-sm font-medium text-white transition-opacity hover:bg-[#b91c1c] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {deleting
-                ? t("confirmDeleteOperazione.deleting")
+                ? t("confirmDeleteOperation.deleting")
                 : t("safetyDeleteModal.confirmDelete")}
             </button>
           </div>

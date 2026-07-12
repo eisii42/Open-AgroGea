@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { controlPlane } from "../control-plane";
-import type { ProfiloUtente } from "../types";
+import type { UserProfile } from "../types";
 import { loadLocale } from "./locale";
 import {
   DEFAULT_UNITS,
@@ -21,7 +21,7 @@ import {
  *   1. ogni mutazione scrive SUBITO in localStorage (istantaneo, offline-safe);
  *   2. una push DEBOUNCED sincronizza il control plane
  *      (`profili_utenti.dashboard_layout_config` / `preferenze`) appena la rete
- *      è disponibile, così le preferenze seguono l'utente cross-device.
+ *      è available, così le preferenze seguono l'utente cross-device.
  *
  * È deliberatamente separato da {@link useAgroStore}: lo stato di dominio
  * (per-tenant, da PGlite) e le preferenze d'utente (per-account, da localStorage
@@ -44,11 +44,11 @@ export interface SettingsState {
   resetLayout: () => void;
   setUnits: (patch: Partial<UnitSystem>) => void;
   /**
-   * Idrata le preferenze dal profilo remoto (al login), se presenti: il control
+   * Idrata le preferenze dal profile remoto (al login), se presenti: il control
    * plane vince per garantire la coerenza cross-device. Persiste anche in
    * localStorage così l'avvio offline successivo parte già allineato.
    */
-  hydrateFromProfile: (profilo: ProfiloUtente | null) => void;
+  hydrateFromProfile: (profile: UserProfile | null) => void;
   /** Forza la sincronizzazione remota immediata (annulla il debounce). */
   flushRemote: () => Promise<void>;
 }
@@ -108,15 +108,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
       scheduleRemotePush();
     },
 
-    hydrateFromProfile: (profilo) => {
-      if (!profilo) return;
+    hydrateFromProfile: (profile) => {
+      if (!profile) return;
       const updates: Partial<SettingsState> = {};
-      if (profilo.dashboard_layout_config) {
-        const merged = mergeDashboardLayout(profilo.dashboard_layout_config);
+      if (profile.dashboard_layout_config) {
+        const merged = mergeDashboardLayout(profile.dashboard_layout_config);
         persistDashboardLayout(merged);
         updates.dashboardLayout = merged;
       }
-      const remoteUnits = profilo.preferences?.units;
+      const remoteUnits = profile.preferences?.units;
       if (remoteUnits) {
         const units: UnitSystem = {
           area: remoteUnits.area ?? DEFAULT_UNITS.area,

@@ -25,7 +25,7 @@ import { useDiagnostics } from "./useDiagnostics";
  * Informazioni.
  *
  * Lo stato di apertura è gestito localmente con dropdown hand-rolled (come il
- * menu profilo): nessun portale Radix sopra il canvas MapLibre, così la mappa
+ * menu profile): nessun portale Radix sopra il canvas MapLibre, così la mappa
  * sottostante non viene mai disturbata. La chiusura avviene su click esterno,
  * Esc o selezione di una voce.
  */
@@ -49,7 +49,7 @@ export function HelpMenu({
 
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Chiusura su click esterno / Esc (allineato al menu profilo dell'header).
+  // Chiusura su click esterno / Esc (allineato al menu profile dell'header).
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
@@ -72,7 +72,7 @@ export function HelpMenu({
   };
 
   // Controllo aggiornamenti: spinner inline nel menu + notifica di sistema con
-  // l'esito (aggiornato / nuova versione disponibile). Il dropdown resta aperto.
+  // l'esito (aggiornato / nuova versione available). Il dropdown resta aperto.
   const handleCheckUpdates = async () => {
     if (checking) return;
     setChecking(true);

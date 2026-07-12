@@ -48,3 +48,65 @@ npm test                                        # test del dominio agronomico (t
 npm run lint
 npm run check:rust                              # cargo check sul crate Tauri
 ```
+
+## Convenzioni di codice (lingua & naming) — OBBLIGATORIE
+
+Il repository è stato anglicizzato e ristrutturato per l'apertura OSS. **Ogni
+nuovo contributo deve nascere già in inglese** e allinearsi alle strutture
+esistenti. Riferimenti canonici: [`docs/glossary.md`](docs/glossary.md),
+[`docs/naming-conventions.md`](docs/naming-conventions.md),
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+**Lingua**
+- **Codice in inglese fin da subito**: nomi di file/cartelle, variabili,
+  funzioni, classi, tipi, interfacce, enum, costanti, chiavi di oggetti/eventi/
+  azioni interne **e chiavi/namespace i18n**. Usa i termini di
+  `docs/glossary.md` (es. `appezzamento→plot`, `azienda→company`,
+  `raccolta→harvest`, `trattamento→treatment`, `magazzino→warehouse`,
+  `prodotto→product`, `suolo→soil`). Niente nuovi identificatori italiani.
+- **Stringhe UI in italiano, SEMPRE via i18n** (`apps/agro-field-suite/src/i18n/
+  locales/*.json`): mai hard-coded nei componenti. Le **chiavi/namespace** i18n
+  sono in **inglese** (es. `harvestPanel`, `logbookPanel`, `operationForm`); solo
+  i **valori** (il testo mostrato) restano in italiano. Le chiavi di `t()` sono
+  type-checkate contro `en.json`, quindi `npm run typecheck` intercetta ogni
+  chiave rinominata/mancante.
+- **Commenti**: la lingua attuale (italiano) va bene; non è richiesto tradurli.
+
+**Naming/casing** (enforced come warning da `@typescript-eslint/naming-convention`)
+- Componenti React → `PascalCase.tsx`; altri file → `kebab-case.ts`; **file hook
+  → `useX.ts`** (camelCase = nome dell'hook); cartelle → `kebab-case`.
+- Variabili/funzioni `camelCase`; tipi/interfacce/enum/componenti `PascalCase`;
+  costanti globali `UPPER_SNAKE_CASE`.
+
+**Struttura** (vedi ARCHITECTURE.md)
+- La logica di dominio vive in `apps/agro-field-suite/src/modules/<feature>/`.
+  `components/` contiene **solo** UI generica/riusabile: un pannello di dominio
+  (es. `WaterBalancePanel`) va nel suo modulo, mai in `components/`.
+- Il layer dominio+dati è il pacchetto `@agrogea/core`; gli engine di calcolo
+  puri stanno in `@agrogea/tools` (framework-free, testati). `@geolibre/*` è
+  vendorizzato: NON modificarlo, è già inglese/upstream.
+
+**NON tradurre / NON rinominare** (eccezioni deliberate, inglese-nel-codice non
+si applica):
+- Termini normativi/di dominio: `PAN`, `UMA`, `SIAN`, `SIEX`, `CUE`, `CUMP`,
+  `BBCH`, `Ky`, `FAO-56`, `FAO-33`, sigle catastali.
+- **Schema PGlite persistito** (tabelle/colonne, es. `plots_registry`,
+  `area_ha`, `business_name`) e **chiavi metadata JSONB persistite** (es. la
+  chiave `suolo` in `plots_registry.metadata`): sui device ci sono dati reali.
+  Migrazioni solo **additive/idempotenti** in `db/schema.ts`; mai drop/rename
+  distruttivi. Le variabili destrutturate da righe DB restano snake_case.
+- **Valori-stringa discriminanti/enum interni** (es. `SelectableKind`
+  `"appezzamento"`, `FieldPanel` `"quaderno"`/`"raccolta"`, `RiskLevel`
+  `"basso"/"alto"`, `CropType` `"viticoltura"`, la fase VRA `"lavorazione"`):
+  sono VALORI accoppiati a UI/persistenza, restano come sono (l'identificatore
+  inglese avvolge il valore, il valore no). ⚠️ Le **chiavi/namespace i18n** NON
+  sono più un'eccezione: vanno in inglese (vedi sezione Lingua). Restano italiane
+  solo le poche chiavi che rispecchiano un valore-discriminante letto
+  dinamicamente (es. `harvestPanel.destinations.<id>`,
+  `cropFormSchema.category.<cropType>`, `sianExportDialog.columns.<campoSian>`).
+- **Nomi dei campi degli export normativi** (SIAN/PAN, SIEX/CUE, tracciato UE):
+  invariati come da standard.
+
+**Gate**: prima di ogni PR devono passare `npm run typecheck`, `npm test`,
+`npm run lint` (CI: `.github/workflows/quality.yml`). Behavior-preserving:
+rinomine/spostamenti separati dalle modifiche funzionali.

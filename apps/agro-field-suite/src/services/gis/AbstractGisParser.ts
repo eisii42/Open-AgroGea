@@ -9,16 +9,16 @@
  * (reference/agricultural parcel external id, crop/variety external code,
  * declared area), pronto per `plots_campaign`.
  *
- * La lettura spaziale (parsing del file → FeatureCollection) resta delegata al
+ * La reading spaziale (parsing del file → FeatureCollection) resta delegata al
  * {@link SpatialAnalysisEngine} (DuckDB Spatial, in-browser): l'adapter lavora
  * solo sulle properties, quindi è PURO e testabile sotto `node --test`.
  *
- *   * Adapter IT → SIAN/AGEA (Isola / Appezzamento)
+ *   * Adapter IT → SIAN/AGEA (Isola / Plot)
  *   * Adapter ES → SIGPAC/SIEX (Provincia, Municipio, Poligono, Parcela, Recinto)
  *   * Adapter FR → TelePAC/RPG (Îlot, Parcelle, Code culture)
  *   * Adapter EU → base internazionale (alias inglesi generici)
  */
-import { areaEttari, type CountryCode } from "@agrogea/core";
+import { areaHectares, type CountryCode } from "@agrogea/core";
 import type {
   FeatureCollection,
   Geometry,
@@ -27,13 +27,13 @@ import type {
 } from "geojson";
 import {
   mapSianFeature,
-  numeroItaliano,
+  italianNumber,
   parseCsvRows,
   type SianCampoMappato,
   type SianProperties,
 } from "./sian-mapping";
 
-/** Record EU-agnostico prodotto da ogni adapter (allineato a `plots_campaign`). */
+/** Record EU-agnostico product da ogni adapter (allineato a `plots_campaign`). */
 export type MappedParcel = SianCampoMappato;
 
 /** Strategia di decodifica delle properties per una specifica nazione. */
@@ -52,11 +52,11 @@ export interface GisParcelAdapter {
 
 // -- helpers generici (case-insensitive, alias robusti) ---------------------
 
-function normalizza(chiave: string): string {
-  return chiave.trim().toLowerCase().replace(/[\s.]+/g, "_");
+function normalizza(key: string): string {
+  return key.trim().toLowerCase().replace(/[\s.]+/g, "_");
 }
 
-function indicizza(props: SianProperties): Map<string, unknown> {
+function indexBy(props: SianProperties): Map<string, unknown> {
   const map = new Map<string, unknown>();
   for (const [k, v] of Object.entries(props)) map.set(normalizza(k), v);
   return map;
@@ -70,7 +70,7 @@ function pick(idx: Map<string, unknown>, alias: readonly string[]): unknown {
   return null;
 }
 
-function asCodice(value: unknown): string | null {
+function asCode(value: unknown): string | null {
   if (value == null) return null;
   const s = String(value).trim();
   return s === "" ? null : s;
@@ -100,14 +100,14 @@ interface AdapterAliases {
   sep?: string;
 }
 
-function risolviSuperficie(
+function resolveArea(
   idx: Map<string, unknown>,
   aliases: AdapterAliases,
   areaGeodeticaHa?: number | null,
 ): number {
-  const dichiarata = numeroItaliano(pick(idx, aliases.areaHa));
+  const dichiarata = italianNumber(pick(idx, aliases.areaHa));
   if (dichiarata != null && dichiarata > 0) return arrotonda4(dichiarata);
-  const mq = numeroItaliano(pick(idx, aliases.areaMq));
+  const mq = italianNumber(pick(idx, aliases.areaMq));
   if (mq != null && mq > 0) return arrotonda4(mq / 10000);
   if (areaGeodeticaHa != null && areaGeodeticaHa > 0) return arrotonda4(areaGeodeticaHa);
   return 0;
@@ -119,11 +119,11 @@ function resolveReference(
 ): string | null {
   if (aliases.referenceComposite && aliases.referenceComposite.length > 0) {
     const parts = aliases.referenceComposite
-      .map((a) => asCodice(idx.get(a)))
+      .map((a) => asCode(idx.get(a)))
       .filter((p): p is string => p != null);
     if (parts.length > 0) return parts.join(aliases.sep ?? "-");
   }
-  return asCodice(pick(idx, aliases.reference));
+  return asCode(pick(idx, aliases.reference));
 }
 
 /** Costruisce un adapter alias-based da una mappa di alias nazionale. */
@@ -136,13 +136,13 @@ function makeAdapter(
     countryCode,
     label,
     mapFeature(props, geometria, areaGeodeticaHa) {
-      const idx = indicizza(props);
+      const idx = indexBy(props);
       return {
         reference_parcel_external_id: resolveReference(idx, aliases),
-        agricultural_parcel_external_id: asCodice(pick(idx, aliases.agricultural)),
-        crop_external_code: asCodice(pick(idx, aliases.crop)),
-        variety_external_code: asCodice(pick(idx, aliases.variety)),
-        superficie_ha: risolviSuperficie(idx, aliases, areaGeodeticaHa),
+        agricultural_parcel_external_id: asCode(pick(idx, aliases.agricultural)),
+        crop_external_code: asCode(pick(idx, aliases.crop)),
+        variety_external_code: asCode(pick(idx, aliases.variety)),
+        superficie_ha: resolveArea(idx, aliases, areaGeodeticaHa),
         geometria,
       };
     },
@@ -151,10 +151,10 @@ function makeAdapter(
 
 // -- adapter per nazione -----------------------------------------------------
 
-/** IT — SIAN/AGEA. Delega al mapper SIAN robusto già esistente (Isola/Appezzamento). */
+/** IT — SIAN/AGEA. Delega al mapper SIAN robusto già esistente (Isola/Plot). */
 export const itSianAdapter: GisParcelAdapter = {
   countryCode: "IT",
-  label: "SIAN/AGEA (Isola/Appezzamento)",
+  label: "SIAN/AGEA (Isola/Plot)",
   mapFeature: (props, geometria, areaGeodeticaHa) =>
     mapSianFeature(props, geometria, areaGeodeticaHa),
 };
@@ -219,9 +219,9 @@ function isPoligono(g: Geometry | null): g is Polygon | MultiPolygon {
   return g != null && (g.type === "Polygon" || g.type === "MultiPolygon");
 }
 
-/** Estensione (minuscola, senza punto) del nome file. */
-function estensione(nome: string): string {
-  const m = /\.([^.\\/]+)$/.exec(nome.trim().toLowerCase());
+/** Estensione (minuscola, senza punto) del name file. */
+function extension(name: string): string {
+  const m = /\.([^.\\/]+)$/.exec(name.trim().toLowerCase());
   return m ? m[1] : "";
 }
 
@@ -242,7 +242,7 @@ export function mapFeatureCollectionWith(
   const out: MappedParcel[] = [];
   for (const f of fc.features) {
     const geom = f.geometry ?? null;
-    const area = isPoligono(geom) ? areaEttari(geom) : null;
+    const area = isPoligono(geom) ? areaHectares(geom) : null;
     out.push(adapter.mapFeature(f.properties ?? {}, geom, area));
   }
   return out;
@@ -259,7 +259,7 @@ export class AbstractGisParser {
     countryCode: CountryCode,
   ): Promise<GisParseResult> {
     const adapter = getGisAdapter(countryCode);
-    const ext = estensione(file.name);
+    const ext = extension(file.name);
 
     if (ext === "csv" || ext === "tsv") {
       const parcels = parseCsvRows(await file.text()).map((props) =>

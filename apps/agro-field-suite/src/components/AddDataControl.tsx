@@ -1,4 +1,4 @@
-import { type FormatoFile, useAgroStore } from "@agrogea/core";
+import { type FileFormat, useAgroStore } from "@agrogea/core";
 import {
   DEFAULT_LAYER_STYLE,
   type GeoLibreLayer,
@@ -13,16 +13,16 @@ import {
   ADD_DATA_ACCEPT,
   EXTERNAL_LAYER_FLAG,
   LARGE_FILE_THRESHOLD_BYTES,
-  estensioneFile,
-  formatoDaNomeFile,
+  fileExtension,
+  formatFromFileName,
   isGeoJson,
   toFeatureCollection,
 } from "../modules/add-data/add-data";
-import { importaFascicoloSian } from "../modules/sian/importaFascicolo";
+import { importSianDossier } from "../modules/sian/import-dossier";
 import {
   combinaLayer,
   type ExportFormat,
-  scaricaArtifact,
+  downloadArtifact,
   serializzaVettoriale,
 } from "../services/gis/geo-export";
 import { TransferTagsFeed } from "./TransferTagsFeed";
@@ -55,15 +55,15 @@ export function AddDataControl() {
   const { t } = useTranslation();
   const addLayer = useAppStore((s) => s.addLayer);
   const layers = useAppStore((s) => s.layers);
-  const registraTrasferimento = useAgroStore((s) => s.registraTrasferimento);
-  const campagnaAttiva = useAgroStore((s) => s.campagnaAttiva);
-  const aziendaAttivaId = useAgroStore((s) => s.aziendaAttivaId);
+  const recordTransfer = useAgroStore((s) => s.recordTransfer);
+  const activeCampaign = useAgroStore((s) => s.activeCampaign);
+  const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
 
   const [open, setOpen] = useState(false);
   const [modo, setModo] = useState<ModoImport>("mappa");
   const [busy, setBusy] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
-  const [esito, setEsito] = useState<string | null>(null);
+  const [outcome, setOutcome] = useState<string | null>(null);
   const [warnFile, setWarnFile] = useState<File | null>(null);
   const popRef = useRef<HTMLDivElement>(null);
 
@@ -84,7 +84,7 @@ export function AddDataControl() {
   }, [open]);
 
   /** Legge il file → FeatureCollection (GeoJSON in JS, resto via DuckDB). */
-  async function leggiFeatureCollection(file: File): Promise<FeatureCollection> {
+  async function readFeatureCollection(file: File): Promise<FeatureCollection> {
     if (isGeoJson(file.name)) {
       const fc = toFeatureCollection(JSON.parse(await file.text()));
       if (!fc) {
@@ -98,7 +98,7 @@ export function AddDataControl() {
     );
     const data = new Uint8Array(await file.arrayBuffer());
     const fc = await SpatialAnalysisEngine.instance().loadVectorFileAsFeatureCollection(
-      { name: file.name, extension: estensioneFile(file.name), data },
+      { name: file.name, extension: fileExtension(file.name), data },
     );
     if (fc.features.length === 0) {
       throw new Error(t("addDataControl.noReadableGeometries"));
@@ -108,9 +108,9 @@ export function AddDataControl() {
 
   async function onFile(file: File, forceAccept = false) {
     setErrore(null);
-    setEsito(null);
+    setOutcome(null);
     setWarnFile(null);
-    const formato = formatoDaNomeFile(file.name);
+    const formato = formatFromFileName(file.name);
     if (!formato) {
       setErrore(t("addDataControl.unrecognizedFormat", { name: file.name }));
       return;
@@ -122,7 +122,7 @@ export function AddDataControl() {
     }
     setBusy(true);
     try {
-      const fc = await leggiFeatureCollection(file);
+      const fc = await readFeatureCollection(file);
       const id = `external-${crypto.randomUUID()}`;
       const layer: GeoLibreLayer = {
         id,
@@ -139,12 +139,12 @@ export function AddDataControl() {
         sourcePath: `agrogea://${id}`,
       };
       addLayer(layer);
-      await registraTrasferimento({
+      await recordTransfer({
         operation_type: "import",
         file_format: formato,
         file_name: file.name,
       });
-      setEsito(
+      setOutcome(
         t("addDataControl.fileAdded", {
           name: file.name,
           count: fc.features.length,
@@ -159,18 +159,18 @@ export function AddDataControl() {
 
   /**
    * Export in blocco dell'intera configurazione cartografica aziendale (tutti i
-   * layer proiettati nello store: appezzamenti, infrastrutture, POI, raccolte,
+   * layer proiettati nello store: plots, infrastrutture, POI, harvests,
    * mappe DSS…) in uno dei formati GIS della filiera. Serializzazione pura,
    * tracciata nel giornale dei trasferimenti.
    */
-  async function esportaConfigurazione(format: ExportFormat) {
+  async function exportConfiguration(format: ExportFormat) {
     setErrore(null);
-    setEsito(null);
-    const esportabili = layers.filter(
+    setOutcome(null);
+    const exportable = layers.filter(
       (l) => l.metadata?.agrogea === true && l.geojson,
     );
     const fc = combinaLayer(
-      esportabili.map((l) => ({
+      exportable.map((l) => ({
         id: l.id,
         name: l.name,
         geojson: l.geojson ?? null,
@@ -183,13 +183,13 @@ export function AddDataControl() {
     setBusy(true);
     try {
       const artifact = serializzaVettoriale(fc, format, "agrogea_configurazione");
-      scaricaArtifact(artifact);
-      await registraTrasferimento({
+      downloadArtifact(artifact);
+      await recordTransfer({
         operation_type: "export",
-        file_format: format as FormatoFile,
+        file_format: format as FileFormat,
         file_name: artifact.filename,
       });
-      setEsito(
+      setOutcome(
         t("addDataControl.configExported", {
           name: artifact.filename,
           count: fc.features.length,
@@ -205,8 +205,8 @@ export function AddDataControl() {
   /** Import del Fascicolo SIAN: file → campi_campagna (create-or-populate). */
   async function onFileSian(file: File) {
     setErrore(null);
-    setEsito(null);
-    if (!aziendaAttivaId) {
+    setOutcome(null);
+    if (!activeCompanyId) {
       setErrore(t("addDataControl.selectCompanyFirst"));
       return;
     }
@@ -215,29 +215,29 @@ export function AddDataControl() {
       const { SianImportParser } = await import(
         "../services/gis/SianImportParser"
       );
-      const { formato, campi } = await SianImportParser.parse(file);
-      if (campi.length === 0) {
+      const { formato, fields } = await SianImportParser.parse(file);
+      if (fields.length === 0) {
         setErrore(t("addDataControl.noFieldsRecognized"));
         return;
       }
-      const esitoImport = await importaFascicoloSian(campi, campagnaAttiva);
-      await registraTrasferimento({
+      const importResult = await importSianDossier(fields, activeCampaign);
+      await recordTransfer({
         operation_type: "import",
         file_format: formato === "csv" ? "csv" : "shapefile",
         file_name: file.name,
       });
-      setEsito(
-        esitoImport.saltati
+      setOutcome(
+        importResult.saltati
           ? t("addDataControl.sianImportResultSkipped", {
-              year: campagnaAttiva,
-              created: esitoImport.creati,
-              updated: esitoImport.aggiornati,
-              skipped: esitoImport.saltati,
+              year: activeCampaign,
+              created: importResult.creati,
+              updated: importResult.aggiornati,
+              skipped: importResult.saltati,
             })
           : t("addDataControl.sianImportResult", {
-              year: campagnaAttiva,
-              created: esitoImport.creati,
-              updated: esitoImport.aggiornati,
+              year: activeCampaign,
+              created: importResult.creati,
+              updated: importResult.aggiornati,
             }),
       );
     } catch (err) {
@@ -280,7 +280,7 @@ export function AddDataControl() {
                 onClick={() => {
                   setModo(m.id);
                   setErrore(null);
-                  setEsito(null);
+                  setOutcome(null);
                 }}
                 className={cn(
                   "flex-1 rounded-[var(--r-1)] px-2 py-1 text-xs font-medium",
@@ -297,7 +297,7 @@ export function AddDataControl() {
           <p className="mb-2.5 text-xs text-[var(--ink-4)]">
             {modo === "mappa"
               ? t("addDataControl.mapModeDescription")
-              : t("addDataControl.sianModeDescription", { year: campagnaAttiva })}
+              : t("addDataControl.sianModeDescription", { year: activeCampaign })}
           </p>
 
           <label
@@ -332,7 +332,7 @@ export function AddDataControl() {
             />
           </label>
 
-          {/* Warning file massivo (>50 MB): l'utente conferma o annulla. */}
+          {/* Warning file massivo (>50 MB): l'utente confirm o annulla. */}
           {warnFile && (
             <div className="mt-2 rounded-[var(--r-2)] border border-[var(--warn)] bg-[var(--warn-l)] p-2.5 text-xs text-[var(--warn)]">
               <p className="font-semibold">
@@ -364,7 +364,7 @@ export function AddDataControl() {
           {errore && (
             <p className="mt-2 text-xs text-[var(--danger)]">{errore}</p>
           )}
-          {esito && <p className="mt-2 text-xs text-[var(--ok)]">{esito}</p>}
+          {outcome && <p className="mt-2 text-xs text-[var(--ok)]">{outcome}</p>}
 
           {/* Export in blocco della configurazione cartografica aziendale */}
           <div className="mt-3 border-t border-[var(--line)] pt-2.5">
@@ -381,7 +381,7 @@ export function AddDataControl() {
                   key={f.format}
                   type="button"
                   disabled={busy}
-                  onClick={() => void esportaConfigurazione(f.format)}
+                  onClick={() => void exportConfiguration(f.format)}
                   className={cn(
                     "rounded-[var(--r-1)] border border-[var(--line)] px-2 py-1 text-[11px] font-medium text-[var(--ink-2)] hover:bg-[var(--panel-2)]",
                     busy && "pointer-events-none opacity-60",

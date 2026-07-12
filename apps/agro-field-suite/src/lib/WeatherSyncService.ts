@@ -1,16 +1,16 @@
 import {
   type AgroDal,
-  type Appezzamento,
-  centroide,
-  type ConfigMeteoAzienda,
-  type FonteDatiMeteo,
-  type LetturaMeteo,
+  type Plot,
+  centroid,
+  type CompanyWeatherConfig,
+  type WeatherDataSource,
+  type WeatherReading,
 } from "@agrogea/core";
 import { v5 as uuidv5 } from "uuid";
 import i18n from "../i18n";
 
 /**
- * Namespace fisso per derivare l'id (UUIDv5) di una lettura meteo dalla sua
+ * Namespace fisso per derivare l'id (UUIDv5) di una reading meteo dalla sua
  * chiave naturale. La colonna `letture_meteo.id` è di tipo `uuid` (come la PK
  * remota e `outbox.riga_id`): inserirvi una chiave testuale grezza tipo
  * "open-meteo:<iso>" fa fallire l'INSERT con "invalid input syntax for type
@@ -19,29 +19,29 @@ import i18n from "../i18n";
  * UUIDv5 è deterministico: la stessa chiave → lo stesso id, quindi l'idempotenza
  * `on conflict (id)` resta intatta e un re-import sovrascrive senza duplicare.
  */
-const NS_LETTURA_METEO = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
+const WEATHER_READING_NS = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
 
-/** Id `uuid` deterministico di una lettura meteo dalla sua chiave naturale. */
-function idLettura(chiaveNaturale: string): string {
-  return uuidv5(chiaveNaturale, NS_LETTURA_METEO);
+/** Id `uuid` deterministico di una reading meteo dalla sua chiave naturale. */
+function readingId(chiaveNaturale: string): string {
+  return uuidv5(chiaveNaturale, WEATHER_READING_NS);
 }
 
 /**
  * Engine meteo local-first (Modulo Meteo §2).
  *
  * Unico punto del sistema che parla con l'esterno per il meteo. Tutto ciò che
- * scarica (Open-Meteo o centralina privata) finisce normalizzato nella stessa
+ * download (Open-Meteo o centralina privata) finisce normalizzato nella stessa
  * tabella locale `letture_meteo` (il modello "meteo_osservazioni" della
  * specifica), da cui poi leggono i DSS. Pensato per i tier gratuiti: un solo
  * fetch copre storico + previsione e un lucchetto orario evita di consumare
- * quota a ogni apertura/cambio azienda.
+ * quota a ogni apertura/cambio company.
  *
  * Regola architetturale: scrive SOLO via DAL, mai su PGlite direttamente.
  */
 
 /** Riga meteo pronta per il DAL (idempotente per `id`). */
-type LetturaMeteoInput = Omit<
-  LetturaMeteo,
+type WeatherReadingInput = Omit<
+  WeatherReading,
   "tenant_id" | "created_at" | "updated_at" | "deleted_at"
 >;
 
@@ -51,42 +51,42 @@ type LetturaMeteoInput = Omit<
  * Copre i modelli giornalieri (peronospora/oidio) e gran parte dell'accumulo
  * recente; lo storico più profondo per il GDD stagionale arriva dall'Archive API.
  */
-const GIORNI_STORICO_FORECAST = 92;
-const GIORNI_PREVISIONE = 16;
+const FORECAST_HISTORY_DAYS = 92;
+const FORECAST_DAYS = 16;
 
 /**
  * Finestra di rilettura locale: abbondante, così l'accumulo stagionale dispone
  * di tutta la storia presente in PGlite (forecast + backfill Archive). Lettura
  * locale, nessun costo di quota.
  */
-const GIORNI_LETTURA = 430;
+const READING_DAYS = 430;
 
 /** Latenza tipica dell'Archive API Open-Meteo (i dati recenti non ci sono). */
-const ARCHIVIO_LATENZA_GIORNI = 5;
+const ARCHIVE_LATENCY_DAYS = 5;
 
 /** Lucchetto orario: sotto questo delta si legge dalla cache locale. */
-export const LOCK_METEO_MINUTI = 60;
+export const WEATHER_LOCK_MINUTES = 60;
 
-/** Stazione logica con cui Open-Meteo marca le sue righe in `letture_meteo`. */
-export const STAZIONE_OPEN_METEO = "open-meteo";
+/** Stazione logica con cui Open-Meteo marca le sue rows in `letture_meteo`. */
+export const OPEN_METEO_STATION = "open-meteo";
 
-export interface MeteoFetchOptions {
+export interface WeatherFetchOptions {
   dal: AgroDal;
-  aziendaId: string;
-  /** Appezzamento da cui prendere le coordinate (il "principale"). */
-  appezzamentoPrincipale: Appezzamento | null;
+  companyId: string;
+  /** Plot da cui prendere le coordinate (il "principale"). */
+  mainPlot: Plot | null;
   /** Config già caricata; se assente il servizio la legge dal DAL. */
-  config?: ConfigMeteoAzienda | null;
+  config?: CompanyWeatherConfig | null;
   /** Forza il fetch ignorando il lucchetto orario (pulsante "aggiorna ora"). */
   force?: boolean;
 }
 
-export interface MeteoFetchResult {
+export interface WeatherFetchResult {
   /** true se ha colpito davvero la rete/centralina in questa chiamata. */
   fetched: boolean;
-  fonte: FonteDatiMeteo;
+  fonte: WeatherDataSource;
   /** Serie completa (storico + previsione) letta da PGlite dopo l'eventuale pull. */
-  letture: LetturaMeteo[];
+  readings: WeatherReading[];
   /** Righe nuove scritte in `letture_meteo` (0 se servita dalla cache). */
   inserite: number;
   /** Perché non ha fetchato, quando `fetched` è false (es. lucchetto orario). */
@@ -97,20 +97,20 @@ export interface MeteoFetchResult {
 // Previsione "da cruscotto" (scheda meteo dell'header): oggi + N giorni.
 // ---------------------------------------------------------------------------
 
-/** Condizioni correnti per la riga principale della scheda meteo. */
-export interface MeteoCorrente {
-  /** ISO dell'osservazione corrente restituita da Open-Meteo. */
+/** Condizioni correnti per la row principale della scheda meteo. */
+export interface CurrentWeather {
+  /** ISO dell'osservazione current restituita da Open-Meteo. */
   ora: string;
   temperatura: number | null;
   umidita: number | null;
   vento: number | null;
-  pioggia: number | null;
+  rain: number | null;
   /** Codice meteo WMO (0..99) per la scelta dell'icona. */
   weatherCode: number | null;
 }
 
 /** Sintesi di un giorno di previsione (icona + min/max + pioggia). */
-export interface GiornoPrevisione {
+export interface ForecastDay {
   /** Data "YYYY-MM-DD" (timezone locale dell'azienda). */
   data: string;
   tMin: number | null;
@@ -121,9 +121,9 @@ export interface GiornoPrevisione {
 }
 
 export interface PrevisioneDashboard {
-  corrente: MeteoCorrente;
+  current: CurrentWeather;
   /** Oggi in testa, poi i giorni successivi. */
-  giorni: GiornoPrevisione[];
+  days: ForecastDay[];
   /** ISO del momento in cui è stata recuperata (per il "aggiornato alle…"). */
   recuperatoIl: string;
 }
@@ -148,10 +148,10 @@ interface OpenMeteoForecastResp {
 }
 
 /** Giorni di previsione mostrati nella scheda: oggi + 4. */
-const GIORNI_PREVISIONE_DASHBOARD = 5;
+const DASHBOARD_FORECAST_DAYS = 5;
 
 /**
- * Cache in-memory (per azienda) della previsione da cruscotto. È volutamente
+ * Cache in-memory (per company) della previsione da cruscotto. È volutamente
  * separata dal lucchetto `last_weather_pull_at` dei DSS: quella scheda NON
  * scrive `letture_meteo`, quindi non deve marcare il pull autorevole (altrimenti
  * i DSS crederebbero i dati freschi senza averli). All'avvio dell'app la cache è
@@ -170,7 +170,7 @@ function buildForecastDashboardUrl(lon: number, lat: number): string {
       "temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,precipitation",
     daily:
       "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max",
-    forecast_days: String(GIORNI_PREVISIONE_DASHBOARD),
+    forecast_days: String(DASHBOARD_FORECAST_DAYS),
     timezone: "auto",
   });
   return `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
@@ -216,18 +216,18 @@ function buildOpenMeteoUrl(lon: number, lat: number): string {
     longitude: lon.toFixed(4),
     hourly:
       "temperature_2m,relative_humidity_2m,precipitation,shortwave_radiation,wind_speed_10m",
-    past_days: String(GIORNI_STORICO_FORECAST),
-    forecast_days: String(GIORNI_PREVISIONE),
+    past_days: String(FORECAST_HISTORY_DAYS),
+    forecast_days: String(FORECAST_DAYS),
     timezone: "auto",
   });
   return `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
 }
 
 async function fetchOpenMeteo(
-  aziendaId: string,
+  companyId: string,
   lon: number,
   lat: number,
-): Promise<LetturaMeteoInput[]> {
+): Promise<WeatherReadingInput[]> {
   const resp = await fetch(buildOpenMeteoUrl(lon, lat));
   if (!resp.ok) {
     throw new Error(i18n.t("weatherSyncService.openMeteoHttpError", { status: resp.status }));
@@ -240,24 +240,24 @@ async function fetchOpenMeteo(
   return h.time.map((iso, i) => {
     const rilevatoIl = new Date(iso).toISOString();
     const rh = h.relative_humidity_2m[i] ?? null;
-    const pioggia = h.precipitation[i] ?? null;
+    const rain = h.precipitation[i] ?? null;
     return {
       // id idempotente (UUIDv5 dalla chiave naturale): un re-import sovrascrive.
-      id: idLettura(`${STAZIONE_OPEN_METEO}:${rilevatoIl}`),
-      company_id: aziendaId,
-      station_id: STAZIONE_OPEN_METEO,
+      id: readingId(`${OPEN_METEO_STATION}:${rilevatoIl}`),
+      company_id: companyId,
+      station_id: OPEN_METEO_STATION,
       measured_at: rilevatoIl,
       air_temperature: h.temperature_2m[i] ?? null,
       relative_humidity: rh,
-      rain_mm: pioggia,
+      rain_mm: rain,
       leaf_wetness:
-        rh != null && pioggia != null ? stimaBagnatura(rh, pioggia) : null,
+        rh != null && rain != null ? stimaBagnatura(rh, rain) : null,
       solar_radiation: h.shortwave_radiation[i] ?? null,
       wind_speed: h.wind_speed_10m[i] ?? null,
       wind_direction: null,
       metadata: {
         provider: "open-meteo",
-        previsione: i >= GIORNI_STORICO_FORECAST * 24,
+        previsione: i >= FORECAST_HISTORY_DAYS * 24,
       },
     };
   });
@@ -275,23 +275,23 @@ interface OpenMeteoDaily {
 }
 
 /** "YYYY-MM-DD" in UTC da un timestamp. */
-function isoGiorno(ms: number): string {
+function isoDay(ms: number): string {
   return new Date(ms).toISOString().slice(0, 10);
 }
 
 /**
  * Storico GIORNALIERO dall'Archive API per il backfill dell'accumulo stagionale.
- * Per minimizzare le righe (e quindi il peso locale) ogni giorno è normalizzato
- * in DUE letture sintetiche — minima al mattino, massima al pomeriggio — così
+ * Per minimizzare le rows (e quindi il peso locale) ogni giorno è normalizzato
+ * in DUE readings sintetiche — minima al mattino, massima al pomeriggio — così
  * l'aggregazione giornaliera dei DSS ricava tMin/tMax corretti senza dati orari.
  */
 async function fetchArchivioGdd(
-  aziendaId: string,
+  companyId: string,
   lon: number,
   lat: number,
   daISO: string,
   aISO: string,
-): Promise<LetturaMeteoInput[]> {
+): Promise<WeatherReadingInput[]> {
   const params = new URLSearchParams({
     latitude: lat.toFixed(4),
     longitude: lon.toFixed(4),
@@ -308,18 +308,18 @@ async function fetchArchivioGdd(
   const d = data.daily;
   if (!d?.time?.length) return [];
 
-  const righe: LetturaMeteoInput[] = [];
-  d.time.forEach((giorno, i) => {
+  const rows: WeatherReadingInput[] = [];
+  d.time.forEach((day, i) => {
     const tMin = d.temperature_2m_min[i];
     const tMax = d.temperature_2m_max[i];
-    const pioggia = d.precipitation_sum[i] ?? null;
-    if (tMin == null && tMax == null) return; // giorno senza dato → saltato
+    const rain = d.precipitation_sum[i] ?? null;
+    if (tMin == null && tMax == null) return; // day without dato → saltato
     // Riga "minima" (mattino).
-    righe.push({
-      id: idLettura(`${STAZIONE_OPEN_METEO}:arch:${giorno}:min`),
-      company_id: aziendaId,
-      station_id: STAZIONE_OPEN_METEO,
-      measured_at: `${giorno}T06:00:00.000Z`,
+    rows.push({
+      id: readingId(`${OPEN_METEO_STATION}:arch:${day}:min`),
+      company_id: companyId,
+      station_id: OPEN_METEO_STATION,
+      measured_at: `${day}T06:00:00.000Z`,
       air_temperature: tMin ?? tMax ?? null,
       relative_humidity: null,
       rain_mm: null,
@@ -330,14 +330,14 @@ async function fetchArchivioGdd(
       metadata: { provider: "open-meteo-archive", archivio: true },
     });
     // Riga "massima" (pomeriggio), porta anche la pioggia del giorno.
-    righe.push({
-      id: idLettura(`${STAZIONE_OPEN_METEO}:arch:${giorno}:max`),
-      company_id: aziendaId,
-      station_id: STAZIONE_OPEN_METEO,
-      measured_at: `${giorno}T14:00:00.000Z`,
+    rows.push({
+      id: readingId(`${OPEN_METEO_STATION}:arch:${day}:max`),
+      company_id: companyId,
+      station_id: OPEN_METEO_STATION,
+      measured_at: `${day}T14:00:00.000Z`,
       air_temperature: tMax ?? tMin ?? null,
       relative_humidity: null,
-      rain_mm: pioggia,
+      rain_mm: rain,
       leaf_wetness: null,
       solar_radiation: null,
       wind_speed: null,
@@ -345,7 +345,7 @@ async function fetchArchivioGdd(
       metadata: { provider: "open-meteo-archive", archivio: true },
     });
   });
-  return righe;
+  return rows;
 }
 
 // ---------------------------------------------------------------------------
@@ -353,15 +353,15 @@ async function fetchArchivioGdd(
 // ---------------------------------------------------------------------------
 
 /**
- * Adapter di centralina: scarica dal cloud del costruttore con le credenziali
- * configurate e normalizza nelle stesse righe `letture_meteo`. Gli endpoint
+ * Adapter di centralina: download dal cloud del costruttore con le credenziali
+ * configurate e normalizza nelle stesse rows `letture_meteo`. Gli endpoint
  * reali richiedono account/contratto, quindi qui c'è lo scaffolding tipizzato:
  * registrare un adapter = aggiungere una entry in `ADAPTER_CENTRALINE`.
  */
 type AdapterCentralina = (
-  aziendaId: string,
-  config: ConfigMeteoAzienda,
-) => Promise<LetturaMeteoInput[]>;
+  companyId: string,
+  config: CompanyWeatherConfig,
+) => Promise<WeatherReadingInput[]>;
 
 const ADAPTER_CENTRALINE: Record<string, AdapterCentralina> = {
   // Davis WeatherLink v2: GET /v2/historic/{station-id} con API key/secret.
@@ -375,9 +375,9 @@ const ADAPTER_CENTRALINE: Record<string, AdapterCentralina> = {
 };
 
 async function fetchStazionePrivata(
-  aziendaId: string,
-  config: ConfigMeteoAzienda,
-): Promise<LetturaMeteoInput[]> {
+  companyId: string,
+  config: CompanyWeatherConfig,
+): Promise<WeatherReadingInput[]> {
   const modello = (config.station_model ?? "").trim().toLowerCase();
   const adapter = ADAPTER_CENTRALINE[modello];
   if (!adapter) {
@@ -391,7 +391,7 @@ async function fetchStazionePrivata(
   if (!config.station_api_key || !config.station_device_id) {
     throw new Error(i18n.t("weatherSyncService.privateStationCredentialsRequired"));
   }
-  return adapter(aziendaId, config);
+  return adapter(companyId, config);
 }
 
 // ---------------------------------------------------------------------------
@@ -401,46 +401,46 @@ async function fetchStazionePrivata(
 export const WeatherSyncService = {
   /**
    * Garantisce una serie meteo fresca per l'azienda, rispettando il lucchetto
-   * orario. Ritorna sempre le letture lette da PGlite (anche servendo dalla
+   * orario. Ritorna sempre le readings lette da PGlite (anche servendo dalla
    * cache), così il chiamante ha la serie pronta per i DSS senza un secondo giro.
    */
   async assicuraDatiMeteo(
-    opzioni: MeteoFetchOptions,
-  ): Promise<MeteoFetchResult> {
-    const { dal, aziendaId, appezzamentoPrincipale, force } = opzioni;
+    options: WeatherFetchOptions,
+  ): Promise<WeatherFetchResult> {
+    const { dal, companyId, mainPlot, force } = options;
     const config =
-      opzioni.config ?? (await dal.getConfigMeteo(aziendaId)) ?? null;
-    const fonte: FonteDatiMeteo = config?.data_source ?? "public_api";
+      options.config ?? (await dal.getConfigMeteo(companyId)) ?? null;
+    const fonte: WeatherDataSource = config?.data_source ?? "public_api";
 
     const eta = minutiDa(config?.last_weather_pull_at ?? null);
-    const dentroLock = eta < LOCK_METEO_MINUTI;
+    const dentroLock = eta < WEATHER_LOCK_MINUTES;
 
     // Lucchetto orario: dati ancora freschi → si legge dalla cache locale.
     if (dentroLock && !force) {
-      const letture = await leggiSerie(dal, aziendaId);
+      const readings = await readSeries(dal, companyId);
       return {
         fetched: false,
         fonte,
-        letture,
+        readings,
         inserite: 0,
         motivo: i18n.t("weatherSyncService.dataUpdatedMinutesAgo", {
           minutes: Math.round(eta),
-          lockMinutes: LOCK_METEO_MINUTI,
+          lockMinutes: WEATHER_LOCK_MINUTES,
         }),
       };
     }
 
-    // Oltre il lucchetto (o forzato): si scarica e si scrive.
-    let nuove: LetturaMeteoInput[];
+    // Oltre il lucchetto (o forzato): si download e si scrive.
+    let nuove: WeatherReadingInput[];
     if (fonte === "private_station") {
       if (!config) throw new Error(i18n.t("weatherSyncService.missingStationConfig"));
-      nuove = await fetchStazionePrivata(aziendaId, config);
+      nuove = await fetchStazionePrivata(companyId, config);
     } else {
-      if (!appezzamentoPrincipale?.geometry) {
+      if (!mainPlot?.geometry) {
         throw new Error(i18n.t("weatherSyncService.noPlotGeometryForStation"));
       }
-      const [lon, lat] = centroide(appezzamentoPrincipale.geometry);
-      nuove = await fetchOpenMeteo(aziendaId, lon, lat);
+      const [lon, lat] = centroid(mainPlot.geometry);
+      nuove = await fetchOpenMeteo(companyId, lon, lat);
     }
 
     // Dati API ricomputabili → scrittura locale bulk (no outbox), veloce.
@@ -448,52 +448,52 @@ export const WeatherSyncService = {
       fonte === "private_station"
         ? await dal.insertLettureMeteo(nuove) // stazione autorevole → sync
         : await dal.insertLettureMeteoLocali(nuove);
-    await dal.touchWeatherPull(aziendaId, new Date().toISOString());
+    await dal.touchWeatherPull(companyId, new Date().toISOString());
 
-    const letture = await leggiSerie(dal, aziendaId);
-    return { fetched: true, fonte, letture, inserite };
+    const readings = await readSeries(dal, companyId);
+    return { fetched: true, fonte, readings, inserite };
   },
 
   /**
    * Backfill dello storico stagionale per i modelli ad accumulo termico
-   * (gradi-giorno): scarica dall'Archive API i giorni precedenti alla finestra
+   * (gradi-giorno): download dall'Archive API i giorni precedenti alla finestra
    * previsionale, così l'accumulo può partire dal biofix. È GATED — non
    * richiama l'API se in PGlite c'è già storico che copre il biofix — e
    * silenzioso in offline (ritorna 0). Sfrutta il free tier senza sprechi: una
    * sola chiamata copre l'intero buco, poi il lucchetto/min lo evitano.
    */
-  async assicuraStoricoGdd(opzioni: {
+  async assicuraStoricoGdd(options: {
     dal: AgroDal;
-    aziendaId: string;
-    appezzamentoPrincipale: Appezzamento | null;
-    /** Biofix dell'accumulo (ISO date): si scarica fin qui all'indietro. */
+    companyId: string;
+    mainPlot: Plot | null;
+    /** Biofix dell'accumulo (ISO date): si download fin qui all'indietro. */
     dataInizio: string;
   }): Promise<{ backfilled: number }> {
-    const { dal, aziendaId, appezzamentoPrincipale, dataInizio } = opzioni;
-    if (!appezzamentoPrincipale?.geometry) return { backfilled: 0 };
+    const { dal, companyId, mainPlot, dataInizio } = options;
+    if (!mainPlot?.geometry) return { backfilled: 0 };
 
     const inizio = dataInizio.slice(0, 10);
-    const min = await dal.minRilevatoMeteo(aziendaId);
+    const min = await dal.minRilevatoMeteo(companyId);
     // Storico già abbastanza profondo da coprire il biofix → niente da fare.
     if (min && min.slice(0, 10) <= inizio) return { backfilled: 0 };
 
-    const oggi = Date.now();
+    const today = Date.now();
     // Fine del backfill: dove NON arriva la previsione (92 gg fa), rispettando
     // la latenza dell'archivio e fermandosi appena prima dello storico esistente.
-    let fineMs = oggi - GIORNI_STORICO_FORECAST * 24 * 3600 * 1000;
-    const latenzaMs = oggi - ARCHIVIO_LATENZA_GIORNI * 24 * 3600 * 1000;
+    let fineMs = today - FORECAST_HISTORY_DAYS * 24 * 3600 * 1000;
+    const latenzaMs = today - ARCHIVE_LATENCY_DAYS * 24 * 3600 * 1000;
     if (fineMs > latenzaMs) fineMs = latenzaMs;
     if (min) {
       const minMs = new Date(min).getTime() - 24 * 3600 * 1000;
       if (minMs < fineMs) fineMs = minMs;
     }
 
-    const aISO = isoGiorno(fineMs);
+    const aISO = isoDay(fineMs);
     if (inizio > aISO) return { backfilled: 0 }; // nessun buco da colmare
 
-    const [lon, lat] = centroide(appezzamentoPrincipale.geometry);
-    const righe = await fetchArchivioGdd(aziendaId, lon, lat, inizio, aISO);
-    const backfilled = await dal.insertLettureMeteoLocali(righe);
+    const [lon, lat] = centroid(mainPlot.geometry);
+    const rows = await fetchArchivioGdd(companyId, lon, lat, inizio, aISO);
+    const backfilled = await dal.insertLettureMeteoLocali(rows);
     return { backfilled };
   },
 
@@ -502,21 +502,21 @@ export const WeatherSyncService = {
    * oggi e i giorni seguenti, con codice WMO per le icone). Chiamata leggera e
    * separata dalla pipeline DSS: usa l'endpoint `daily`/`current` di Open-Meteo
    * (payload minimo) e una cache in-memory con lo stesso lucchetto orario, così
-   * apertura e cambi azienda non consumano quota oltre una volta l'ora.
+   * apertura e cambi company non consumano quota oltre una volta l'ora.
    */
-  async previsioneDashboard(opzioni: {
-    aziendaId: string;
+  async previsioneDashboard(options: {
+    companyId: string;
     lon: number;
     lat: number;
     /** Ignora il lucchetto orario (pulsante "aggiorna"). */
     force?: boolean;
   }): Promise<PrevisioneDashboard> {
-    const { aziendaId, lon, lat, force } = opzioni;
-    const cached = cachePrevisione.get(aziendaId);
+    const { companyId, lon, lat, force } = options;
+    const cached = cachePrevisione.get(companyId);
     if (
       cached &&
       !force &&
-      (Date.now() - cached.at) / 60_000 < LOCK_METEO_MINUTI
+      (Date.now() - cached.at) / 60_000 < WEATHER_LOCK_MINUTES
     ) {
       return cached.data;
     }
@@ -529,16 +529,16 @@ export const WeatherSyncService = {
     const time = d.time ?? [];
 
     const data: PrevisioneDashboard = {
-      corrente: {
+      current: {
         ora: c.time ?? new Date().toISOString(),
         temperatura: c.temperature_2m ?? null,
         umidita: c.relative_humidity_2m ?? null,
         vento: c.wind_speed_10m ?? null,
-        pioggia: c.precipitation ?? null,
+        rain: c.precipitation ?? null,
         weatherCode: c.weather_code ?? null,
       },
-      giorni: time.map((giorno, i) => ({
-        data: giorno,
+      days: time.map((day, i) => ({
+        data: day,
         tMin: d.temperature_2m_min?.[i] ?? null,
         tMax: d.temperature_2m_max?.[i] ?? null,
         pioggiaMm: d.precipitation_sum?.[i] ?? null,
@@ -548,7 +548,7 @@ export const WeatherSyncService = {
       recuperatoIl: new Date().toISOString(),
     };
 
-    cachePrevisione.set(aziendaId, { at: Date.now(), data });
+    cachePrevisione.set(companyId, { at: Date.now(), data });
     return data;
   },
 };
@@ -562,12 +562,12 @@ export const WeatherSyncService = {
  * `stazione_id` farebbe sparire i dati appena la fonte cambia o entro il
  * lucchetto orario — il bug per cui i DSS "cercavano i dati nel posto sbagliato".
  */
-async function leggiSerie(
+async function readSeries(
   dal: AgroDal,
-  aziendaId: string,
-): Promise<LetturaMeteo[]> {
+  companyId: string,
+): Promise<WeatherReading[]> {
   const dopo = new Date(
-    Date.now() - GIORNI_LETTURA * 24 * 3600 * 1000,
+    Date.now() - READING_DAYS * 24 * 3600 * 1000,
   ).toISOString();
-  return dal.listLettureMeteo(aziendaId, { dopo, limit: 30_000 });
+  return dal.listLettureMeteo(companyId, { dopo, limit: 30_000 });
 }

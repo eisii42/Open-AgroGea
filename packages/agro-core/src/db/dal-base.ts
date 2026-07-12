@@ -1,14 +1,14 @@
 import type { PGlite, Transaction } from "@electric-sql/pglite";
 import { v4 as uuidv4 } from "uuid";
 import type {
-  OperazioneMutazione,
-  OutboxMutazione,
-  TabellaSync,
+  MutationOperation,
+  OutboxMutation,
+  SyncTable,
 } from "../types";
 import { type Row, upsertSql } from "./write";
 
 /**
- * Strato base del DAL: transazione dato+outbox, applicazione delle righe
+ * Strato base del DAL: transazione dato+outbox, applicazione delle rows
  * remote (pull LWW), gestione della coda `sync_outbox` e watermark del pull
  * incrementale. I domini applicativi vivono nelle sottoclassi (vedi dal.ts).
  */
@@ -36,14 +36,14 @@ export class AgroDalBase {
   /**
    * Accoda la mutazione in `sync_outbox` DENTRO la transazione passata: è il
    * mattone condiviso tra la scrittura singola ({@link writeWithOutbox}) e le
-   * scritture multi-riga atomiche del Magazzino (carico lotto con CUMP,
-   * scarico attività), dove più righe di dominio e le loro voci di outbox
+   * scritture multi-row atomiche del Magazzino (carico lot con CUMP,
+   * issue attività), dove più rows di dominio e le loro voci di outbox
    * devono confermarsi o fallire insieme.
    */
   protected async enqueueOutbox(
     tx: Transaction,
-    tabella: TabellaSync,
-    operazione: OperazioneMutazione,
+    tabella: SyncTable,
+    operation: MutationOperation,
     row: Row & { id: string },
   ): Promise<void> {
     await tx.query(
@@ -54,8 +54,8 @@ export class AgroDalBase {
         uuidv4(),
         tabella,
         row.id,
-        operazione,
-        operazione === "delete" ? null : JSON.stringify(row),
+        operation,
+        operation === "delete" ? null : JSON.stringify(row),
         row.updated_at,
         this.deviceId,
       ],
@@ -63,12 +63,12 @@ export class AgroDalBase {
   }
 
   protected async writeWithOutbox(
-    tabella: TabellaSync,
-    operazione: OperazioneMutazione,
+    tabella: SyncTable,
+    operation: MutationOperation,
     row: Row & { id: string },
   ): Promise<void> {
     await this.db.transaction(async (tx: Transaction) => {
-      if (operazione === "delete") {
+      if (operation === "delete") {
         await tx.query(
           `update ${tabella} set deleted_at = $2, updated_at = $2 where id = $1`,
           [row.id, row.updated_at],
@@ -77,12 +77,12 @@ export class AgroDalBase {
         const { sql, values } = upsertSql(tabella, row);
         await tx.query(sql, values);
       }
-      await this.enqueueOutbox(tx, tabella, operazione, row);
+      await this.enqueueOutbox(tx, tabella, operation, row);
     });
   }
 
   /** Soft-delete standard: tombstone (`deleted_at`) + mutazione di delete in outbox. */
-  protected async softDelete(tabella: TabellaSync, id: string): Promise<void> {
+  protected async softDelete(tabella: SyncTable, id: string): Promise<void> {
     await this.writeWithOutbox(tabella, "delete", {
       id,
       updated_at: new Date().toISOString(),
@@ -92,10 +92,10 @@ export class AgroDalBase {
   // -- pull dal data plane remoto --------------------------------------------
 
   /**
-   * Applica righe arrivate dal data plane remoto (pull di idratazione): upsert
-   * LWW SENZA voce di outbox. Una riga locale più recente non viene sovrascritta.
+   * Applica rows arrivate dal data plane remoto (pull di idratazione): upsert
+   * LWW SENZA voce di outbox. Una row locale più recente non viene sovrascritta.
    */
-  async applyRemoteRows(tabella: TabellaSync, rows: Row[]): Promise<number> {
+  async applyRemoteRows(tabella: SyncTable, rows: Row[]): Promise<number> {
     if (rows.length === 0) return 0;
     await this.db.transaction(async (tx: Transaction) => {
       for (const row of rows) {
@@ -111,7 +111,7 @@ export class AgroDalBase {
   /**
    * Watermark per tabella dell'ultimo pull riuscito (`agro_meta`, chiavi
    * `pull_watermark:<tabella>`): il target remoto li usa per scaricare solo le
-   * righe con `updated_at` successivo, invece dell'intero dataset del tenant.
+   * rows con `updated_at` successivo, invece dell'intero dataset del tenant.
    */
   async getPullWatermarks(): Promise<Record<string, string>> {
     const result = await this.db.query<{ key: string; value: string }>(
@@ -124,7 +124,7 @@ export class AgroDalBase {
     return out;
   }
 
-  async setPullWatermark(tabella: TabellaSync, isoTs: string): Promise<void> {
+  async setPullWatermark(tabella: SyncTable, isoTs: string): Promise<void> {
     await this.db.query(
       `insert into agro_meta (key, value) values ($1, $2)
        on conflict (key) do update set value = excluded.value`,
@@ -134,8 +134,8 @@ export class AgroDalBase {
 
   // -- outbox ----------------------------------------------------------------
 
-  async listPendingMutations(limit = 200): Promise<OutboxMutazione[]> {
-    const result = await this.db.query<OutboxMutazione>(
+  async listPendingMutations(limit = 200): Promise<OutboxMutation[]> {
+    const result = await this.db.query<OutboxMutation>(
       `select * from sync_outbox
        where sync_status in ('pending', 'error')
        order by created_at
@@ -154,8 +154,8 @@ export class AgroDalBase {
   }
 
   /** Coda di sync visibile all'utente: tutte le mutazioni non confermate. */
-  async listOutbox(limit = 500): Promise<OutboxMutazione[]> {
-    const result = await this.db.query<OutboxMutazione>(
+  async listOutbox(limit = 500): Promise<OutboxMutation[]> {
+    const result = await this.db.query<OutboxMutation>(
       `select * from sync_outbox
        where sync_status in ('pending', 'error', 'in_flight')
        order by created_at desc

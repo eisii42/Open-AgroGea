@@ -3,14 +3,14 @@
  * (SIAN/AGEA) sui record di `campi_campagna`. Nessuna dipendenza da DuckDB/DOM:
  * solo decodifica di attributi e geometrie, testabile sotto `node --test`.
  *
- * Gli shapefile ministeriali non hanno uno schema di colonne unico (variano per
+ * Gli shapefile ministeriali non hanno uno schema di columns unico (variano per
  * Regione/portale CAA), quindi la decodifica avviene per ALIAS robusti e
  * case-insensitive, evitando input testuali liberi: si estraggono solo i codici
  * rigidi, l'allineamento con i controlli AGEA non va corrotto.
  */
 import type { Geometry } from "geojson";
 
-/** Attributi grezzi di una feature dello shapefile (colonne .dbf). */
+/** Attributi grezzi di una feature dello shapefile (columns .dbf). */
 export type SianProperties = Record<string, unknown>;
 
 /** Esito della decodifica di una feature ministeriale. */
@@ -21,14 +21,14 @@ export interface SianCampoMappato {
   variety_external_code: string | null;
   /** Superficie dichiarata in ettari (4 decimali). */
   superficie_ha: number;
-  /** Geometria del campo (null per i CSV/XML di interscambio senza poligoni). */
+  /** Geometria del field (null per i CSV/XML di interscambio senza poligoni). */
   geometria: Geometry | null;
 }
 
-/** Alias accettati per ciascun campo (in ordine di priorità), normalizzati. */
+/** Alias accettati per ciascun field (in ordine di priorità), normalizzati. */
 const ALIAS = {
   isola: ["reference_parcel_external_id", "id_isola", "cod_isola", "isola", "n_isola", "nisola"],
-  appezzamento: [
+  plot: [
     "agricultural_parcel_external_id",
     "id_appezz",
     "cod_appez",
@@ -38,7 +38,7 @@ const ALIAS = {
     "appezzamento",
     "n_appezz",
   ],
-  coltura: [
+  crop: [
     "crop_external_code",
     "cod_prod",
     "cod_coltura",
@@ -48,7 +48,7 @@ const ALIAS = {
     "uso_suolo",
   ],
   varieta: ["variety_external_code", "cod_var", "cod_varieta", "varieta", "var"],
-  superficie: [
+  area: [
     "superficie_ha",
     "sup_ha",
     "supha",
@@ -62,18 +62,18 @@ const ALIAS = {
   superficieMq: ["area_mq", "area_m2", "sup_mq", "shape_area", "area"],
 } as const;
 
-function normalizza(chiave: string): string {
-  return chiave.trim().toLowerCase().replace(/[\s.]+/g, "_");
+function normalizza(key: string): string {
+  return key.trim().toLowerCase().replace(/[\s.]+/g, "_");
 }
 
-/** Indice case-insensitive delle properties (chiave normalizzata → valore). */
-function indicizza(props: SianProperties): Map<string, unknown> {
+/** Indice case-insensitive delle properties (chiave normalizzata → value). */
+function indexBy(props: SianProperties): Map<string, unknown> {
   const map = new Map<string, unknown>();
   for (const [k, v] of Object.entries(props)) map.set(normalizza(k), v);
   return map;
 }
 
-/** Primo valore non vuoto tra gli alias dati. */
+/** Primo value non vuoto tra gli alias dati. */
 function pick(idx: Map<string, unknown>, alias: readonly string[]): unknown {
   for (const a of alias) {
     const v = idx.get(a);
@@ -82,17 +82,17 @@ function pick(idx: Map<string, unknown>, alias: readonly string[]): unknown {
   return null;
 }
 
-function asCodice(value: unknown): string | null {
+function asCode(value: unknown): string | null {
   if (value == null) return null;
   const s = String(value).trim();
   return s === "" ? null : s;
 }
 
 /**
- * Converte un numero possibilmente in formato italiano (virgola decimale,
- * separatori di migliaia) in number. Ritorna null se non interpretabile.
+ * Converte un number possibilmente in formato italiano (virgola decimale,
+ * separators di migliaia) in number. Ritorna null se non interpretabile.
  */
-export function numeroItaliano(value: unknown): number | null {
+export function italianNumber(value: unknown): number | null {
   if (value == null) return null;
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
   let s = String(value).trim();
@@ -111,18 +111,18 @@ function arrotonda4(n: number): number {
 }
 
 /**
- * Risolve la superficie in ettari: priorità alla superficie DICHIARATA in ha
- * negli attributi; in mancanza, converte un'eventuale area in m²; come ultima
+ * Risolve la area in ettari: priorità alla area DICHIARATA in ha
+ * negli attributi; in mancanza, converte un'eventuale area in m²; come last
  * spiaggia usa l'area geodetica fornita (già in ha). Mai negativa.
  */
-export function risolviSuperficieHa(
+export function resolveAreaHa(
   props: SianProperties,
   areaGeodeticaHa?: number | null,
 ): number {
-  const idx = indicizza(props);
-  const dichiarata = numeroItaliano(pick(idx, ALIAS.superficie));
+  const idx = indexBy(props);
+  const dichiarata = italianNumber(pick(idx, ALIAS.area));
   if (dichiarata != null && dichiarata > 0) return arrotonda4(dichiarata);
-  const mq = numeroItaliano(pick(idx, ALIAS.superficieMq));
+  const mq = italianNumber(pick(idx, ALIAS.superficieMq));
   if (mq != null && mq > 0) return arrotonda4(mq / 10000);
   if (areaGeodeticaHa != null && areaGeodeticaHa > 0) {
     return arrotonda4(areaGeodeticaHa);
@@ -131,28 +131,28 @@ export function risolviSuperficieHa(
 }
 
 /**
- * Decodifica una singola feature ministeriale in un record di campo-campagna.
- * @param areaGeodeticaHa Area calcolata (ha) come fallback per la superficie.
+ * Decodifica una singola feature ministeriale in un record di field-campagna.
+ * @param areaGeodeticaHa Area calcolata (ha) come fallback per la area.
  */
 export function mapSianFeature(
   props: SianProperties,
   geometria: Geometry | null,
   areaGeodeticaHa?: number | null,
 ): SianCampoMappato {
-  const idx = indicizza(props);
+  const idx = indexBy(props);
   return {
-    reference_parcel_external_id: asCodice(pick(idx, ALIAS.isola)),
-    agricultural_parcel_external_id: asCodice(pick(idx, ALIAS.appezzamento)),
-    crop_external_code: asCodice(pick(idx, ALIAS.coltura)),
-    variety_external_code: asCodice(pick(idx, ALIAS.varieta)),
-    superficie_ha: risolviSuperficieHa(props, areaGeodeticaHa),
+    reference_parcel_external_id: asCode(pick(idx, ALIAS.isola)),
+    agricultural_parcel_external_id: asCode(pick(idx, ALIAS.plot)),
+    crop_external_code: asCode(pick(idx, ALIAS.crop)),
+    variety_external_code: asCode(pick(idx, ALIAS.varieta)),
+    superficie_ha: resolveAreaHa(props, areaGeodeticaHa),
     geometria,
   };
 }
 
 /**
- * Parser CSV minimale per i file di interscambio CAA (separatore `;` o `,`,
- * virgolette RFC-4180). Puro: niente DOM. Ritorna una riga di properties per
+ * Parser CSV minimale per i file di interscambio CAA (separator `;` o `,`,
+ * virgolette RFC-4180). Puro: niente DOM. Ritorna una row di properties per
  * record, pronta per {@link mapSianFeature}.
  */
 export function parseCsvRows(testo: string): SianProperties[] {
@@ -198,26 +198,26 @@ export function parseCsvRows(testo: string): SianProperties[] {
   });
 }
 
-/** Vista minima di un appezzamento esistente per l'abbinamento. */
-export interface AppezzamentoEsistente {
+/** Vista minima di un plot esistente per l'abbinamento. */
+export interface ExistingPlot {
   id: string;
   metadata?: Record<string, unknown> | null;
 }
 
 /**
- * Decide se un campo ministeriale corrisponde a un appezzamento FISICO già
+ * Decide se un field ministeriale corrisponde a un plot FISICO già
  * presente: l'abbinamento avviene per identificativo SIAN dell'appezzamento
  * (memorizzato in `metadata.agricultural_parcel_external_id` al primo import). Ritorna l'id
- * fisico esistente, o null se va creato un nuovo appezzamento.
+ * fisico esistente, o null se va creato un nuovo plot.
  */
-export function abbinaAppezzamentoEsistente(
-  campo: Pick<SianCampoMappato, "agricultural_parcel_external_id">,
-  esistenti: AppezzamentoEsistente[],
+export function matchExistingPlot(
+  field: Pick<SianCampoMappato, "agricultural_parcel_external_id">,
+  esistenti: ExistingPlot[],
 ): string | null {
-  if (!campo.agricultural_parcel_external_id) return null;
+  if (!field.agricultural_parcel_external_id) return null;
   for (const a of esistenti) {
     const sianId = a.metadata?.["agricultural_parcel_external_id"];
-    if (typeof sianId === "string" && sianId === campo.agricultural_parcel_external_id) {
+    if (typeof sianId === "string" && sianId === field.agricultural_parcel_external_id) {
       return a.id;
     }
   }

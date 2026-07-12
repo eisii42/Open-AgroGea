@@ -4,9 +4,9 @@ import type { GeoLibreAppAPI } from "@geolibre/plugins";
 import type { RefObject } from "react";
 
 /**
- * Costruisce la `GeoLibreAppAPI` di campo: la stessa interfaccia usata dal
+ * Costruisce la `GeoLibreAppAPI` di field: la stessa interfaccia usata dal
  * desktop GeoLibre, così i plugin nativi (layer-control, components/measure,
- * geo-editor) girano invariati. I metodi delegano al `MapController` corrente
+ * geo-editor) girano invariati. I metodi delegano al `MapController` current
  * via ref, quindi l'istanza dell'API resta stabile per tutta la vita della
  * mappa (nessun re-render distruttivo al cambio dei pannelli).
  *

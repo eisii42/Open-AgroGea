@@ -2,11 +2,11 @@ import { controlPlane } from "../control-plane";
 import { AgroDal } from "../db/dal";
 import { useSettingsStore } from "../field/settings-store";
 import { SyncRouter } from "../sync/router";
-import type { ProfiloUtente } from "../types";
+import type { UserProfile } from "../types";
 import { OFFLINE_SNAPSHOT, profiloDaClaims } from "./helpers";
 import type { SessionSlice, StoreGet, StoreSet } from "./state";
 
-/** Slice sessione: ciclo di vita del workspace, profilo/licenza e coda sync. */
+/** Slice sessione: ciclo di vita del workspace, profile/licenza e coda sync. */
 export function createSessionSlice(
   set: StoreSet,
   get: StoreGet,
@@ -14,7 +14,7 @@ export function createSessionSlice(
   return {
     session: null,
     claims: null,
-    profilo: null,
+    profile: null,
     offlineUnlocked: false,
     dal: null,
     syncRouter: null,
@@ -27,25 +27,25 @@ export function createSessionSlice(
       // Gate di licenza: online la fonte autorevole è il control plane
       // dell'edizione (se registrato); offline, o senza adapter, si ricade
       // sulle claims correnti.
-      let profilo: ProfiloUtente | null = null;
+      let profile: UserProfile | null = null;
       if (!options.offlineUnlocked) {
         try {
-          profilo = (await controlPlane().fetchUserProfile?.()) ?? null;
+          profile = (await controlPlane().fetchUserProfile?.()) ?? null;
         } catch {
-          profilo = null;
+          profile = null;
         }
       }
-      if (!profilo) profilo = profiloDaClaims(claims);
+      if (!profile) profile = profiloDaClaims(claims);
 
       // Idrata le preferenze d'interfaccia dal control plane (cross-device): le
       // preferenze remote vincono sul local-first per garantire la coerenza tra
-      // dispositivi. È un no-op se il profilo non porta preferenze (offline/pre-v12).
-      useSettingsStore.getState().hydrateFromProfile(profilo);
+      // dispositivi. È un no-op se il profile non porta preferenze (offline/pre-v12).
+      useSettingsStore.getState().hydrateFromProfile(profile);
 
       const dal = await AgroDal.open(claims.tenantId);
       const syncRouter = new SyncRouter({
         dal,
-        configStorage: claims.configStorage,
+        storageConfig: claims.storageConfig,
         onSnapshot: (sync) => {
           const prev = get().sync;
           set({ sync });
@@ -58,25 +58,25 @@ export function createSessionSlice(
       });
       set({
         claims,
-        profilo,
+        profile,
         session: options.session ?? null,
         offlineUnlocked: options.offlineUnlocked ?? false,
         dal,
         syncRouter,
-        aziendaAttivaId: null,
-        appezzamenti: [],
+        activeCompanyId: null,
+        plots: [],
         crops: [],
-        trattamenti: [],
+        treatments: [],
         assets: [],
-        campionamenti: [],
-        raccolte: [],
-        configMeteo: null,
+        soilSamples: [],
+        harvests: [],
+        weatherConfig: null,
         dataTransferLogs: [],
-        campiCampagna: [],
+        campaignFields: [],
         memberships: [],
       });
       syncRouter.start();
-      set({ aziende: await dal.listAziende() });
+      set({ companies: await dal.listAziende() });
     },
 
     endSession: () => {
@@ -84,27 +84,27 @@ export function createSessionSlice(
       set({
         session: null,
         claims: null,
-        profilo: null,
+        profile: null,
         offlineUnlocked: false,
         dal: null,
         syncRouter: null,
         sync: OFFLINE_SNAPSHOT,
-        aziende: [],
-        aziendaAttivaId: null,
-        appezzamenti: [],
+        companies: [],
+        activeCompanyId: null,
+        plots: [],
         crops: [],
-        trattamenti: [],
+        treatments: [],
         assets: [],
-        campionamenti: [],
-        raccolte: [],
-        configMeteo: null,
+        soilSamples: [],
+        harvests: [],
+        weatherConfig: null,
         dataTransferLogs: [],
-        campiCampagna: [],
+        campaignFields: [],
         memberships: [],
         activeView: "map",
         openPanels: [],
-        appezzamentoSelezionatoId: null,
-        ultimaOperazione: null,
+        selectedPlotId: null,
+        lastOperation: null,
         pendingGeometry: null,
         drawIntent: null,
         selectedFeature: null,
@@ -112,34 +112,35 @@ export function createSessionSlice(
         geomEditRequest: null,
         geometryUndo: [],
         geometryRedo: [],
-        quadernoApriAppezzamentoId: null,
-        operazioniMappaIds: null,
+        logbookOpenPlotId: null,
+        mapOperationIds: null,
+        mapHarvestIds: null,
       });
     },
 
-    refreshProfilo: async () => {
+    refreshProfile: async () => {
       const { claims, offlineUnlocked } = get();
-      let profilo: ProfiloUtente | null = null;
+      let profile: UserProfile | null = null;
       if (!offlineUnlocked) {
         try {
-          profilo = (await controlPlane().fetchUserProfile?.()) ?? null;
+          profile = (await controlPlane().fetchUserProfile?.()) ?? null;
         } catch {
-          profilo = null;
+          profile = null;
         }
       }
-      if (!profilo && claims) profilo = profiloDaClaims(claims);
-      useSettingsStore.getState().hydrateFromProfile(profilo);
-      set({ profilo });
-      return profilo;
+      if (!profile && claims) profile = profiloDaClaims(claims);
+      useSettingsStore.getState().hydrateFromProfile(profile);
+      set({ profile });
+      return profile;
     },
 
-    caricaCodaSync: async () => {
+    loadSyncQueue: async () => {
       const dal = get().dal;
       if (!dal) return [];
       return dal.listOutbox();
     },
 
-    eliminaMutazioneCoda: async (mutationId) => {
+    deleteQueuedMutation: async (mutationId) => {
       const { dal, syncRouter } = get();
       if (!dal) return;
       await dal.deleteMutation(mutationId);
@@ -147,7 +148,7 @@ export function createSessionSlice(
       syncRouter?.notifyLocalWrite();
     },
 
-    svuotaCodaSync: async () => {
+    clearSyncQueue: async () => {
       const { dal, syncRouter } = get();
       if (!dal) return;
       await dal.clearOutbox();

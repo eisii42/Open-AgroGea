@@ -1,27 +1,27 @@
 import type {
-  Appezzamento,
-  CampoCampagna,
+  Plot,
+  PlotCampaign,
   Crop,
-  DssRisultato,
-  LetturaMeteo,
-  RegistroTrattamento,
-  Raccolta,
+  DssResult,
+  WeatherReading,
+  TreatmentLog,
+  Harvest,
   SoilWaterIndex,
 } from "@agrogea/core";
 import type { KpiParams } from "./kpi-config";
 
 /**
  * Motore analitico del Data Command Center (Modulo 2). Genera dataset aggregati
- * e KPI a partire dal dominio AgroGea (PGlite/store) filtrato per coltura
+ * e KPI a partire dal dominio AgroGea (PGlite/store) filtrato per crop
  * (`crop_id`) e annata agraria (`campaign_year` da `plots_campaign`).
  *
  * CROSS-REFERENCING (cuore del Command Center) senza duplicare logica:
  *   - Meteo + Suolo → trend ETc e stress idrico (compone l'output FAO 56/66 già
- *     persistito in `soil_water_indices` con le letture `weather_readings`);
+ *     persistito in `soil_water_indices` con le readings `weather_readings`);
  *   - Operazioni + NDVI → efficienza degli input (operazioni fitosanitarie del
  *     Quaderno vs vigore vegetativo medio cache STAC);
  *   - Storico → confronto della campagna attiva vs annate precedenti dello
- *     stesso appezzamento (operazioni, raccolto, GDD).
+ *     stesso plot (operazioni, raccolto, GDD).
  *
  * Funzione PURA (oggetti/array in ingresso, KPI in uscita): testabile sotto
  * `node --test`. Lo stato del pannello, il caricamento dal DAL e il rendering
@@ -34,7 +34,7 @@ import type { KpiParams } from "./kpi-config";
  */
 
 // ---------------------------------------------------------------------------
-// Categoria coltura
+// Categoria crop
 // ---------------------------------------------------------------------------
 
 export type CropCategory =
@@ -51,10 +51,10 @@ const CATEGORY_LABEL: Record<CropCategory, string> = {
   olivicoltura: "Olivicoltura",
   frutticoltura: "Frutticoltura",
   orticoltura: "Orticoltura",
-  generic: "Coltura",
+  generic: "CropType",
 };
 
-/** Risolve la categoria DSS di una coltura da metadata o nome comune. */
+/** Risolve la categoria DSS di una crop da metadata o name comune. */
 export function resolveCropCategory(crop: Crop | undefined | null): CropCategory {
   if (!crop) return "generic";
   const meta = crop.crop_metadata?.["category"];
@@ -86,28 +86,28 @@ const CROP_KPI_IDS: Record<CropCategory, string[]> = {
   olivicoltura: ["gdd", "disease", "water_stress"],
   frutticoltura: ["gdd", "disease", "water_stress"],
   orticoltura: ["water_stress", "disease"],
-  // Company-wide / coltura mista: mostra comunque rischio modelli e GDD, così i
+  // Company-wide / crop mista: mostra comunque rischio modelli e GDD, così i
   // DSS calcolati su plot senza una categoria risolta non spariscono dalla vista.
   generic: ["water_stress", "disease", "gdd"],
 };
 
 /**
  * Nome leggibile di un modello DSS dal `model_name` `"<moduloId>_<dssId>"`:
- * rimuove il prefisso del modulo e normalizza separatori (es. `vite_peronospora`
+ * rimuove il prefisso del module e normalizza separators (es. `vite_peronospora`
  * → "Peronospora", `olivo_occhio-pavone` → "Occhio pavone").
  */
 function prettyModelName(modelName: string): string {
-  const senzaPrefisso = modelName.includes("_")
+  const withoutPrefix = modelName.includes("_")
     ? modelName.slice(modelName.indexOf("_") + 1)
     : modelName;
-  const testo = senzaPrefisso.replace(/[-_]+/g, " ").trim();
+  const testo = withoutPrefix.replace(/[-_]+/g, " ").trim();
   return testo.charAt(0).toUpperCase() + testo.slice(1);
 }
 
 /**
- * Modulo coltura (id) di ciascuna categoria. I `dss_results.model_name` sono
- * scritti come `"<moduloId>_<dssId>"` (vedi `esitiToRisultatiDss`), quindi la
- * coerenza coltura↔modello (Modulo 1.2) si verifica sul PREFISSO del modulo —
+ * Modulo crop (id) di ciascuna categoria. I `dss_results.model_name` sono
+ * scritti come `"<moduloId>_<dssId>"` (vedi `outcomesToDssResults`), quindi la
+ * coerenza crop↔modello (Modulo 1.2) si verifica sul PREFISSO del module —
  * robusto sia per i modelli patologici (es. `vite_peronospora`) sia per quelli
  * fenologici/accumulo (es. `cereali_spigatura`, `frutta_sviluppo-melo`), che il
  * vecchio match per parola-chiave-malattia escludeva per errore. `generic`
@@ -182,22 +182,22 @@ export interface AnalyticsResult {
 
 /** Bundle di dominio in ingresso al motore (materializzato dal DAL/store). */
 export interface AnalyticsInput {
-  appezzamenti: Appezzamento[];
+  plots: Plot[];
   crops: Crop[];
   /** Stato di campagna di TUTTE le annate disponibili (per il confronto storico). */
-  campiCampagna: CampoCampagna[];
-  trattamenti: RegistroTrattamento[];
-  raccolte: Raccolta[];
-  dssRisultati: DssRisultato[];
-  weather: LetturaMeteo[];
+  campaignFields: PlotCampaign[];
+  treatments: TreatmentLog[];
+  harvests: Harvest[];
+  dssResults: DssResult[];
+  weather: WeatherReading[];
   soilIndices: SoilWaterIndex[];
   /** Filtri attivi della vista. */
   campaignYear: number;
   cropId: string | null;
   /**
    * Appezzamenti isolati dal filtro multi-plot / cross-filtering (Modulo 2).
-   * Vuoto = nessun filtro per plot (tutto lo scope coltura/annata). Quando
-   * valorizzato, restringe lo scope a questi appezzamenti e tutti i KPI si
+   * Vuoto = nessun filtro per plot (tutto lo scope crop/annata). Quando
+   * valorizzato, restringe lo scope a questi plots e tutti i KPI si
    * ricalcolano di conseguenza.
    */
   selectedPlotIds: string[];
@@ -225,7 +225,7 @@ function pad2(n: number): string {
   return String(n).padStart(2, "0");
 }
 
-/** Riduce una serie a al più `max` punti per la sparkline (campionamento uniforme). */
+/** Riduce una serie a al più `max` punti per la sparkline (soilSample uniforme). */
 function downsample(values: number[], max = 24): number[] {
   if (values.length <= max) return values;
   const out: number[] = [];
@@ -258,8 +258,8 @@ interface DailyTemp {
   max: number;
 }
 
-/** Aggrega le letture orarie in min/max giornalieri per l'anno dato. */
-function dailyTemps(weather: LetturaMeteo[], year: number): DailyTemp[] {
+/** Aggrega le readings orarie in min/max giornalieri per l'anno dato. */
+function dailyTemps(weather: WeatherReading[], year: number): DailyTemp[] {
   const byDay = new Map<string, { min: number; max: number }>();
   for (const r of weather) {
     if (r.air_temperature == null || yearOf(r.measured_at) !== year) continue;
@@ -283,7 +283,7 @@ function dailyTemps(weather: LetturaMeteo[], year: number): DailyTemp[] {
  * della proiezione fenologica (Modulo 3.2).
  */
 function accumulatedGdd(
-  weather: LetturaMeteo[],
+  weather: WeatherReading[],
   year: number,
   base: number,
   startMonth: number,
@@ -330,7 +330,7 @@ function accumulatedGdd(
 
 /** Determina la categoria dominante tra le campagne selezionate. */
 function dominantCategory(
-  campaigns: CampoCampagna[],
+  campaigns: PlotCampaign[],
   crops: Crop[],
   cropId: string | null,
 ): CropCategory {
@@ -354,29 +354,29 @@ function dominantCategory(
 }
 
 /**
- * Baseline NDVI storica dell'appezzamento per la settimana fenologica corrente
+ * Baseline NDVI storica dell'appezzamento per la settimana fenologica current
  * (media degli ultimi anni), se persistita in `metadata.ndvi_baseline`. Hook
  * tipizzato in attesa di uno storico NDVI per-settimana (pipeline STAC): finché
  * assente, ritorna null e l'anomalia ricade sulla baseline spaziale. `null` se
  * non presente o non numerica.
  */
-function plotNdviBaseline(plot: Appezzamento): number | null {
+function plotNdviBaseline(plot: Plot): number | null {
   const v = plot.metadata?.["ndvi_baseline"];
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
 /**
- * Esegue il motore: filtra il dominio per coltura/annata e produce i KPI
+ * Esegue il motore: filtra il dominio per crop/annata e produce i KPI
  * (generici + specifici della categoria + insight azionabili).
  */
 export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
   const {
-    appezzamenti,
+    plots,
     crops,
-    campiCampagna,
-    trattamenti,
-    raccolte,
-    dssRisultati,
+    campaignFields,
+    treatments,
+    harvests,
+    dssResults,
     weather,
     soilIndices,
     campaignYear,
@@ -387,9 +387,9 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
 
   const plotFilter = new Set(selectedPlotIds);
   const hasPlotFilter = plotFilter.size > 0;
-  const livePlots = appezzamenti.filter((a) => a.deleted_at == null);
+  const livePlots = plots.filter((a) => a.deleted_at == null);
 
-  const liveCampaigns = campiCampagna.filter((c) => c.deleted_at == null);
+  const liveCampaigns = campaignFields.filter((c) => c.deleted_at == null);
   const yearCampaigns = liveCampaigns.filter(
     (c) =>
       c.campaign_year === campaignYear && (!cropId || c.crop_id === cropId),
@@ -401,7 +401,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
 
   // Insieme PEER (campagna/annata, senza il filtro plot): è la base spaziale per
   // l'anomalia ΔNDVI (Modulo 3.1). Fallback company-wide se l'annata non ha
-  // record di Campagna Agraria e non c'è filtro coltura.
+  // record di Campagna Agraria e non c'è filtro crop.
   const companyWide = yearCampaigns.length === 0 && !cropId;
   const peerPlotIds = companyWide
     ? new Set(livePlots.map((a) => a.id))
@@ -439,7 +439,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
 
   // -- Anomalia di vigore ΔNDVI (Modulo 3.1) --------------------------------
   // ΔNDVI = NDVI_current − NDVI_baseline. La baseline preferita è lo STORICO
-  // dello stesso appezzamento per la settimana fenologica corrente (ultimi 5
+  // dello stesso plot per la settimana fenologica current (ultimi 5
   // anni), letto da `metadata.ndvi_baseline` se presente; in sua assenza si usa
   // la baseline SPAZIALE (media dell'annata sull'insieme peer), così l'anomalia
   // resta calcolabile finché non esiste uno storico NDVI persistito.
@@ -475,7 +475,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
     deltaNdvi != null && baseline != null && baseline > 0
       ? (deltaNdvi / baseline) * 100
       : null;
-  // Scarto per-appezzamento dalla baseline → distribuzione per la sparkline.
+  // Scarto per-plot dalla baseline → distribuzione per la sparkline.
   const deltaSpark =
     baseline != null
       ? ndviValues.map((v) => (v - baseline) * 100)
@@ -507,7 +507,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
   });
 
   // -- Operazioni fitosanitarie + confronto storico (generico) --------------
-  const phytoCur = trattamenti.filter(
+  const phytoCur = treatments.filter(
     (t) =>
       t.deleted_at == null &&
       t.operation_type === "phytosanitary" &&
@@ -515,7 +515,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
       plotIds.has(t.plot_id) &&
       yearOf(t.executed_at) === campaignYear,
   );
-  const phytoPrev = trattamenti.filter(
+  const phytoPrev = treatments.filter(
     (t) =>
       t.deleted_at == null &&
       t.operation_type === "phytosanitary" &&
@@ -536,20 +536,20 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
     trendPct: phytoTrend,
     trendLabel: `vs ${campaignYear - 1}`,
     spark: monthly,
-    // Meno trattamenti = meglio (efficienza input): higherIsBetter=false.
+    // Meno treatments = meglio (efficienza input): higherIsBetter=false.
     severity: severityFromTrend(phytoTrend, false),
     editableParams: [],
   });
 
   // -- Raccolto totale + resa per ha + confronto storico (generico) ---------
-  const harvestCur = raccolte.filter(
+  const harvestCur = harvests.filter(
     (r) =>
       r.deleted_at == null &&
       ((r.plot_campaign_id != null && campaignIds.has(r.plot_campaign_id)) ||
         (r.plot_id != null && plotIds.has(r.plot_id))) &&
       yearOf(r.harvested_at) === campaignYear,
   );
-  const harvestPrev = raccolte.filter(
+  const harvestPrev = harvests.filter(
     (r) =>
       r.deleted_at == null &&
       r.plot_id != null &&
@@ -575,8 +575,8 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
   });
 
   // -- Autonomia idrica RAW% (Modulo 1.1 + 3.3) -----------------------------
-  // ETc per ettaro = MEDIA giornaliera tra gli appezzamenti (mm, intensiva), NON
-  // somma cumulativa (fix del valore aberrante). Il consumo idrico recente
+  // ETc per ettaro = MEDIA giornaliera tra gli plots (mm, intensiva), NON
+  // somma cumulativa (fix del value aberrante). Il consumo idrico recente
   // (media ETc sugli ultimi N giorni) alimenta il contatore predittivo dei
   // giorni di autonomia prima dello stress idrico severo.
   const idx = soilIndices
@@ -593,7 +593,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
   const drDaily = aggregateByDate(idx, (s) => s.depletion_mm, "mean");
   const rawDaily = aggregateByDate(idx, (s) => s.raw_mm, "mean");
   // Stato CORRENTE (≤ oggi): gli indici includono i giorni di previsione in coda,
-  // che altrimenti maschererebbero l'irrigazione recente (vedi calcolaPlot).
+  // che altrimenti maschererebbero l'irrigazione recente (vedi computePlot).
   const lastDr = valueAsOfToday(drDaily);
   const lastRaw = valueAsOfToday(rawDaily);
   const residualMm =
@@ -706,16 +706,16 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
     editableParams: ["gddBase", "gddStartMonth"],
   });
 
-  // -- Rischio fitopatologico (DSS, coerente con la coltura — Modulo 1.2) ---
+  // -- Rischio fitopatologico (DSS, coerente con la crop — Modulo 1.2) ---
   // SOLO i modelli pertinenti alla famiglia botanica selezionata: niente
-  // fallback a malattie di altre colture (es. olivo_occhio-pavone su seminativo).
-  const pool = dssRisultati.filter(
+  // fallback a malattie di altre crops (es. olivo_occhio-pavone su seminativo).
+  const pool = dssResults.filter(
     (d) =>
       d.plot_id != null &&
       plotIds.has(d.plot_id) &&
       isDiseaseRelevant(d.model_name, category),
   );
-  const worst = pool.reduce<DssRisultato | null>((acc, d) => {
+  const worst = pool.reduce<DssResult | null>((acc, d) => {
     if (!acc) return d;
     return riskRank(d.risk_level) > riskRank(acc.risk_level) ? d : acc;
   }, null);
@@ -725,7 +725,7 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
     title: worst ? `Rischio ${prettyModelName(worst.model_name)}` : "Rischio fitopatologico",
     value: worst ? worst.output_value : null,
     display: worst ? RISK_LABEL[worst.risk_level] : "—",
-    unit: worst ? `indice ${worst.output_value.toFixed(1)}` : "nessun calcolo DSS",
+    unit: worst ? `index ${worst.output_value.toFixed(1)}` : "nessun calcolo DSS",
     trendPct: null,
     spark: [],
     severity: worst
@@ -758,13 +758,13 @@ export function runCommandCenterEngine(input: AnalyticsInput): AnalyticsResult {
   return { summary, kpis: ordered };
 }
 
-const RISK_LABEL: Record<DssRisultato["risk_level"], string> = {
+const RISK_LABEL: Record<DssResult["risk_level"], string> = {
   low: "Basso",
   medium: "Medio",
   high: "Elevato",
 };
 
-function riskRank(level: DssRisultato["risk_level"]): number {
+function riskRank(level: DssResult["risk_level"]): number {
   return level === "high" ? 2 : level === "medium" ? 1 : 0;
 }
 
@@ -774,9 +774,9 @@ interface DatedValue {
 }
 
 /**
- * Aggrega una metrica idrica per data su più appezzamenti. Gli indici idrici
+ * Aggrega una metrica idrica per data su più plots. Gli indici idrici
  * (et0/etc/depletion/raw/awc) sono in mm, grandezze INTENSIVE (già per unità di
- * superficie): vanno mediati tra i poligoni, NON sommati (la somma su N campi
+ * area): vanno mediati tra i poligoni, NON sommati (la somma su N campi
  * gonfiava l'ETc — Modulo 1.1). `mode` distingue media (default) da somma.
  */
 function aggregateByDate(
@@ -797,7 +797,7 @@ function aggregateByDate(
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-/** Ultimo valore con data ≤ oggi (stato corrente), ignorando i giorni di previsione. */
+/** Ultimo value con data ≤ oggi (stato current), ignorando i giorni di previsione. */
 function valueAsOfToday(series: DatedValue[]): number | null {
   const today = new Date().toISOString().slice(0, 10);
   let v: number | null = null;
@@ -808,11 +808,11 @@ function valueAsOfToday(series: DatedValue[]): number | null {
   return v ?? series[series.length - 1]?.value ?? null;
 }
 
-/** Genera gli insight azionabili dalle condizioni correnti del campo. */
+/** Genera gli insight azionabili dalle condizioni correnti del field. */
 function buildInsights(args: {
   stressMean: number | null;
-  worst: DssRisultato | null;
-  phytoCur: RegistroTrattamento[];
+  worst: DssResult | null;
+  phytoCur: TreatmentLog[];
   ndviMean: number | null;
   params: KpiParams;
 }): KpiResult[] {
@@ -823,7 +823,7 @@ function buildInsights(args: {
     out.push(insight(
       "insight_water",
       "Irrigazione consigliata",
-      `La deplezione radicale media (${Math.round(stressMean * 100)}%) ha superato la soglia di allerta (${Math.round(params.waterStressThreshold * 100)}%). Pianifica un turno irriguo per riportare il profilo sotto RAW.`,
+      `La deplezione radicale media (${Math.round(stressMean * 100)}%) ha superato la threshold di allerta (${Math.round(params.waterStressThreshold * 100)}%). Pianifica un turno irriguo per riportare il profile sotto RAW.`,
       "danger",
     ));
   }
@@ -832,17 +832,17 @@ function buildInsights(args: {
     out.push(insight(
       "insight_disease",
       "Finestra di trattamento",
-      `Rischio elevato per ${worst.model_name} (indice ${worst.output_value.toFixed(1)}). Valuta un intervento nei prossimi giorni rispettando i tempi di carenza.`,
+      `Rischio elevato per ${worst.model_name} (index ${worst.output_value.toFixed(1)}). Valuta un intervento nei prossimi days rispettando i tempi di carenza.`,
       "danger",
     ));
   }
 
-  // Operazioni + NDVI: molti trattamenti a fronte di vigore basso.
+  // Operazioni + NDVI: molti treatments a fronte di vigore basso.
   if (ndviMean != null && ndviMean < 0.45 && phytoCur.length >= 4) {
     out.push(insight(
       "insight_efficiency",
       "Efficienza input da rivedere",
-      `${phytoCur.length} trattamenti con vigore medio basso (NDVI ${ndviMean.toFixed(2)}): la risposta vegetativa non giustifica l'intensità degli input. Verifica avversità e strategia agronomica.`,
+      `${phytoCur.length} treatments con vigore medio basso (NDVI ${ndviMean.toFixed(2)}): la risposta vegetativa non giustifica l'intensità degli input. Verifica avversità e strategia agronomica.`,
       "warn",
     ));
   }
@@ -851,7 +851,7 @@ function buildInsights(args: {
     out.push(insight(
       "insight_ok",
       "Nessuna criticità rilevata",
-      "Stress idrico, rischio fitopatologico e vigore sono entro i valori attesi per la coltura e l'annata selezionate.",
+      "Stress idrico, rischio fitopatologico e vigore sono entro i valori attesi per la crop e l'annata selezionate.",
       "good",
     ));
   }

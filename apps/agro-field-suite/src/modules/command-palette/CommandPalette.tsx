@@ -1,6 +1,6 @@
 import {
   boundingBox,
-  colturaPerAppezzamento,
+  cropForPlot,
   type DashboardModuleId,
   useAgroStore,
   useSettingsStore,
@@ -11,13 +11,13 @@ import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   type ComandoBase,
-  filtraComandi,
+  filterCommands,
 } from "./command-match";
 import type { UndoRedoApi } from "../../hooks/useGeometryUndoRedo";
 
 /**
  * Command Palette globale (Ctrl/Cmd+K): navigazione headless della suite.
- * Digitando il nome di un appezzamento si esegue il flyTo sul suo poligono;
+ * Digitando il name di un plot si esegue il flyTo sul suo poligono;
  * digitando un'azione si apre il pannello / si attiva lo strumento. Annulla e
  * ripristina geometria compaiono durante una sessione di editing.
  */
@@ -44,13 +44,13 @@ export function CommandPalette({
   undoRedo,
 }: CommandPaletteProps) {
   const { t } = useTranslation();
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
+  const plots = useAgroStore((s) => s.plots);
   const crops = useAgroStore((s) => s.crops);
-  const campiCampagna = useAgroStore((s) => s.campiCampagna);
+  const campaignFields = useAgroStore((s) => s.campaignFields);
   const openPanels = useAgroStore((s) => s.openPanels);
   const togglePanel = useAgroStore((s) => s.togglePanel);
   const setDrawIntent = useAgroStore((s) => s.setDrawIntent);
-  const selectAppezzamento = useAgroStore((s) => s.selectAppezzamento);
+  const selectPlot = useAgroStore((s) => s.selectPlot);
   const setActiveView = useAgroStore((s) => s.setActiveView);
   const flags = useSettingsStore((s) => s.dashboardLayout);
 
@@ -59,7 +59,7 @@ export function CommandPalette({
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const comandi = useMemo<Comando[]>(() => {
-    const apriPannello = (panel: Parameters<typeof togglePanel>[0]) => () => {
+    const openPanel = (panel: Parameters<typeof togglePanel>[0]) => () => {
       if (!openPanels.includes(panel)) togglePanel(panel);
       onClose();
     };
@@ -72,95 +72,95 @@ export function CommandPalette({
     const azioni: Comando[] = [
       {
         id: "act-ndvi",
-        titolo: t("commandPalette.actions.ndvi"),
-        categoria: "azione",
+        title: t("commandPalette.actions.ndvi"),
+        category: "azione",
         paroleChiave: ["analisi", "suolo", "satellite", "sentinel"],
-        esegui: apriPannello("ndvi"),
+        esegui: openPanel("ndvi"),
         flag: "panelNdvi",
       },
       {
         id: "act-vra",
-        titolo: t("commandPalette.actions.vra"),
-        categoria: "azione",
+        title: t("commandPalette.actions.vra"),
+        category: "azione",
         paroleChiave: ["prescrizione", "isobus", "concimazione"],
-        esegui: apriPannello("vra"),
+        esegui: openPanel("vra"),
         flag: "panelVra",
       },
       {
         id: "act-tratt",
-        titolo: t("commandPalette.actions.newTreatment"),
-        categoria: "azione",
+        title: t("commandPalette.actions.newTreatment"),
+        category: "azione",
         paroleChiave: ["quaderno", "registro", "operazione"],
-        esegui: apriPannello("quaderno"),
+        esegui: openPanel("quaderno"),
         flag: "panelQuaderno",
       },
       {
         id: "act-coltura",
-        titolo: t("commandPalette.actions.cropSheet"),
-        categoria: "azione",
+        title: t("commandPalette.actions.cropSheet"),
+        category: "azione",
         paroleChiave: ["fenologia", "modelli"],
-        esegui: apriPannello("coltura"),
+        esegui: openPanel("coltura"),
         flag: "panelColtura",
       },
       {
         id: "act-draw-poly",
-        titolo: t("commandPalette.actions.drawPlot"),
-        categoria: "azione",
+        title: t("commandPalette.actions.drawPlot"),
+        category: "azione",
         paroleChiave: ["poligono", "nuovo campo"],
         esegui: disegna("polygon"),
       },
       {
         id: "act-draw-line",
-        titolo: t("commandPalette.actions.drawInfrastructure"),
-        categoria: "azione",
+        title: t("commandPalette.actions.drawInfrastructure"),
+        category: "azione",
         paroleChiave: ["linea", "asset"],
         esegui: disegna("line"),
       },
       {
         id: "act-draw-poi",
-        titolo: t("commandPalette.actions.drawPoi"),
-        categoria: "azione",
+        title: t("commandPalette.actions.drawPoi"),
+        category: "azione",
         paroleChiave: ["punto", "trappola", "sensore"],
         esegui: disegna("point"),
       },
       {
         id: "act-registro",
-        titolo: t("commandPalette.actions.editGeometries"),
-        categoria: "azione",
+        title: t("commandPalette.actions.editGeometries"),
+        category: "azione",
         paroleChiave: ["registro", "gestione"],
-        esegui: apriPannello("registro"),
+        esegui: openPanel("registro"),
         flag: "panelRegistro",
       },
       {
         id: "act-stampa",
-        titolo: t("commandPalette.actions.printMap"),
-        categoria: "azione",
+        title: t("commandPalette.actions.printMap"),
+        category: "azione",
         paroleChiave: ["print", "composer", "pdf", "pac", "psr"],
-        esegui: apriPannello("stampa"),
+        esegui: openPanel("stampa"),
         flag: "panelStampa",
       },
       {
         id: "act-impostazioni",
-        titolo: t("commandPalette.actions.companySettings"),
-        categoria: "azione",
+        title: t("commandPalette.actions.companySettings"),
+        category: "azione",
         paroleChiave: ["meteo", "config"],
-        esegui: apriPannello("impostazioni"),
+        esegui: openPanel("impostazioni"),
         flag: "panelMeteo",
       },
       {
-        id: "act-profilo",
-        titolo: t("commandPalette.actions.profileSettings"),
-        categoria: "azione",
-        paroleChiave: ["profilo", "preferenze", "lingua", "unità", "moduli", "account"],
-        esegui: apriPannello("profilo"),
+        id: "act-profile",
+        title: t("commandPalette.actions.profileSettings"),
+        category: "azione",
+        paroleChiave: ["profile", "preferenze", "lingua", "unità", "moduli", "account"],
+        esegui: openPanel("profile"),
       },
       // Switch di vista: la freccia → è la scorciatoia globale registrata in
       // App.tsx (← riporta alla mappa). La palette vive nella vista mappa,
       // quindi qui serve solo la direzione verso il Command Center.
       {
         id: "act-command-center",
-        titolo: t("commandPalette.actions.openCommandCenter"),
-        categoria: "azione",
+        title: t("commandPalette.actions.openCommandCenter"),
+        category: "azione",
         paroleChiave: ["dashboard", "dati", "kpi", "analisi", "report", "vista"],
         scorciatoia: "→",
         esegui: () => {
@@ -173,8 +173,8 @@ export function CommandPalette({
     if (undoRedo.canUndo) {
       azioni.push({
         id: "act-undo",
-        titolo: t("commandPalette.actions.undoGeometry"),
-        categoria: "azione",
+        title: t("commandPalette.actions.undoGeometry"),
+        category: "azione",
         paroleChiave: ["undo", "indietro"],
         scorciatoia: "Ctrl+Z",
         esegui: () => {
@@ -186,8 +186,8 @@ export function CommandPalette({
     if (undoRedo.canRedo) {
       azioni.push({
         id: "act-redo",
-        titolo: t("commandPalette.actions.redoGeometry"),
-        categoria: "azione",
+        title: t("commandPalette.actions.redoGeometry"),
+        category: "azione",
         paroleChiave: ["redo", "avanti"],
         scorciatoia: "Ctrl+Y",
         esegui: () => {
@@ -197,18 +197,18 @@ export function CommandPalette({
       });
     }
 
-    const navigazione: Comando[] = appezzamenti.map((apz) => {
-      const coltura = colturaPerAppezzamento(apz.id, campiCampagna, crops);
+    const navigazione: Comando[] = plots.map((plot) => {
+      const crop = cropForPlot(plot.id, campaignFields, crops);
       return {
-      id: `apz-${apz.id}`,
-      titolo: apz.user_plot_name,
-      sottotitolo: coltura ?? undefined,
-      categoria: "appezzamento",
-      paroleChiave: [coltura ?? "", "vai", "mappa"].filter(Boolean),
+      id: `apz-${plot.id}`,
+      title: plot.user_plot_name,
+      sottotitolo: crop ?? undefined,
+      category: "appezzamento",
+      paroleChiave: [crop ?? "", "vai", "mappa"].filter(Boolean),
       esegui: () => {
-        const bounds = boundingBox(apz.geometry);
+        const bounds = boundingBox(plot.geometry);
         mapControllerRef.current?.fitBounds(bounds);
-        void selectAppezzamento(apz.id);
+        void selectPlot(plot.id);
         onClose();
       },
       };
@@ -218,13 +218,13 @@ export function CommandPalette({
     const azioniVisibili = azioni.filter((a) => !a.flag || flags[a.flag]);
     return [...azioniVisibili, ...navigazione];
   }, [
-    appezzamenti,
+    plots,
     crops,
-    campiCampagna,
+    campaignFields,
     openPanels,
     togglePanel,
     setDrawIntent,
-    selectAppezzamento,
+    selectPlot,
     setActiveView,
     mapControllerRef,
     onClose,
@@ -233,8 +233,8 @@ export function CommandPalette({
     t,
   ]);
 
-  const risultati = useMemo(
-    () => filtraComandi(comandi, query),
+  const results = useMemo(
+    () => filterCommands(comandi, query),
     [comandi, query],
   );
 
@@ -251,8 +251,8 @@ export function CommandPalette({
 
   // Mantiene la selezione entro i risultati correnti.
   useEffect(() => {
-    setActiveIndex((i) => Math.min(i, Math.max(0, risultati.length - 1)));
-  }, [risultati.length]);
+    setActiveIndex((i) => Math.min(i, Math.max(0, results.length - 1)));
+  }, [results.length]);
 
   if (!open) return null;
 
@@ -262,13 +262,13 @@ export function CommandPalette({
       onClose();
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActiveIndex((i) => Math.min(i + 1, risultati.length - 1));
+      setActiveIndex((i) => Math.min(i + 1, results.length - 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActiveIndex((i) => Math.max(i - 1, 0));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      risultati[activeIndex]?.esegui();
+      results[activeIndex]?.esegui();
     }
   };
 
@@ -290,12 +290,12 @@ export function CommandPalette({
           className="border-b border-[var(--line)] bg-transparent px-4 py-3 text-sm outline-none"
         />
         <div className="min-h-0 flex-1 overflow-y-auto py-1">
-          {risultati.length === 0 ? (
+          {results.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-[var(--ink-4)]">
               {t("commandPalette.noResults", { query })}
             </p>
           ) : (
-            risultati.map((cmd, i) => (
+            results.map((cmd, i) => (
               <button
                 key={cmd.id}
                 type="button"
@@ -308,7 +308,7 @@ export function CommandPalette({
                     : "text-[var(--ink-2)]",
                 )}
               >
-                <span className="flex-1 truncate">{cmd.titolo}</span>
+                <span className="flex-1 truncate">{cmd.title}</span>
                 {cmd.sottotitolo && (
                   <span className="truncate text-xs text-[var(--ink-4)]">
                     {cmd.sottotitolo}
@@ -320,7 +320,7 @@ export function CommandPalette({
                   </kbd>
                 )}
                 <span className="rounded-full bg-[var(--panel-2)] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--ink-4)]">
-                  {cmd.categoria === "appezzamento"
+                  {cmd.category === "appezzamento"
                     ? t("commandPalette.category.goTo")
                     : t("commandPalette.category.action")}
                 </span>

@@ -2,10 +2,10 @@ import { controlPlane } from "../control-plane";
 import { isTauriRuntime, tauriInvoke } from "../runtime";
 import type { AgroDal } from "../db/dal";
 import type {
-  OutboxMutazione,
+  OutboxMutation,
   StorageConfig,
   SyncPushResult,
-  TabellaSync,
+  SyncTable,
 } from "../types";
 
 /**
@@ -15,19 +15,19 @@ import type {
  * router non sa (né deve sapere) dove finiscono i dati.
  */
 export interface SyncTarget {
-  readonly tipo: StorageConfig["tipo"];
-  push(batch: OutboxMutazione[]): Promise<SyncPushResult>;
+  readonly kind: StorageConfig["kind"];
+  push(batch: OutboxMutation[]): Promise<SyncPushResult>;
   /**
-   * Idratazione inversa: scarica le righe del tenant dal data plane remoto
+   * Idratazione inversa: download le rows del tenant dal data plane remoto
    * nel PGlite locale (primo avvio su un dispositivo nuovo, o riallineamento
    * dopo modifiche fatte altrove). Resta opzionale nell'interfaccia per i
-   * target che non la supportano. Ritorna il numero di righe applicate.
+   * target che non la supportano. Ritorna il number di rows applicate.
    */
   pull?(dal: AgroDal): Promise<number>;
 }
 
 /** Serializza il batch nel wire format condiviso con i data plane remoti. */
-export function toWirePayload(batch: OutboxMutazione[]) {
+export function toWirePayload(batch: OutboxMutation[]) {
   return batch.map((m) => ({
     mutation_id: m.mutation_id,
     table_name: m.table_name,
@@ -42,8 +42,8 @@ export function toWirePayload(batch: OutboxMutazione[]) {
 export const PULL_PAGE_SIZE = 1000;
 
 /**
- * Massimo `updated_at` (ISO) tra le righe di un pull: diventa il watermark
- * della tabella per il pull incrementale successivo. Ignora righe senza
+ * Massimo `updated_at` (ISO) tra le rows di un pull: diventa il watermark
+ * della tabella per il pull incrementale successivo. Ignora rows senza
  * timestamp o con timestamp non parsabile.
  */
 export function maxUpdatedAt(rows: Record<string, unknown>[]): string | null {
@@ -64,7 +64,7 @@ export function maxUpdatedAt(rows: Record<string, unknown>[]): string | null {
  * materializzata server-side, che PGlite non conosce). In ordine parent →
  * child, così gli upsert locali rispettano le foreign key.
  */
-export const PULL_TABLES: { tabella: TabellaSync; columns: string }[] = [
+export const PULL_TABLES: { tabella: SyncTable; columns: string }[] = [
   {
     tabella: "companies",
     columns:
@@ -162,24 +162,24 @@ export const PULL_TABLES: { tabella: TabellaSync; columns: string }[] = [
  * `agro_push_mutations`, che apre la connessione tokio-postgres verso il
  * PostgreSQL privato del cliente (rete locale/VPN). La stringa di connessione
  * non transita mai per il JS: il comando la risolve dal keystore cifrato
- * usando l'id del profilo presente nelle claims di licenza.
+ * usando l'id del profile presente nelle claims di licenza.
  */
 export class OnPremiseSyncTarget implements SyncTarget {
-  readonly tipo = "on_premise" as const;
+  readonly kind = "on_premise" as const;
 
   constructor(
-    private readonly profiloConnessione: string,
+    private readonly connectionProfile: string,
     private readonly tenantId: string,
   ) {}
 
-  async push(batch: OutboxMutazione[]): Promise<SyncPushResult> {
+  async push(batch: OutboxMutation[]): Promise<SyncPushResult> {
     if (!isTauriRuntime()) {
       throw new Error(
         "Il sync on-premise richiede l'app nativa (comandi Rust di Tauri).",
       );
     }
     return tauriInvoke<SyncPushResult>("agro_push_mutations", {
-      profilo: this.profiloConnessione,
+      profile: this.connectionProfile,
       tenantId: this.tenantId,
       mutations: JSON.stringify(toWirePayload(batch)),
     });
@@ -187,14 +187,14 @@ export class OnPremiseSyncTarget implements SyncTarget {
 
   /**
    * Idratazione inversa dal PostgreSQL privato: il comando Rust
-   * `agro_pull_mutations` ritorna `{ tabella: righe[] }` per il tenant (geom
-   * esclusa, tombstone inclusi). Le righe si applicano al PGlite locale con
+   * `agro_pull_mutations` ritorna `{ tabella: rows[] }` per il tenant (geom
+   * esclusa, tombstone inclusi). Le rows si applicano al PGlite locale con
    * LWW, in ordine parent → child per le foreign key. Rende l'on-premise
    * bidirezionale (multi-dispositivo).
    *
    * Pull INCREMENTALE: i watermark per tabella (ultimo `updated_at` visto,
-   * persistiti in `agro_meta`) sono passati al comando Rust, che scarica solo
-   * le righe più recenti. Al primo avvio (nessun watermark) il pull è totale.
+   * persistiti in `agro_meta`) sono passati al comando Rust, che download solo
+   * le rows più recenti. Al primo avvio (nessun watermark) il pull è totale.
    */
   async pull(dal: AgroDal): Promise<number> {
     if (!isTauriRuntime()) {
@@ -206,7 +206,7 @@ export class OnPremiseSyncTarget implements SyncTarget {
     const data = await tauriInvoke<Record<string, Record<string, unknown>[]>>(
       "agro_pull_mutations",
       {
-        profilo: this.profiloConnessione,
+        profile: this.connectionProfile,
         tenantId: this.tenantId,
         watermarks: JSON.stringify(watermarks),
       },
@@ -226,15 +226,15 @@ export class OnPremiseSyncTarget implements SyncTarget {
 /**
  * Data plane assente (edizione standalone/OSS): le mutazioni restano nel PGlite
  * locale. La `push` è un no-op che dichiara l'intero batch "applicato", così il
- * router marca le righe come sincronizzate e l'outbox non cresce all'infinito;
+ * router marca le rows come sincronizzate e l'outbox non cresce all'infinito;
  * nessuna `pull` è esposta, quindi il drain non tocca mai la rete. Garantisce
- * che il salvataggio di un campionamento suolo o di un trattamento scriva
+ * che il salvataggio di un soilSample soil o di un treatment scriva
  * direttamente sul locale senza alcuna dipendenza remota.
  */
 export class LocalOnlySyncTarget implements SyncTarget {
-  readonly tipo = "local" as const;
+  readonly kind = "local" as const;
 
-  async push(batch: OutboxMutazione[]): Promise<SyncPushResult> {
+  async push(batch: OutboxMutation[]): Promise<SyncPushResult> {
     return { applied: batch.length, skipped_lww: 0, duplicates: 0 };
   }
 }
@@ -243,9 +243,9 @@ export function createSyncTarget(
   config: StorageConfig,
   tenantId: string,
 ): SyncTarget {
-  switch (config.tipo) {
+  switch (config.kind) {
     case "on_premise":
-      return new OnPremiseSyncTarget(config.profilo_connessione, tenantId);
+      return new OnPremiseSyncTarget(config.connection_profile, tenantId);
     case "local":
       return new LocalOnlySyncTarget();
     default:

@@ -38,7 +38,7 @@ export function loadLocale(): AppLocale {
     const raw = globalThis.localStorage?.getItem(STORAGE_KEY);
     if (raw && isLocale(raw)) return raw;
   } catch {
-    /* localStorage non disponibile */
+    /* localStorage non available */
   }
   return browserLocale() ?? DEFAULT_LOCALE;
 }

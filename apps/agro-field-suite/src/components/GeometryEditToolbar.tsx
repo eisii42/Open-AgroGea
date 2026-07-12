@@ -41,7 +41,7 @@ export function GeometryEditToolbar() {
 
   if (!geomEdit) return null;
 
-  const seleziona = (mode: EditMode) => {
+  const select = (mode: EditMode) => {
     setActive(mode);
     enableGeoEditorEditMode(mode);
   };
@@ -57,7 +57,7 @@ export function GeometryEditToolbar() {
           type="button"
           title={t(labelKey as never)}
           aria-label={t(labelKey as never)}
-          onClick={() => seleziona(mode)}
+          onClick={() => select(mode)}
           className={cn(
             "flex h-10 w-10 items-center justify-center rounded-[var(--r-2)]",
             active === mode

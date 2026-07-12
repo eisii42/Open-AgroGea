@@ -2,7 +2,7 @@
  * Orchestratore Import/Export dei dati aziendali (GeoJSON Esteso).
  *
  * Compone il motore PURO di `@agrogea/core` (serialize/parse) con il DAL PGlite:
- *   - EXPORT: legge le righe del perimetro azienda dai metodi tipati del DAL
+ *   - EXPORT: legge le rows del perimetro company dai metodi tipati del DAL
  *     (la geometria è già GeoJSON in `jsonb`, nessuna funzione PostGIS) e le
  *     serializza nel documento.
  *   - IMPORT: ripristina via le upsert tipate del DAL, che scrivono dato +
@@ -12,20 +12,20 @@
  *
  * File I/O via Blob + `<a download>` / `<input type=file>`: identico su web/PWA
  * e webview Tauri (stesso pattern di regionalExport/sianExport), nessun plugin
- * nativo richiesto. Filtri estensione: .geojson / .json.
+ * nativo richiesto. Filtri extension: .geojson / .json.
  */
 
 import {
   type AgroDal,
   type AgronomicLogs,
-  type Azienda,
+  type Company,
   type CompanySnapshot,
   parseCompanyTransfer,
   serializeCompanySnapshot,
   useAgroStore,
 } from "@agrogea/core";
 
-// Nessun limite pratico: l'export è un backup completo del perimetro azienda.
+// Nessun limite pratico: l'export è un backup completo del perimetro company.
 const FULL = 1_000_000;
 
 type WithPlot = { plot_id: string | null };
@@ -52,7 +52,7 @@ function groupByPlot<T extends WithPlot>(rows: T[]): {
 /** Legge dal DAL l'istantanea completa dei dati di un'azienda. */
 export async function buildCompanySnapshot(
   dal: AgroDal,
-  company: Azienda,
+  company: Company,
 ): Promise<CompanySnapshot> {
   const id = company.id;
   const [
@@ -65,28 +65,28 @@ export async function buildCompanySnapshot(
     allCampaigns,
     allCrops,
   ] = await Promise.all([
-    dal.listAppezzamenti(id),
-    dal.listTrattamenti(id, { limit: FULL }),
-    dal.listCampionamenti(id),
-    dal.listRaccolte(id, { limit: FULL }),
-    // Infrastrutture (POI puntuali, geometrie CAD) e rilievi GPS di campo:
-    // entità a livello azienda, senza legame con un singolo appezzamento.
+    dal.listPlots(id),
+    dal.listTreatments(id, { limit: FULL }),
+    dal.listSoilSamples(id),
+    dal.listHarvests(id, { limit: FULL }),
+    // Infrastrutture (POI puntuali, geometrie CAD) e rilievi GPS di field:
+    // entità a livello company, senza legame con un singolo plot.
     dal.listAssets(id),
     dal.listOsservazioniScouting(id, { limit: FULL }),
     // plots_campaign e crops sono a livello tenant: si filtrano sugli
-    // appezzamenti/colture di QUESTA azienda.
+    // plots/crops di QUESTA company.
     dal.listCampiCampagna(),
     dal.listCrops(),
   ]);
   const t = groupByPlot(treatments);
   const s = groupByPlot(soilSamples);
   const h = groupByPlot(harvests);
-  // Campagne agrarie (associazione coltura↔appezzamento) dei soli appezzamenti
-  // dell'azienda, raggruppate per appezzamento.
+  // Campagne agrarie (associazione crop↔plot) dei soli plots
+  // dell'azienda, raggruppate per plot.
   const plotIds = new Set(plots.map((p) => p.id));
   const campaigns = allCampaigns.filter((cc) => plotIds.has(cc.plot_id));
   const c = groupByPlot(campaigns);
-  // Colture referenziate da quelle campagne (catalogo tenant, filtrato).
+  // Colture referenziate da quelle campagne (catalog tenant, filtrato).
   const cropIds = new Set(campaigns.map((cc) => cc.crop_id));
   const crops = allCrops.filter((cr) => cropIds.has(cr.id));
   return {
@@ -112,7 +112,7 @@ export async function buildCompanySnapshot(
 /** Costruisce e serializza l'export di un'azienda (stringa JSON indentata). */
 export async function exportCompanyData(
   dal: AgroDal,
-  company: Azienda,
+  company: Company,
 ): Promise<string> {
   const snapshot = await buildCompanySnapshot(dal, company);
   return JSON.stringify(serializeCompanySnapshot(snapshot), null, 2);
@@ -166,21 +166,21 @@ export async function importCompanyData(
 
   const restoreLogs = async (logs: AgronomicLogs) => {
     for (const tr of logs.treatments) {
-      await dal.insertTrattamento({
+      await dal.insertTreatment({
         ...stripEnv(tr),
         company_id: targetCompanyId,
       });
       summary.treatments++;
     }
     for (const so of logs.soilSamples) {
-      await dal.upsertCampionamento({
+      await dal.upsertSoilSample({
         ...stripEnv(so),
         company_id: targetCompanyId,
       });
       summary.soilSamples++;
     }
     for (const ha of logs.harvests) {
-      await dal.upsertRaccolta({
+      await dal.upsertHarvest({
         ...stripEnv(ha),
         company_id: targetCompanyId,
       });
@@ -188,7 +188,7 @@ export async function importCompanyData(
     }
   };
 
-  // Colture PRIMA degli appezzamenti/campagne: le campagne (plots_campaign)
+  // Colture PRIMA degli plots/campagne: le campagne (plots_campaign)
   // referenziano `crop_id`. Le crops sono a livello tenant (niente company_id):
   // `tenant_id` è forzato dal DAL.
   for (const crop of snapshot.crops) {
@@ -197,12 +197,12 @@ export async function importCompanyData(
   }
 
   for (const bundle of snapshot.plots) {
-    await dal.upsertAppezzamento({
+    await dal.upsertPlot({
       ...stripEnv(bundle.plot),
       company_id: targetCompanyId,
     });
     summary.plots++;
-    // Campagne agrarie dell'appezzamento (associazione coltura↔appezzamento per
+    // Campagne agrarie dell'appezzamento (associazione crop↔plot per
     // annata). `plot_id`/`crop_id` restano: puntano a plot e crop appena
     // ripristinati con lo stesso id.
     for (const camp of bundle.campaigns) {
@@ -211,17 +211,17 @@ export async function importCompanyData(
     }
     await restoreLogs(bundle);
   }
-  // Log non legati ad alcun appezzamento (plot_id resta null).
+  // Log non legati ad alcun plot (plot_id resta null).
   await restoreLogs(snapshot.unassigned);
 
-  // Infrastrutture / POI puntuali (geometria propria, livello azienda).
+  // Infrastrutture / POI puntuali (geometria propria, livello company).
   for (const asset of snapshot.assets) {
     await dal.upsertAsset({ ...stripEnv(asset), company_id: targetCompanyId });
     summary.assets++;
   }
-  // Rilievi GPS di campo.
+  // Rilievi GPS di field.
   for (const obs of snapshot.scouting) {
-    await dal.salvaOsservazioneScouting({
+    await dal.saveScoutingObservation({
       ...stripEnv(obs),
       company_id: targetCompanyId,
     });
@@ -237,8 +237,8 @@ export async function importCompanyData(
 // File I/O (browser/Tauri webview): Blob download + input file picker.
 // --------------------------------------------------------------------------
 
-/** Nome file suggerito: `agrogea_<slug-azienda>_<data>.geojson`. */
-export function exportFilename(company: Azienda): string {
+/** Nome file suggerito: `agrogea_<slug-company>_<data>.geojson`. */
+export function exportFilename(company: Company): string {
   const slug =
     (company.business_name || "azienda")
       .toLowerCase()

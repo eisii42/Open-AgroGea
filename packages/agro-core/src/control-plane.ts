@@ -1,8 +1,8 @@
 import type { SyncTarget } from "./sync/targets";
-import type { ProfiloUtente, UserPreferenze } from "./types";
+import type { UserProfile, UserPreferences } from "./types";
 
 /**
- * Punto di estensione per un eventuale control plane remoto (account, profili,
+ * Punto di extension per un eventuale control plane remoto (account, profili,
  * storage gestito). Il core e i componenti condivisi parlano SOLO con questa
  * interfaccia: di default nessun adapter è registrato e ogni hook è assente,
  * quindi l'app resta puramente locale (edizione standalone). Una shell di
@@ -11,13 +11,13 @@ import type { ProfiloUtente, UserPreferenze } from "./types";
  */
 export interface ControlPlaneAdapter {
   /** Profilo/licenza dell'utente dal control plane; `null` se non risolvibile. */
-  fetchUserProfile?: () => Promise<ProfiloUtente | null>;
+  fetchUserProfile?: () => Promise<UserProfile | null>;
   /** Chiude la sessione remota (logout). La sessione locale è gestita dallo store. */
   signOut?: () => Promise<void>;
   /** Persiste le preferenze d'interfaccia cross-device. */
   updateUserPreferences?: (patch: {
     dashboard_layout_config?: Record<string, boolean>;
-    preferences?: UserPreferenze;
+    preferences?: UserPreferences;
   }) => Promise<void>;
   /**
    * INSERT dell'azienda sul data plane remoto (percorso che attraversa i
@@ -44,7 +44,7 @@ export function registerControlPlane(next: ControlPlaneAdapter): void {
   adapter = next;
 }
 
-/** Adapter corrente (vuoto se nessuna edizione ne ha registrato uno). */
+/** Adapter current (vuoto se nessuna edizione ne ha registrato uno). */
 export function controlPlane(): ControlPlaneAdapter {
   return adapter;
 }

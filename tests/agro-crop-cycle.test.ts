@@ -4,19 +4,19 @@ import { PGlite } from "@electric-sql/pglite";
 import { AgroDal } from "../packages/agro-core/src/db/dal";
 import { AGRO_LOCAL_SCHEMA_SQL } from "../packages/agro-core/src/db/schema";
 import {
-  dichiarativiMancanti,
-  sianCompleta,
-  sianMancanti,
-  sistemaDichiarativo,
+  missingDeclarative,
+  sianComplete,
+  missingSian,
+  declarativeSystem,
 } from "../packages/agro-core/src/compliance/sian-campaign";
-import { colturaPerAppezzamento } from "../packages/agro-core/src/store/feature-collections";
-import type { CampoCampagna, Crop } from "../packages/agro-core/src/types";
+import { cropForPlot } from "../packages/agro-core/src/store/feature-collections";
+import type { PlotCampaign, Crop } from "../packages/agro-core/src/types";
 
 /**
  * Ciclo colturale v17: chiusura della campagna al raccolto (closed_at),
  * secondo raccolto nello stesso anno (indice unico parziale sulle campagne
- * aperte), metadata estensibile dei prodotti (identità colturale sementi) e
- * risoluzione coltura→appezzamento che ignora le campagne chiuse.
+ * aperte), metadata estensibile dei products (identità colturale sementi) e
+ * risoluzione crop→plot che ignora le campagne chiuse.
  */
 
 const TENANT = "11111111-1111-1111-1111-111111111111";
@@ -33,7 +33,7 @@ class TestDal extends AgroDal {
 async function seedPlot(dal: TestDal): Promise<{ companyId: string; plotId: string }> {
   const company = await dal.rawQuery<{ id: string }>(
     `insert into companies (id, tenant_id, business_name)
-     values (gen_random_uuid(), $1, 'Azienda Test') returning id`,
+     values (gen_random_uuid(), $1, 'Company Test') returning id`,
     [TENANT],
   );
   const companyId = company.rows[0].id;
@@ -47,7 +47,7 @@ async function seedPlot(dal: TestDal): Promise<{ companyId: string; plotId: stri
 }
 
 describe("v17 / chiusura campagna e secondo raccolto", () => {
-  it("chiudiCampagna imposta closed_at; una nuova semina crea una NUOVA riga", async () => {
+  it("closeCampaign imposta closed_at; una nuova semina crea una NUOVA riga", async () => {
     const dal = await TestDal.create();
     const { plotId } = await seedPlot(dal);
     const crop = await dal.upsertCrop({
@@ -57,7 +57,7 @@ describe("v17 / chiusura campagna e secondo raccolto", () => {
       crop_metadata: { category: "seminativo", densita_semina: 200 },
     });
 
-    const prima = await dal.upsertCampoCampagna({
+    const before = await dal.upsertCampoCampagna({
       plot_id: plotId,
       crop_id: crop.id,
       campaign_year: 2026,
@@ -67,15 +67,15 @@ describe("v17 / chiusura campagna e secondo raccolto", () => {
       crop_external_code: null,
       variety_external_code: null,
     });
-    assert.equal(prima.closed_at, null);
+    assert.equal(before.closed_at, null);
 
     // Raccolto → chiusura del ciclo.
-    const chiusa = await dal.chiudiCampagna(prima.id);
+    const chiusa = await dal.closeCampaign(before.id);
     assert.ok(chiusa?.closed_at, "closed_at non impostato");
     // Idempotenza: richiudere una campagna chiusa è un no-op.
-    assert.equal(await dal.chiudiCampagna(prima.id), null);
+    assert.equal(await dal.closeCampaign(before.id), null);
 
-    // Secondo raccolto: nuova semina nello stesso anno → riga NUOVA (la
+    // Secondo raccolto: nuova semina nello stesso anno → row NUOVA (la
     // campagna chiusa non viene riusata né riaperta).
     const seconda = await dal.upsertCampoCampagna({
       plot_id: plotId,
@@ -87,14 +87,14 @@ describe("v17 / chiusura campagna e secondo raccolto", () => {
       crop_external_code: null,
       variety_external_code: null,
     });
-    assert.notEqual(seconda.id, prima.id);
+    assert.notEqual(seconda.id, before.id);
     assert.equal(seconda.closed_at, null);
 
-    const tutte = await dal.listCampiCampagna({ appezzamentoId: plotId });
+    const tutte = await dal.listCampiCampagna({ plotId: plotId });
     assert.equal(tutte.length, 2);
   });
 
-  it("l'indice unico parziale blocca DUE campagne APERTE su stesso campo+anno", async () => {
+  it("l'indice unico parziale blocca DUE campagne APERTE su stesso field+anno", async () => {
     const dal = await TestDal.create();
     const { plotId } = await seedPlot(dal);
     const crop = await dal.upsertCrop({
@@ -118,11 +118,11 @@ describe("v17 / chiusura campagna e secondo raccolto", () => {
   });
 });
 
-describe("v17 / metadata prodotti (identità colturale sementi)", () => {
-  it("upsertProdotto persiste e preserva il metadata jsonb", async () => {
+describe("v17 / metadata products (identità colturale sementi)", () => {
+  it("upsertProduct persiste e preserva il metadata jsonb", async () => {
     const dal = await TestDal.create();
     const { companyId } = await seedPlot(dal);
-    const prodotto = await dal.upsertProdotto({
+    const product = await dal.upsertProduct({
       company_id: companyId,
       category: "seed",
       name: "Frumento Bologna",
@@ -141,14 +141,14 @@ describe("v17 / metadata prodotti (identità colturale sementi)", () => {
         min_stock: 50,
       },
     });
-    const riletto = await dal.getProdotto(prodotto.id);
+    const riletto = await dal.getProduct(product.id);
     assert.equal(riletto?.metadata?.["species"], "Frumento tenero");
     assert.equal(riletto?.metadata?.["crop_category"], "seminativo");
     assert.equal(riletto?.metadata?.["min_stock"], 50);
 
     // Update anagrafico SENZA metadata: il jsonb esistente sopravvive.
-    await dal.upsertProdotto({
-      id: prodotto.id,
+    await dal.upsertProduct({
+      id: product.id,
       company_id: companyId,
       category: "seed",
       name: "Frumento Bologna (rinominato)",
@@ -160,7 +160,7 @@ describe("v17 / metadata prodotti (identità colturale sementi)", () => {
       uma_code: null,
       notes: null,
     });
-    const dopo = await dal.getProdotto(prodotto.id);
+    const dopo = await dal.getProduct(product.id);
     assert.equal(dopo?.metadata?.["variety_name"], "Bologna");
   });
 });
@@ -172,16 +172,16 @@ describe("compliance SIAN / campi dichiarativi mancanti", () => {
       reference_parcel_external_id: null,
       agricultural_parcel_external_id: null,
     };
-    assert.deepEqual(sianMancanti(vuota), [
+    assert.deepEqual(missingSian(vuota), [
       "crop_external_code",
       "reference_parcel_external_id",
       "agricultural_parcel_external_id",
     ]);
-    assert.equal(sianCompleta(vuota), false);
+    assert.equal(sianComplete(vuota), false);
 
     // Stringhe di soli spazi = mancante (input sporco dai form).
     assert.ok(
-      sianMancanti({ ...vuota, crop_external_code: "  " }).includes(
+      missingSian({ ...vuota, crop_external_code: "  " }).includes(
         "crop_external_code",
       ),
     );
@@ -191,15 +191,15 @@ describe("compliance SIAN / campi dichiarativi mancanti", () => {
       reference_parcel_external_id: "ISL-1",
       agricultural_parcel_external_id: "APP-9",
     };
-    assert.deepEqual(sianMancanti(completa), []);
-    assert.equal(sianCompleta(completa), true);
+    assert.deepEqual(missingSian(completa), []);
+    assert.equal(sianComplete(completa), true);
   });
 
   it("country-aware: IT→SIAN, ES→SIEX, altri paesi senza gate", () => {
-    assert.equal(sistemaDichiarativo("IT"), "SIAN");
-    assert.equal(sistemaDichiarativo("ES"), "SIEX");
-    assert.equal(sistemaDichiarativo("FR"), null);
-    assert.equal(sistemaDichiarativo(null), null);
+    assert.equal(declarativeSystem("IT"), "SIAN");
+    assert.equal(declarativeSystem("ES"), "SIEX");
+    assert.equal(declarativeSystem("FR"), null);
+    assert.equal(declarativeSystem(null), null);
 
     const vuota = {
       crop_external_code: null,
@@ -207,16 +207,16 @@ describe("compliance SIAN / campi dichiarativi mancanti", () => {
       agricultural_parcel_external_id: null,
     };
     // Stessa terna richiesta per IT (SIAN) ed ES (SIEX/SIGPAC)...
-    assert.equal(dichiarativiMancanti("IT", vuota).length, 3);
-    assert.equal(dichiarativiMancanti("ES", vuota).length, 3);
+    assert.equal(missingDeclarative("IT", vuota).length, 3);
+    assert.equal(missingDeclarative("ES", vuota).length, 3);
     // ...nessun vincolo per i paesi senza sistema gateato.
-    assert.deepEqual(dichiarativiMancanti("FR", vuota), []);
-    assert.deepEqual(dichiarativiMancanti("EU", vuota), []);
+    assert.deepEqual(missingDeclarative("FR", vuota), []);
+    assert.deepEqual(missingDeclarative("EU", vuota), []);
   });
 });
 
-describe("v17 / colturaPerAppezzamento ignora le campagne chiuse", () => {
-  it("campo con campagna chiusa = campo libero", () => {
+describe("v17 / cropForPlot ignora le campagne chiuse", () => {
+  it("campo con campagna chiusa = field libero", () => {
     const crop: Crop = {
       id: "crop-1",
       tenant_id: TENANT,
@@ -228,7 +228,7 @@ describe("v17 / colturaPerAppezzamento ignora le campagne chiuse", () => {
       updated_at: "2026-01-01T00:00:00Z",
       deleted_at: null,
     };
-    const base: CampoCampagna = {
+    const base: PlotCampaign = {
       id: "camp-1",
       tenant_id: TENANT,
       plot_id: "plot-1",
@@ -244,9 +244,9 @@ describe("v17 / colturaPerAppezzamento ignora le campagne chiuse", () => {
       updated_at: "2026-01-01T00:00:00Z",
       deleted_at: null,
     };
-    assert.equal(colturaPerAppezzamento("plot-1", [base], [crop]), "seminativo");
+    assert.equal(cropForPlot("plot-1", [base], [crop]), "seminativo");
     assert.equal(
-      colturaPerAppezzamento(
+      cropForPlot(
         "plot-1",
         [{ ...base, closed_at: "2026-07-01T00:00:00Z" }],
         [crop],

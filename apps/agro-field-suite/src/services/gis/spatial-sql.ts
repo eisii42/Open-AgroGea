@@ -1,7 +1,7 @@
 /**
  * Costruttori SQL puri per il motore di analisi spaziale (DuckDB Spatial).
  *
- * Questo modulo NON importa `@duckdb/duckdb-wasm`: contiene solo logica di
+ * Questo module NON importa `@duckdb/duckdb-wasm`: contiene solo logica di
  * stringa testabile sotto Node (`node --test`). Il runtime WASM, con le import
  * `?url` specifiche di Vite, vive in {@link ./SpatialAnalysisEngine}.
  */
@@ -33,7 +33,7 @@ export function quoteIdentifier(value: string): string {
 }
 
 /**
- * Riduce un nome arbitrario (nome layer, nome file drag-and-drop) a un
+ * Riduce un name arbitrario (name layer, name file drag-and-drop) a un
  * identificatore DuckDB sicuro. Le tabelle temporanee dell'overlay nascono da
  * input dell'utente, quindi va normalizzato prima di interpolarlo nel DDL.
  */
@@ -60,7 +60,7 @@ export function readerForExtension(extension: string): VectorReader {
   return "st_read";
 }
 
-/** SELECT che materializza un file registrato in DuckDB come righe con geometria. */
+/** SELECT che materializza un file registrato in DuckDB come rows con geometria. */
 export function vectorSourceSql(fileName: string, extension: string): string {
   const quoted = quoteSqlString(fileName);
   switch (readerForExtension(extension)) {
@@ -83,7 +83,7 @@ export function createTableAsSql(tableName: string, selectSql: string): string {
 }
 
 export interface SpatialJoinOptions {
-  /** Tabella "sinistra": le sue righe vengono conservate e arricchite. */
+  /** Tabella "sinistra": le sue rows vengono conservate e arricchite. */
   leftTable: string;
   /** Tabella "destra": fornisce gli attributi da agganciare per intersezione. */
   rightTable: string;
@@ -147,7 +147,7 @@ export interface SelectByLocationOptions {
 /**
  * Select by Location: estrae le sole feature di `targetTable` che soddisfano il
  * predicato rispetto ad almeno una feature di `maskTable`. `EXISTS` evita la
- * duplicazione delle righe tipica di un join molti-a-molti.
+ * duplicazione delle rows tipica di un join molti-a-molti.
  */
 export function selectByLocationSql(options: SelectByLocationOptions): string {
   const {

@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type {
-  Appezzamento,
-  CampoCampagna,
-  RegistroTrattamento,
+  Plot,
+  PlotCampaign,
+  TreatmentLog,
 } from "@agrogea/core";
 import {
   baseExporter,
@@ -16,12 +16,12 @@ import {
   type RegionalExportInput,
 } from "../apps/agro-field-suite/src/lib/regionalExport";
 
-function plot(id: string, nome: string): Appezzamento {
+function plot(id: string, name: string): Plot {
   return {
     id,
     tenant_id: "t",
     company_id: "az",
-    user_plot_name: nome,
+    user_plot_name: name,
     cadastral_sheet: null,
     cadastral_parcel: null,
     area_ha: 2,
@@ -37,7 +37,7 @@ function plot(id: string, nome: string): Appezzamento {
   };
 }
 
-function campaign(plotId: string): CampoCampagna {
+function campaign(plotId: string): PlotCampaign {
   return {
     id: `cc-${plotId}`,
     tenant_id: "t",
@@ -55,7 +55,7 @@ function campaign(plotId: string): CampoCampagna {
   };
 }
 
-function tratt(plotId: string): RegistroTrattamento {
+function tratt(plotId: string): TreatmentLog {
   return {
     id: "t1",
     tenant_id: "t",
@@ -89,9 +89,9 @@ function tratt(plotId: string): RegistroTrattamento {
 }
 
 const input: RegionalExportInput = {
-  trattamenti: [tratt("p1")],
-  appezzamenti: [plot("p1", "Vigna Alta")],
-  campiCampagna: [campaign("p1")],
+  treatments: [tratt("p1")],
+  plots: [plot("p1", "Vigna Alta")],
+  campaignFields: [campaign("p1")],
   aziendaName: "Tenuta Demo",
 };
 
@@ -120,7 +120,7 @@ describe("flattenOperations", () => {
 });
 
 describe("Adapter EU (base internazionale)", () => {
-  it("CSV con separatore virgola, header ISO e date YYYY-MM-DD", () => {
+  it("CSV con separator virgola, header ISO e date YYYY-MM-DD", () => {
     const csv = buildBaseCsv(input);
     const [header, row] = csv.split("\n");
     assert.ok(header.startsWith("operation_date,plot_name,"));
@@ -146,11 +146,11 @@ describe("Adapter ES (SIEX/Cuaderno Digital)", () => {
 });
 
 describe("Adapter IT (SIAN/PAN)", () => {
-  it("delega a sianExport: CSV con separatore punto e virgola e BOM", () => {
+  it("delega a sianExport: CSV con separator punto e virgola e BOM", () => {
     const it = makeItExporter();
     assert.equal(it.bom, true);
     const csv = it.build(input);
-    assert.ok(csv.includes(";"), "atteso separatore ;");
+    assert.ok(csv.includes(";"), "atteso separator ;");
     assert.ok(csv.includes("IS-12"), "atteso codice Isola SIAN");
     assert.equal(it.fileName("Tenuta Demo"), `quaderno-sian-tenuta-demo-${new Date().toISOString().slice(0, 10)}.csv`);
   });

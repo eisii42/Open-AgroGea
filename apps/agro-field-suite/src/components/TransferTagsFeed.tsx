@@ -1,4 +1,4 @@
-import type { DataTransferLog, FormatoFile } from "@agrogea/core";
+import type { DataTransferLog, FileFormat } from "@agrogea/core";
 import { useAgroStore } from "@agrogea/core";
 import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react";
  * la sorgente è `dataTransferLogs` nello store.
  */
 
-const ETICHETTA_FORMATO: Record<FormatoFile, string> = {
+const FORMAT_LABEL: Record<FileFormat, string> = {
   csv: "CSV",
   geojson: "GeoJSON",
   isoxml: "ISOXML",
@@ -19,7 +19,7 @@ const ETICHETTA_FORMATO: Record<FormatoFile, string> = {
   gpx: "GPX",
 };
 
-const COLORE: Record<DataTransferLog["operation_type"], string> = {
+const COLOR: Record<DataTransferLog["operation_type"], string> = {
   import: "var(--accent)",
   export: "var(--crop-cereali, #2f8f6b)",
 };
@@ -27,7 +27,7 @@ const COLORE: Record<DataTransferLog["operation_type"], string> = {
 export function TransferTagBadge({ log }: { log: DataTransferLog }) {
   const isImport = log.operation_type === "import";
   const Icon = isImport ? ArrowDownToLine : ArrowUpFromLine;
-  const colore = COLORE[log.operation_type];
+  const color = COLOR[log.operation_type];
   const quando = new Date(log.executed_at).toLocaleString("it-IT", {
     day: "2-digit",
     month: "2-digit",
@@ -38,11 +38,11 @@ export function TransferTagBadge({ log }: { log: DataTransferLog }) {
     <span
       title={`${log.file_name} · ${quando}`}
       className="inline-flex max-w-full items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium"
-      style={{ background: "var(--panel-2)", color: colore }}
+      style={{ background: "var(--panel-2)", color: color }}
     >
       <Icon size={12} className="shrink-0" />
       <span className="shrink-0 uppercase tracking-wide">
-        {isImport ? "Importato" : "Esportato"} · {ETICHETTA_FORMATO[log.file_format]}
+        {isImport ? "Importato" : "Esportato"} · {FORMAT_LABEL[log.file_format]}
       </span>
       <span className="truncate text-[var(--ink-4)]">{log.file_name}</span>
     </span>
@@ -103,7 +103,7 @@ export function TransferTagsFeed({
     if (!empty) return null;
     return (
       <p className="text-xs text-[var(--ink-4)]">
-        Nessun trasferimento registrato per questa azienda.
+        Nessun trasferimento registrato per questa company.
       </p>
     );
   }

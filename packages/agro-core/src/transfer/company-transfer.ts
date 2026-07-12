@@ -4,19 +4,19 @@
  *
  * Modulo PURO: nessuna dipendenza da DB, store o rete. Trasforma uno
  * snapshot in-memory dei dati aziendali in un documento GeoJSON valido e
- * viceversa. L'I/O su PGlite (lettura righe, upsert transazionale dato+outbox)
- * resta responsabilità del DAL; il salvataggio/lettura del file fisico resta
+ * viceversa. L'I/O su PGlite (reading rows, upsert transazionale dato+outbox)
+ * resta responsabilità del DAL; il salvataggio/reading del file fisico resta
  * dell'orchestratore app-side.
  *
  * Formato: un `FeatureCollection` dove
  *   - i dati STATICI dell'azienda stanno alla radice del documento, nel membro
  *     esteso `agrogea` (RFC 7946 consente membri aggiuntivi a livello root);
  *   - ogni `Feature` porta `properties.kind` che la discrimina:
- *       · "plot"     → appezzamento (`plots_registry`) con i log del Quaderno di
- *                      Campagna (trattamenti, suolo, raccolte) annidati;
- *       · "asset"    → infrastruttura (`infrastructure_assets`: pozzi, trappole,
+ *       · "plot"     → plot (`plots_registry`) con i log del Quaderno di
+ *                      Campagna (treatments, soil, harvests) annidati;
+ *       · "asset"    → infrastructure (`infrastructure_assets`: pozzi, trappole,
  *                      sensori, fabbricati…) — i POI puntuali e le geometrie CAD;
- *       · "scouting" → rilievo GPS di campo (`scouting_observations`).
+ *       · "scouting" → rilievo GPS di field (`scouting_observations`).
  *   La geometria di ogni Feature è già GeoJSON in PGlite (niente PostGIS): viene
  *   letta e riscritta così com'è.
  */
@@ -29,14 +29,14 @@ import type {
   Polygon,
 } from "geojson";
 import type {
-  Appezzamento,
-  AssetInfrastruttura,
-  Azienda,
-  CampionamentoSuolo,
-  CampoCampagna,
+  Plot,
+  InfrastructureAsset,
+  Company,
+  SoilSample,
+  PlotCampaign,
   Crop,
-  Raccolta,
-  RegistroTrattamento,
+  Harvest,
+  TreatmentLog,
   ScoutingObservation,
 } from "../types";
 
@@ -45,34 +45,34 @@ export const COMPANY_TRANSFER_FORMAT = "agrogea.company-transfer" as const;
 /** Versione dello schema del documento (bump → migrazione in parse). */
 export const COMPANY_TRANSFER_VERSION = 1 as const;
 
-/** Log agronomici associati a un perimetro (appezzamento o azienda). */
+/** Log agronomici associati a un perimetro (plot o company). */
 export interface AgronomicLogs {
-  treatments: RegistroTrattamento[];
-  soilSamples: CampionamentoSuolo[];
-  harvests: Raccolta[];
+  treatments: TreatmentLog[];
+  soilSamples: SoilSample[];
+  harvests: Harvest[];
 }
 
 /**
- * Un appezzamento con i suoi log e le campagne agrarie (unità di una Feature
+ * Un plot con i suoi log e le campagne agrarie (unità di una Feature
  * "plot"). `campaigns` (`plots_campaign`) lega l'appezzamento alle COLTURE per
- * annata: senza queste righe l'associazione appezzamento↔coltura andrebbe persa.
+ * annata: senza queste rows l'associazione plot↔crop andrebbe persa.
  */
 export interface PlotBundle extends AgronomicLogs {
-  plot: Appezzamento;
-  campaigns: CampoCampagna[];
+  plot: Plot;
+  campaigns: PlotCampaign[];
 }
 
 /**
  * Istantanea completa dei dati di un'azienda: input dell'export, output del
- * parse. `crops` è il catalogo (a livello tenant) delle colture referenziate
+ * parse. `crops` è il catalog (a livello tenant) delle crops referenziate
  * dalle campagne dell'azienda. `unassigned` raccoglie i log non legati ad alcun
- * appezzamento (`plot_id` null), per non perderli nel backup.
+ * plot (`plot_id` null), per non perderli nel backup.
  */
 export interface CompanySnapshot {
-  company: Azienda;
+  company: Company;
   crops: Crop[];
   plots: PlotBundle[];
-  assets: AssetInfrastruttura[];
+  assets: InfrastructureAsset[];
   scouting: ScoutingObservation[];
   unassigned: AgronomicLogs;
 }
@@ -83,25 +83,25 @@ export interface CompanyTransferMeta {
   version: number;
   exportedAt: string;
   /** Anagrafica statica dell'azienda (dati alla radice). */
-  company: Azienda;
-  /** Catalogo colture referenziate (livello tenant). */
+  company: Company;
+  /** Catalogo crops referenziate (livello tenant). */
   crops: Crop[];
-  /** Log non associati ad alcun appezzamento. */
+  /** Log non associati ad alcun plot. */
   unassigned: AgronomicLogs;
 }
 
-/** Properties di una Feature appezzamento: anagrafica + campagne + log annidati. */
+/** Properties di una Feature plot: anagrafica + campagne + log annidati. */
 export interface PlotFeatureProperties extends AgronomicLogs {
   kind: "plot";
-  plot: Omit<Appezzamento, "geometry">;
-  /** Campagne agrarie (associazione coltura↔appezzamento per annata). */
-  campaigns: CampoCampagna[];
+  plot: Omit<Plot, "geometry">;
+  /** Campagne agrarie (associazione crop↔plot per annata). */
+  campaigns: PlotCampaign[];
 }
 
-/** Properties di una Feature infrastruttura/POI puntuale. */
+/** Properties di una Feature infrastructure/POI puntuale. */
 export interface AssetFeatureProperties {
   kind: "asset";
-  asset: Omit<AssetInfrastruttura, "geometry">;
+  asset: Omit<InfrastructureAsset, "geometry">;
 }
 
 /** Properties di una Feature rilievo scouting. */
@@ -116,7 +116,7 @@ export type TransferFeatureProperties =
   | AssetFeatureProperties
   | ScoutingFeatureProperties;
 
-/** Documento GeoJSON Esteso prodotto/consumato dal motore. */
+/** Documento GeoJSON Esteso product/consumato dal motore. */
 export interface CompanyTransferDocument
   extends FeatureCollection<Geometry, TransferFeatureProperties> {
   agrogea: CompanyTransferMeta;
@@ -136,9 +136,9 @@ function asArray<T>(value: unknown): T[] {
 
 function readLogs(source: Partial<AgronomicLogs> | undefined): AgronomicLogs {
   return {
-    treatments: asArray<RegistroTrattamento>(source?.treatments),
-    soilSamples: asArray<CampionamentoSuolo>(source?.soilSamples),
-    harvests: asArray<Raccolta>(source?.harvests),
+    treatments: asArray<TreatmentLog>(source?.treatments),
+    soilSamples: asArray<SoilSample>(source?.soilSamples),
+    harvests: asArray<Harvest>(source?.harvests),
   };
 }
 
@@ -182,7 +182,7 @@ export function serializeCompanySnapshot(
   for (const obs of snapshot.scouting) {
     features.push({
       type: "Feature",
-      // Geometria sintetizzata dalle coordinate del rilievo (lat/lng colonne).
+      // Geometria sintetizzata dalle coordinate del rilievo (lat/lng columns).
       geometry: { type: "Point", coordinates: [obs.lng, obs.lat] },
       properties: { kind: "scouting", scouting: obs },
     });
@@ -230,7 +230,7 @@ export function parseCompanyTransfer(raw: unknown): CompanySnapshot {
   }
 
   const plots: PlotBundle[] = [];
-  const assets: AssetInfrastruttura[] = [];
+  const assets: InfrastructureAsset[] = [];
   const scouting: ScoutingObservation[] = [];
 
   const features = asArray<Feature<Geometry, TransferFeatureProperties>>(
@@ -247,13 +247,13 @@ export function parseCompanyTransfer(raw: unknown): CompanySnapshot {
       const assetProps = (props as AssetFeatureProperties).asset;
       if (!assetProps || !feature.geometry) {
         throw new CompanyTransferError(
-          `Feature #${i + 1} (infrastruttura) incompleta.`,
+          `Feature #${i + 1} (infrastructure) incompleta.`,
         );
       }
       assets.push({
-        ...(assetProps as Omit<AssetInfrastruttura, "geometry">),
+        ...(assetProps as Omit<InfrastructureAsset, "geometry">),
         geometry: feature.geometry,
-      } as AssetInfrastruttura);
+      } as InfrastructureAsset);
       return;
     }
 
@@ -279,12 +279,12 @@ export function parseCompanyTransfer(raw: unknown): CompanySnapshot {
       throw new CompanyTransferError(`Feature #${i + 1} priva di geometria.`);
     }
     const plot = {
-      ...(plotProps as Omit<Appezzamento, "geometry">),
+      ...(plotProps as Omit<Plot, "geometry">),
       geometry: feature.geometry as Polygon | MultiPolygon,
-    } as Appezzamento;
+    } as Plot;
     plots.push({
       plot,
-      campaigns: asArray<CampoCampagna>(
+      campaigns: asArray<PlotCampaign>(
         (props as Partial<PlotFeatureProperties> | null)?.campaigns,
       ),
       ...readLogs((props ?? undefined) as Partial<AgronomicLogs> | undefined),
@@ -292,7 +292,7 @@ export function parseCompanyTransfer(raw: unknown): CompanySnapshot {
   });
 
   return {
-    company: meta.company as Azienda,
+    company: meta.company as Company,
     crops: asArray<Crop>(meta.crops),
     plots,
     assets,

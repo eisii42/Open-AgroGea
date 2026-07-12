@@ -1,20 +1,20 @@
-import { colturaPerAppezzamento, useAgroStore } from "@agrogea/core";
+import { cropForPlot, useAgroStore } from "@agrogea/core";
 import { useCallback, useRef, useState } from "react";
-import { useDssCalcolo } from "../../hooks/useDssCalcolo";
+import { useDssCalculation } from "../../hooks/useDssCalculation";
 import {
-  type OpzioniSuolo,
-  useSuoloPipeline,
-} from "../../hooks/useSuoloPipeline";
-import { cropModulePerColtura } from "../crops";
+  type SoilOptions,
+  useSoilPipeline,
+} from "../../hooks/useSoilPipeline";
+import { cropModuleForCrop } from "../crops";
 
 /**
- * Orchestratore "Calcola tutto" del Command Center: per OGNI appezzamento esegue
- * in sequenza gli indici satellitari (NDVI, pipeline STAC) e, se la coltura ha un
- * modulo DSS, i modelli previsionali + il bilancio idrico FAO 56/66. Persiste
+ * Orchestratore "Calcola tutto" del Command Center: per OGNI plot esegue
+ * in sequenza gli indici satellitari (NDVI, pipeline STAC) e, se la crop ha un
+ * module DSS, i modelli previsionali + il bilancio idrico FAO 56/66. Persiste
  * `last_ndvi_mean`, `dss_results` e `soil_water_indices` (riusa i due hook
  * esistenti) e riporta un avanzamento granulare per la barra di caricamento.
  *
- * Errori per appezzamento non interrompono il ciclo: si registrano e si prosegue.
+ * Errori per plot non interrompono il ciclo: si registrano e si prosegue.
  */
 
 export interface FullRecalcState {
@@ -23,7 +23,7 @@ export interface FullRecalcState {
   total: number;
   /** Appezzamenti completati. */
   done: number;
-  /** Etichetta della fase corrente (campo + cosa si sta calcolando). */
+  /** Etichetta della fase current (field + cosa si sta calcolando). */
   label: string;
   /** Numero di errori non bloccanti incontrati. */
   errors: number;
@@ -38,24 +38,24 @@ const IDLE: FullRecalcState = {
 };
 
 // "Calcola tutto" rinfresca l'NDVI (vigore) sull'ultima scena utile: sufficiente
-// per l'anomalia ΔNDVI e per i KPI; l'utente può poi approfondire dal modulo Suolo.
-const SUOLO_OPZIONI: OpzioniSuolo = {
-  indici: ["ndvi"],
-  indicePrimario: "ndvi",
+// per l'anomalia ΔNDVI e per i KPI; l'utente può poi approfondire dal module Suolo.
+const SOIL_OPTIONS: SoilOptions = {
+  indices: ["ndvi"],
+  primaryIndex: "ndvi",
   cloudCoverMax: 20,
-  strategia: { tipo: "ultima" },
+  strategia: { type: "ultima" },
 };
 
 export function useFullRecalc(onDone?: () => void) {
-  const suolo = useSuoloPipeline();
-  const dss = useDssCalcolo();
+  const soil = useSoilPipeline();
+  const dss = useDssCalculation();
   const [state, setState] = useState<FullRecalcState>(IDLE);
   const runningRef = useRef(false);
 
   const run = useCallback(async () => {
     if (runningRef.current) return;
-    const { appezzamenti, crops, campiCampagna } = useAgroStore.getState();
-    const plots = appezzamenti.filter((a) => a.deleted_at == null);
+    const { plots: allPlots, crops, campaignFields } = useAgroStore.getState();
+    const plots = allPlots.filter((a) => a.deleted_at == null);
     if (plots.length === 0) return;
 
     runningRef.current = true;
@@ -71,22 +71,22 @@ export function useFullRecalc(onDone?: () => void) {
         label: `Indici satellitari · ${plot.user_plot_name}`,
       }));
       try {
-        await suolo.calcola([plot], SUOLO_OPZIONI);
+        await soil.compute([plot], SOIL_OPTIONS);
       } catch {
         errors++;
       }
 
-      // 2) DSS patologici + bilancio idrico (solo se la coltura ha un modulo).
-      const modulo = cropModulePerColtura(
-        colturaPerAppezzamento(plot.id, campiCampagna, crops),
+      // 2) DSS patologici + bilancio idrico (solo se la crop ha un module).
+      const module = cropModuleForCrop(
+        cropForPlot(plot.id, campaignFields, crops),
       );
-      if (modulo) {
+      if (module) {
         setState((s) => ({
           ...s,
           label: `DSS & bilancio idrico · ${plot.user_plot_name}`,
         }));
         try {
-          await dss.calcola([{ appezzamento: plot, modulo }], {
+          await dss.compute([{ plot: plot, module }], {
             skipWaterBalance: false,
           });
         } catch {
@@ -99,11 +99,11 @@ export function useFullRecalc(onDone?: () => void) {
 
     // Pulisce gli overlay STAC iniettati nello store GeoLibre (il Command Center
     // non monta la mappa, ma evitiamo residui al ritorno alla vista mappa).
-    suolo.reset();
+    soil.reset();
     setState((s) => ({ ...s, running: false, label: "Completato" }));
     runningRef.current = false;
     onDone?.();
-  }, [suolo, dss, onDone]);
+  }, [soil, dss, onDone]);
 
   return { state, run };
 }

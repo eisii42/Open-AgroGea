@@ -1,51 +1,51 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { Appezzamento } from "@agrogea/core";
+import type { Plot } from "@agrogea/core";
 import {
-  calibrazioneSintesi,
-  coloreRischioDss,
-  costruisciOverlayDss,
-  livelloRischioDss,
-  rampaRischioDss,
-  type SintesiCampo,
-  sintetizzaRischioCampo,
+  summaryCalibration,
+  dssRiskColor,
+  buildDssOverlay,
+  dssRiskLevelFn,
+  dssRiskRamp,
+  type FieldSummary,
+  summarizeFieldRisk,
 } from "../apps/agro-field-suite/src/modules/dss/dss-overlay";
 
 /**
- * Sintesi spaziale del rischio DSS (Modulo 3): punteggio bilanciato per coltura,
+ * Sintesi spaziale del risk DSS (Modulo 3): punteggio bilanciato per crop,
  * rampa cromatica e costruzione dell'overlay coropletico.
  */
 
-const CAL = calibrazioneSintesi("vite", "piena");
+const CAL = summaryCalibration("vite", "piena");
 
-describe("sintetizzaRischioCampo", () => {
+describe("summarizeFieldRisk", () => {
   it("è in [0,1] e cresce con lo stress idrico", () => {
-    const basso = sintetizzaRischioCampo(
+    const basso = summarizeFieldRisk(
       { stressIdrico01: 0.1, rischioPatologico01: 0.1, ndvi: 0.8 },
       CAL,
     );
-    const alto = sintetizzaRischioCampo(
+    const alto = summarizeFieldRisk(
       { stressIdrico01: 0.9, rischioPatologico01: 0.1, ndvi: 0.8 },
       CAL,
     );
     assert.ok(basso >= 0 && basso <= 1);
-    assert.ok(alto > basso, "più stress ⇒ più rischio");
+    assert.ok(alto > basso, "più stress ⇒ più risk");
   });
 
-  it("NDVI alto (vigore pieno) abbassa il rischio rispetto a NDVI basso", () => {
-    const vigoroso = sintetizzaRischioCampo(
+  it("NDVI alto (vigore pieno) abbassa il risk rispetto a NDVI basso", () => {
+    const vigoroso = summarizeFieldRisk(
       { stressIdrico01: 0.3, rischioPatologico01: 0.3, ndvi: 0.85 },
       CAL,
     );
-    const stentato = sintetizzaRischioCampo(
+    const stentato = summarizeFieldRisk(
       { stressIdrico01: 0.3, rischioPatologico01: 0.3, ndvi: 0.3 },
       CAL,
     );
     assert.ok(stentato > vigoroso);
   });
 
-  it("gestisce NDVI/suolo assenti rinormalizzando i pesi (resta in [0,1])", () => {
-    const v = sintetizzaRischioCampo(
+  it("gestisce NDVI/soil assenti rinormalizzando i pesi (resta in [0,1])", () => {
+    const v = summarizeFieldRisk(
       { stressIdrico01: 0.5, rischioPatologico01: 0.5, ndvi: null },
       CAL,
     );
@@ -54,29 +54,29 @@ describe("sintetizzaRischioCampo", () => {
     assert.ok(Math.abs(v - 0.5) < 1e-9);
   });
 
-  it("il deficit di azoto alza il rischio", () => {
-    const senza = sintetizzaRischioCampo(
+  it("il deficit di azoto alza il risk", () => {
+    const without = summarizeFieldRisk(
       { stressIdrico01: 0.2, rischioPatologico01: 0.2, ndvi: 0.7 },
       CAL,
     );
-    const carente = sintetizzaRischioCampo(
+    const carente = summarizeFieldRisk(
       { stressIdrico01: 0.2, rischioPatologico01: 0.2, ndvi: 0.7, azoto: 2 },
       CAL,
     );
-    assert.ok(carente > senza);
+    assert.ok(carente > without);
   });
 });
 
 describe("calibrazione per coltura", () => {
-  it("usa la banda NDVI della fase e cambia i pesi tra colture", () => {
-    const vite = calibrazioneSintesi("vite", "piena");
-    const mais = calibrazioneSintesi("mais", "piena");
+  it("usa la banda NDVI della phase e cambia i pesi tra colture", () => {
+    const vite = summaryCalibration("vite", "piena");
+    const mais = summaryCalibration("mais", "piena");
     assert.deepEqual(vite.ndviAtteso, [0.6, 0.85]);
     // Il mais (seminativo) pesa di più lo stress idrico della vite.
     assert.ok(mais.pesoStress > vite.pesoStress);
   });
-  it("la rampa per coltura ha 3 stop verde→giallo→rosso", () => {
-    const r = rampaRischioDss("vite");
+  it("la rampa per crop ha 3 stop verde→giallo→rosso", () => {
+    const r = dssRiskRamp("vite");
     assert.equal(r.length, 3);
     assert.equal(r[0][1], "#1a9850");
     assert.equal(r[2][1], "#d73027");
@@ -84,20 +84,20 @@ describe("calibrazione per coltura", () => {
   });
 });
 
-describe("coloreRischioDss / livelloRischioDss", () => {
+describe("dssRiskColor / dssRiskLevelFn", () => {
   it("mappa il punteggio su verde/giallo/rosso secondo la rampa", () => {
-    const r = rampaRischioDss("vite");
-    assert.equal(coloreRischioDss(0, r), "#1a9850"); // verde
-    assert.equal(coloreRischioDss(1, r), "#d73027"); // rosso
+    const r = dssRiskRamp("vite");
+    assert.equal(dssRiskColor(0, r), "#1a9850"); // verde
+    assert.equal(dssRiskColor(1, r), "#d73027"); // rosso
   });
   it("etichetta i tre livelli", () => {
-    assert.equal(livelloRischioDss(0.1), "ottimale");
-    assert.equal(livelloRischioDss(0.5), "allerta");
-    assert.equal(livelloRischioDss(0.8), "critico");
+    assert.equal(dssRiskLevelFn(0.1), "ottimale");
+    assert.equal(dssRiskLevelFn(0.5), "allerta");
+    assert.equal(dssRiskLevelFn(0.8), "critico");
   });
 });
 
-function apz(id: string): Appezzamento {
+function plot(id: string): Plot {
   return {
     id,
     tenant_id: "t",
@@ -121,14 +121,14 @@ function apz(id: string): Appezzamento {
 }
 
 describe("costruisciOverlayDss", () => {
-  it("colora gli appezzamenti con sintesi e omette gli altri", () => {
-    const appezzamenti = [apz("a"), apz("b"), apz("c")];
-    const sintesi = new Map<string, SintesiCampo>([
+  it("colora gli plots con summary e omette gli altri", () => {
+    const plots = [plot("a"), plot("b"), plot("c")];
+    const summary = new Map<string, FieldSummary>([
       ["a", { rischio01: 0.05 }],
       ["c", { rischio01: 0.9 }],
     ]);
-    const fc = costruisciOverlayDss(appezzamenti, sintesi, rampaRischioDss("vite"));
-    assert.equal(fc.features.length, 2); // b è omesso (niente sintesi)
+    const fc = buildDssOverlay(plots, summary, dssRiskRamp("vite"));
+    assert.equal(fc.features.length, 2); // b è omesso (niente summary)
     const a = fc.features.find((f) => f.properties?.id === "a");
     const c = fc.features.find((f) => f.properties?.id === "c");
     assert.equal(a?.properties?.livello, "ottimale");

@@ -13,7 +13,7 @@ import { type RefObject, useEffect, useState } from "react";
  * Si aggancia ai layer nativi resi da GeoLibre (fill/line/circle derivati dagli
  * id dei layer agro) tramite le API MapLibre esposte da `getMap()`. Nessun
  * popup riscritto: si leggono le `properties` della feature sotto il cursore e
- * si calcola la posizione schermo. Il tooltip sparisce su mouse-leave, con un
+ * si compute la posizione schermo. Il tooltip sparisce su mouse-leave, con un
  * micro-debounce per evitare lo sfarfallio tra feature contigue.
  */
 
@@ -26,7 +26,7 @@ export interface HoverState {
   props: Record<string, unknown>;
 }
 
-const APPEZZAMENTI_ID = "agrogea-appezzamenti";
+const PLOTS_ID = "agrogea-plots";
 const INFRASTRUTTURE_ID = "agrogea-infrastrutture";
 const POI_ID = "agrogea-poi";
 
@@ -48,7 +48,7 @@ export function useHoverTooltips(
 
     // Layer nativi (anche se i dati arrivano dopo: MapLibre lega per id).
     const bindings: Binding[] = [
-      { layerId: fillLayerId(APPEZZAMENTI_ID), kind: "appezzamento" },
+      { layerId: fillLayerId(PLOTS_ID), kind: "appezzamento" },
       { layerId: lineLayerId(INFRASTRUTTURE_ID), kind: "infrastruttura" },
       { layerId: fillLayerId(INFRASTRUTTURE_ID), kind: "infrastruttura" },
       { layerId: circleLayerId(INFRASTRUTTURE_ID), kind: "infrastruttura" },

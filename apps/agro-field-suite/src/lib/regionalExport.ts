@@ -5,7 +5,7 @@
  * `country_code` del tenant. Ogni adapter conosce il tracciato ufficiale del suo
  * paese:
  *   * IT → SIAN/PAN: CSV `;`, UTF-8 con BOM (apertura corretta in Excel IT),
- *     header e codici Isola/Appezzamento ministeriali (riusa `sianExport`).
+ *     header e codici Isola/Plot ministeriali (riusa `sianExport`).
  *   * ES → SIEX/CUE: JSON strutturato del *Cuaderno Digital de Explotación*
  *     (FEGA), campi in spagnolo.
  *   * EU → base internazionale: CSV `,`, UTF-8 pulito, date ISO `YYYY-MM-DD`.
@@ -14,10 +14,10 @@
  * `node --test`. Il download nel browser è in `scaricaExport`.
  */
 import type {
-  Appezzamento,
-  CampoCampagna,
+  Plot,
+  PlotCampaign,
   CountryCode,
-  RegistroTrattamento,
+  TreatmentLog,
 } from "@agrogea/core";
 import {
   buildSianCsv,
@@ -27,13 +27,13 @@ import {
 
 /** Dati grezzi dell'export (registro + anagrafica fisica + stato di campagna). */
 export interface RegionalExportInput {
-  trattamenti: RegistroTrattamento[];
-  appezzamenti: Appezzamento[];
-  campiCampagna: CampoCampagna[];
+  treatments: TreatmentLog[];
+  plots: Plot[];
+  campaignFields: PlotCampaign[];
   aziendaName?: string;
 }
 
-/** Record neutro EU-agnostico per una singola operazione (base di ES/EU). */
+/** Record neutro EU-agnostico per una singola operation (base di ES/EU). */
 export interface NeutralOperation {
   operation_date: string; // ISO YYYY-MM-DD
   plot_name: string;
@@ -62,9 +62,9 @@ function isoDate(iso: string): string {
 export function flattenOperations(
   input: RegionalExportInput,
 ): NeutralOperation[] {
-  const plotById = new Map(input.appezzamenti.map((a) => [a.id, a]));
-  const campaignById = new Map(input.campiCampagna.map((c) => [c.id, c]));
-  return input.trattamenti.map((t) => {
+  const plotById = new Map(input.plots.map((a) => [a.id, a]));
+  const campaignById = new Map(input.campaignFields.map((c) => [c.id, c]));
+  return input.treatments.map((t) => {
     const plot = t.plot_id ? plotById.get(t.plot_id) : undefined;
     const campaign = t.plot_campaign_id
       ? campaignById.get(t.plot_campaign_id)
@@ -120,7 +120,7 @@ const BASE_COLUMNS: (keyof NeutralOperation)[] = [
   "phi_days",
 ];
 
-/** EU — CSV internazionale: separatore `,`, UTF-8 pulito, date ISO. */
+/** EU — CSV internazionale: separator `,`, UTF-8 pulito, date ISO. */
 export function buildBaseCsv(input: RegionalExportInput): string {
   const rows = flattenOperations(input);
   const header = BASE_COLUMNS.join(",");
@@ -184,7 +184,7 @@ export interface RegionalExporter {
 function slug(name = "azienda"): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "azienda";
 }
-function oggi(): string {
+function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
@@ -201,12 +201,12 @@ export function makeItExporter(
     bom: config.bom,
     build: (input) =>
       buildSianCsv(
-        input.trattamenti,
-        input.appezzamenti,
+        input.treatments,
+        input.plots,
         config,
-        input.campiCampagna,
+        input.campaignFields,
       ),
-    fileName: (name) => `quaderno-sian-${slug(name)}-${oggi()}.csv`,
+    fileName: (name) => `quaderno-sian-${slug(name)}-${today()}.csv`,
   };
 }
 
@@ -219,7 +219,7 @@ export const esExporter: RegionalExporter = {
   mimeType: "application/json;charset=utf-8",
   bom: false,
   build: buildSiexJson,
-  fileName: (name) => `cuaderno-digital-${slug(name)}-${oggi()}.json`,
+  fileName: (name) => `cuaderno-digital-${slug(name)}-${today()}.json`,
 };
 
 /** EU — base internazionale (CSV ISO). */
@@ -231,12 +231,12 @@ export const baseExporter: RegionalExporter = {
   mimeType: "text/csv;charset=utf-8",
   bom: false,
   build: buildBaseCsv,
-  fileName: (name) => `field-logbook-${slug(name)}-${oggi()}.csv`,
+  fileName: (name) => `field-logbook-${slug(name)}-${today()}.csv`,
 };
 
 /**
  * Istanzia l'esportatore corretto in base alla geolocalizzazione del tenant.
- * FR usa il base internazionale finché non è disponibile un adapter TelePAC
+ * FR usa il base internazionale finché non è available un adapter TelePAC
  * dedicato in export (l'import FR è già coperto da AbstractGisParser).
  */
 export function getRegionalExporter(countryCode: CountryCode): RegionalExporter {
@@ -250,8 +250,8 @@ export function getRegionalExporter(countryCode: CountryCode): RegionalExporter 
   }
 }
 
-/** Scarica nel browser l'export prodotto dall'adapter regionale. Ritorna il nome file. */
-export function scaricaExport(
+/** Scarica nel browser l'export product dall'adapter regionale. Ritorna il name file. */
+export function downloadExport(
   exporter: RegionalExporter,
   input: RegionalExportInput,
 ): string {
@@ -259,11 +259,11 @@ export function scaricaExport(
   const payload = exporter.bom ? `﻿${contenuto}` : contenuto;
   const blob = new Blob([payload], { type: exporter.mimeType });
   const url = URL.createObjectURL(blob);
-  const nomeFile = exporter.fileName(input.aziendaName);
+  const fileName = exporter.fileName(input.aziendaName);
   const a = document.createElement("a");
   a.href = url;
-  a.download = nomeFile;
+  a.download = fileName;
   a.click();
   URL.revokeObjectURL(url);
-  return nomeFile;
+  return fileName;
 }

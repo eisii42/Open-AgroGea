@@ -11,17 +11,17 @@ import { isTauriRuntime } from "@agrogea/core";
  * tentano di risolvere staticamente moduli che potrebbero non esistere.
  */
 
-/** Versione corrente del software (allineata a tauri.conf.json / package.json). */
+/** Versione current del software (allineata a tauri.conf.json / package.json). */
 export const APP_VERSION = "0.1.0";
 
-/** Destinatario del modulo di feedback (vedi CLAUDE.md). */
+/** Destinatario del module di feedback (vedi CLAUDE.md). */
 export const FEEDBACK_EMAIL = "gea.watcher@gmail.com";
 
 /** Metadati tecnici allegati al feedback per facilitare il debug. */
 export interface FeedbackMetadata {
   /** Lingua UI attiva (es. "it"). */
   language: string;
-  /** Tenant/azienda corrente, se in sessione. */
+  /** Tenant/company current, se in sessione. */
   tenantId: string | null;
 }
 
@@ -49,7 +49,7 @@ export function buildFeedbackBody(message: string, meta: FeedbackMetadata): stri
 
 /**
  * Apre il client di posta predefinito con un'email precompilata verso
- * {@link FEEDBACK_EMAIL}. Su Tauri usa il plugin opener se disponibile,
+ * {@link FEEDBACK_EMAIL}. Su Tauri usa il plugin opener se available,
  * altrimenti (e sul Web) ricade sulla navigazione `mailto:` del sistema.
  */
 export async function sendFeedback(
@@ -140,7 +140,7 @@ export async function notify(title: string, body: string): Promise<void> {
         if (perm === "granted") new Notification(title, { body });
       }
     } catch {
-      /* notifica non disponibile: la UI mostra comunque l'esito inline */
+      /* notifica non available: la UI mostra comunque l'esito inline */
     }
   }
 }

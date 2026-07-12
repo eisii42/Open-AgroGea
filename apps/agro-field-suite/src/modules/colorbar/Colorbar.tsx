@@ -1,76 +1,76 @@
 import {
-  type Coltura,
-  rampaPerIndice,
-  type IndiceVegetazionale,
+  type CropType,
+  rampForIndex,
+  type VegetationIndex,
 } from "@agrogea/tools";
 import { useAppStore } from "@geolibre/core";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { rampaRischioDss } from "../dss/dss-overlay";
+import { dssRiskRamp } from "../dss/dss-overlay";
 import { buildColorbar, type ColorbarModel } from "./colorbar-model";
 
 /**
  * Legenda a gradiente (colorbar) degli indici spettrali. Ancorata in basso a
  * destra sulla mappa: compare automaticamente quando un overlay raster di indice
- * è attivo (visibile) e si nasconde quando non ce ne sono. Una barra per indice.
+ * è active (visibile) e si nasconde quando non ce ne sono. Una barra per indice.
  */
 export function Colorbar() {
   const layers = useAppStore((s) => s.layers);
 
   // Una sola legenda per TIPO di indice, anche con più mappe/overlay dello
-  // stesso indice attivi (es. NDVI su più appezzamenti/date): la rampa è
+  // stesso indice attivi (es. NDVI su più plots/date): la rampa è
   // identica, quindi le voci duplicate vengono collassate.
-  const indici = useMemo(() => {
-    const set = new Set<IndiceVegetazionale>();
+  const indices = useMemo(() => {
+    const set = new Set<VegetationIndex>();
     for (const l of layers) {
       if (
         l.visible &&
         l.metadata?.overlay === true &&
-        typeof l.metadata?.indice === "string"
+        typeof l.metadata?.index === "string"
       ) {
-        set.add(l.metadata.indice as IndiceVegetazionale);
+        set.add(l.metadata.index as VegetationIndex);
       }
     }
     return [...set];
   }, [layers]);
 
-  // Idem per il rischio DSS: una legenda per coltura distinta.
-  const colture = useMemo(() => {
-    const set = new Set<Coltura>();
+  // Idem per il rischio DSS: una legenda per crop distinta.
+  const crops = useMemo(() => {
+    const set = new Set<CropType>();
     for (const l of layers) {
       if (
         l.visible &&
         l.metadata?.dssOverlay === true &&
-        typeof l.metadata?.coltura === "string"
+        typeof l.metadata?.crop === "string"
       ) {
-        set.add(l.metadata.coltura as Coltura);
+        set.add(l.metadata.crop as CropType);
       }
     }
     return [...set];
   }, [layers]);
 
-  if (indici.length === 0 && colture.length === 0) return null;
+  if (indices.length === 0 && crops.length === 0) return null;
 
   return (
     <div className="pointer-events-none absolute bottom-10 right-3 z-30 flex flex-col gap-2">
-      {colture.map((coltura) => (
-        <DssLegendCard key={coltura} coltura={coltura} />
+      {crops.map((crop) => (
+        <DssLegendCard key={crop} crop={crop} />
       ))}
-      {indici.map((indice) => (
+      {indices.map((index) => (
         <ColorbarCard
-          key={indice}
-          titolo={indice.toUpperCase()}
-          model={buildColorbar(rampaPerIndice(indice))}
+          key={index}
+          title={index.toUpperCase()}
+          model={buildColorbar(rampForIndex(index))}
         />
       ))}
     </div>
   );
 }
 
-/** Legenda del rischio DSS: rampa verde→giallo→rosso, calibrata per coltura. */
-function DssLegendCard({ coltura }: { coltura: Coltura }) {
+/** Legenda del rischio DSS: rampa verde→giallo→rosso, calibrata per crop. */
+function DssLegendCard({ crop }: { crop: CropType }) {
   const { t } = useTranslation();
-  const model = buildColorbar(rampaRischioDss(coltura));
+  const model = buildColorbar(dssRiskRamp(crop));
   return (
     <div className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2 shadow-[var(--sh-1)]">
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-3)]">
@@ -92,16 +92,16 @@ function DssLegendCard({ coltura }: { coltura: Coltura }) {
 }
 
 function ColorbarCard({
-  titolo,
+  title,
   model,
 }: {
-  titolo: string;
+  title: string;
   model: ColorbarModel;
 }) {
   return (
     <div className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2 shadow-[var(--sh-1)]">
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-3)]">
-        {titolo}
+        {title}
       </p>
       <div className="flex gap-1.5">
         <div
@@ -111,11 +111,11 @@ function ColorbarCard({
         <div className="relative h-[120px] w-7 text-[9px] text-[var(--ink-3)]">
           {model.ticks.map((t) => (
             <span
-              key={t.valore}
+              key={t.value}
               className="agro-num absolute left-0 -translate-y-1/2"
               style={{ bottom: `${t.pos * 100}%` }}
             >
-              {t.valore}
+              {t.value}
             </span>
           ))}
         </div>

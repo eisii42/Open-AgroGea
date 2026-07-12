@@ -19,28 +19,28 @@ export const useAgroStore = create<AgroState>((set, get) => ({
   ...createGeometrySlice(set, get),
 }));
 
-// Ri-esporta tipi e funzioni pure dal loro nuovo modulo: l'API pubblica di
+// Ri-runExport tipi e funzioni pure dal loro nuovo module: l'API pubblica di
 // `./store` resta identica a prima dello split in slice.
 export type {
   AgroState,
   AppView,
-  AppezzamentoDrawAttrs,
+  PlotDrawAttrs,
   AssetDrawAttrs,
   GeomEditRequest,
   GeomEditSession,
   GeometrySnapshot,
-  NuovaAziendaInput,
+  NewCompanyInput,
   PendingGeometry,
   SelectableKind,
   SelectedFeatureRef,
 } from "./store/state";
 export { isViewerReadOnly } from "./store/helpers";
 export {
-  appezzamentiToFeatureCollection,
+  plotsToFeatureCollection,
   assetsToFeatureCollection,
-  colturaPerAppezzamento,
-  cropLabelPerAppezzamento,
+  cropForPlot,
+  cropLabelPerPlot,
   poiToFeatureCollection,
-  raccolteToFeatureCollection,
-  trattamentiToFeatureCollection,
+  harvestsToFeatureCollection,
+  treatmentsToFeatureCollection,
 } from "./store/feature-collections";

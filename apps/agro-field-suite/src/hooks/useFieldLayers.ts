@@ -1,11 +1,8 @@
 import {
   assetsToFeatureCollection,
-  centroide,
   poiToFeatureCollection,
-  raccolteToFeatureCollection,
   useAgroStore,
 } from "@agrogea/core";
-import type { Point } from "geojson";
 import {
   DEFAULT_LAYER_STYLE,
   type GeoLibreLayer,
@@ -17,13 +14,13 @@ import type { FeatureCollection } from "geojson";
 import {
   buildPoiClusterProperties,
   clusterMeanExpression,
-} from "../modules/suolo/suolo-analytics";
+} from "../modules/soil/soil-analytics";
 
 /**
  * Proietta i layer "infrastrutture" e "poi" del dominio agronomico nello store
  * layer di GeoLibre. La visibilità è gestita dal Layer Manager NATIVO di
  * GeoLibre (built-in "layer-control"): qui si scrivono solo i dati, sempre nel
- * flusso unidirezionale (mai su MapLibre direttamente), come `useAppezzamentiLayer`.
+ * flusso unidirezionale (mai su MapLibre direttamente), come `usePlotsLayer`.
  */
 
 interface ManagedLayer {
@@ -42,7 +39,6 @@ interface ManagedLayer {
 
 const INFRASTRUTTURE_ID = "agrogea-infrastrutture";
 const POI_ID = "agrogea-poi";
-const RACCOLTE_ID = "agrogea-raccolte";
 
 function syncLayer(layer: ManagedLayer): void {
   const store = useAppStore.getState();
@@ -51,7 +47,7 @@ function syncLayer(layer: ManagedLayer): void {
     store.updateLayer(layer.id, {
       geojson: layer.geojson,
       // Visibilità NON forzata sugli update: è gestita dal Layer Manager nativo
-      // (e dal valore iniziale alla creazione). Così un layer creato nascosto
+      // (e dal value iniziale alla creazione). Così un layer creato nascosto
       // resta nascosto e una scelta dell'utente non viene sovrascritta a ogni
       // nuovo dato (es. inserendo un'operazione nel Quaderno).
       opacity: layer.opacity,
@@ -82,9 +78,7 @@ export function useFieldLayers(
   styleEpoch = 0,
 ): void {
   const assets = useAgroStore((s) => s.assets);
-  const campionamenti = useAgroStore((s) => s.campionamenti);
-  const raccolte = useAgroStore((s) => s.raccolte);
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
+  const soilSamples = useAgroStore((s) => s.soilSamples);
 
   // Visibilità e opacità sono gestite dal Layer Manager NATIVO di GeoLibre:
   // qui proiettiamo solo i dati con i layer creati visibili.
@@ -109,8 +103,8 @@ export function useFieldLayers(
     syncLayer({
       id: POI_ID,
       name: "Punti di interesse",
-      geojson: poiToFeatureCollection(campionamenti),
-      // Punti: marker circolari (pozzi, trappole, stazioni, campionamenti).
+      geojson: poiToFeatureCollection(soilSamples),
+      // Punti: marker circolari (pozzi, trappole, stazioni, soilSamples).
       style: {
         circleRadius: 6,
         fillColor: "#1f6feb",
@@ -121,7 +115,7 @@ export function useFieldLayers(
       visible: true,
       opacity: 1,
       // Clustering nativo: in zoom-out i POI si raggruppano e l'etichetta del
-      // cluster mostra la MEDIA della zona (qui il pH dei campionamenti).
+      // cluster mostra la MEDIA della zona (qui il pH dei soilSamples).
       source: {
         type: "geojson",
         cluster: true,
@@ -134,41 +128,12 @@ export function useFieldLayers(
         ],
       },
     });
-  }, [campionamenti, styleEpoch]);
+  }, [soilSamples, styleEpoch]);
 
-  // Modulo Raccolta: proietta gli eventi di raccolta come layer puntuale. Le
-  // raccolte senza geometria propria ereditano il centroide dell'appezzamento
-  // collegato, così compaiono in mappa; le loro properties (cultivar,
-  // destinazione, quantita_kg) alimentano i grafici della tabella attributi.
-  useEffect(() => {
-    const centroidi = new Map<string, Point>();
-    for (const a of appezzamenti) {
-      centroidi.set(a.id, {
-        type: "Point",
-        coordinates: centroide(a.geometry),
-      });
-    }
-    syncLayer({
-      id: RACCOLTE_ID,
-      name: "Raccolte",
-      geojson: raccolteToFeatureCollection(raccolte, centroidi),
-      style: {
-        circleRadius: 6,
-        fillColor: "#e3a008",
-        fillOpacity: 0.9,
-        strokeColor: "#ffffff",
-        strokeWidth: 1.5,
-      },
-      // Nascosto di default: le raccolte NON devono creare un punto in mappa
-      // all'inserimento (richiesta UX). I dati restano per la tabella attributi
-      // e per il Command Center; l'utente può attivarli dal Layer Manager.
-      visible: false,
-      opacity: 1,
-    });
-  }, [raccolte, appezzamenti, styleEpoch]);
-
-  // NB: le operazioni del Quaderno (trattamenti) NON sono più proiettate qui
-  // come layer fisso. Sono mostrate on-demand come simboli (icone per tipo,
-  // disposti intorno al centroide) tramite il toggle "Mostra sulla mappa" del
-  // QuadernoPanel → vedi OperationMarkers.tsx (marker rimossi allo spegnimento).
+  // NB: né le operazioni del Quaderno (treatments) né le harvests sono più
+  // proiettate qui come layer fisso (nessuna voce in legenda, nessun punto
+  // permanente). Compaiono on-demand come simboli HTML (icone disposte intorno
+  // al centroid dell'appezzamento) tramite il toggle "Mostra sulla mappa" dei
+  // rispettivi pannelli → vedi OperationMarkers.tsx e HarvestMarkers.tsx
+  // (marker rimossi allo spegnimento del toggle).
 }

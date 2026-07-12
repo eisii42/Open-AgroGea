@@ -35,17 +35,17 @@ describe("buildLegenda", () => {
       legenda.map((v) => v.id),
       ["a"],
     );
-    assert.equal(legenda[0].colore, "#11aa22");
+    assert.equal(legenda[0].color, "#11aa22");
   });
 });
 
 describe("buildPrintSvg", () => {
   const svg = buildPrintSvg({
-    titolo: "Vigna Nuova",
+    title: "Vigna Nuova",
     note: "Domanda PSR 2026",
     legenda: [
-      { id: "a", nome: "Appezzamenti", colore: "#11aa22" },
-      { id: "b", nome: "POI", colore: "#1f6feb" },
+      { id: "a", name: "Appezzamenti", color: "#11aa22" },
+      { id: "b", name: "POI", color: "#1f6feb" },
     ],
     mostraScala: true,
     scalaTesto: "200 m",
@@ -68,19 +68,19 @@ describe("buildPrintSvg", () => {
 
   it("shows a placeholder when no map image is provided", () => {
     const out = buildPrintSvg({
-      titolo: "T",
+      title: "T",
       legenda: [],
       mostraScala: false,
       mostraNord: false,
       mostraLogo: false,
     });
-    assert.match(out, /Anteprima mappa non disponibile/);
+    assert.match(out, /Anteprima mappa non available/);
     assert.match(out, /Nessun layer visibile/);
   });
 
   it("escapes user text to keep the SVG well-formed", () => {
     const out = buildPrintSvg({
-      titolo: 'Campo <b> & "x"',
+      title: 'Campo <b> & "x"',
       legenda: [],
       mostraScala: false,
       mostraNord: false,

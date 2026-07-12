@@ -1,14 +1,14 @@
-import type { LetturaMeteo, RegistroTrattamento } from "@agrogea/core";
+import type { WeatherReading, TreatmentLog } from "@agrogea/core";
 import {
-  bilancioIdricoFao66,
-  type BilancioIdricoGiorno,
-  type Coltura,
-  type DatiMeteoGiorno,
+  waterBalanceFao66,
+  type WaterBalanceDay,
+  type CropType,
+  type WeatherDataDay,
   et0PenmanMonteith,
-  etColturale,
-  type FaseFenologica,
-  getCalibrazioneFase,
-  type ParametriSuolo,
+  cropEt,
+  type PhenologicalPhase,
+  getPhaseCalibration,
+  type SoilParameters,
 } from "@agrogea/tools";
 
 /**
@@ -16,10 +16,10 @@ import {
  * (refactor §3). Non duplica le formule: compone gli engine puri di
  * `@agrogea/tools`
  *   * `et0PenmanMonteith` (FAO-56) → ET0 di riferimento da `weather_readings`;
- *   * `etColturale` = ET0·Kc, con Kc per fase fenologica dalla `crops`;
- *   * `bilancioIdricoFao66` → deplezione radicale Dr,t con DP esplicito.
+ *   * `cropEt` = ET0·Kc, con Kc per phase fenologica dalla `crops`;
+ *   * `waterBalanceFao66` → depletion radicale Dr,t con DP esplicito.
  *
- * Tutto in locale, su dati PGlite. È puro (stringhe/array/oggetti): la lettura
+ * Tutto in locale, su dati PGlite. È puro (stringhe/array/oggetti): la reading
  * del DAL e la persistenza in `soil_water_indices` vivono nel hook chiamante,
  * così questo file resta testabile sotto `node --test`.
  */
@@ -34,49 +34,49 @@ export interface ApportoIrriguo {
   mm: number;
 }
 
-export interface BilancioIdricoParams {
+export interface WaterBalanceParams {
   /** Letture meteo orarie/giornaliere dell'azienda (`weather_readings`). */
-  letture: LetturaMeteo[];
+  readings: WeatherReading[];
   /** Apporti irrigui giornalieri (mm), dai log gestionali. */
   irrigazioni?: ApportoIrriguo[];
-  coltura: Coltura;
-  fase: FaseFenologica;
-  suolo: ParametriSuolo;
+  crop: CropType;
+  phase: PhenologicalPhase;
+  soil: SoilParameters;
   /** Quota della stazione (m s.l.m.) per il termine altimetrico di ET0. */
-  altitudine?: number;
+  altitude?: number;
   /** Deplezione radicale iniziale Dr,0 (mm). */
   deplezioneIniziale?: number;
 }
 
 /** Riga giornaliera del bilancio idrico, pronta per `soil_water_indices`. */
-export interface IndiceIdricoGiorno {
+export interface WaterIndexDay {
   data: string;
   et0: number;
   etc: number;
-  pioggia: number;
-  irrigazione: number;
-  percolazione: number;
-  deplezione: number;
+  rain: number;
+  irrigation: number;
+  percolation: number;
+  depletion: number;
   raw: number;
   awc: number;
   inStress: boolean;
 }
 
-export interface BilancioIdricoOutput {
+export interface WaterBalanceOutput {
   kc: number;
-  serie: IndiceIdricoGiorno[];
-  /** Giorni di autonomia prima del primo stress (indice nella serie). */
-  giorniAutonomia: number;
+  series: WaterIndexDay[];
+  /** Giorni di autonomia prima del primo stress (index nella series). */
+  autonomyDays: number;
 }
 
 /** Lama irrigua (mm) da un volume in litri applicato su `areaHa` ettari. */
-export function apportoIrriguoMm(litri: number, areaHa: number): number {
+export function irrigationInputMm(litri: number, areaHa: number): number {
   if (!(areaHa > 0) || !(litri > 0)) return 0;
   return litri / (areaHa * LITRI_PER_MM_HA);
 }
 
-/** Volume d'acqua (litri) di un'irrigazione: `total_quantity`, poi `water_volume_l`. */
-function volumeIrriguoLitri(t: RegistroTrattamento): number | null {
+/** Volume d'acqua (litri) di un'irrigation: `total_quantity`, poi `water_volume_l`. */
+function irrigationVolumeLiters(t: TreatmentLog): number | null {
   if (t.total_quantity != null && Number.isFinite(t.total_quantity)) {
     return t.total_quantity;
   }
@@ -87,38 +87,38 @@ function volumeIrriguoLitri(t: RegistroTrattamento): number | null {
 }
 
 /**
- * Estrae gli apporti irrigui giornalieri (mm) dai trattamenti di tipo
+ * Estrae gli apporti irrigui giornalieri (mm) dai treatments di tipo
  * `irrigation`: il volume d'acqua registrato sull'operazione (`total_quantity`,
- * con fallback su `water_volume_l`), riportato a lama d'acqua sulla superficie
+ * con fallback su `water_volume_l`), riportato a lama d'acqua sulla area
  * dell'appezzamento.
  */
-export function apportiIrriguiDaTrattamenti(
-  trattamenti: RegistroTrattamento[],
+export function irrigationInputsFromTreatments(
+  treatments: TreatmentLog[],
   areaHa: number,
 ): ApportoIrriguo[] {
-  return trattamenti
+  return treatments
     .filter((t) => t.operation_type === "irrigation")
     .map((t) => ({
-      data: giornoDi(t.executed_at),
-      mm: apportoIrriguoMm(volumeIrriguoLitri(t) ?? 0, areaHa),
+      data: dayOf(t.executed_at),
+      mm: irrigationInputMm(irrigationVolumeLiters(t) ?? 0, areaHa),
     }))
     .filter((a) => a.mm > 0);
 }
 
 /** Parte data "YYYY-MM-DD" (UTC) di un timestamp ISO. */
-function giornoDi(iso: string): string {
+function dayOf(iso: string): string {
   return new Date(iso).toISOString().slice(0, 10);
 }
 
-interface GiornoAgrometeo {
+interface AgrometeoDay {
   data: string;
   tMin: number;
   tMax: number;
   rhMin: number;
   rhMax: number;
-  vento2m: number;
-  radiazione: number;
-  pioggia: number;
+  windSpeed2m: number;
+  radiation: number;
+  rain: number;
 }
 
 /** Media degli elementi finiti, o `fallback` se l'array è vuoto. */
@@ -129,44 +129,44 @@ function media(valori: number[], fallback: number): number {
 }
 
 /**
- * Aggrega le letture (orarie) in record giornalieri per Penman-Monteith. I
+ * Aggrega le readings (orarie) in record giornalieri per Penman-Monteith. I
  * canali assenti ricadono su default agronomici editabili (RH 50/90 %, vento
- * 2 m/s, radiazione 0) così ET0 non riceve mai NaN. Ordina per data crescente.
+ * 2 m/s, radiation 0) così ET0 non riceve mai NaN. Ordina per data crescente.
  */
-export function serieAgrometeoDaLetture(
-  letture: LetturaMeteo[],
-  altitudine = 0,
-): { meteo: DatiMeteoGiorno[]; pioggia: number[]; date: string[] } {
-  const perGiorno = new Map<
+export function agrometeoSeriesFromReadings(
+  readings: WeatherReading[],
+  altitude = 0,
+): { weather: WeatherDataDay[]; rain: number[]; date: string[] } {
+  const perDay = new Map<
     string,
     {
       temp: number[];
       rh: number[];
       vento: number[];
       rad: number[];
-      pioggia: number;
+      rain: number;
     }
   >();
 
-  for (const l of letture) {
-    const data = giornoDi(l.measured_at);
-    let agg = perGiorno.get(data);
+  for (const l of readings) {
+    const data = dayOf(l.measured_at);
+    let agg = perDay.get(data);
     if (!agg) {
-      agg = { temp: [], rh: [], vento: [], rad: [], pioggia: 0 };
-      perGiorno.set(data, agg);
+      agg = { temp: [], rh: [], vento: [], rad: [], rain: 0 };
+      perDay.set(data, agg);
     }
     if (l.air_temperature != null) agg.temp.push(l.air_temperature);
     if (l.relative_humidity != null) agg.rh.push(l.relative_humidity);
     if (l.wind_speed != null) agg.vento.push(l.wind_speed);
     if (l.solar_radiation != null) agg.rad.push(l.solar_radiation);
     if (l.rain_mm != null && Number.isFinite(l.rain_mm)) {
-      agg.pioggia += l.rain_mm;
+      agg.rain += l.rain_mm;
     }
   }
 
-  const date = [...perGiorno.keys()].sort();
-  const giorni: GiornoAgrometeo[] = date.map((data) => {
-    const a = perGiorno.get(data)!;
+  const date = [...perDay.keys()].sort();
+  const days: AgrometeoDay[] = date.map((data) => {
+    const a = perDay.get(data)!;
     const temps = a.temp.filter((v) => Number.isFinite(v));
     const tMin = temps.length ? Math.min(...temps) : 0;
     const tMax = temps.length ? Math.max(...temps) : tMin;
@@ -179,79 +179,79 @@ export function serieAgrometeoDaLetture(
       tMax: Math.max(tMin, tMax),
       rhMin: Math.min(rhMin, rhMax),
       rhMax: Math.max(rhMin, rhMax),
-      vento2m: media(a.vento, 2),
-      radiazione: Math.max(0, media(a.rad, 0)),
-      pioggia: a.pioggia,
+      windSpeed2m: media(a.vento, 2),
+      radiation: Math.max(0, media(a.rad, 0)),
+      rain: a.rain,
     };
   });
 
   return {
     date,
-    pioggia: giorni.map((g) => g.pioggia),
-    meteo: giorni.map((g) => ({
+    rain: days.map((g) => g.rain),
+    weather: days.map((g) => ({
       tMin: g.tMin,
       tMax: g.tMax,
       rhMin: g.rhMin,
       rhMax: g.rhMax,
-      vento2m: g.vento2m,
-      radiazione: g.radiazione,
-      altitudine,
+      windSpeed2m: g.windSpeed2m,
+      radiation: g.radiation,
+      altitude,
     })),
   };
 }
 
 /** Proietta gli apporti irrigui sulla griglia giornaliera `date`. */
-function irrigazionePerGiorno(
+function irrigationPerDay(
   date: string[],
   irrigazioni: ApportoIrriguo[],
 ): number[] {
-  const perGiorno = new Map<string, number>();
+  const perDay = new Map<string, number>();
   for (const a of irrigazioni) {
     const d = a.data.slice(0, 10);
-    perGiorno.set(d, (perGiorno.get(d) ?? 0) + (a.mm ?? 0));
+    perDay.set(d, (perDay.get(d) ?? 0) + (a.mm ?? 0));
   }
-  return date.map((d) => perGiorno.get(d) ?? 0);
+  return date.map((d) => perDay.get(d) ?? 0);
 }
 
 /**
  * Calcola il bilancio idrico giornaliero componendo gli engine puri:
- * ET0 (Penman-Monteith) → ETc (ET0·Kc per fase) → deplezione Dr,t (FAO-66).
+ * ET0 (Penman-Monteith) → ETc (ET0·Kc per phase) → depletion Dr,t (FAO-66).
  */
-export function calcolaBilancioIdrico(
-  params: BilancioIdricoParams,
-): BilancioIdricoOutput {
-  const kc = getCalibrazioneFase(params.coltura, params.fase).kc;
-  const { meteo, pioggia, date } = serieAgrometeoDaLetture(
-    params.letture,
-    params.altitudine ?? 0,
+export function computeWaterBalance(
+  params: WaterBalanceParams,
+): WaterBalanceOutput {
+  const kc = getPhaseCalibration(params.crop, params.phase).kc;
+  const { weather, rain, date } = agrometeoSeriesFromReadings(
+    params.readings,
+    params.altitude ?? 0,
   );
 
-  const et0Serie = meteo.map((m) => et0PenmanMonteith(m));
-  const etcSerie = et0Serie.map((et0) => etColturale(et0, kc));
-  const irrSerie = irrigazionePerGiorno(date, params.irrigazioni ?? []);
+  const et0Serie = weather.map((m) => et0PenmanMonteith(m));
+  const etcSeries = et0Serie.map((et0) => cropEt(et0, kc));
+  const irrSeries = irrigationPerDay(date, params.irrigazioni ?? []);
 
-  const { serie, giorniAutonomia }: {
-    serie: BilancioIdricoGiorno[];
-    giorniAutonomia: number;
-  } = bilancioIdricoFao66(
-    params.suolo,
-    etcSerie,
-    pioggia,
-    irrSerie,
+  const { series, autonomyDays }: {
+    series: WaterBalanceDay[];
+    autonomyDays: number;
+  } = waterBalanceFao66(
+    params.soil,
+    etcSeries,
+    rain,
+    irrSeries,
     params.deplezioneIniziale ?? 0,
   );
 
   return {
     kc,
-    giorniAutonomia,
-    serie: serie.map((g, i) => ({
+    autonomyDays,
+    series: series.map((g, i) => ({
       data: date[i],
       et0: et0Serie[i],
       etc: g.etc,
-      pioggia: g.pioggia,
-      irrigazione: g.irrigazione,
-      percolazione: g.percolazione,
-      deplezione: g.deplezione,
+      rain: g.rain,
+      irrigation: g.irrigation,
+      percolation: g.percolation,
+      depletion: g.depletion,
       raw: g.raw,
       awc: g.awc,
       inStress: g.inStress,

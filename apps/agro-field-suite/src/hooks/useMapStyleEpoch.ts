@@ -6,7 +6,7 @@ import { type RefObject, useEffect, useState } from "react";
  * aggiunta di basemap fa ricaricare lo stile MapLibre, che parte da zero: la
  * basemap nuova porta con sé i propri layer ma i sorgenti/layer applicativi
  * vanno re-iniettati. GeoLibre re-sincronizza già i layer del suo store, ma le
- * proiezioni del dominio AgroGea (appezzamenti, infrastrutture, POI) si
+ * proiezioni del dominio AgroGea (plots, infrastrutture, POI) si
  * rieseguono solo al cambio dei dati: senza un segnale legato allo stile non si
  * riaffermano dopo un cambio basemap.
  *

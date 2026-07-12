@@ -29,19 +29,19 @@ const ROLE_META: Record<TeamRole, { label: string; plural: string; Icon: typeof 
  * Modulo 4 — Pannello gestione team del Data Command Center. Mostra i badge
  * contatori dei posti per l'azienda selezionata (es. Enterprise: `Owners 1/2`,
  * `Viewers 0/3`) e un form d'invito il cui ruolo/pulsante si disabilita quando
- * la quota specifica è saturata. In sola lettura (VIEWER) l'intero pannello è
+ * la quota specifica è saturata. In sola reading (VIEWER) l'intero pannello è
  * inerte.
  */
 export function TeamPanel({ readOnly = false }: { readOnly?: boolean }) {
   const { t } = useTranslation();
-  const companyId = useAgroStore((s) => s.aziendaAttivaId);
-  const plan = useAgroStore((s) => s.profilo?.license_plan ?? null);
+  const companyId = useAgroStore((s) => s.activeCompanyId);
+  const plan = useAgroStore((s) => s.profile?.license_plan ?? null);
 
   const seats = useSeatUsage(plan, companyId);
   const memberships = useCompanyMemberships(companyId);
 
   // L'abbonato principale occupa un posto OWNER dell'azienda: registrandolo
-  // (idempotente, per le aziende legacy) i contatori partono da "Owners 1/…" e
+  // (idempotente, per le companies legacy) i contatori partono da "Owners 1/…" e
   // gli inviti sono validati sui posti residui.
   useEffect(() => {
     if (companyId) void ensurePrincipalOwner(companyId);
@@ -66,7 +66,7 @@ export function TeamPanel({ readOnly = false }: { readOnly?: boolean }) {
         ))}
       </div>
 
-      {/* Form d'invito (role-gated). In sola lettura l'intero blocco sparisce. */}
+      {/* Form d'invito (role-gated). In sola reading l'intero blocco sparisce. */}
       {readOnly ? (
         <p className="mt-4 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2 text-xs text-[var(--ink-3)]">
           {t("teamPanel.readOnlyNotice")}
@@ -163,7 +163,7 @@ function InviteForm({
     [seats],
   );
 
-  // Se il ruolo selezionato non è più disponibile (cambio piano/azienda), si
+  // Se il ruolo selezionato non è più available (cambio piano/company), si
   // ripiega sul primo invitabile.
   useEffect(() => {
     if (availableRoles.length > 0 && !availableRoles.includes(role)) {
@@ -192,7 +192,7 @@ function InviteForm({
       );
       setEmail("");
     } catch (e) {
-      // Eccezione controllata di quota → messaggio specifico per ruolo/azienda.
+      // Eccezione controllata di quota → messaggio specifico per ruolo/company.
       setError(
         isQuotaError(e) ? e.message : e instanceof Error ? e.message : String(e),
       );

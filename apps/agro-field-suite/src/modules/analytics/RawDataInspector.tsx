@@ -1,5 +1,5 @@
 import {
-  type TipoOperazione,
+  type OperationType,
   useAgroStore,
 } from "@agrogea/core";
 import { cn } from "@geolibre/ui";
@@ -11,8 +11,8 @@ import { useTranslation } from "react-i18next";
 /**
  * Raw Data Inspector (Modulo 5): sostituisce la vecchia analisi da tabelle,
  * spostata qui dal Command Center. Tabella ad alte prestazioni con ricerca
- * globale, filtri per colonna e ordinamento; la modifica INLINE dei field
- * attributes alfanumerici salva all'istante in PGlite (via store → outbox) e i
+ * globale, filters per colonna e ordinamento; la modifica INLINE dei field
+ * attributes alfanumerici save all'istante in PGlite (via store → outbox) e i
  * KPI collegati si ricalcolano alla riscrittura del dominio.
  */
 
@@ -28,7 +28,7 @@ type CellValue = string | number | null;
 
 interface InspectorRow extends Record<string, CellValue> {
   __id: string;
-  /** Appezzamento di riferimento per il cross-filtering (null se assente). */
+  /** Plot di riferimento per il cross-filtering (null se assente). */
   __plotId: string | null;
 }
 
@@ -40,8 +40,8 @@ interface InspectorDataset {
   save: (rowId: string, key: string, value: string) => Promise<void>;
 }
 
-function opLabel(t: TFunction, type: TipoOperazione): string {
-  const OP_LABEL: Record<TipoOperazione, string> = {
+function opLabel(t: TFunction, type: OperationType): string {
+  const OP_LABEL: Record<OperationType, string> = {
     phytosanitary: t("rawDataInspector.opType.phytosanitary"),
     fertilization: t("rawDataInspector.opType.fertilization"),
     irrigation: t("rawDataInspector.opType.irrigation"),
@@ -69,31 +69,31 @@ export function RawDataInspector({
 }: {
   plotIds: Set<string> | null;
   campaignYear: number;
-  /** Appezzamento attualmente isolato dal cross-filtering (riga evidenziata). */
+  /** Plot attualmente isolato dal cross-filtering (row evidenziata). */
   focusedPlotId?: string | null;
-  /** Innesca il cross-filtering su un appezzamento (clic sul focus di riga). */
+  /** Innesca il cross-filtering su un plot (clic sul focus di row). */
   onFocusPlot?: (plotId: string) => void;
 }) {
   const { t } = useTranslation();
-  const appezzamenti = useAgroStore((s) => s.appezzamenti);
-  const trattamenti = useAgroStore((s) => s.trattamenti);
-  const raccolte = useAgroStore((s) => s.raccolte);
-  const aggiornaAppezzamento = useAgroStore((s) => s.aggiornaAppezzamento);
-  const aggiornaTrattamento = useAgroStore((s) => s.aggiornaTrattamento);
-  const salvaRaccolta = useAgroStore((s) => s.salvaRaccolta);
+  const plots = useAgroStore((s) => s.plots);
+  const treatments = useAgroStore((s) => s.treatments);
+  const harvests = useAgroStore((s) => s.harvests);
+  const updatePlot = useAgroStore((s) => s.updatePlot);
+  const updateTreatment = useAgroStore((s) => s.updateTreatment);
+  const saveHarvest = useAgroStore((s) => s.saveHarvest);
 
   const inScope = (plotId: string | null): boolean =>
     plotIds == null || (plotId != null && plotIds.has(plotId));
 
   const datasets = useMemo<InspectorDataset[]>(() => {
-    const plots = appezzamenti.filter((a) => inScope(a.id));
-    const ops = trattamenti.filter(
+    const scopedPlots = plots.filter((a) => inScope(a.id));
+    const ops = treatments.filter(
       (t) =>
         t.deleted_at == null &&
         inScope(t.plot_id) &&
         new Date(t.executed_at).getUTCFullYear() === campaignYear,
     );
-    const harvests = raccolte.filter(
+    const scopedHarvests = harvests.filter(
       (r) =>
         r.deleted_at == null &&
         inScope(r.plot_id) &&
@@ -103,7 +103,7 @@ export function RawDataInspector({
     return [
       {
         id: "plots",
-        label: t("rawDataInspector.dataset.plots", { count: plots.length }),
+        label: t("rawDataInspector.dataset.plots", { count: scopedPlots.length }),
         columns: [
           { key: "user_plot_name", label: t("rawDataInspector.column.name"), type: "text" },
           { key: "cadastral_sheet", label: t("rawDataInspector.column.sheet"), type: "text" },
@@ -112,7 +112,7 @@ export function RawDataInspector({
           { key: "last_ndvi_mean", label: t("rawDataInspector.column.ndvi"), type: "readonly" },
           { key: "historical_notes", label: t("rawDataInspector.column.notes"), type: "text" },
         ],
-        rows: plots.map((p) => ({
+        rows: scopedPlots.map((p) => ({
           __id: p.id,
           __plotId: p.id,
           user_plot_name: p.user_plot_name,
@@ -124,9 +124,9 @@ export function RawDataInspector({
         })),
         save: async (id, key, value) => {
           const patch: Record<string, CellValue> = { [key]: value.trim() || null };
-          await aggiornaAppezzamento(
+          await updatePlot(
             id,
-            patch as unknown as Parameters<typeof aggiornaAppezzamento>[1],
+            patch as unknown as Parameters<typeof updatePlot>[1],
           );
         },
       },
@@ -158,15 +158,15 @@ export function RawDataInspector({
             key === "dose_value"
               ? { dose_value: value.trim() === "" ? null : Number(value) }
               : { [key]: value.trim() || null };
-          await aggiornaTrattamento(
+          await updateTreatment(
             id,
-            patch as unknown as Parameters<typeof aggiornaTrattamento>[1],
+            patch as unknown as Parameters<typeof updateTreatment>[1],
           );
         },
       },
       {
         id: "harvests",
-        label: t("rawDataInspector.dataset.harvests", { count: harvests.length }),
+        label: t("rawDataInspector.dataset.harvests", { count: scopedHarvests.length }),
         columns: [
           { key: "harvested_at", label: t("rawDataInspector.column.date"), type: "readonly" },
           { key: "cultivar", label: t("rawDataInspector.column.cultivar"), type: "text" },
@@ -174,7 +174,7 @@ export function RawDataInspector({
           { key: "destination_logistics", label: t("rawDataInspector.column.destination"), type: "text" },
           { key: "notes", label: t("rawDataInspector.column.notes"), type: "text" },
         ],
-        rows: harvests.map((r) => ({
+        rows: scopedHarvests.map((r) => ({
           __id: r.id,
           __plotId: r.plot_id,
           harvested_at: dateIt(r.harvested_at),
@@ -184,22 +184,22 @@ export function RawDataInspector({
           notes: r.notes,
         })),
         save: async (id, key, value) => {
-          const existing = raccolte.find((r) => r.id === id);
+          const existing = scopedHarvests.find((r) => r.id === id);
           if (!existing) return;
           const patch: Record<string, CellValue> =
             key === "quantity_kg"
               ? { quantity_kg: value.trim() === "" ? null : Number(value) }
               : { [key]: value.trim() || null };
-          await salvaRaccolta(
+          await saveHarvest(
             { ...existing, ...patch } as unknown as Parameters<
-              typeof salvaRaccolta
+              typeof saveHarvest
             >[0],
           );
         },
       },
     ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appezzamenti, trattamenti, raccolte, plotIds, campaignYear, t]);
+  }, [plots, treatments, harvests, plotIds, campaignYear, t]);
 
   const [activeId, setActiveId] = useState(datasets[0]?.id ?? "plots");
   const dataset =

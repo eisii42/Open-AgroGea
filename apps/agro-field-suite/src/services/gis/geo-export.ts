@@ -11,7 +11,7 @@ import { geojsonToShapefileZip } from "../../modules/vra/shapefile";
  * (solo stringhe/byte, testabili sotto Node) verso i formati GIS della filiera:
  *   * GeoJSON — interscambio universale;
  *   * KML — Google Earth / visualizzatori;
- *   * GPX — tracce/waypoint per ricevitori GNSS da campo;
+ *   * GPX — tracce/waypoint per ricevitori GNSS da field;
  *   * Shapefile (.zip) — trattori/terminali legacy (riusa il writer VRA);
  *   * CSV alfanumerico — attributi (riusa il writer della tabella attributi).
  *
@@ -59,7 +59,7 @@ function csvCell(value: unknown): string {
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
-/** Cella CSV quotata in base al separatore effettivo (`,` o `;`). */
+/** Cella CSV quotata in base al separator effettivo (`,` o `;`). */
 function csvCellSep(value: unknown, sep: string): string {
   const text =
     value == null
@@ -77,54 +77,54 @@ export function geojsonToCsv(fc: FeatureCollection): string {
   for (const f of fc.features) {
     for (const k of Object.keys(f.properties ?? {})) chiavi.add(k);
   }
-  const colonne = [...chiavi];
-  const intestazione = ["feature_id", ...colonne];
-  const righe = fc.features.map((f, i) => {
+  const columns = [...chiavi];
+  const intestazione = ["feature_id", ...columns];
+  const rows = fc.features.map((f, i) => {
     const props = f.properties ?? {};
-    return [String(f.id ?? i), ...colonne.map((c) => props[c])]
+    return [String(f.id ?? i), ...columns.map((c) => props[c])]
       .map(csvCell)
       .join(",");
   });
-  return [intestazione.map(csvCell).join(","), ...righe].join("\n");
+  return [intestazione.map(csvCell).join(","), ...rows].join("\n");
 }
 
 /** BOM UTF-8: forza Excel (locale IT/ES) a leggere il file come UTF-8. */
 export const BOM_UTF8 = "﻿";
 
-export interface OpzioniCsvLocalizzato {
-  /** Separatore di campo (default `;`, atteso dai locale europei). */
-  separatore?: string;
+export interface LocalizedCsvOptions {
+  /** Separatore di field (default `;`, atteso dai locale europei). */
+  separator?: string;
   /** Antepone il BOM UTF-8 (default true). */
   bom?: boolean;
 }
 
 /**
- * Variante LOCALIZZATA del CSV per Excel europeo: separatore `;` e BOM UTF-8 di
+ * Variante LOCALIZZATA del CSV per Excel europeo: separator `;` e BOM UTF-8 di
  * default, così accenti e celle restano corretti senza import wizard. Non
  * sostituisce {@link geojsonToCsv} (CSV standard a virgola per l'interscambio).
  */
 export function geojsonToCsvLocalizzato(
   fc: FeatureCollection,
-  opzioni: OpzioniCsvLocalizzato = {},
+  options: LocalizedCsvOptions = {},
 ): string {
-  const sep = opzioni.separatore ?? ";";
+  const sep = options.separator ?? ";";
   const chiavi = new Set<string>();
   for (const f of fc.features) {
     for (const k of Object.keys(f.properties ?? {})) chiavi.add(k);
   }
-  const colonne = [...chiavi];
-  const intestazione = ["feature_id", ...colonne];
-  const righe = fc.features.map((f, i) => {
+  const columns = [...chiavi];
+  const intestazione = ["feature_id", ...columns];
+  const rows = fc.features.map((f, i) => {
     const props = f.properties ?? {};
-    return [String(f.id ?? i), ...colonne.map((c) => props[c])]
+    return [String(f.id ?? i), ...columns.map((c) => props[c])]
       .map((v) => csvCellSep(v, sep))
       .join(sep);
   });
   const corpo = [
     intestazione.map((v) => csvCellSep(v, sep)).join(sep),
-    ...righe,
+    ...rows,
   ].join("\r\n");
-  return (opzioni.bom ?? true ? BOM_UTF8 : "") + corpo;
+  return (options.bom ?? true ? BOM_UTF8 : "") + corpo;
 }
 
 // ---------------------------------------------------------------------------
@@ -196,9 +196,9 @@ function kmlExtendedData(props: Record<string, unknown> | null): string {
 function kmlPlacemark(feature: Feature, index: number): string {
   if (!feature.geometry) return "";
   const props = (feature.properties ?? {}) as Record<string, unknown>;
-  const nome = props.plot_name ?? props.name ?? props.nome ?? `Feature ${index + 1}`;
+  const name = props.plot_name ?? props.name ?? props.name ?? `Feature ${index + 1}`;
   return (
-    `<Placemark><name>${escapeXml(String(nome))}</name>` +
+    `<Placemark><name>${escapeXml(String(name))}</name>` +
     kmlExtendedData(props) +
     kmlGeometry(feature.geometry) +
     `</Placemark>`
@@ -206,11 +206,11 @@ function kmlPlacemark(feature: Feature, index: number): string {
 }
 
 /** Serializza una FeatureCollection in KML 2.2. */
-export function geojsonToKml(fc: FeatureCollection, nome = "AgroGea"): string {
+export function geojsonToKml(fc: FeatureCollection, name = "AgroGea"): string {
   const placemarks = fc.features.map((f, i) => kmlPlacemark(f, i)).join("");
   return (
     `<?xml version="1.0" encoding="UTF-8"?>` +
-    `<kml xmlns="${NS_KML}"><Document><name>${escapeXml(nome)}</name>` +
+    `<kml xmlns="${NS_KML}"><Document><name>${escapeXml(name)}</name>` +
     placemarks +
     `</Document></kml>`
   );
@@ -222,12 +222,12 @@ export function geojsonToKml(fc: FeatureCollection, nome = "AgroGea"): string {
 
 function gpxName(feature: Feature, index: number): string {
   const props = (feature.properties ?? {}) as Record<string, unknown>;
-  const nome = props.plot_name ?? props.name ?? props.nome ?? `Feature ${index + 1}`;
-  return escapeXml(String(nome));
+  const name = props.plot_name ?? props.name ?? props.name ?? `Feature ${index + 1}`;
+  return escapeXml(String(name));
 }
 
-function gpxWpt(pos: Position, nome: string): string {
-  return `<wpt lat="${num(pos[1])}" lon="${num(pos[0])}"><name>${nome}</name></wpt>`;
+function gpxWpt(pos: Position, name: string): string {
+  return `<wpt lat="${num(pos[1])}" lon="${num(pos[0])}"><name>${name}</name></wpt>`;
 }
 
 function gpxTrkseg(positions: Position[]): string {
@@ -264,15 +264,15 @@ export function geojsonToGpx(fc: FeatureCollection, creator = "AgroGea"): string
   fc.features.forEach((feature, i) => {
     const geom = feature.geometry;
     if (!geom) return;
-    const nome = gpxName(feature, i);
+    const name = gpxName(feature, i);
     if (geom.type === "Point") {
-      parts.push(gpxWpt(geom.coordinates, nome));
+      parts.push(gpxWpt(geom.coordinates, name));
     } else if (geom.type === "MultiPoint") {
-      for (const c of geom.coordinates) parts.push(gpxWpt(c, nome));
+      for (const c of geom.coordinates) parts.push(gpxWpt(c, name));
     } else {
       const segs = gpxSegments(geom);
       if (segs.length > 0) {
-        parts.push(`<trk><name>${nome}</name>${segs.join("")}</trk>`);
+        parts.push(`<trk><name>${name}</name>${segs.join("")}</trk>`);
       }
     }
   });
@@ -353,7 +353,7 @@ export function combinaLayer(
 }
 
 /** Scarica un artefatto via `<a download>` (funziona nella webview Tauri). */
-export function scaricaArtifact(artifact: ExportArtifact): void {
+export function downloadArtifact(artifact: ExportArtifact): void {
   const blob = new Blob([artifact.blobPart], { type: artifact.mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

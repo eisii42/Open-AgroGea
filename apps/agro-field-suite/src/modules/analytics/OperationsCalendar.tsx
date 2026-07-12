@@ -1,8 +1,8 @@
 import {
-  type DssRisultato,
-  type Raccolta,
-  type RegistroTrattamento,
-  type TipoOperazione,
+  type DssResult,
+  type Harvest,
+  type TreatmentLog,
+  type OperationType,
   useAgroStore,
 } from "@agrogea/core";
 import { cn } from "@geolibre/ui";
@@ -19,13 +19,13 @@ import { useTranslation } from "react-i18next";
 /**
  * Calendario operativo integrato (Modulo 4). Popola automaticamente gli eventi
  * da `treatment_logs` (operazioni eseguite e pianificate), `harvest_logs` (date
- * di raccolta) e dagli alert DSS (giorni a rischio malattia elevato). Al clic su
+ * di harvest) e dagli alert DSS (giorni a rischio malattia elevato). Al clic su
  * un giorno apre il dettaglio degli eventi con modifica rapida del record in
- * PGlite (note/data per i trattamenti, quantità/data per le raccolte).
+ * PGlite (note/data per i treatments, quantità/data per le harvests).
  */
 
-function opLabel(t: TFunction, type: TipoOperazione): string {
-  const OP_LABEL: Record<TipoOperazione, string> = {
+function opLabel(t: TFunction, type: OperationType): string {
+  const OP_LABEL: Record<OperationType, string> = {
     phytosanitary: t("rawDataInspector.opType.phytosanitary"),
     fertilization: t("rawDataInspector.opType.fertilization"),
     irrigation: t("rawDataInspector.opType.irrigation"),
@@ -37,7 +37,7 @@ function opLabel(t: TFunction, type: TipoOperazione): string {
   return OP_LABEL[type];
 }
 
-const OP_COLOR: Record<TipoOperazione, string> = {
+const OP_COLOR: Record<OperationType, string> = {
   phytosanitary: "var(--accent)",
   fertilization: "var(--ok)",
   irrigation: "#0ea5e9",
@@ -93,7 +93,7 @@ function months(t: TFunction): string[] {
 }
 
 /**
- * Chiave-giorno "YYYY-MM-DD" robusta: PGlite restituisce le colonne
+ * Chiave-giorno "YYYY-MM-DD" robusta: PGlite restituisce le columns
  * timestamptz/date come oggetti `Date` a runtime (i tipi TS dicono `string`),
  * quindi normalizziamo entrambe le forme prima di affettare.
  */
@@ -109,16 +109,16 @@ function todayKey(): string {
 export function OperationsCalendar({
   campaignYear,
   plotIds,
-  trattamenti,
-  raccolte,
-  dssRisultati,
+  treatments,
+  harvests,
+  dssResults,
 }: {
   campaignYear: number;
   /** Appezzamenti nello scope (null = tutta l'azienda). */
   plotIds: Set<string> | null;
-  trattamenti: RegistroTrattamento[];
-  raccolte: Raccolta[];
-  dssRisultati: DssRisultato[];
+  treatments: TreatmentLog[];
+  harvests: Harvest[];
+  dssResults: DssResult[];
 }) {
   const { t } = useTranslation();
   const initialMonth =
@@ -132,7 +132,7 @@ export function OperationsCalendar({
   const events = useMemo<CalEvent[]>(() => {
     const out: CalEvent[] = [];
     const today = todayKey();
-    for (const op of trattamenti) {
+    for (const op of treatments) {
       if (op.deleted_at != null || !inScope(op.plot_id)) continue;
       const day = dayKey(op.executed_at);
       out.push({
@@ -145,7 +145,7 @@ export function OperationsCalendar({
         future: day > today,
       });
     }
-    for (const r of raccolte) {
+    for (const r of harvests) {
       if (r.deleted_at != null || !inScope(r.plot_id)) continue;
       const day = dayKey(r.harvested_at);
       out.push({
@@ -158,7 +158,7 @@ export function OperationsCalendar({
         future: day > today,
       });
     }
-    for (const d of dssRisultati) {
+    for (const d of dssResults) {
       if (d.risk_level !== "high" || !inScope(d.plot_id)) continue;
       const day = dayKey(d.calculated_at);
       out.push({
@@ -173,7 +173,7 @@ export function OperationsCalendar({
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trattamenti, raccolte, dssRisultati, plotIds, t]);
+  }, [treatments, harvests, dssResults, plotIds, t]);
 
   const eventsByDay = useMemo(() => {
     const map = new Map<string, CalEvent[]>();
@@ -185,7 +185,7 @@ export function OperationsCalendar({
     return map;
   }, [events]);
 
-  // Costruzione della griglia mensile (settimana lun→dom, 6 righe).
+  // Costruzione della griglia mensile (settimana lun→dom, 6 rows).
   const first = new Date(Date.UTC(campaignYear, month, 1));
   const offset = (first.getUTCDay() + 6) % 7; // lun=0
   const daysInMonth = new Date(Date.UTC(campaignYear, month + 1, 0)).getUTCDate();
@@ -286,9 +286,9 @@ export function OperationsCalendar({
         <DayDetail
           day={selectedDay}
           events={eventsByDay.get(selectedDay) ?? []}
-          trattamenti={trattamenti}
-          raccolte={raccolte}
-          dssRisultati={dssRisultati}
+          treatments={treatments}
+          harvests={harvests}
+          dssResults={dssResults}
           onClose={() => setSelectedDay(null)}
         />
       )}
@@ -303,21 +303,21 @@ export function OperationsCalendar({
 function DayDetail({
   day,
   events,
-  trattamenti,
-  raccolte,
-  dssRisultati,
+  treatments,
+  harvests,
+  dssResults,
   onClose,
 }: {
   day: string;
   events: CalEvent[];
-  trattamenti: RegistroTrattamento[];
-  raccolte: Raccolta[];
-  dssRisultati: DssRisultato[];
+  treatments: TreatmentLog[];
+  harvests: Harvest[];
+  dssResults: DssResult[];
   onClose: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const [openKey, setOpenKey] = useState<string | null>(null);
-  const dataLeggibile = new Date(`${day}T00:00:00Z`).toLocaleDateString(i18n.language, {
+  const readableDate = new Date(`${day}T00:00:00Z`).toLocaleDateString(i18n.language, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -334,7 +334,7 @@ function DayDetail({
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
-          <h3 className="text-sm font-semibold capitalize">{dataLeggibile}</h3>
+          <h3 className="text-sm font-semibold capitalize">{readableDate}</h3>
           <button
             type="button"
             onClick={onClose}
@@ -377,19 +377,19 @@ function DayDetail({
                   </button>
                   {open && e.kind === "treatment" && (
                     <TreatmentEditor
-                      record={trattamenti.find((t) => t.id === e.refId)}
+                      record={treatments.find((t) => t.id === e.refId)}
                       onDone={() => setOpenKey(null)}
                     />
                   )}
                   {open && e.kind === "harvest" && (
                     <HarvestEditor
-                      record={raccolte.find((r) => r.id === e.refId)}
+                      record={harvests.find((r) => r.id === e.refId)}
                       onDone={() => setOpenKey(null)}
                     />
                   )}
                   {e.kind === "dss" && (
                     <DssDetail
-                      record={dssRisultati.find((d) => d.id === e.refId)}
+                      record={dssResults.find((d) => d.id === e.refId)}
                     />
                   )}
                 </div>
@@ -410,12 +410,12 @@ function TreatmentEditor({
   record,
   onDone,
 }: {
-  record: RegistroTrattamento | undefined;
+  record: TreatmentLog | undefined;
   onDone: () => void;
 }) {
   const { t } = useTranslation();
-  const aggiorna = useAgroStore((s) => s.aggiornaTrattamento);
-  const elimina = useAgroStore((s) => s.eliminaTrattamento);
+  const update = useAgroStore((s) => s.updateTreatment);
+  const remove = useAgroStore((s) => s.deleteTreatment);
   const [product, setProduct] = useState(record?.product_name ?? "");
   const [date, setDate] = useState(
     record ? dayKey(record.executed_at) : "",
@@ -456,7 +456,7 @@ function TreatmentEditor({
         <button
           type="button"
           onClick={async () => {
-            await elimina(record.id);
+            await remove(record.id);
             onDone();
           }}
           className="flex items-center gap-1 rounded-[var(--r-2)] px-2 py-1.5 text-xs text-[var(--danger)] hover:bg-[var(--danger-l)]"
@@ -468,7 +468,7 @@ function TreatmentEditor({
           disabled={saving}
           onClick={async () => {
             setSaving(true);
-            await aggiorna(record.id, {
+            await update(record.id, {
               product_name: product.trim() || null,
               executed_at: new Date(`${date}T12:00:00`).toISOString(),
               note: note.trim() || null,
@@ -489,12 +489,12 @@ function HarvestEditor({
   record,
   onDone,
 }: {
-  record: Raccolta | undefined;
+  record: Harvest | undefined;
   onDone: () => void;
 }) {
   const { t } = useTranslation();
-  const salva = useAgroStore((s) => s.salvaRaccolta);
-  const elimina = useAgroStore((s) => s.eliminaRaccolta);
+  const save = useAgroStore((s) => s.saveHarvest);
+  const remove = useAgroStore((s) => s.deleteHarvest);
   const [qty, setQty] = useState(record?.quantity_kg?.toString() ?? "");
   const [date, setDate] = useState(
     record ? dayKey(record.harvested_at) : "",
@@ -526,7 +526,7 @@ function HarvestEditor({
         <button
           type="button"
           onClick={async () => {
-            await elimina(record.id);
+            await remove(record.id);
             onDone();
           }}
           className="flex items-center gap-1 rounded-[var(--r-2)] px-2 py-1.5 text-xs text-[var(--danger)] hover:bg-[var(--danger-l)]"
@@ -538,7 +538,7 @@ function HarvestEditor({
           disabled={saving}
           onClick={async () => {
             setSaving(true);
-            await salva({
+            await save({
               ...record,
               quantity_kg: qty.trim() === "" ? null : Number(qty),
               harvested_at: new Date(`${date}T12:00:00`).toISOString(),
@@ -555,7 +555,7 @@ function HarvestEditor({
   );
 }
 
-function DssDetail({ record }: { record: DssRisultato | undefined }) {
+function DssDetail({ record }: { record: DssResult | undefined }) {
   const { t, i18n } = useTranslation();
   if (!record) return null;
   return (

@@ -6,10 +6,10 @@
  * {@link ./theme} e {@link ./locale}. Vengono persistite in `localStorage` per
  * un salvataggio locale ISTANTANEO e offline-safe, poi sincronizzate sul control
  * plane (`public.profili_utenti.dashboard_layout_config` / `preferenze`) quando
- * la rete è disponibile, così seguono l'utente cross-device.
+ * la rete è available, così seguono l'utente cross-device.
  *
  * Volutamente NON vivono in PGlite: quel data plane è isolato per `tenant_id` e
- * una preferenza d'interfaccia non deve cambiare al cambio di azienda né essere
+ * una preferenza d'interfaccia non deve cambiare al cambio di company né essere
  * duplicata per workspace. localStorage (device) + profili_utenti (utente) è il
  * binomio corretto, ed è lo stesso già usato da tema e lingua.
  */
@@ -19,7 +19,7 @@
 // ---------------------------------------------------------------------------
 
 /**
- * Identificatore di un modulo, strumento o pannello la cui visibilità è
+ * Identificatore di un module, strumento o pannello la cui visibilità è
  * governata da un flag booleano in {@link DashboardLayoutConfig}. Raggruppati
  * per area (vedi {@link DASHBOARD_MODULE_GROUPS} lato UI) ma qui tenuti piatti
  * per una persistenza/serializzazione semplice.
@@ -85,11 +85,11 @@ export const DASHBOARD_MODULE_IDS: readonly DashboardModuleId[] = [
   "mapSplitScreen",
 ];
 
-/** Mappa flag → visibilità. `true` = modulo mostrato a schermo. */
+/** Mappa flag → visibilità. `true` = module mostrato a schermo. */
 export type DashboardLayoutConfig = Record<DashboardModuleId, boolean>;
 
 /**
- * Default: quasi tutto attivo (UI completa). Le sole eccezioni sono le feature
+ * Default: quasi tutto active (UI completa). Le sole eccezioni sono le feature
  * GeoLibre più avanzate, spente di default per non appesantire la prima
  * esperienza: la mappa catastale (overlay WMS pesante), l'imagery storica
  * Wayback e la vista comparativa a schermo diviso.
@@ -126,7 +126,7 @@ export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayoutConfig = {
 /**
  * Normalizza una configurazione (parziale o legacy) contro i default: ogni id
  * mancante eredita il default, ogni chiave sconosciuta viene scartata. Così
- * aggiungere un nuovo modulo non rompe le preferenze già salvate dall'utente.
+ * aggiungere un nuovo module non rompe le preferenze già salvate dall'utente.
  */
 export function mergeDashboardLayout(
   partial: Partial<Record<string, unknown>> | null | undefined,
@@ -145,13 +145,13 @@ export function mergeDashboardLayout(
 // Unità di misura agronomiche
 // ---------------------------------------------------------------------------
 
-/** Unità di superficie: ettari (metrico) o acri (imperiale). */
+/** Unità di area: ettari (metrico) o acri (imperiale). */
 export type AreaUnit = "ha" | "ac";
 /** Unità di resa/quantità: quintali, tonnellate o chilogrammi. */
 export type YieldUnit = "q" | "t" | "kg";
 /**
  * Unità degli apporti idrici/irrigui: lama d'acqua in millimetri (intensiva, per
- * unità di superficie) o volume in ettolitri (estensiva). 1 mm su 1 ha = 100 hl.
+ * unità di area) o volume in ettolitri (estensiva). 1 mm su 1 ha = 100 hl.
  */
 export type WaterUnit = "mm" | "hl";
 
@@ -188,7 +188,7 @@ export function waterUnitLabel(unit: WaterUnit): string {
 /**
  * Converte un apporto irriguo espresso nell'unità scelta in VOLUME (litri),
  * forma canonica salvata su `treatment_logs.water_volume_l`. I mm (lama d'acqua)
- * richiedono la superficie dell'appezzamento; gli ettolitri sono già un volume.
+ * richiedono la area dell'appezzamento; gli ettolitri sono già un volume.
  * Ritorna null se l'input non è un volume positivo calcolabile.
  */
 export function irrigationToLitres(
@@ -198,8 +198,8 @@ export function irrigationToLitres(
 ): number | null {
   if (!Number.isFinite(amount) || amount <= 0) return null;
   if (unit === "hl") return Math.round(amount * LITRES_PER_HL);
-  // mm → litri: serve l'area; senza, si assume 1 ha (l'irrigazione senza campo
-  // non incide comunque su alcun bilancio, che è per-appezzamento).
+  // mm → litri: serve l'area; senza, si assume 1 ha (l'irrigazione senza field
+  // non incide comunque su alcun bilancio, che è per-plot).
   const ha = areaHa && areaHa > 0 ? areaHa : 1;
   return Math.round(amount * ha * LITRES_PER_MM_HA);
 }
@@ -216,7 +216,7 @@ export function litresToIrrigation(
   return litres / (ha * LITRES_PER_MM_HA);
 }
 
-/** Formatta un valore in ettari nell'unità scelta (2 decimali). */
+/** Formatta un value in ettari nell'unità scelta (2 decimali). */
 export function formatArea(
   hectares: number | null | undefined,
   unit: AreaUnit = DEFAULT_UNITS.area,
@@ -255,7 +255,7 @@ export function loadDashboardLayout(): DashboardLayoutConfig {
     const raw = globalThis.localStorage?.getItem(LAYOUT_KEY);
     if (raw) return mergeDashboardLayout(JSON.parse(raw) as Record<string, unknown>);
   } catch {
-    /* localStorage non disponibile o JSON corrotto: si ricade sui default */
+    /* localStorage non available o JSON corrotto: si ricade sui default */
   }
   return { ...DEFAULT_DASHBOARD_LAYOUT };
 }

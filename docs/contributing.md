@@ -81,6 +81,11 @@ plugins/agro-tools           # Pure calculation engines (NDVI/NDRE, FAO 56/66, p
 docs/                        # This documentation (plain Markdown)
 ```
 
+Inside the app, domain logic lives in `apps/agro-field-suite/src/modules/<feature>/`
+(one folder per functional domain — the "features" layer); `components/` holds
+**only** generic, reusable UI. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the
+full package/feature map, the data flow, and how to add a feature or crop DSS.
+
 ## Development workflow
 
 1. Create a feature branch off `main`. Never commit directly to `main`.
@@ -117,12 +122,26 @@ frontend-only change does not require it.
 
 ### Coding conventions
 
-- Do not edit files in `node_modules`.
+- **Code is English.** File/folder names, variables, functions, types, enums,
+  constants and internal object/event keys are English. **UI strings shown to
+  the farmer stay Italian and go through i18n** (`src/i18n/locales/*.json`),
+  never hard-coded. **Comments keep their current language** (mostly Italian).
+  Use the term mapping in [`glossary.md`](glossary.md) for consistency.
+- **Casing** follows [`naming-conventions.md`](naming-conventions.md): components
+  `PascalCase.tsx`, other files `kebab-case.ts` (hook files `useX.ts`), folders
+  `kebab-case`, variables/functions `camelCase`, types/enums `PascalCase`,
+  constants `UPPER_SNAKE_CASE`. Enforced (as warnings) by
+  `@typescript-eslint/naming-convention` in `npm run lint`.
+- **Never anglicize** domain/regulatory terms (`PAN`, `UMA`, `SIAN`, `SIEX`,
+  `CUE`, `CUMP`, `BBCH`, `Ky`, `FAO-56`, `FAO-33`, cadastral codes), the
+  **persisted PGlite schema** (tables/columns), **i18n keys**, or **regulatory
+  export field names** — these are English-in-code exceptions kept for
+  compatibility (see `CLAUDE.md`).
+- Do not edit files in `node_modules` or the vendored `@geolibre/*` packages.
 - Keep changes scoped to the package they belong to, and prefer reusing the
   shared primitives in `packages/ui` / `packages/agro-ui` and helpers in
-  `packages/core` / `packages/agro-core`.
-- Match the existing code style (TypeScript, no Prettier/ESLint auto-fix hook
-  enforced beyond `npm run lint`).
+  `packages/core` / `packages/agro-core`. A `.prettierrc.json` documents the
+  formatting style.
 
 ## License
 

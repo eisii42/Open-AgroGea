@@ -11,12 +11,13 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
     // All'avvio la barra moduli è chiusa: mappa a tutto schermo, l'utente apre i
     // moduli quando servono (toggle nella colonna fluttuante).
     sidebarCollapsed: true,
-    appezzamentoSelezionatoId: null,
-    ultimaOperazione: null,
-    quadernoApriAppezzamentoId: null,
-    scoutingApriOsservazioneId: null,
-    colturaApriAppezzamentoId: null,
-    operazioniMappaIds: null,
+    selectedPlotId: null,
+    lastOperation: null,
+    logbookOpenPlotId: null,
+    scoutingOpenObservationId: null,
+    cropOpenPlotId: null,
+    mapOperationIds: null,
+    mapHarvestIds: null,
     scoutingPlacing: false,
 
     setTheme: (theme) => {
@@ -50,22 +51,22 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
         openPanels: mode === "docked" ? s.openPanels.slice(-1) : s.openPanels,
       })),
 
-    selectAppezzamento: async (id) => {
-      set({ appezzamentoSelezionatoId: id, ultimaOperazione: null });
+    selectPlot: async (id) => {
+      set({ selectedPlotId: id, lastOperation: null });
       if (!id) return;
       const dal = get().dal;
       if (!dal) return;
-      // Inietta l'ultima operazione del quaderno per la scheda di dettaglio.
-      const ultima = await dal.ultimaOperazione(id);
+      // Inietta l'ultima operation del logbook per la scheda di dettaglio.
+      const last = await dal.lastOperation(id);
       // Evita race: l'utente potrebbe aver già cambiato selezione.
-      if (get().appezzamentoSelezionatoId === id) {
-        set({ ultimaOperazione: ultima });
+      if (get().selectedPlotId === id) {
+        set({ lastOperation: last });
       }
     },
 
-    apriQuadernoPerAppezzamento: (appezzamentoId) =>
+    openLogbookForPlot: (plotId) =>
       set((s) => ({
-        quadernoApriAppezzamentoId: appezzamentoId,
+        logbookOpenPlotId: plotId,
         // La scheda dettaglio è un drawer destro come il Quaderno: la chiudo.
         selectedFeature: null,
         openPanels:
@@ -76,11 +77,11 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
               : [...s.openPanels, "quaderno"],
       })),
 
-    consumaQuadernoApri: () => set({ quadernoApriAppezzamentoId: null }),
+    consumeLogbookOpen: () => set({ logbookOpenPlotId: null }),
 
-    apriScoutingPerOsservazione: (osservazioneId) =>
+    openScoutingForObservation: (observationId) =>
       set((s) => ({
-        scoutingApriOsservazioneId: osservazioneId,
+        scoutingOpenObservationId: observationId,
         selectedFeature: null,
         openPanels:
           s.panelMode === "docked"
@@ -90,13 +91,13 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
               : [...s.openPanels, "scouting"],
       })),
 
-    consumaScoutingApri: () => set({ scoutingApriOsservazioneId: null }),
+    consumeScoutingOpen: () => set({ scoutingOpenObservationId: null }),
 
     // CTA compliance SIAN (v17): apre la scheda "Dati coltura" già puntata
     // sull'appezzamento (stesso pattern del Quaderno/Scouting).
-    apriColturaPerAppezzamento: (appezzamentoId) =>
+    openCropForPlot: (plotId) =>
       set((s) => ({
-        colturaApriAppezzamentoId: appezzamentoId,
+        cropOpenPlotId: plotId,
         selectedFeature: null,
         openPanels:
           s.panelMode === "docked"
@@ -106,9 +107,11 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
               : [...s.openPanels, "coltura"],
       })),
 
-    consumaColturaApri: () => set({ colturaApriAppezzamentoId: null }),
+    consumeCropOpen: () => set({ cropOpenPlotId: null }),
 
-    setOperazioniMappaIds: (ids) => set({ operazioniMappaIds: ids }),
+    setMapOperationIds: (ids) => set({ mapOperationIds: ids }),
+
+    setMapHarvestIds: (ids) => set({ mapHarvestIds: ids }),
 
     setScoutingPlacing: (placing) => set({ scoutingPlacing: placing }),
   };

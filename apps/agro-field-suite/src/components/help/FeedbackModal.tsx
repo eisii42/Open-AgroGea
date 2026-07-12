@@ -15,7 +15,7 @@ import { FEEDBACK_EMAIL, sendFeedback } from "./helpActions";
 /**
  * Modulo di invio feedback verso {@link FEEDBACK_EMAIL}. Compone un'email con il
  * messaggio dell'utente e un blocco di metadati tecnici (versione app, lingua
- * attiva e `tenant_id` corrente) per facilitare il debug, poi la apre nel client
+ * attiva e `tenant_id` current) per facilitare il debug, poi la apre nel client
  * di posta predefinito.
  */
 export function FeedbackModal({
@@ -31,7 +31,7 @@ export function FeedbackModal({
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
 
-  // Azzera il campo a ogni apertura: nessun residuo dalla sessione precedente.
+  // Azzera il field a ogni apertura: nessun residuo dalla sessione precedente.
   useEffect(() => {
     if (open) {
       setMessage("");

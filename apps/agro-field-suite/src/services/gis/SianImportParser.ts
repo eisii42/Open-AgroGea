@@ -8,10 +8,10 @@
  *   * file `.csv` / tabellari di interscambio esportati dai portali CAA (parsing
  *     in JS, senza geometria: popolano solo lo stato burocratico).
  *
- * La decodifica dei campi rigidi ministeriali è delegata al modulo PURO
+ * La decodifica dei campi rigidi ministeriali è delegata al module PURO
  * {@link ./sian-mapping}, testabile sotto Node.
  */
-import { areaEttari } from "@agrogea/core";
+import { areaHectares } from "@agrogea/core";
 import type { FeatureCollection, Geometry, Polygon, MultiPolygon } from "geojson";
 import {
   mapSianFeature,
@@ -23,27 +23,27 @@ export type FormatoSian = "shapefile" | "csv";
 
 export interface SianImportParseResult {
   formato: FormatoSian;
-  campi: SianCampoMappato[];
+  fields: SianCampoMappato[];
 }
 
 function isPoligono(g: Geometry | null): g is Polygon | MultiPolygon {
   return g != null && (g.type === "Polygon" || g.type === "MultiPolygon");
 }
 
-/** Estensione (minuscola, senza punto) del nome file. */
-function estensione(nome: string): string {
-  const m = /\.([^.\\/]+)$/.exec(nome.trim().toLowerCase());
+/** Estensione (minuscola, senza punto) del name file. */
+function extension(name: string): string {
+  const m = /\.([^.\\/]+)$/.exec(name.trim().toLowerCase());
   return m ? m[1] : "";
 }
 
-/** Mappa una FeatureCollection ministeriale in record di campo-campagna. */
+/** Mappa una FeatureCollection ministeriale in record di field-campagna. */
 export function mapFeatureCollection(
   fc: FeatureCollection,
 ): SianCampoMappato[] {
   const out: SianCampoMappato[] = [];
   for (const f of fc.features) {
     const geom = f.geometry ?? null;
-    const area = isPoligono(geom) ? areaEttari(geom) : null;
+    const area = isPoligono(geom) ? areaHectares(geom) : null;
     out.push(mapSianFeature(f.properties ?? {}, geom, area));
   }
   return out;
@@ -56,13 +56,13 @@ export class SianImportParser {
    * pronti per l'inserimento create-or-populate in PGlite.
    */
   static async parse(file: File): Promise<SianImportParseResult> {
-    const ext = estensione(file.name);
+    const ext = extension(file.name);
 
     if (ext === "csv" || ext === "tsv") {
-      const campi = parseCsvRows(await file.text()).map((props) =>
+      const fields = parseCsvRows(await file.text()).map((props) =>
         mapSianFeature(props, null, null),
       );
-      return { formato: "csv", campi };
+      return { formato: "csv", fields };
     }
 
     // Shapefile (zip/shp) e altri vettoriali → DuckDB Spatial → FeatureCollection.
@@ -71,6 +71,6 @@ export class SianImportParser {
     const fc = await SpatialAnalysisEngine.instance().loadVectorFileAsFeatureCollection(
       { name: file.name, extension: ext, data },
     );
-    return { formato: "shapefile", campi: mapFeatureCollection(fc) };
+    return { formato: "shapefile", fields: mapFeatureCollection(fc) };
   }
 }

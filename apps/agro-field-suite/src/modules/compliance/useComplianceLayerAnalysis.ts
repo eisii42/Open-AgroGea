@@ -1,11 +1,11 @@
-import type { Appezzamento } from "@agrogea/core";
+import type { Plot } from "@agrogea/core";
 import type { FeatureCollection } from "geojson";
 import { useEffect, useState } from "react";
 
 /**
- * Analisi spaziale (DuckDB Spatial) tra gli appezzamenti del tenant in PGlite e
+ * Analisi spaziale (DuckDB Spatial) tra gli plots del tenant in PGlite e
  * un layer esterno selezionato nel pannello Geo-compliance. Calcola via
- * `selectByLocation` quali appezzamenti intersecano le geometrie del layer,
+ * `selectByLocation` quali plots intersecano le geometrie del layer,
  * aggiornando reattivamente lo stato che alimenta i badge di allerta.
  *
  * Il motore WASM è caricato on-demand (import dinamico) per non gravare sul
@@ -15,7 +15,7 @@ import { useEffect, useState } from "react";
 export interface ComplianceAnalysisResult {
   loading: boolean;
   error: string | null;
-  /** Id degli appezzamenti che intersecano il layer esterno selezionato. */
+  /** Id degli plots che intersecano il layer esterno selezionato. */
   appezzamentiColpiti: string[];
   /** True dopo almeno un'esecuzione conclusa (per distinguere "vuoto" da "mai"). */
   eseguita: boolean;
@@ -28,33 +28,33 @@ const VUOTO: ComplianceAnalysisResult = {
   eseguita: false,
 };
 
-/** FeatureCollection degli appezzamenti con `id` in properties (per il join). */
-function appezzamentiFeatureCollection(
-  appezzamenti: Appezzamento[],
+/** FeatureCollection degli plots con `id` in properties (per il join). */
+function plotsFeatureCollection(
+  plots: Plot[],
 ): FeatureCollection {
   return {
     type: "FeatureCollection",
-    features: appezzamenti.map((a) => ({
+    features: plots.map((a) => ({
       type: "Feature",
       geometry: a.geometry,
-      properties: { id: a.id, nome: a.user_plot_name },
+      properties: { id: a.id, name: a.user_plot_name },
     })),
   };
 }
 
 export function useComplianceLayerAnalysis(
-  appezzamenti: Appezzamento[],
+  plots: Plot[],
   layerGeojson: FeatureCollection | null,
 ): ComplianceAnalysisResult {
-  const [stato, setStato] = useState<ComplianceAnalysisResult>(VUOTO);
+  const [status, setStatus] = useState<ComplianceAnalysisResult>(VUOTO);
 
   useEffect(() => {
-    if (!layerGeojson || appezzamenti.length === 0) {
-      setStato(VUOTO);
+    if (!layerGeojson || plots.length === 0) {
+      setStatus(VUOTO);
       return;
     }
-    let annullato = false;
-    setStato({ ...VUOTO, loading: true });
+    let cancelled = false;
+    setStatus({ ...VUOTO, loading: true });
 
     void (async () => {
       try {
@@ -64,7 +64,7 @@ export function useComplianceLayerAnalysis(
         const engine = SpatialAnalysisEngine.instance();
         await engine.registerGeoJson(
           "compliance_appezzamenti",
-          appezzamentiFeatureCollection(appezzamenti),
+          plotsFeatureCollection(plots),
         );
         await engine.registerGeoJson("compliance_layer", layerGeojson);
         const res = await engine.selectByLocation({
@@ -72,21 +72,21 @@ export function useComplianceLayerAnalysis(
           maskTable: "compliance_layer",
           predicate: "intersects",
         });
-        if (annullato) return;
+        if (cancelled) return;
         const ids = new Set<string>();
         for (const f of res.features) {
           const id = f.properties?.id;
           if (typeof id === "string") ids.add(id);
         }
-        setStato({
+        setStatus({
           loading: false,
           error: null,
           appezzamentiColpiti: [...ids],
           eseguita: true,
         });
       } catch (err) {
-        if (annullato) return;
-        setStato({
+        if (cancelled) return;
+        setStatus({
           loading: false,
           error: err instanceof Error ? err.message : String(err),
           appezzamentiColpiti: [],
@@ -96,9 +96,9 @@ export function useComplianceLayerAnalysis(
     })();
 
     return () => {
-      annullato = true;
+      cancelled = true;
     };
-  }, [appezzamenti, layerGeojson]);
+  }, [plots, layerGeojson]);
 
-  return stato;
+  return status;
 }

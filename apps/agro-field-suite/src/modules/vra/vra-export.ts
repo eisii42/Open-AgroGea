@@ -3,24 +3,24 @@
  *
  *  * GeoJSON: interscambio universale (QGIS, FMIS, la maggior parte dei terminali
  *    accetta una mappa a poligoni con colonna del rateo);
- *  * ISO 11783-10 (ISOXML / "ISOBUS TASKDATA"): zone di trattamento poligonali
+ *  * ISO 11783-10 (ISOXML / "ISOBUS TASKDATA"): zone di treatment poligonali
  *    con ProcessDataVariable per il rateo.
  *
  * NB: la mappatura DDI/unità ISOXML è un MVP: i DDI e i fattori di scala vanno
- * confermati contro il terminale di destinazione prima dell'uso in campo.
+ * confermati contro il terminale di destinazione prima dell'uso in field.
  * Parte PURA (solo stringhe): testabile sotto Node.
  */
 import type { Feature, Polygon } from "geojson";
-import type { RisultatoZoneVra, TipoLavorazione } from "./vra-zones";
+import type { VraZoneResult, TillageType } from "./vra-zones";
 import { geojsonToShapefileZip } from "./shapefile";
 
-export function vraToGeoJson(result: RisultatoZoneVra): string {
+export function vraToGeoJson(result: VraZoneResult): string {
   return JSON.stringify(result.fc);
 }
 
 /** Archivio ZIP Shapefile (.shp/.shx/.dbf/.prj) della mappa VRA, per trattori legacy. */
 export function vraToShapefileZip(
-  result: RisultatoZoneVra,
+  result: VraZoneResult,
   nomeBase = "vra",
 ): Uint8Array {
   return geojsonToShapefileZip(result.fc, nomeBase);
@@ -33,14 +33,14 @@ export function vraToShapefileZip(
  *   * volume per area → DDI 0001, mm³/m² (1 L/ha  = 100 mm³/m²)
  *   * conteggio/area  → DDI 0028, 1/m²   (1 semi/ha = 0.0001 /m²)
  */
-const DDI_LAVORAZIONE: Record<
-  TipoLavorazione,
+const DDI_TILLAGE: Record<
+  TillageType,
   { ddi: string; scala: number }
 > = {
   concimazione: { ddi: "0006", scala: 10 },
   fertilizzazione: { ddi: "0006", scala: 10 },
   trattamento: { ddi: "0001", scala: 100 },
-  irrigazione: { ddi: "0001", scala: 100 },
+  irrigation: { ddi: "0001", scala: 100 },
   semina: { ddi: "0028", scala: 0.0001 },
 };
 
@@ -58,7 +58,7 @@ function pnt(lon: number, lat: number): string {
   return `<PNT A="2" C="${lat}" D="${lon}"/>`;
 }
 
-/** Anello esterno di un poligono GeoJSON → PLN/LSG ISOXML (zona di trattamento). */
+/** Anello esterno di un poligono GeoJSON → PLN/LSG ISOXML (zona di treatment). */
 function polygonToPln(feature: Feature<Polygon>): string {
   const ring = feature.geometry.coordinates[0] ?? [];
   const punti = ring.map(([lon, lat]) => pnt(lon, lat)).join("");
@@ -77,10 +77,10 @@ export interface IsoXmlMeta {
  * ciascuna con il rateo come ProcessDataVariable e i poligoni delle celle.
  */
 export function vraToIsoXml(
-  result: RisultatoZoneVra,
+  result: VraZoneResult,
   meta: IsoXmlMeta,
 ): string {
-  const { ddi, scala } = DDI_LAVORAZIONE[result.lavorazione];
+  const { ddi, scala } = DDI_TILLAGE[result.tillage];
   const software = escapeXml(meta.software ?? "AgroGea");
   const taskName = escapeXml(meta.taskName);
 
@@ -95,15 +95,15 @@ export function vraToIsoXml(
 
   const tzn = result.zone
     .map((zona) => {
-      const valoreIso = Math.round(zona.rateo * scala);
+      const isoValue = Math.round(zona.rateo * scala);
       const polygons = (celleperZona.get(zona.zona) ?? [])
         .map(polygonToPln)
         .join("");
       return (
         `<TZN A="${zona.zona + 1}" B="${escapeXml(
-          `Zona ${zona.zona + 1} (${zona.rateo} ${result.unita})`,
+          `Zona ${zona.zona + 1} (${zona.rateo} ${result.unit})`,
         )}">` +
-        `<PDV A="${ddi}" B="${valoreIso}"/>` +
+        `<PDV A="${ddi}" B="${isoValue}"/>` +
         polygons +
         `</TZN>`
       );

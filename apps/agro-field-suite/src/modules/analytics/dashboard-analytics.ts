@@ -1,4 +1,4 @@
-import type { TipoOperazione } from "@agrogea/core";
+import type { OperationType } from "@agrogea/core";
 import {
   type ChartData,
   type DashboardData,
@@ -10,10 +10,10 @@ import {
 
 /**
  * Motore di ANALISI LIBERA della dashboard aziendale: l'utente sceglie un'ENTITÀ
- * (appezzamenti, operazioni, raccolte, bilancio idrico, meteo, DSS), una
+ * (plots, operazioni, harvests, bilancio idrico, meteo, DSS), una
  * DIMENSIONE su cui raggruppare e una FUNZIONE (conteggio/somma/media/min/max)
  * applicata a una MISURA. Il risultato è una {@link ChartData} pronta per il
- * renderer. Tutto puro e in-memory sui dati già filtrati.
+ * renderer. Tutto puro e in-memory sui dati già filtered.
  */
 
 export type Aggregation = "count" | "sum" | "avg" | "min" | "max" | "ratio";
@@ -41,7 +41,7 @@ export interface EntityDef {
   id: string;
   label: string;
   fields: EntityField[];
-  /** Proietta il dominio (filtrato) in righe piatte dimensione/misura. */
+  /** Proietta il dominio (filtrato) in rows piatte dimensione/misura. */
   rows: (data: DashboardData) => Flat[];
 }
 
@@ -49,7 +49,7 @@ export interface EntityDef {
 // Helper
 // ---------------------------------------------------------------------------
 
-const OP_LABEL: Record<TipoOperazione, string> = {
+const OP_LABEL: Record<OperationType, string> = {
   phytosanitary: "Trattamenti",
   fertilization: "Fertilizzazioni",
   irrigation: "Irrigazioni",
@@ -82,17 +82,17 @@ function prettyModel(modelName: string): string {
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
-/** Mappa plot_id → nome appezzamento. */
+/** Mappa plot_id → name plot. */
 function plotNames(data: DashboardData): Map<string, string> {
-  return new Map(data.appezzamenti.map((a) => [a.id, a.user_plot_name]));
+  return new Map(data.plots.map((a) => [a.id, a.user_plot_name]));
 }
 
-/** Mappa plot_id → superficie (ha), per i rapporti per ettaro (es. resa/ha). */
+/** Mappa plot_id → area (ha), per i rapporti per ettaro (es. resa/ha). */
 function plotAreas(data: DashboardData): Map<string, number> {
-  return new Map(data.appezzamenti.map((a) => [a.id, a.area_ha]));
+  return new Map(data.plots.map((a) => [a.id, a.area_ha]));
 }
 
-/** Mappa plot_campaign_id → nome appezzamento (per il bilancio idrico). */
+/** Mappa plot_campaign_id → name plot (per il bilancio idrico). */
 function campaignPlotNames(data: DashboardData): Map<string, string> {
   const byPlot = plotNames(data);
   const m = new Map<string, string>();
@@ -112,7 +112,7 @@ export const ENTITIES: EntityDef[] = [
     label: "Appezzamenti",
     fields: [
       { key: "nome", label: "Nome", kind: "dimension" },
-      { key: "coltura", label: "Coltura", kind: "dimension" },
+      { key: "coltura", label: "CropType", kind: "dimension" },
       { key: "irrigazione", label: "Tipo irrigazione", kind: "dimension" },
       { key: "anno", label: "Anno impianto", kind: "dimension" },
       { key: "area_ha", label: "Superficie (ha)", kind: "measure" },
@@ -122,11 +122,11 @@ export const ENTITIES: EntityDef[] = [
       const cropName = new Map(d.crops.map((c) => [c.id, c.common_name]));
       const plotCrop = new Map<string, string>();
       for (const c of d.campaigns) plotCrop.set(c.plot_id, cropName.get(c.crop_id) ?? "—");
-      return d.appezzamenti.map((a) => ({
-        nome: a.user_plot_name,
-        coltura: plotCrop.get(a.id) ?? "—",
-        irrigazione: a.irrigation_type ?? "—",
-        anno: a.planting_year ?? "—",
+      return d.plots.map((a) => ({
+        name: a.user_plot_name,
+        crop: plotCrop.get(a.id) ?? "—",
+        irrigation: a.irrigation_type ?? "—",
+        year: a.planting_year ?? "—",
         area_ha: a.area_ha,
         ndvi: a.last_ndvi_mean,
       }));
@@ -137,10 +137,10 @@ export const ENTITIES: EntityDef[] = [
     label: "Operazioni (Quaderno)",
     fields: [
       { key: "tipo", label: "Tipo operazione", kind: "dimension" },
-      { key: "prodotto", label: "Prodotto", kind: "dimension" },
+      { key: "prodotto", label: "Product", kind: "dimension" },
       { key: "avversita", label: "Avversità", kind: "dimension" },
       { key: "mese", label: "Mese", kind: "dimension", temporal: true },
-      { key: "appezzamento", label: "Appezzamento", kind: "dimension" },
+      { key: "appezzamento", label: "Plot", kind: "dimension" },
       { key: "dose", label: "Dose", kind: "measure" },
       { key: "quantita", label: "Quantità totale", kind: "measure" },
       { key: "acqua_l", label: "Acqua (l)", kind: "measure" },
@@ -149,16 +149,16 @@ export const ENTITIES: EntityDef[] = [
     rows: (d) => {
       const names = plotNames(d);
       const areas = plotAreas(d);
-      return d.trattamenti
+      return d.treatments
         .filter((t) => t.deleted_at == null)
         .map((t) => ({
-          tipo: OP_LABEL[t.operation_type] ?? t.operation_type,
-          prodotto: t.product_name ?? "—",
+          type: OP_LABEL[t.operation_type] ?? t.operation_type,
+          product: t.product_name ?? "—",
           avversita: t.target_disease ?? "—",
           mese: monthKey(t.executed_at),
-          appezzamento: t.plot_id ? names.get(t.plot_id) ?? "—" : "Intera azienda",
+          plot: t.plot_id ? names.get(t.plot_id) ?? "—" : "Intera azienda",
           dose: t.dose_value,
-          quantita: t.total_quantity,
+          quantity: t.total_quantity,
           acqua_l: t.water_volume_l,
           area_ha: t.plot_id ? areas.get(t.plot_id) ?? null : null,
         }));
@@ -171,20 +171,20 @@ export const ENTITIES: EntityDef[] = [
       { key: "cultivar", label: "Cultivar", kind: "dimension" },
       { key: "destinazione", label: "Destinazione", kind: "dimension" },
       { key: "mese", label: "Mese", kind: "dimension", temporal: true },
-      { key: "appezzamento", label: "Appezzamento", kind: "dimension" },
+      { key: "appezzamento", label: "Plot", kind: "dimension" },
       { key: "kg", label: "Quantità (kg)", kind: "measure" },
       { key: "area_ha", label: "Superficie (ha)", kind: "measure" },
     ],
     rows: (d) => {
       const names = plotNames(d);
       const areas = plotAreas(d);
-      return d.raccolte
+      return d.harvests
         .filter((r) => r.deleted_at == null)
         .map((r) => ({
           cultivar: r.cultivar ?? "—",
           destinazione: r.destination_logistics ?? "—",
           mese: monthKey(r.harvested_at),
-          appezzamento: r.plot_id ? names.get(r.plot_id) ?? "—" : "—",
+          plot: r.plot_id ? names.get(r.plot_id) ?? "—" : "—",
           kg: r.quantity_kg,
           area_ha: r.plot_id ? areas.get(r.plot_id) ?? null : null,
         }));
@@ -195,7 +195,7 @@ export const ENTITIES: EntityDef[] = [
     label: "Bilancio idrico (giornaliero)",
     fields: [
       { key: "data", label: "Data", kind: "dimension", temporal: true },
-      { key: "appezzamento", label: "Appezzamento", kind: "dimension" },
+      { key: "appezzamento", label: "Plot", kind: "dimension" },
       { key: "et0", label: "ET0", kind: "measure" },
       { key: "etc", label: "ETc", kind: "measure" },
       { key: "dr", label: "Deplezione Dr", kind: "measure" },
@@ -208,13 +208,13 @@ export const ENTITIES: EntityDef[] = [
       const names = campaignPlotNames(d);
       return d.soilIndices.map((s) => ({
         data: dayKey(s.date),
-        appezzamento: s.plot_campaign_id ? names.get(s.plot_campaign_id) ?? "—" : "—",
+        plot: s.plot_campaign_id ? names.get(s.plot_campaign_id) ?? "—" : "—",
         et0: s.et0,
         etc: s.etc,
         dr: s.depletion_mm,
         raw: s.raw_mm,
-        irrigazione: s.irrigation_mm,
-        pioggia: s.rain_mm,
+        irrigation: s.irrigation_mm,
+        rain: s.rain_mm,
         percolazione: s.deep_percolation_mm,
       }));
     },
@@ -233,7 +233,7 @@ export const ENTITIES: EntityDef[] = [
       d.weather.map((w) => ({
         data: dayKey(w.measured_at),
         temperatura: w.air_temperature,
-        pioggia: w.rain_mm,
+        rain: w.rain_mm,
         umidita: w.relative_humidity,
         vento: w.wind_speed,
       })),
@@ -243,15 +243,15 @@ export const ENTITIES: EntityDef[] = [
     label: "DSS (rischio modelli)",
     fields: [
       { key: "modello", label: "Modello", kind: "dimension" },
-      { key: "appezzamento", label: "Appezzamento", kind: "dimension" },
+      { key: "appezzamento", label: "Plot", kind: "dimension" },
       { key: "valore", label: "Indice di rischio", kind: "measure" },
     ],
     rows: (d) => {
       const names = plotNames(d);
-      return d.dssRisultati.map((r) => ({
+      return d.dssResults.map((r) => ({
         modello: prettyModel(r.model_name),
-        appezzamento: r.plot_id ? names.get(r.plot_id) ?? "—" : "—",
-        valore: r.output_value,
+        plot: r.plot_id ? names.get(r.plot_id) ?? "—" : "—",
+        value: r.output_value,
       }));
     },
   },

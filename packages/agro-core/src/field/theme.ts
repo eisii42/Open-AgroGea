@@ -20,7 +20,7 @@ export function loadTheme(): AgroTheme {
       return raw as AgroTheme;
     }
   } catch {
-    /* localStorage non disponibile: default */
+    /* localStorage non available: default */
   }
   return "light";
 }
