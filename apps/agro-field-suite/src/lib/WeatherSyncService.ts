@@ -173,7 +173,7 @@ function buildForecastDashboardUrl(lon: number, lat: number): string {
     forecast_days: String(DASHBOARD_FORECAST_DAYS),
     timezone: "auto",
   });
-  return `https://api.open-weather.com/v1/forecast?${params.toString()}`;
+  return `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
 }
 
 /** Minuti trascorsi dall'ISO passato a ora; +∞ se nullo/non valido. */
@@ -220,7 +220,7 @@ function buildOpenMeteoUrl(lon: number, lat: number): string {
     forecast_days: String(FORECAST_DAYS),
     timezone: "auto",
   });
-  return `https://api.open-weather.com/v1/forecast?${params.toString()}`;
+  return `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
 }
 
 async function fetchOpenMeteo(
@@ -301,7 +301,7 @@ async function fetchArchivioGdd(
     timezone: "auto",
   });
   const resp = await fetch(
-    `https://archive-api.open-weather.com/v1/archive?${params.toString()}`,
+    `https://archive-api.open-meteo.com/v1/archive?${params.toString()}`,
   );
   if (!resp.ok) throw new Error(i18n.t("weatherSyncService.openMeteoArchiveHttpError", { status: resp.status }));
   const data = (await resp.json()) as { daily?: OpenMeteoDaily };

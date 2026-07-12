@@ -52,6 +52,15 @@ export function OperationDetailCard({
   const o = operation;
   const dose =
     o.dose_value != null ? `${o.dose_value} ${o.dose_unit ?? ""}`.trim() : null;
+  // Unità del totale: il prefisso della dose (kg/l); per le fertilizzazioni
+  // (totale a mano, senza dose) il registro è in kg.
+  const totalUnit =
+    o.dose_unit?.split("/")[0] ??
+    (o.operation_type === "fertilization" ? "kg" : "");
+  const total =
+    o.total_quantity != null
+      ? `${o.total_quantity} ${totalUnit}`.trim()
+      : null;
 
   const cropPlot: FieldSpec[] = [
     {
@@ -67,7 +76,7 @@ export function OperationDetailCard({
     { label: t("operationDetailCard.field.targetDisease"), value: o.target_disease, wide: true },
     { label: t("operationDetailCard.field.registrationNumber"), value: o.registration_number, num: true },
     { label: t("operationDetailCard.field.dose"), value: dose, num: true },
-    { label: t("operationDetailCard.field.totalQuantity"), value: o.total_quantity, num: true },
+    { label: t("operationDetailCard.field.totalQuantity"), value: total, num: true },
     { label: t("operationDetailCard.field.waterVolume"), value: o.water_volume_l, num: true },
     { label: t("operationDetailCard.field.fertilizerType"), value: o.fertilizer_type },
     { label: t("operationDetailCard.field.npkRatio"), value: o.npk_ratio, num: true },

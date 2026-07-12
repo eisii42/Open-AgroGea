@@ -27,8 +27,9 @@ import {
   type TreatmentFormValues,
 } from "@agrogea/ui";
 import { Button, cn, Input, Label, Select } from "@geolibre/ui";
+import { X } from "lucide-react";
 import type { Point } from "geojson";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "../../i18n";
 
@@ -240,6 +241,19 @@ function persistOperatorMemory(memory: OperatorMemory) {
 /** Stringa da number nullable (per i default della ripetizione operation). */
 const numStr = (v: number | null | undefined) => (v == null ? "" : String(v));
 
+/** Titolo N-P-K ("n-p-k") da un product di warehouse; vuoto se nessun titolo. */
+function npkRatioFromProduct(p: {
+  npk_n: number | null;
+  npk_p: number | null;
+  npk_k: number | null;
+}): string {
+  if (p.npk_n == null && p.npk_p == null && p.npk_k == null) return "";
+  return [p.npk_n ?? 0, p.npk_p ?? 0, p.npk_k ?? 0].join("-");
+}
+
+/** Conversione dell'unità di stock del product in kg (per il totale concime). */
+const UNIT_TO_KG: Record<string, number> = { kg: 1, q: 100, t: 1000 };
+
 export interface OperationFormProps {
   operationType: OperationType;
   plots: Plot[];
@@ -296,6 +310,15 @@ export function OperationForm({
   const spec = operationSpec(operationType);
   const f = spec.fields;
   const usesCampaign = (campaignFields?.length ?? 0) > 0;
+  // Semina, lavorazione e campionamento si fanno anche su suolo NUDO (senza
+  // coltura in campagna): per questi tipi il selettore elenca TUTTI gli
+  // appezzamenti, non solo i campi con coltura. Selezionando un plot con
+  // campagna aperta il legame alla coltura resta agganciato automaticamente.
+  const allowBarePlot =
+    operationType === "sowing" ||
+    operationType === "tillage" ||
+    operationType === "sampling";
+  const usePlotSelector = !usesCampaign || allowBarePlot;
   const catalog =
     f.product === "phyto"
       ? prodottiCatalogo
@@ -374,8 +397,20 @@ export function OperationForm({
   const [sostanzaOrganica, setSostanzaOrganica] = useState("");
   const [texture, setTexture] = useState("");
   const [saving, setSaving] = useState(false);
-  // Scarico da warehouse (0.2.0): rows product → lot → quantità.
-  const [dischargeRows, setDischargeRows] = useState<DischargeRow[]>([]);
+  // Scarico da warehouse (0.2.0): rows product → lot → quantità. Con products
+  // della categoria in magazzino la row di scarico è GIÀ PRONTA all'apertura:
+  // è il percorso primario dell'inserimento snello (product → quantità, il
+  // resto si deriva dall'anagrafica del product).
+  const [dischargeRows, setDischargeRows] = useState<DischargeRow[]>(() => {
+    const cat = categoryForOperation(operationType);
+    const available = cat
+      ? (prodottiMagazzino ?? []).some((p) => p.category === cat)
+      : false;
+    return available ? [{ productId: "", lotId: "", quantity: "" }] : [];
+  });
+  // "Altro": inserimento manuale di materiale NON presente in magazzino
+  // (nessuno issue di stock; il registro resta testuale come prima del v17).
+  const [manualProduct, setManualProduct] = useState(false);
   // Errore del salvataggio (es. stock insufficiente): il form resta aperto.
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -476,6 +511,30 @@ export function OperationForm({
     [prodottiMagazzino, warehouseCategory],
   );
   const usesWarehouse = categoryProducts.length > 0;
+  // Con un product di warehouse selezionato, i parametri specifici del product
+  // (registrazione, sostanza attiva, tipo/titolo concime, dose, totale, carenza,
+  // rientro) sono automatici e i relativi campi vengono nascosti (UX snellita).
+  const hasWarehouseProduct =
+    usesWarehouse && dischargeRows.some((r) => r.productId);
+  // Modalità manuale ("Altro"): senza products in magazzino, o su scelta
+  // esplicita dell'utente (materiale non censito). In modalità magazzino i
+  // campi di anagrafica del product NON si mostrano: arrivano dal DB.
+  const manualMode = !usesWarehouse || manualProduct;
+  // Eccezione anti-blocco: se il product scelto NON fornisce un dato richiesto
+  // dalla validazione PAN (es. sostanza attiva assente in anagrafica), il campo
+  // ricompare per il completamento manuale — mai un obbligo nascosto.
+  const showIfMissing = (value: string) =>
+    manualMode || (hasWarehouseProduct && value.trim() === "");
+  // Dose: nel percorso magazzino è CALCOLATA dallo scarico (quantità/area) e il
+  // campo resta nascosto e non modificabile (compare nella scheda operazione).
+  // Ricompare SOLO se non è derivabile: quantità inserita ma area ignota
+  // ("intera azienda") — la validazione PAN la richiede per i fitosanitari.
+  const dischargeQtyPresent = dischargeRows.some(
+    (r) => r.productId && Number.parseFloat(r.quantity) > 0,
+  );
+  const doseNotDerivable =
+    hasWarehouseProduct && dischargeQtyPresent && (area == null || area <= 0);
+  const showDose = manualMode || doseNotDerivable;
   const lotById = useMemo(() => {
     const map = new Map<string, ProductLot>();
     for (const l of lottiMagazzino ?? []) map.set(l.id, l);
@@ -489,9 +548,16 @@ export function OperationForm({
   const baseDose = f.totalManual ? "kg" : doseUnit.split("/")[0];
   const expectedTotal =
     automaticTotal ?? (f.totalManual ? manualTotalNum : null);
-  /** true se l'unità del product può riconciliarsi con la quantità prevista. */
+  /**
+   * true se l'unità del product può riconciliarsi con la quantità prevista:
+   * stessa unità, oppure stessa famiglia dei solidi (kg ⇄ q ⇄ t, il flusso
+   * quantity-first normalizza in kg). Senza questa tolleranza un concime in
+   * quintali risulterebbe non selezionabile appena il totale (kg) è calcolato.
+   */
   const compatibleUnit = (unit: string) =>
-    expectedTotal == null || unit === baseDose;
+    expectedTotal == null ||
+    unit === baseDose ||
+    (baseDose === "kg" && unit in UNIT_TO_KG);
 
   /** Lotti utilizzabili del product (stock > 0, non scaduti) in ordine FEFO. */
   const usableLots = (productId: string): ProductLot[] =>
@@ -543,29 +609,50 @@ export function OperationForm({
     });
   }, [expectedTotal, baseDose, categoryProducts]);
 
-  // Auto-dose (fix): direzione inversa della riconciliazione. Quando l'utente
-  // compila a mano la quantità dello scarico (row.manual), la DOSE segue lo
-  // scarico invece di essere digitata a parte: dose = quantità / area del field
-  // (la stessa "dose effettiva" già mostrata sotto la riga). Vale solo per i
-  // tipi con dose (fito/semina), con field georeferenziato (area nota) e
-  // product in kg/l (unità dose valida). Nessun loop con l'effetto sopra: quello
-  // scrive la quantità solo per le rows NON manuali, questo legge le manuali.
+  // Auto-dose e auto-totale DALLO scarico (direzione inversa della
+  // riconciliazione): quando l'utente compila a mano la quantità (row.manual,
+  // anche su più lots dopo lo split FEFO), il form calcola in background:
+  //   * dose/ha = Σ quantità (normalizzata kg o l) / area del field — per TUTTI
+  //     i tipi con product (fito, semina E fertilizzazione, che la salva pur
+  //     senza mostrare il campo);
+  //   * totale kg (fertilizzazione) = Σ quantità × fattore unità (q→100, t→1000).
+  // Nessun loop con l'auto-fill v17: quello scrive la quantità solo per le rows
+  // NON manuali, questo legge le manuali.
   useEffect(() => {
-    if (!f.dose || area == null || area <= 0) return;
-    if (dischargeRows.length !== 1) return;
-    const row = dischargeRows[0];
-    if (!row.manual || !row.productId) return;
-    const qty = Number.parseFloat(row.quantity);
-    if (!Number.isFinite(qty) || qty <= 0) return;
-    const p = categoryProducts.find((x) => x.id === row.productId);
-    if (!p || (p.unit !== "kg" && p.unit !== "l")) return;
-    const dose = Math.round((qty / area) * 100) / 100;
-    const unit = `${p.unit}/ha` as DoseUnit;
-    setDoseValue((current) =>
-      current === String(dose) ? current : String(dose),
-    );
-    setDoseUnit((current) => (current === unit ? current : unit));
-  }, [f.dose, area, dischargeRows, categoryProducts]);
+    if (!f.dose && !f.totalManual) return;
+    const valid = dischargeRows.filter((r) => {
+      const q = Number.parseFloat(r.quantity);
+      return r.productId && Number.isFinite(q) && q > 0;
+    });
+    if (valid.length === 0 || !valid.some((r) => r.manual)) return;
+    // Somma normalizzata: tutte le rows devono essere della stessa famiglia di
+    // unità (liquidi in l, solidi in kg/q/t) — altrimenti niente auto-calcolo.
+    let total = 0;
+    let liquid: boolean | null = null;
+    for (const r of valid) {
+      const p = categoryProducts.find((x) => x.id === r.productId);
+      if (!p) return;
+      const isLiquid = p.unit === "l";
+      if (liquid == null) liquid = isLiquid;
+      else if (liquid !== isLiquid) return;
+      total +=
+        Number.parseFloat(r.quantity) * (isLiquid ? 1 : UNIT_TO_KG[p.unit] ?? 1);
+    }
+    if (f.totalManual) {
+      const kg = Math.round(total * 100) / 100;
+      setManualTotal((current) =>
+        current === String(kg) ? current : String(kg),
+      );
+    }
+    if (area != null && area > 0) {
+      const dose = Math.round((total / area) * 100) / 100;
+      const unit: DoseUnit = liquid ? "l/ha" : "kg/ha";
+      setDoseValue((current) =>
+        current === String(dose) ? current : String(dose),
+      );
+      setDoseUnit((current) => (current === unit ? current : unit));
+    }
+  }, [f.dose, f.totalManual, area, dischargeRows, categoryProducts]);
 
   // -- automazione semina → crop di campagna (v17) -------------------------
   const activeCampaign = useAgroStore((s) => s.activeCampaign);
@@ -614,6 +701,16 @@ export function OperationForm({
     );
   }
 
+  // Selettore unificato per-appezzamento (tipi che ammettono suolo nudo): il
+  // valore è il plotId; se quel plot ha una campagna aperta si riaggancia anche
+  // il campo di campagna (coltura), altrimenti resta vuoto (operazione su nudo).
+  function selectPlotUnified(value: string) {
+    setPlotId(value);
+    setFieldCampaignId(
+      campaignFields?.find((c) => c.plotId === value)?.fieldCampaignId ?? "",
+    );
+  }
+
   function selectProduct(codice: string) {
     setProductCode(codice);
     const item = catalog?.find((p) => p.code === codice);
@@ -659,27 +756,38 @@ export function OperationForm({
         return { ...row, ...patch };
       }),
     );
-    // Prima row: auto-compila il name product (fallback testuale del registro)
-    // e i default dell'anagrafica (registrazione, sostanza attiva, carenza e
-    // rientro, v17) se i campi sono ancora vuoti.
+    // Prima row: con un product di warehouse selezionato i suoi parametri
+    // (name, registrazione, sostanza attiva, tipo/titolo concime, carenza e
+    // rientro di default) sono la FONTE DI VERITÀ e sovrascrivono i campi del
+    // form — che vengono nascosti (UX snellita): all'agronomo restano solo
+    // product/lot/quantità, avversità e i dati dell'operatore. I valori restano
+    // comunque salvati e visibili nella scheda dettaglio dell'operazione.
     if (index === 0 && patch.productId) {
       const p = categoryProducts.find((x) => x.id === patch.productId);
       if (p) {
-        setProduct((current) => current || p.name);
-        if (p.registration_number) {
-          setRegistrationNumber((current) => current || p.registration_number || "");
-        }
-        if (p.active_substance) {
-          setSostanzaAttiva((current) => current || p.active_substance || "");
-        }
         const meta = (p.metadata ?? {}) as Record<string, unknown>;
-        const safetyPeriodDef = meta["safety_period_days"];
-        if (f.safety && (typeof safetyPeriodDef === "number" || typeof safetyPeriodDef === "string")) {
-          setSafetyPeriod((current) => current || String(safetyPeriodDef));
+        setProduct(p.name);
+        if (f.registrationNumber) setRegistrationNumber(p.registration_number ?? "");
+        if (f.activeSubstance) setSostanzaAttiva(p.active_substance ?? "");
+        if (f.fertilizerType) {
+          const ft = meta["fertilizer_type"];
+          if (typeof ft === "string" && ft.trim()) setFertilizerType(ft);
         }
-        const reentryDef = meta["reentry_interval_h"];
-        if (f.reentry && (typeof reentryDef === "number" || typeof reentryDef === "string")) {
-          setReentry((current) => current || String(reentryDef));
+        if (f.npkRatio) {
+          const ratio = npkRatioFromProduct(p);
+          if (ratio) setNpkRatio(ratio);
+        }
+        if (f.safety) {
+          const d = meta["safety_period_days"];
+          setSafetyPeriod(
+            typeof d === "number" || typeof d === "string" ? String(d) : "",
+          );
+        }
+        if (f.reentry) {
+          const d = meta["reentry_interval_h"];
+          setReentry(
+            typeof d === "number" || typeof d === "string" ? String(d) : "",
+          );
         }
       }
     }
@@ -688,6 +796,41 @@ export function OperationForm({
   function removeIssue(index: number) {
     setDischargeRows((rows) => rows.filter((_, i) => i !== index));
   }
+
+  // -- "Altro" ⇄ magazzino ---------------------------------------------------
+
+  /** Passa all'inserimento manuale: niente issue, campi anagrafica azzerati. */
+  function switchToManual() {
+    setManualProduct(true);
+    setDischargeRows([]);
+    setProduct("");
+    setProductCode("");
+    setRegistrationNumber("");
+    setSostanzaAttiva("");
+    setNpkRatio("");
+    setFertilizerType("minerale");
+    setSafetyPeriod("");
+    setReentry("");
+  }
+
+  /** Torna al percorso magazzino con una row di scarico pronta. */
+  function switchToWarehouse() {
+    setManualProduct(false);
+    setDischargeRows([{ productId: "", lotId: "", quantity: "" }]);
+  }
+
+  // Automazione: UN solo product della categoria in magazzino → preselezionato
+  // (lot in FEFO via updateIssue); all'agronomo resta solo la quantità. Il ref
+  // evita di re-imporre la scelta se l'utente la annulla di proposito.
+  const autoSelectedRef = useRef(false);
+  useEffect(() => {
+    if (autoSelectedRef.current || manualProduct) return;
+    if (categoryProducts.length !== 1) return;
+    if (dischargeRows.length !== 1 || dischargeRows[0].productId) return;
+    autoSelectedRef.current = true;
+    updateIssue(0, { productId: categoryProducts[0].id });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryProducts, dischargeRows, manualProduct]);
 
   /**
    * Divide la quantità della row su più lots in ordine FEFO (v17): la row
@@ -753,8 +896,13 @@ export function OperationForm({
         registration_number: f.registrationNumber ? registrationNumber || null : null,
         active_substance: f.activeSubstance ? sostanzaAttiva || null : null,
         target_disease: f.targetDisease ? target || null : null,
-        dose_value: f.dose && doseValue ? Number.parseFloat(doseValue) : null,
-        dose_unit: f.dose && doseValue ? doseUnit : null,
+        // La dose si salva anche per la fertilizzazione (f.totalManual): è
+        // calcolata in background dallo scarico e compare nella scheda.
+        dose_value:
+          (f.dose || f.totalManual) && doseValue
+            ? Number.parseFloat(doseValue)
+            : null,
+        dose_unit: (f.dose || f.totalManual) && doseValue ? doseUnit : null,
         total_quantity: automaticTotal ?? (f.totalManual ? manualTotalNum : null),
         // water_volume_l = volume in litri: la botte (fitosanitari) o l'apporto
         // irriguo convertito da mm/hl (irrigazione). È la forma che il bilancio
@@ -823,9 +971,28 @@ export function OperationForm({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="op-app">
-            {usesCampaign ? t("logbook.common.fieldCampaign") : t("logbook.common.plot")}
+            {usePlotSelector ? t("logbook.common.plot") : t("logbook.common.fieldCampaign")}
           </Label>
-          {usesCampaign ? (
+          {usePlotSelector ? (
+            // Tutti gli appezzamenti (anche senza coltura): i campi con campagna
+            // aperta portano il codice coltura come promemoria; la selezione
+            // riaggancia il legame alla coltura quando esiste.
+            <Select id="op-app" value={plotId} onChange={(e) => selectPlotUnified(e.target.value)}>
+              <option value="">
+                {soilMode ? t("logbook.common.select") : t("logbook.common.wholeFarm")}
+              </option>
+              {plots.map((a) => {
+                const camp = campaignFields?.find((c) => c.plotId === a.id);
+                return (
+                  <option key={a.id} value={a.id}>
+                    {a.user_plot_name}
+                    {a.area_ha != null ? ` · ${a.area_ha.toFixed(2)} ha` : ""}
+                    {camp?.codiceColturaSian ? ` · ${camp.codiceColturaSian}` : ""}
+                  </option>
+                );
+              })}
+            </Select>
+          ) : (
             <Select id="op-app" value={fieldCampaignId} onChange={(e) => selectCampaign(e.target.value)}>
               <option value="">
                 {soilMode ? t("logbook.common.select") : t("logbook.common.wholeFarm")}
@@ -834,18 +1001,6 @@ export function OperationForm({
                 <option key={c.fieldCampaignId} value={c.fieldCampaignId}>
                   {c.name}
                   {c.codiceColturaSian ? ` · ${c.codiceColturaSian}` : ""}
-                </option>
-              ))}
-            </Select>
-          ) : (
-            <Select id="op-app" value={plotId} onChange={(e) => setPlotId(e.target.value)}>
-              <option value="">
-                {soilMode ? t("logbook.common.select") : t("logbook.common.wholeFarm")}
-              </option>
-              {plots.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.user_plot_name}
-                  {a.area_ha != null ? ` · ${a.area_ha.toFixed(2)} ha` : ""}
                 </option>
               ))}
             </Select>
@@ -935,8 +1090,9 @@ export function OperationForm({
         </div>
       )}
 
-      {/* Product (fito/concime/seme) */}
-      {f.product && (
+      {/* Product (fito/concime/seme) — solo in modalità "Altro"/senza
+          magazzino: nel percorso magazzino il name arriva dal product scelto. */}
+      {f.product && manualMode && (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="op-prod">{productLabel}</Label>
           {usaCatalogo ? (
@@ -956,8 +1112,10 @@ export function OperationForm({
       )}
 
       {/* Scarico da warehouse (0.2.0): product → lot → quantità. Lotti
-          scaduti visibili ma NON selezionabili (uso bloccato §5.1). */}
-      {usesWarehouse && !isSampling && (
+          scaduti visibili ma NON selezionabili (uso bloccato §5.1). È il
+          percorso DEFAULT quando la categoria ha products in magazzino; il
+          link "Altro" in coda passa all'inserimento manuale. */}
+      {usesWarehouse && !manualProduct && !isSampling && (
         <section className="flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2">
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
             {t("operationForm.warehouseSection")}
@@ -1050,8 +1208,10 @@ export function OperationForm({
                     )}
                   </div>
                 </div>
+                {/* Riga quantità: input compatto, info del lot a fianco e
+                    rimozione a icona — niente label lunghe che vanno a capo. */}
                 <div className="flex items-end gap-2">
-                  <div className="flex flex-1 flex-col gap-1.5">
+                  <div className="flex w-32 shrink-0 flex-col gap-1.5">
                     <Label htmlFor={`op-mag-qta-${index}`}>
                       {t("operationForm.warehouseQuantity", {
                         unit: selectedProduct?.unit ?? "—",
@@ -1071,10 +1231,9 @@ export function OperationForm({
                       className="agro-num"
                     />
                   </div>
-                  {/* Riga informativa del lot scelto: disponibilità +
-                      expiry formattata (spostate qui dalla dropdown). */}
+                  {/* Info del lot scelto: disponibilità + scadenza. */}
                   {selectedLot && (
-                    <p className="pb-2 text-[11px] text-[var(--ink-3)]">
+                    <p className="min-w-0 flex-1 pb-2 text-[11px] leading-snug text-[var(--ink-3)]">
                       {available != null
                         ? t("operationForm.warehouseAvailable", {
                             qty: available,
@@ -1093,14 +1252,15 @@ export function OperationForm({
                         : ""}
                     </p>
                   )}
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
                     onClick={() => removeIssue(index)}
-                    className="min-h-[40px] px-2 text-xs"
+                    title={t("operationForm.warehouseRemoveRow")}
+                    aria-label={t("operationForm.warehouseRemoveRow")}
+                    className="mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--r-2)] border border-[var(--line)] text-[var(--ink-3)] hover:bg-[var(--danger-l,#fee2e2)] hover:text-[var(--danger)]"
                   >
-                    {t("operationForm.warehouseRemoveRow")}
-                  </Button>
+                    <X size={15} />
+                  </button>
                 </div>
 
                 {/* Riconciliazione dose ⇄ issue: dose effettiva, scostamento
@@ -1109,8 +1269,13 @@ export function OperationForm({
                   const qty = Number.parseFloat(row.quantity);
                   if (!Number.isFinite(qty) || qty <= 0) return null;
                   const unit = selectedProduct?.unit ?? "";
+                  // Dose normalizzata (kg o l per ettaro): i solidi in q/t sono
+                  // convertiti in kg, coerente con la dose salvata sul record.
+                  const isLiquid = unit === "l";
+                  const normQty = qty * (isLiquid ? 1 : UNIT_TO_KG[unit] ?? 1);
                   const effectiveDose =
-                    area && area > 0 ? qty / area : null;
+                    area && area > 0 ? normQty / area : null;
+                  const effectiveDoseUnit = isLiquid ? "l/ha" : "kg/ha";
                   const scostamento =
                     expectedTotal != null &&
                     expectedTotal > 0 &&
@@ -1127,11 +1292,13 @@ export function OperationForm({
                   if (!effectiveDose && !scostamento && !exceedsLot) return null;
                   return (
                     <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                      {effectiveDose != null && f.dose && (
+                      {/* Dose /ha calcolata: feedback visivo anche per la
+                          fertilizzazione (campo dose non mostrato nel form). */}
+                      {effectiveDose != null && (f.dose || f.totalManual) && (
                         <span className="rounded-full bg-[var(--panel-2)] px-2 py-0.5 text-[var(--ink-3)]">
                           {t("operationForm.warehouseEffectiveDose", {
                             dose: (Math.round(effectiveDose * 100) / 100).toLocaleString("it-IT"),
-                            unit: `${unit}/ha`,
+                            unit: effectiveDoseUnit,
                           })}
                         </span>
                       )}
@@ -1158,19 +1325,40 @@ export function OperationForm({
               </div>
             );
           })}
-          <button
-            type="button"
-            onClick={() =>
-              setDischargeRows((rows) => [
-                ...rows,
-                { productId: "", lotId: "", quantity: "" },
-              ])
-            }
-            className="self-start text-xs font-medium text-[var(--accent)]"
-          >
-            {t("operationForm.warehouseAddRow")}
-          </button>
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setDischargeRows((rows) => [
+                  ...rows,
+                  { productId: "", lotId: "", quantity: "" },
+                ])
+              }
+              className="text-xs font-medium text-[var(--accent)]"
+            >
+              {t("operationForm.warehouseAddRow")}
+            </button>
+            {/* "Altro": materiale non censito in magazzino → form manuale. */}
+            <button
+              type="button"
+              onClick={switchToManual}
+              className="text-xs text-[var(--ink-3)] underline decoration-dotted underline-offset-2 hover:text-[var(--accent)]"
+            >
+              {t("operationForm.otherProductToggle")}
+            </button>
+          </div>
         </section>
+      )}
+
+      {/* Rientro dal percorso manuale al magazzino. */}
+      {usesWarehouse && manualProduct && !isSampling && (
+        <button
+          type="button"
+          onClick={switchToWarehouse}
+          className="self-start text-xs font-medium text-[var(--accent)]"
+        >
+          {t("operationForm.useWarehouseToggle")}
+        </button>
       )}
 
       {/* Automazione v17: la semina di una semente su un field senza crop
@@ -1202,17 +1390,22 @@ export function OperationForm({
         </label>
       )}
 
-      {f.fertilizerType && (
+      {/* Tipo concime: solo in modalità manuale (dal magazzino arriva dal
+          product). Titolo NPK: anche in modalità magazzino se il product non
+          lo fornisce (obbligo PAN, mai nascosto se mancante). */}
+      {f.fertilizerType && (manualMode || showIfMissing(npkRatio)) && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="op-tipoconcime">{t("logbook.fertilization.type")}</Label>
-            <Select id="op-tipoconcime" value={fertilizerType} onChange={(e) => setFertilizerType(e.target.value)}>
-              <option value="minerale">{t("logbook.fertilization.mineral")}</option>
-              <option value="organico">{t("logbook.fertilization.organic")}</option>
-              <option value="organo-minerale">{t("operationForm.organoMineral")}</option>
-            </Select>
-          </div>
-          {f.npkRatio && (
+          {manualMode && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="op-tipoconcime">{t("logbook.fertilization.type")}</Label>
+              <Select id="op-tipoconcime" value={fertilizerType} onChange={(e) => setFertilizerType(e.target.value)}>
+                <option value="minerale">{t("logbook.fertilization.mineral")}</option>
+                <option value="organico">{t("logbook.fertilization.organic")}</option>
+                <option value="organo-minerale">{t("operationForm.organoMineral")}</option>
+              </Select>
+            </div>
+          )}
+          {f.npkRatio && showIfMissing(npkRatio) && (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="op-npk">{t("logbook.fertilization.npk")}</Label>
               <Input id="op-npk" value={npkRatio} onChange={(e) => setNpkRatio(e.target.value)} placeholder={t("logbook.fertilization.npkPlaceholder")} className="agro-num" />
@@ -1221,13 +1414,19 @@ export function OperationForm({
         </div>
       )}
 
-      {f.registrationNumber && (
+      {/* Registrazione e sostanza attiva: modalità manuale, oppure — nel
+          percorso magazzino — solo quando il product scelto non le fornisce
+          (obbligo PAN mancante, va completato a mano). */}
+      {((f.registrationNumber && showIfMissing(registrationNumber)) ||
+        (f.activeSubstance && showIfMissing(sostanzaAttiva))) && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="op-reg">{t("logbook.treatment.regNumber")}</Label>
-            <Input id="op-reg" value={registrationNumber} onChange={(e) => setRegistrationNumber(e.target.value)} className="agro-num" />
-          </div>
-          {f.activeSubstance && (
+          {f.registrationNumber && showIfMissing(registrationNumber) && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="op-reg">{t("logbook.treatment.regNumber")}</Label>
+              <Input id="op-reg" value={registrationNumber} onChange={(e) => setRegistrationNumber(e.target.value)} className="agro-num" />
+            </div>
+          )}
+          {f.activeSubstance && showIfMissing(sostanzaAttiva) && (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="op-sa">{t("logbook.treatment.activeSubstance")}</Label>
               <Input id="op-sa" value={sostanzaAttiva} onChange={(e) => setSostanzaAttiva(e.target.value)} />
@@ -1250,9 +1449,14 @@ export function OperationForm({
         </div>
       )}
 
-      {(f.dose || f.waterVolume) && (
+      {/* Dose + unità: nel percorso magazzino sono calcolate dallo scarico e
+          NON modificabili (campo nascosto; il valore appare nel riepilogo e
+          nella scheda operazione). Visibili — e editabili — solo con "Altro" o
+          quando la dose non è derivabile (area ignota, obbligo PAN). L'acqua
+          della botte resta: dato per-intervento non ricavabile dal magazzino. */}
+      {((f.dose && showDose) || f.waterVolume) && (
         <div className="grid grid-cols-3 gap-3">
-          {f.dose && (
+          {f.dose && showDose && (
             <>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="op-dose">{t("logbook.treatment.dose")}</Label>
@@ -1348,7 +1552,10 @@ export function OperationForm({
         </p>
       )}
 
-      {f.totalManual && (
+      {/* Totale (kg): nel percorso magazzino è calcolato dallo scarico
+          (quantità × fattore unità, in background) — campo visibile solo con
+          "Altro", dove va digitato a mano. */}
+      {f.totalManual && manualMode && (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="op-tot">{t("operationForm.totalQuantityKg")}</Label>
           <Input id="op-tot" type="number" inputMode="decimal" min="0" step="any" value={manualTotal} onChange={(e) => setManualTotal(e.target.value)} className="agro-num" />
@@ -1387,7 +1594,9 @@ export function OperationForm({
         )}
       </div>
 
-      {(f.reentry || f.safety) && (
+      {/* Carenza/rientro: solo in modalità manuale (dal magazzino arrivano dai
+          default del product; restano salvati e visibili nella scheda). */}
+      {(f.reentry || f.safety) && manualMode && (
         <div className="grid grid-cols-2 gap-3">
           {f.reentry && (
             <div className="flex flex-col gap-1.5">

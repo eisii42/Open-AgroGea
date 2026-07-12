@@ -159,10 +159,14 @@ function biofixGdd(
   plot: Plot,
   treatments: TreatmentLog[],
 ): string {
+  // `executed_at` arriva da PGlite come Date (non stringa ISO grezza): come nel
+  // resto del codice lo si normalizza con `new Date(...)` prima di trattarlo
+  // come stringa, altrimenti `.slice`/`.localeCompare` falliscono a runtime.
   const lastSowing = treatments
     .filter((t) => t.operation_type === "sowing" && t.executed_at)
-    .sort((a, b) => b.executed_at.localeCompare(a.executed_at))[0];
-  if (lastSowing) return lastSowing.executed_at.slice(0, 10);
+    .map((t) => new Date(t.executed_at).toISOString())
+    .sort((a, b) => b.localeCompare(a))[0];
+  if (lastSowing) return lastSowing.slice(0, 10);
 
   const meta = (plot.metadata ?? {}) as Record<string, unknown>;
   const override = meta.data_inizio_gdd ?? meta.data_semina;

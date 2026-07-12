@@ -136,6 +136,10 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
 
   return (
     <FieldSheet
+      // Nuovo product → scheda a tutto schermo: il form ha molti campi
+      // (categoria, anagrafica, carico iniziale) e nel drawer stretto risultava
+      // confuso. L'elenco e il dettaglio restano nel drawer laterale.
+      wide={creatingNew}
       title={
         creatingNew
           ? t("warehouse.newProduct")
@@ -350,6 +354,9 @@ function ProductForm({
   const [npkN, setNpkN] = useState("");
   const [npkP, setNpkP] = useState("");
   const [npkK, setNpkK] = useState("");
+  // Tipo concime (minerale/organico/organo-minerale): definito qui al carico,
+  // così lo scarico nel Quaderno lo eredita senza ridigitarlo.
+  const [fertilizerType, setFertilizerType] = useState("minerale");
   const [umaCode, setUmaCode] = useState("");
   const [fornitore, setFornitore] = useState("");
   const [note, setNote] = useState("");
@@ -385,6 +392,9 @@ function ProductForm({
     if (c != null) metadata.safety_period_days = c;
     const r = num(reentryDefault);
     if (r != null) metadata.reentry_interval_h = r;
+  }
+  if (category === "fertilizer") {
+    metadata.fertilizer_type = fertilizerType;
   }
   const minStock = num(scortaMinima);
   if (minStock != null && minStock > 0) metadata.min_stock = minStock;
@@ -581,30 +591,44 @@ function ProductForm({
       )}
 
       {category === "fertilizer" && (
-        <div className="grid grid-cols-3 gap-3">
-          {(
-            [
-              ["mag-npk-n", "warehouse.npkN", npkN, setNpkN],
-              ["mag-npk-p", "warehouse.npkP", npkP, setNpkP],
-              ["mag-npk-k", "warehouse.npkK", npkK, setNpkK],
-            ] as const
-          ).map(([id, key, value, setter]) => (
-            <div key={id} className="flex flex-col gap-1.5">
-              <Label htmlFor={id}>{t(key as never)}</Label>
-              <Input
-                id={id}
-                type="number"
-                inputMode="decimal"
-                min="0"
-                max="100"
-                step="any"
-                value={value}
-                onChange={(e) => setter(e.target.value)}
-                className="agro-num"
-                required
-              />
-            </div>
-          ))}
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="mag-tipoconcime">{t("logbook.fertilization.type")}</Label>
+            <Select
+              id="mag-tipoconcime"
+              value={fertilizerType}
+              onChange={(e) => setFertilizerType(e.target.value)}
+            >
+              <option value="minerale">{t("logbook.fertilization.mineral")}</option>
+              <option value="organico">{t("logbook.fertilization.organic")}</option>
+              <option value="organo-minerale">{t("operationForm.organoMineral")}</option>
+            </Select>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {(
+              [
+                ["mag-npk-n", "warehouse.npkN", npkN, setNpkN],
+                ["mag-npk-p", "warehouse.npkP", npkP, setNpkP],
+                ["mag-npk-k", "warehouse.npkK", npkK, setNpkK],
+              ] as const
+            ).map(([id, key, value, setter]) => (
+              <div key={id} className="flex flex-col gap-1.5">
+                <Label htmlFor={id}>{t(key as never)}</Label>
+                <Input
+                  id={id}
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  max="100"
+                  step="any"
+                  value={value}
+                  onChange={(e) => setter(e.target.value)}
+                  className="agro-num"
+                  required
+                />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
