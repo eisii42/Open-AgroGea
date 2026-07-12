@@ -659,6 +659,297 @@ export interface FieldProductCost {
 }
 
 // ---------------------------------------------------------------------------
+// Parco macchine (0.3.0): mezzi, attrezzi, contatori, manutenzione, carburante
+// ---------------------------------------------------------------------------
+
+/**
+ * Stato/disponibilità di un mezzo o attrezzo (`machines.status`/
+ * `equipment.status`). Un mezzo non `operational` è segnalato nella selezione
+ * del form attività (senza bloccare); i `decommissioned` sono esclusi di default
+ * dalle liste di selezione ma restano consultabili nello storico.
+ */
+export type MachineStatus =
+  | "operational"
+  | "maintenance"
+  | "breakdown"
+  | "decommissioned";
+
+/** Categoria di un piano di manutenzione: ordinaria (routine) o straordinaria. */
+export type MaintenanceCategory = "routine" | "extraordinary";
+
+/** Criterio di scatto dell'alert di manutenzione: a tempo o a ore di utilizzo. */
+export type MaintenanceTriggerType = "time" | "hours";
+
+/**
+ * Tipo di documento del mezzo (`machine_documents.type`). Mappa i termini
+ * normativi italiani: inspection = revisione macchine agricole, insurance =
+ * assicurazione/RCA, road_tax = bollo, certification = collaudo.
+ */
+export type MachineDocumentType =
+  | "inspection"
+  | "insurance"
+  | "road_tax"
+  | "certification"
+  | "other";
+
+/**
+ * Tipo di rettifica del contaore (`counter_adjustments.type`): lettura iniziale
+ * all'inserimento, rettifica manuale, sostituzione motore/reset.
+ */
+export type CounterAdjustmentType = "initial_reading" | "manual" | "engine_reset";
+
+/**
+ * Unità motrice del parco macchine (`machines`, trattori/mietitrebbie…).
+ * Tracciata a ORE di lavoro: {@link Machine.hour_counter} è materializzato,
+ * incrementato in transazione dalle attività e SETtato dalle rettifiche manuali.
+ * I campi `purchase_*`/`useful_life_*`/`residual_value` sono PREDISPOSTI per il
+ * costo orario/ammortamento della 0.4.0 (solo struttura, non calcolati qui).
+ */
+export interface Machine {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  /** Denominazione del mezzo. */
+  name: string;
+  /** Tipo/categoria (es. "Trattore", "Mietitrebbia"). */
+  machine_type: string | null;
+  /** Targa. */
+  license_plate: string | null;
+  /** Numero di telaio. */
+  chassis_number: string | null;
+  brand: string | null;
+  model: string | null;
+  year: number | null;
+  /** Contatore ore corrente (materializzato). */
+  hour_counter: number;
+  status: MachineStatus;
+  /** Valore d'acquisto (predisposto 0.4.0). */
+  purchase_value: number | null;
+  purchase_date: string | null;
+  /** Vita utile stimata in ore (predisposto 0.4.0). */
+  useful_life_hours: number | null;
+  /** Vita utile stimata in anni (predisposto 0.4.0). */
+  useful_life_years: number | null;
+  residual_value: number | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/**
+ * Attrezzo del parco macchine (`equipment`, aratri/botti/seminatrici…). Niente
+ * motore proprio: tracciato per USURA ({@link Equipment.usage_counter}) e
+ * {@link Equipment.working_width_m} (precompila superfici/VRA nel form attività).
+ */
+export interface Equipment {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  name: string;
+  equipment_type: string | null;
+  /** Larghezza di lavoro in metri. */
+  working_width_m: number | null;
+  /** Indicatore/contatore di usura (accumula le ore d'uso). */
+  usage_counter: number;
+  status: MachineStatus;
+  purchase_value: number | null;
+  purchase_date: string | null;
+  useful_life_hours: number | null;
+  useful_life_years: number | null;
+  residual_value: number | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/**
+ * Giunzione attività ↔ macchina ↔ attrezzo (`activity_machines`) con le ORE di
+ * utilizzo. I riferimenti puntano a record esistenti (nessun testo libero). Il
+ * salvataggio incrementa i contatori; modifica/cancellazione li stornano.
+ */
+export interface ActivityMachine {
+  id: string;
+  tenant_id: string;
+  treatment_log_id: string;
+  machine_id: string;
+  /** Attrezzo agganciato (opzionale: alcune operazioni usano solo la motrice). */
+  equipment_id: string | null;
+  /** Ore di utilizzo nell'attività. */
+  hours: number;
+  operator_name: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/** Piano di manutenzione (`maintenance_schedules`), a tempo o a ore. */
+export interface MaintenanceSchedule {
+  id: string;
+  tenant_id: string;
+  /** Il piano riguarda una macchina O un attrezzo (uno dei due valorizzato). */
+  machine_id: string | null;
+  equipment_id: string | null;
+  name: string;
+  category: MaintenanceCategory;
+  trigger_type: MaintenanceTriggerType;
+  /** Trigger 'time': intervallo di ricorrenza in giorni. */
+  interval_days: number | null;
+  /** Trigger 'time': prossima data di scadenza. */
+  due_date: string | null;
+  /** Trigger 'hours': intervallo di ricorrenza in ore. */
+  interval_hours: number | null;
+  /** Trigger 'hours': soglia di contaore alla prossima scadenza. */
+  due_hours: number | null;
+  active: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/**
+ * Intervento di manutenzione eseguito (`maintenance_logs`). Se
+ * {@link MaintenanceLog.product_lot_id} e {@link MaintenanceLog.parts_quantity}
+ * sono valorizzati, l'intervento scarica il ricambio dal Magazzino (atomico);
+ * altrimenti i ricambi restano in {@link MaintenanceLog.parts} (testo) + costo.
+ */
+export interface MaintenanceLog {
+  id: string;
+  tenant_id: string;
+  /** Piano riprogrammato da questo intervento (null se straordinario una tantum). */
+  schedule_id: string | null;
+  machine_id: string | null;
+  equipment_id: string | null;
+  performed_at: string;
+  /** Ore/km del mezzo al momento dell'intervento. */
+  counter_hours: number | null;
+  description: string | null;
+  cost: number | null;
+  /** Ricambi come testo libero (fallback senza scarico magazzino). */
+  parts: string | null;
+  /** Lotto di ricambio scaricato dal Magazzino (opz., scarico atomico). */
+  product_lot_id: string | null;
+  parts_quantity: number | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/** Documento/scadenza di un mezzo (`machine_documents`). */
+export interface MachineDocument {
+  id: string;
+  tenant_id: string;
+  machine_id: string | null;
+  equipment_id: string | null;
+  type: MachineDocumentType;
+  /** Numero/riferimento del documento. */
+  reference: string | null;
+  issued_at: string | null;
+  /** Data di scadenza: base dell'alert a soglia e del semaforo. */
+  expires_at: string;
+  /** Ente/compagnia emittente. */
+  issuer: string | null;
+  amount: number | null;
+  /** Percorso dell'allegato locale (opzionale, 100% offline). */
+  attachment_path: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/** Rettifica del contaore (`counter_adjustments`, audit trail). */
+export interface CounterAdjustment {
+  id: string;
+  tenant_id: string;
+  machine_id: string | null;
+  equipment_id: string | null;
+  type: CounterAdjustmentType;
+  previous_value: number | null;
+  new_value: number;
+  adjusted_at: string;
+  reason: string | null;
+  author: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/**
+ * Rifornimento carburante (`fuel_refills`). Scarica un lot `carburante`
+ * (cisterna) dal Magazzino con blocco atomico; tracciato per mezzo con
+ * litri/data/contaore/UMA. {@link FuelRefill.full_tank} distingue il pieno
+ * (pieno-a-pieno) dal rifornimento parziale per il calcolo del consumo l/h.
+ */
+export interface FuelRefill {
+  id: string;
+  tenant_id: string;
+  machine_id: string;
+  product_lot_id: string;
+  liters: number;
+  refueled_at: string;
+  /** Lettura contaore al rifornimento (opz. ma consigliata per il consumo l/h). */
+  counter_hours: number | null;
+  operator_name: string | null;
+  /** Riferimento assegnazione UMA (derivato dal product carburante). */
+  uma_code: string | null;
+  full_tank: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/**
+ * Richiesta di aggancio mezzo emessa dal form attività: motrice obbligatoria,
+ * attrezzo e ore opzionali. Il DAL crea la giunzione `activity_machines` e
+ * incrementa i contatori nella stessa transazione dell'attività.
+ */
+export interface MachineUsageRequest {
+  machine_id: string;
+  equipment_id?: string | null;
+  hours: number;
+  operator_name?: string | null;
+}
+
+/** Consumo carburante derivato di un mezzo (l/h) e rilevazione anomalie (§5.6). */
+export interface FuelConsumption {
+  machine_id: string;
+  /** Consumo medio l/h sulla storia del mezzo (null se non calcolabile). */
+  avg_liters_per_hour: number | null;
+  /** Consumo dell'ultimo intervallo pieno-a-pieno (null se non calcolabile). */
+  last_liters_per_hour: number | null;
+  /** Numero di intervalli pieno-a-pieno validi usati nel calcolo. */
+  sample_count: number;
+  /** true se l'ultimo intervallo si discosta oltre soglia dalla media storica. */
+  anomaly: boolean;
+}
+
+/** Categoria di voce del cruscotto "Richiede attenzione" (§5.8). */
+export type AttentionKind =
+  | "maintenance_due"
+  | "maintenance_overdue"
+  | "document_expiring"
+  | "document_expired"
+  | "fuel_anomaly"
+  | "machine_down";
+
+/** Voce actionable del cruscotto "Richiede attenzione", cliccabile al dettaglio. */
+export interface MachineAttentionItem {
+  kind: AttentionKind;
+  machine_id: string | null;
+  equipment_id: string | null;
+  /** Etichetta del mezzo/attrezzo interessato. */
+  subject: string;
+  /** Dettaglio pronto per la UI (già tradotto/formattato dal chiamante o grezzo). */
+  detail: string;
+  /** Riferimento all'entità di origine (schedule/document) per la navigazione. */
+  ref_id: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // Multiutente — posti collaboratore per company (`tenant_memberships`)
 // ---------------------------------------------------------------------------
 
@@ -707,7 +998,15 @@ export type SyncTable =
   | "tenant_memberships"
   | "products"
   | "product_lots"
-  | "activity_products";
+  | "activity_products"
+  | "machines"
+  | "equipment"
+  | "activity_machines"
+  | "maintenance_schedules"
+  | "maintenance_logs"
+  | "machine_documents"
+  | "counter_adjustments"
+  | "fuel_refills";
 
 export type MutationOperation = "insert" | "update" | "delete";
 

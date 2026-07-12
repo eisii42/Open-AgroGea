@@ -155,6 +155,59 @@ export const PULL_TABLES: { tabella: SyncTable; columns: string }[] = [
       "id,tenant_id,treatment_log_id,product_lot_id,quantity,unit_cost," +
       "total_cost,created_at,updated_at,deleted_at",
   },
+  {
+    tabella: "machines",
+    columns:
+      "id,tenant_id,company_id,name,machine_type,license_plate,chassis_number," +
+      "brand,model,year,hour_counter,status,purchase_value,purchase_date," +
+      "useful_life_hours,useful_life_years,residual_value,notes," +
+      "created_at,updated_at,deleted_at",
+  },
+  {
+    tabella: "equipment",
+    columns:
+      "id,tenant_id,company_id,name,equipment_type,working_width_m,usage_counter," +
+      "status,purchase_value,purchase_date,useful_life_hours,useful_life_years," +
+      "residual_value,notes,created_at,updated_at,deleted_at",
+  },
+  {
+    tabella: "activity_machines",
+    columns:
+      "id,tenant_id,treatment_log_id,machine_id,equipment_id,hours," +
+      "operator_name,created_at,updated_at,deleted_at",
+  },
+  {
+    tabella: "maintenance_schedules",
+    columns:
+      "id,tenant_id,machine_id,equipment_id,name,category,trigger_type," +
+      "interval_days,due_date,interval_hours,due_hours,active,notes," +
+      "created_at,updated_at,deleted_at",
+  },
+  {
+    tabella: "maintenance_logs",
+    columns:
+      "id,tenant_id,schedule_id,machine_id,equipment_id,performed_at," +
+      "counter_hours,description,cost,parts,product_lot_id,parts_quantity," +
+      "created_at,updated_at,deleted_at",
+  },
+  {
+    tabella: "machine_documents",
+    columns:
+      "id,tenant_id,machine_id,equipment_id,type,reference,issued_at,expires_at," +
+      "issuer,amount,attachment_path,notes,created_at,updated_at,deleted_at",
+  },
+  {
+    tabella: "counter_adjustments",
+    columns:
+      "id,tenant_id,machine_id,equipment_id,type,previous_value,new_value," +
+      "adjusted_at,reason,author,created_at,updated_at,deleted_at",
+  },
+  {
+    tabella: "fuel_refills",
+    columns:
+      "id,tenant_id,machine_id,product_lot_id,liters,refueled_at,counter_hours," +
+      "operator_name,uma_code,full_tank,notes,created_at,updated_at,deleted_at",
+  },
 ];
 
 /**
