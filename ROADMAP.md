@@ -56,17 +56,21 @@ testo come fallback finché non collegati.
 - **Rilascio quando:** un'attività di campo scarica un lotto reale, la giacenza si
   aggiorna e il costo prodotti è imputato al campo.
 
-### `0.3.0` — Parco macchine
+### `0.3.0` — Parco macchine ✅ implementata (in attesa di rilascio)
 
 - Anagrafiche `machines` (unità motrici) ed `equipment` (attrezzi) con la giunzione
   `activity_machines` (attività ↔ macchina ↔ attrezzo, ore).
 - Separazione logica tra unità motrici (trattori/mietitrebbie, tracciate a ore di
   lavoro) e attrezzi (aratri/botti, tracciati per usura e larghezza di lavoro).
-- Contatori ore aggiornati automaticamente al salvataggio dell'attività.
+- Contatori ore aggiornati automaticamente al salvataggio dell'attività, con storno
+  su modifica/cancellazione e rettifiche manuali tracciate (`counter_adjustments`).
 - Scadenziario di manutenzione ordinaria e straordinaria con alert basati sul
-  tempo o sulle ore di utilizzo effettive.
+  tempo o sulle ore di utilizzo effettive, riprogrammazione del piano e scarico
+  ricambi dal magazzino; scadenziario documenti (revisione, RCA, bollo, collaudo).
+- Refill carburante che scarica la cisterna dal magazzino (blocco atomico) con
+  accesso rapido a bordo campo, consumo l/h derivato e segnalazione anomalie.
 - **Rilascio quando:** l'uso di un mezzo in campo incrementa i suoi contatori e fa
-  scattare gli alert di manutenzione a soglia.
+  scattare gli alert di manutenzione a soglia. ✔️
 
 ### `0.4.0` — Costo colturale integrato
 

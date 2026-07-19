@@ -1054,10 +1054,19 @@ export interface SyncPushResult {
 
 export type PanelMode = "floating" | "docked";
 
+/**
+ * Sotto-scheda attiva del modulo Magazzino (0.3.0): la sezione storica
+ * Prodotti/Lotti e l'anagrafica Mezzi del Parco macchine. Il Refill carburante
+ * NON è una sotto-scheda: è un pannello a sé, raggiungibile solo dal pulsante
+ * rapido a bordo campo (FAB), staccato dal Magazzino.
+ */
+export type WarehouseTab = "products" | "machines";
+
 export type FieldPanel =
   | "quaderno"
   | "raccolta"
   | "magazzino"
+  | "refill"
   | "geoeditor"
   | "registro"
   | "ndvi"

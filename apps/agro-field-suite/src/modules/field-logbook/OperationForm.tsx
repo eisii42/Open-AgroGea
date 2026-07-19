@@ -10,6 +10,9 @@ import {
   type ProductLot,
   type Product,
   type IssueRequest,
+  type Machine,
+  type Equipment,
+  type MachineUsageRequest,
   expiryStatus,
   type OperationType,
   type ValidationError,
@@ -65,7 +68,14 @@ interface OpFieldSpec {
   npkRatio?: boolean;
   operatorTaxCode?: boolean;
   licenseNumber?: boolean;
+  /** Mezzo/attrezzo a testo libero (legacy: sostituito da `machines` DB-only). */
   machinery?: boolean;
+  /**
+   * Selettore mezzo (motrice + attrezzo opz.) + ore dal Parco macchine, SOLO
+   * riferimenti a record esistenti (§5.1): al salvataggio incrementa i contatori
+   * (activity_machines). Sostituisce il testo libero per i tipi che usano mezzi.
+   */
+  machines?: boolean;
   /** Nome/tipo della lavorazione (→ product_name). */
   tillageType?: boolean;
   reentry?: boolean;
@@ -108,6 +118,7 @@ export const OPERATIONS: OperationSpec[] = [
       totalAuto: true,
       operatorTaxCode: true,
       licenseNumber: true,
+      machines: true,
       reentry: true,
       safety: true,
       validate: "phyto",
@@ -126,6 +137,7 @@ export const OPERATIONS: OperationSpec[] = [
       fertilizerType: true,
       npkRatio: true,
       totalManual: true,
+      machines: true,
       validate: "fert",
       nitrogen: true,
     },
@@ -138,7 +150,7 @@ export const OPERATIONS: OperationSpec[] = [
     get descr() {
       return i18n.t("operationForm.type.irrigation.descr");
     },
-    fields: { irrigationAmount: true, machinery: true },
+    fields: { irrigationAmount: true, machines: true },
   },
   {
     type: "tillage",
@@ -148,7 +160,7 @@ export const OPERATIONS: OperationSpec[] = [
     get descr() {
       return i18n.t("operationForm.type.tillage.descr");
     },
-    fields: { tillageType: true, machinery: true },
+    fields: { tillageType: true, machines: true },
   },
   {
     type: "sowing",
@@ -158,7 +170,7 @@ export const OPERATIONS: OperationSpec[] = [
     get descr() {
       return i18n.t("operationForm.type.sowing.descr");
     },
-    fields: { product: "seed", dose: true, machinery: true },
+    fields: { product: "seed", dose: true, machines: true },
   },
   {
     type: "sampling",
@@ -238,6 +250,31 @@ function persistOperatorMemory(memory: OperatorMemory) {
   }
 }
 
+/** Memoria per-device dell'ultima combinazione mezzo+attrezzo usata (§5.1). */
+const MACHINE_KEY = "agrogea.last_machine";
+
+interface MachineMemory {
+  machineId?: string;
+  equipmentId?: string;
+}
+
+function loadMachineMemory(): MachineMemory {
+  try {
+    const raw = globalThis.localStorage?.getItem(MACHINE_KEY);
+    return raw ? (JSON.parse(raw) as MachineMemory) : {};
+  } catch {
+    return {};
+  }
+}
+
+function persistMachineMemory(memory: MachineMemory) {
+  try {
+    globalThis.localStorage?.setItem(MACHINE_KEY, JSON.stringify(memory));
+  } catch {
+    // storage non available: la memoria resta di sessione.
+  }
+}
+
 /** Stringa da number nullable (per i default della ripetizione operation). */
 const numStr = (v: number | null | undefined) => (v == null ? "" : String(v));
 
@@ -268,6 +305,14 @@ export interface OperationFormProps {
    */
   prodottiMagazzino?: Product[];
   lottiMagazzino?: ProductLot[];
+  /**
+   * Parco macchine (0.3.0): unità motrici e attrezzi dell'azienda. Con almeno
+   * un mezzo il form mostra la sezione "Mezzo" (§5.1), selezione SOLO tra
+   * record esistenti (niente testo libero); al salvataggio i contatori ore/usura
+   * si incrementano via `activity_machines`.
+   */
+  machines?: Machine[];
+  equipment?: Equipment[];
   valutaCompliance?: (plot: Plot) => ComplianceTreatment | null;
   defaultAppezzamentoId?: string | null;
   /**
@@ -275,11 +320,14 @@ export interface OperationFormProps {
    * ATOMICO dei lots (§5.2): un errore (stock/lot scaduto) annulla tutto
    * e risale qui, dove il form lo mostra senza chiudersi. `assegnazione` è la
    * proposta di crop da una semina (automazione v17), null se disattivata.
+   * `machineUsages` sono gli agganci mezzo+ore (§5.2), applicati nella stessa
+   * transazione dell'attività.
    */
   onSubmit: (
     values: TreatmentFormValues,
     issues?: IssueRequest[],
     assegnazione?: CropAssignment | null,
+    machineUsages?: MachineUsageRequest[],
   ) => Promise<void> | void;
   /** Salvataggio del soilSample di soil (tabella dedicata). */
   onSubmitSoil?: (input: SoilSampleInput) => Promise<void> | void;
@@ -299,6 +347,8 @@ export function OperationForm({
   concimiCatalogo,
   prodottiMagazzino,
   lottiMagazzino,
+  machines,
+  equipment,
   valutaCompliance,
   defaultAppezzamentoId,
   onSubmit,
@@ -384,6 +434,42 @@ export function OperationForm({
     defaults?.license_number ?? opMemory.license ?? "",
   );
   const [machinery, setMachinery] = useState(defaults?.machinery_equipment ?? "");
+  // -- Parco macchine (§5.1): selettore mezzo+attrezzo+ore, SOLO record esistenti.
+  const saveMachine = useAgroStore((s) => s.saveMachine);
+  const machineMemory = useMemo(loadMachineMemory, []);
+  // I mezzi dismessi non sono selezionabili (i non operativi sì, con avviso).
+  const selectableMachines = useMemo(
+    () => (machines ?? []).filter((m) => m.status !== "decommissioned"),
+    [machines],
+  );
+  const selectableEquipment = useMemo(
+    () => (equipment ?? []).filter((e) => e.status !== "decommissioned"),
+    [equipment],
+  );
+  // Default intelligente: ultima combinazione mezzo+attrezzo usata sul device.
+  const [machineId, setMachineId] = useState(() =>
+    machineMemory.machineId &&
+    (machines ?? []).some(
+      (m) => m.id === machineMemory.machineId && m.status !== "decommissioned",
+    )
+      ? machineMemory.machineId
+      : "",
+  );
+  const [equipmentId, setEquipmentId] = useState(() =>
+    machineMemory.equipmentId &&
+    (equipment ?? []).some(
+      (e) => e.id === machineMemory.equipmentId && e.status !== "decommissioned",
+    )
+      ? machineMemory.equipmentId
+      : "",
+  );
+  const [machineHours, setMachineHours] = useState("");
+  // Scorciatoia "crea nuovo mezzo" (§5.1): mini-form inline che, al salvataggio,
+  // seleziona il nuovo mezzo e torna alla selezione senza lasciare il form.
+  const [creatingMachine, setCreatingMachine] = useState(false);
+  const [newMachineName, setNewMachineName] = useState("");
+  const [newMachineType, setNewMachineType] = useState("");
+  const [savingMachine, setSavingMachine] = useState(false);
   const [reentry, setReentry] = useState(numStr(defaults?.reentry_interval_h));
   const [safetyPeriod, setSafetyPeriod] = useState(numStr(defaults?.safety_period_days));
   const [note, setNote] = useState("");
@@ -723,6 +809,60 @@ export function OperationForm({
 
   const num = (s: string) => (s.trim() === "" ? null : Number(s));
 
+  // -- Parco macchine: mezzo selezionato e aggancio da salvare (§5.1) --------
+  const selectedMachine = useMemo(
+    () => selectableMachines.find((m) => m.id === machineId) ?? null,
+    [selectableMachines, machineId],
+  );
+  const selectedEquipment = useMemo(
+    () => selectableEquipment.find((e) => e.id === equipmentId) ?? null,
+    [selectableEquipment, equipmentId],
+  );
+  // Un solo aggancio per operazione: motrice obbligatoria, attrezzo e ore opz.
+  const machineUsages: MachineUsageRequest[] =
+    f.machines && machineId
+      ? [
+          {
+            machine_id: machineId,
+            equipment_id: equipmentId || null,
+            hours: machineHours.trim() === "" ? 0 : Number(machineHours),
+            operator_name: operator.trim() || null,
+          },
+        ]
+      : [];
+
+  /** Crea al volo un mezzo (name + tipo) e lo seleziona (§5.1). */
+  async function handleCreateMachine() {
+    if (savingMachine || newMachineName.trim() === "") return;
+    setSavingMachine(true);
+    try {
+      const created = await saveMachine({
+        name: newMachineName.trim(),
+        machine_type: newMachineType.trim() || null,
+        license_plate: null,
+        chassis_number: null,
+        brand: null,
+        model: null,
+        year: null,
+        status: "operational",
+        purchase_value: null,
+        purchase_date: null,
+        useful_life_hours: null,
+        useful_life_years: null,
+        residual_value: null,
+        notes: null,
+      });
+      if (created) {
+        setMachineId(created.id);
+        setCreatingMachine(false);
+        setNewMachineName("");
+        setNewMachineType("");
+      }
+    } finally {
+      setSavingMachine(false);
+    }
+  }
+
   // -- rows issue warehouse ------------------------------------------------
 
   function updateIssue(index: number, patch: Partial<DischargeRow>) {
@@ -919,19 +1059,34 @@ export function OperationForm({
         operator_name: operator.trim() || null,
         operator_tax_code: f.operatorTaxCode ? operatorTaxCode.trim().toUpperCase() || null : null,
         license_number: f.licenseNumber ? licenseNumber || null : null,
-        machinery_equipment: f.machinery ? machinery.trim() || null : null,
+        // Mezzo (§5.1): dal selettore DB si salva il name (motrice + attrezzo)
+        // anche nel campo testuale legacy, così la scheda operazione lo mostra;
+        // il dato strutturato per i contatori vive in activity_machines.
+        machinery_equipment: selectedMachine
+          ? selectedMachine.name +
+            (selectedEquipment ? ` + ${selectedEquipment.name}` : "")
+          : f.machinery
+            ? machinery.trim() || null
+            : null,
         reentry_interval_h: f.reentry && reentry ? Number.parseInt(reentry, 10) : null,
         safety_period_days: f.safety && safetyPeriod ? Number.parseInt(safetyPeriod, 10) : null,
         executed_at: new Date(`${data}T12:00:00`).toISOString(),
         weather_conditions: null,
         note: note.trim() || null,
-      }, validIssues, assegnazione);
+      }, validIssues, assegnazione, machineUsages);
       // Memoria operatore (v17): l'ultimo operatore usato precompila i form.
       if (operator.trim() || operatorTaxCode.trim() || licenseNumber.trim()) {
         persistOperatorMemory({
           name: operator.trim() || undefined,
           taxCode: operatorTaxCode.trim() || undefined,
           license: licenseNumber.trim() || undefined,
+        });
+      }
+      // Memoria mezzo (§5.1): l'ultima combinazione mezzo+attrezzo precompila.
+      if (f.machines && machineId) {
+        persistMachineMemory({
+          machineId,
+          equipmentId: equipmentId || undefined,
         });
       }
     } catch (e) {
@@ -1593,6 +1748,162 @@ export function OperationForm({
           </div>
         )}
       </div>
+
+      {/* Mezzo (§5.1): motrice + attrezzo opz. + ore, SOLO da record esistenti
+          del Parco macchine (niente testo libero). Default intelligenti (ultima
+          combinazione), avviso se non operativo, larghezza di lavoro
+          dell'attrezzo e scorciatoia "crea nuovo mezzo". Al salvataggio i
+          contatori ore/usura si incrementano (activity_machines). */}
+      {f.machines && (
+        <section className="flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
+            {t("operationForm.machineSection")}
+          </p>
+
+          {selectableMachines.length === 0 && !creatingMachine ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-[11px] text-[var(--ink-3)]">
+                {t("operationForm.machineNone")}
+              </p>
+              <button
+                type="button"
+                onClick={() => setCreatingMachine(true)}
+                className="self-start text-xs font-medium text-[var(--accent)]"
+              >
+                ＋ {t("operationForm.machineCreate")}
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="op-machine">{t("operationForm.machine")}</Label>
+                  <Select
+                    id="op-machine"
+                    value={machineId}
+                    onChange={(e) => setMachineId(e.target.value)}
+                  >
+                    <option value="">{t("operationForm.machineNoneOption")}</option>
+                    {selectableMachines.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                        {m.status !== "operational"
+                          ? ` · ${t("operationForm.machineNotOperationalOption")}`
+                          : ""}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="op-equipment">{t("operationForm.equipment")}</Label>
+                  <Select
+                    id="op-equipment"
+                    value={equipmentId}
+                    onChange={(e) => setEquipmentId(e.target.value)}
+                  >
+                    <option value="">{t("operationForm.equipmentNoneOption")}</option>
+                    {selectableEquipment.map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+
+              {selectedMachine && selectedMachine.status !== "operational" && (
+                <p className="rounded-[var(--r-2)] bg-[var(--warn-l)] px-3 py-1.5 text-[11px] font-medium text-[var(--warn)]">
+                  ⚠ {t("operationForm.machineNotOperationalWarn")}
+                </p>
+              )}
+
+              <div className="flex items-end gap-2">
+                <div className="flex w-32 shrink-0 flex-col gap-1.5">
+                  <Label htmlFor="op-machine-hours">
+                    {t("operationForm.machineHours")}
+                  </Label>
+                  <Input
+                    id="op-machine-hours"
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="any"
+                    value={machineHours}
+                    onChange={(e) => setMachineHours(e.target.value)}
+                    className="agro-num"
+                  />
+                </div>
+                {selectedEquipment?.working_width_m != null && (
+                  <p className="min-w-0 flex-1 pb-2 text-[11px] text-[var(--ink-3)]">
+                    {t("operationForm.equipmentWidth", {
+                      width: Number(
+                        selectedEquipment.working_width_m,
+                      ).toLocaleString("it-IT"),
+                    })}
+                  </p>
+                )}
+              </div>
+
+              {!creatingMachine && (
+                <button
+                  type="button"
+                  onClick={() => setCreatingMachine(true)}
+                  className="self-start text-xs text-[var(--ink-3)] underline decoration-dotted underline-offset-2 hover:text-[var(--accent)]"
+                >
+                  ＋ {t("operationForm.machineCreate")}
+                </button>
+              )}
+            </>
+          )}
+
+          {creatingMachine && (
+            <div className="flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="op-newmachine-name">
+                    {t("operationForm.machineNewName")}
+                  </Label>
+                  <Input
+                    id="op-newmachine-name"
+                    value={newMachineName}
+                    onChange={(e) => setNewMachineName(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="op-newmachine-type">
+                    {t("operationForm.machineNewType")}
+                  </Label>
+                  <Input
+                    id="op-newmachine-type"
+                    value={newMachineType}
+                    onChange={(e) => setNewMachineType(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={() => void handleCreateMachine()}
+                  disabled={savingMachine || newMachineName.trim() === ""}
+                  className="min-h-[36px] flex-1 text-xs"
+                >
+                  {savingMachine
+                    ? t("logbook.common.saving")
+                    : t("operationForm.machineCreateSave")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCreatingMachine(false)}
+                  className="min-h-[36px] text-xs"
+                >
+                  {t("logbook.common.cancel")}
+                </Button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Carenza/rientro: solo in modalità manuale (dal magazzino arrivano dai
           default del product; restano salvati e visibili nella scheda). */}

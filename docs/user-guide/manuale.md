@@ -31,6 +31,7 @@
    - [4.11 Esportazioni ufficiali e backup](#411-esportazioni-ufficiali-e-backup)
    - [4.12 Impostazioni: meteo, tema, profilo](#412-impostazioni-meteo-tema-profilo)
    - [4.13 Magazzino — prodotti, lotti e giacenze](#413-magazzino--prodotti-lotti-e-giacenze)
+   - [4.14 Parco macchine — mezzi, manutenzione e carburante](#414-parco-macchine--mezzi-manutenzione-e-carburante)
 5. [Scorciatoie e produttività](#5-scorciatoie-e-produttività)
 6. [Il flusso consigliato di una stagione](#6-il-flusso-consigliato-di-una-stagione)
 
@@ -316,6 +317,32 @@ Il Magazzino tiene l'**anagrafica dei prodotti** e i loro **lotti** con scadenza
 **Scadenze:** i lotti **scaduti** sono evidenziati e il loro uso nelle attività è **bloccato** (non selezionabili); i lotti **in scadenza** entro la soglia configurabile (default 30 giorni) sono segnalati con un alert nel pannello.
 
 > **Compatibilità:** le registrazioni esistenti con prodotti/mezzi a testo libero restano valide; lo scarico da magazzino è facoltativo e si affianca al testo libero finché non colleghi un lotto reale. Eliminando un'operazione con scarichi, le giacenze vengono **reintegrate** automaticamente.
+
+---
+
+### 4.14 Parco macchine — mezzi, manutenzione e carburante
+
+Il Parco macchine gestisce i **mezzi** (unità motrici) e gli **attrezzi**, li collega alle operazioni di campo con **contatori ore automatici**, tiene lo scadenziario di **manutenzione** e **documenti**, e traccia i **rifornimenti** di carburante.
+
+**Anagrafica (Sidebar → Magazzino → Mezzi):**
+
+1. **＋ Nuovo mezzo** (trattore, mietitrebbia…) o **＋ Nuovo attrezzo** (aratro, botte…). I mezzi sono tracciati a **ore di lavoro**, gli attrezzi per **usura** e **larghezza di lavoro**. Alla creazione puoi indicare la **lettura iniziale** del contaore. Lo **stato** (operativo / in manutenzione / fermo-guasto / dismesso) ha un semaforo; i mezzi **dismessi** restano nello storico ma spariscono dalle liste di selezione.
+2. **Import CSV** — popola velocemente il parco da un file (denominazione, tipo, targa, anno, contaore iniziale) con **anteprima e validazione**: le righe non valide sono segnalate e saltate, l'import parziale è consentito. Tutto in locale, senza rete.
+3. Dal **dettaglio mezzo** gestisci: **contatore** (con rettifiche manuali tracciate — lettura iniziale, sostituzione motore), **documenti** con semaforo, **scadenziario manutenzione** e **consumo l/h**.
+
+**Contatori automatici:** registrando un'operazione nel Quaderno (trattamento, fertilizzazione, semina, lavorazione, irrigazione) compare la sezione **Mezzo**: scegli il mezzo (e l'eventuale attrezzo) **dall'elenco** — niente testo libero — e le **ore**. Al salvataggio i contatori si **incrementano** in automatico; modificando o eliminando l'operazione si **ricalcolano** senza errori. Il form propone l'**ultima combinazione** usata e avvisa se il mezzo scelto **non è operativo** (senza bloccare). Se il mezzo non esiste, **＋ Nuovo mezzo** lo crea al volo e lo seleziona.
+
+**Manutenzione:** crea piani **ordinari** o **straordinari** con scadenza a **tempo** (ogni N giorni / data) o a **ore** (soglia sul contaore). All'avvicinarsi o al superamento della soglia scatta l'**alert**. **Registra intervento** annota data, ore, descrizione, costo e ricambi; collegando un lotto di magazzino, il ricambio viene **scaricato** dalla giacenza (blocco atomico). L'intervento **riprogramma** automaticamente il piano ricorrente.
+
+**Documenti:** revisione, assicurazione/RCA, bollo, collaudo. Ogni documento ha un **semaforo** (valido / in scadenza / scaduto) e genera l'alert a soglia sulla data di scadenza; puoi allegare un file locale.
+
+**Refill carburante (pulsante rapido in mappa):** sotto il pulsante delle **note geotaggate** (colonna controlli, in alto a sinistra sulla mappa) trovi il pulsante **⛽ Refill**. A bordo campo aprilo: il form è **precompilato** (data odierna, ultimo mezzo, cisterna con più giacenza). Indica **litri** e la **cisterna** (un lotto di categoria *carburante*), con l'eventuale **lettura contaore**; salvi in un tap. Il rifornimento **scarica** la cisterna dal magazzino (blocco atomico se la giacenza non basta) e deriva il riferimento **UMA** dal prodotto. Dallo stesso pannello vedi l'elenco filtrabile per mezzo e per cisterna.
+
+**Consumo e anomalie:** nel dettaglio mezzo il **consumo medio l/h** e l'ultimo intervallo si calcolano col metodo **pieno-a-pieno** (litri ÷ ore tra due pieni con lettura contaore). Un consumo che si discosta oltre soglia dalla media storica è segnalato come **anomalia** (possibile spia di guasto o lettura errata): è un avviso, non un blocco.
+
+**Richiede attenzione:** in cima alla scheda Mezzi un cruscotto aggrega, senza click aggiuntivi, ciò che è **actionable** — manutenzioni in scadenza/scadute, documenti in scadenza/scaduti, consumi anomali e mezzi fermi. Ogni voce porta al dettaglio del mezzo.
+
+> **Attivazione:** le sezioni **Mezzi** e il pulsante **Refill** si mostrano/nascondono dalle **Impostazioni profilo → Moduli** (voci `Parco macchine` e `Refill carburante`). Il Refill è **staccato** dal resto del Magazzino: si raggiunge solo dal pulsante rapido in mappa.
 
 ---
 

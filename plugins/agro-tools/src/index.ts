@@ -97,6 +97,20 @@ export {
   type ThermalPoint,
 } from "./phytopathology";
 
+// -- Parco macchine: consumo l/h, anomalie, scadenziario manutenzione (0.3.0) --
+export {
+  fuelConsumption,
+  evaluateMaintenance,
+  rescheduleMaintenance,
+  type RefillPoint,
+  type FuelConsumptionResult,
+  type FuelConsumptionOptions,
+  type MaintenanceUrgency,
+  type MaintenanceScheduleInput,
+  type MaintenanceEvaluation,
+  type MaintenanceThresholds,
+} from "./machinery";
+
 // -- Clip raster sul poligono + proiezione UTM (Modulo 1) --
 export {
   clipRasterToPolygon,

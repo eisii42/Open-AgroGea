@@ -2,6 +2,7 @@ import {
   missingDeclarative,
   type TreatmentLog,
   type IssueRequest,
+  type MachineUsageRequest,
   declarativeSystem,
   type OperationType,
   useAgroStore,
@@ -55,6 +56,9 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   // Magazzino (0.2.0): anagrafica e lots per la sezione di issue del form.
   const products = useAgroStore((s) => s.products);
   const lots = useAgroStore((s) => s.lots);
+  // Parco macchine (0.3.0): mezzi e attrezzi per il selettore del form (§5.1).
+  const machines = useAgroStore((s) => s.machines);
+  const equipment = useAgroStore((s) => s.equipment);
   const sync = useAgroStore((s) => s.sync);
   const recordTreatment = useAgroStore((s) => s.recordTreatment);
   const saveSoilSample = useAgroStore((s) => s.saveSoilSample);
@@ -182,8 +186,9 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     values: TreatmentFormValues,
     issues?: IssueRequest[],
     assegnazione?: CropAssignment | null,
+    machineUsages?: MachineUsageRequest[],
   ) {
-    await recordTreatment(values, issues);
+    await recordTreatment(values, issues, machineUsages);
     if (assegnazione) {
       const crop = await saveCrop({
         common_name: assegnazione.species,
@@ -315,6 +320,8 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
           concimiCatalogo={concimi}
           prodottiMagazzino={products}
           lottiMagazzino={lots}
+          machines={machines}
+          equipment={equipment}
           valutaCompliance={valutaCompliance}
           defaultAppezzamentoId={formDefaultAppId}
           defaults={formDefaults ?? undefined}

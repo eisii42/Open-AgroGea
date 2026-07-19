@@ -36,6 +36,25 @@ Scope and rules (see `CLAUDE.md` §2–§3):
 | scadenza | expiry | `expires_at` |
 | carico (di magazzino) | inbound / receipt | keep `CUMP` token |
 | scarico (di magazzino) | issue / outbound | |
+| parco macchine | machinery / fleet | 0.3.0 |
+| mezzo / unità motrice | machine | `machines` (tracked by hours) |
+| attrezzo / attrezzatura | equipment | `equipment` (wear + working width) |
+| larghezza di lavoro | working width | `working_width_m` |
+| contaore / contatore ore | hour counter | `hour_counter` |
+| usura | wear / usage | `usage_counter` |
+| manutenzione | maintenance | `maintenance_schedules`, `maintenance_logs` |
+| scadenziario / piano | schedule | `maintenance_schedules` |
+| intervento | intervention / log | `maintenance_logs` |
+| ricambio / ricambi | spare part / parts | `parts`, `product_lot_id` |
+| documento (del mezzo) | document | `machine_documents` (keep `RCA`, `UMA`) |
+| revisione | inspection | `type = 'inspection'` |
+| assicurazione / RCA | insurance | `type = 'insurance'` (keep `RCA`) |
+| bollo | road tax | `type = 'road_tax'` |
+| collaudo | certification | `type = 'certification'` |
+| rettifica (contaore) | adjustment | `counter_adjustments` |
+| rifornimento / refill | refill | `fuel_refills` |
+| cisterna (aziendale) | tank / cistern | fuel `product_lots` lot |
+| consumo (l/h) | consumption | `fuelConsumption` (full-to-full) |
 | bilancio (idrico) | (water) balance | |
 | suolo | soil | merge `modules/suolo` → `modules/soil` |
 | geometria | geometry | |

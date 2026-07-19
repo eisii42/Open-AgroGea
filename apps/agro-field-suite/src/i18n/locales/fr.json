@@ -135,7 +135,9 @@
     "toolExport": "Exporter (CSV)…",
     "toolProfile": "Fiche de l'exploitation",
     "toolWeather": "Source météo et variables",
-    "toolGeoCompliance": "GeoCompliance"
+    "toolGeoCompliance": "GeoCompliance",
+    "toolMachinery": "Parc matériel",
+    "toolRefill": "Plein carburant"
   },
   "help": {
     "menu": "Aide",
@@ -823,7 +825,21 @@
     "warehouseMismatch": "≠ total calculé ({{total}} {{unit}})",
     "warehouseSplitFefo": "Répartir sur plusieurs lots (FEFO)",
     "assignCropLabel": "Assigner {{crop}} à « {{plot}} » pour la campagne {{year}}",
-    "assignCropHint": "Crée automatiquement la fiche culture et la campagne. Les données déclaratives (codes SIAN, parcelle de référence) restent à compléter dans Données culture."
+    "assignCropHint": "Crée automatiquement la fiche culture et la campagne. Les données déclaratives (codes SIAN, parcelle de référence) restent à compléter dans Données culture.",
+    "machineSection": "Matériel",
+    "machine": "Engin",
+    "machineNoneOption": "— aucun —",
+    "machineNotOperationalOption": "non opérationnel",
+    "machineNotOperationalWarn": "L'engin sélectionné n'est pas opérationnel — confirmez avant d'enregistrer.",
+    "equipment": "Outil",
+    "equipmentNoneOption": "— aucun —",
+    "equipmentWidth": "Largeur de travail {{width}} m",
+    "machineHours": "Heures",
+    "machineNone": "Aucun engin enregistré. Créez-en un pour le lier à l'opération.",
+    "machineCreate": "Nouvel engin",
+    "machineNewName": "Nom",
+    "machineNewType": "Type",
+    "machineCreateSave": "Créer et sélectionner"
   },
   "warehouse": {
     "title": "Magasin",
@@ -885,6 +901,12 @@
     "validation": {
       "required": "champ obligatoire",
       "npkPercent": "teneur requise (0–100 %)"
+    },
+    "comingSoon": "Bientôt disponible.",
+    "tabs": {
+      "products": "Produits / lots",
+      "machines": "Matériel",
+      "refill": "Plein carburant"
     }
   },
   "sianExportDialog": {
@@ -1416,6 +1438,14 @@
       "panelVra": {
         "label": "Dose variable (VRA)",
         "descr": "Cartes de préconisation"
+      },
+      "panelMezzi": {
+        "label": "Parc matériel",
+        "descr": "Engins, outils et entretien"
+      },
+      "panelRefill": {
+        "label": "Plein carburant",
+        "descr": "Bouton de plein rapide sur la carte"
       }
     },
     "unit": {
@@ -1636,5 +1666,221 @@
         "serra": "Serre"
       }
     }
+  },
+  "machinery": {
+    "newMachine": "Nouvel engin",
+    "newEquipment": "Nouvel outil",
+    "editMachine": "Modifier l'engin",
+    "editEquipment": "Modifier l'outil",
+    "importCsv": "Importer CSV",
+    "showDecommissioned": "Afficher les réformés",
+    "status": {
+      "operational": "Opérationnel",
+      "maintenance": "En maintenance",
+      "breakdown": "En panne",
+      "decommissioned": "Réformé"
+    },
+    "docType": {
+      "inspection": "Contrôle technique",
+      "insurance": "Assurance",
+      "road_tax": "Taxe de circulation",
+      "certification": "Homologation",
+      "other": "Autre"
+    },
+    "adjustType": {
+      "initial_reading": "Relevé initial",
+      "manual": "Correction manuelle",
+      "engine_reset": "Remplacement moteur/reset"
+    },
+    "attention": {
+      "title": "Nécessite attention",
+      "maintenance_due": "Entretien proche",
+      "maintenance_overdue": "Entretien en retard",
+      "document_expiring": "Document à échéance",
+      "document_expired": "Document expiré",
+      "fuel_anomaly": "Anomalie de consommation",
+      "machine_down": "Engin à l'arrêt",
+      "inDays": "dans {{count}} jours",
+      "inHours": "dans {{count}} h",
+      "overdueByDays": "{{count}} jours de retard",
+      "overdueByHours": "{{count}} h de retard"
+    },
+    "list": {
+      "machinesSection": "Engins",
+      "equipmentSection": "Outils"
+    },
+    "noMachines": "Aucun engin enregistré.",
+    "noEquipment": "Aucun outil enregistré.",
+    "form": {
+      "name": "Nom",
+      "machineType": "Type",
+      "machineTypePlaceholder": "ex. tracteur, moissonneuse",
+      "equipmentType": "Type",
+      "equipmentTypePlaceholder": "ex. charrue, cuve, semoir",
+      "licensePlate": "Plaque",
+      "chassisNumber": "N° de châssis",
+      "brand": "Marque",
+      "model": "Modèle",
+      "year": "Année",
+      "workingWidth": "Largeur de travail (m)",
+      "status": "État",
+      "notes": "Notes",
+      "advancedSection": "Amortissement (0.4.0)",
+      "advancedHint": "Champs préparés pour le calcul du coût horaire/amortissement de la 0.4.0 ; non utilisés pour l'instant.",
+      "purchaseValue": "Valeur d'achat (€)",
+      "purchaseDate": "Date d'achat",
+      "usefulLifeHours": "Durée de vie (heures)",
+      "usefulLifeYears": "Durée de vie (années)",
+      "residualValue": "Valeur résiduelle (€)",
+      "initialCounter": "Relevé initial du compteur",
+      "initialCounterHint": "Facultatif : si l'engin/outil a déjà des heures/de l'usure, saisissez le relevé de départ (audité).",
+      "saveMachine": "Enregistrer l'engin",
+      "saveEquipment": "Enregistrer l'outil",
+      "nameRequired": "Le nom est obligatoire."
+    },
+    "detail": {
+      "backToList": "‹ Liste des engins",
+      "hourCounter": "Compteur horaire",
+      "usageCounter": "Compteur d'usure",
+      "edit": "Modifier",
+      "deleteMachine": "Supprimer l'engin",
+      "deleteEquipment": "Supprimer l'outil",
+      "notFound": "Enregistrement introuvable."
+    },
+    "counter": {
+      "adjustTitle": "Correction du compteur",
+      "type": "Type de correction",
+      "newValue": "Nouvelle valeur",
+      "date": "Date",
+      "reason": "Motif",
+      "reasonPlaceholder": "ex. remplacement moteur, correction manuelle",
+      "submit": "Enregistrer la correction",
+      "history": "Historique des corrections",
+      "noHistory": "Aucune correction enregistrée.",
+      "from": "depuis {{value}}"
+    },
+    "documents": {
+      "title": "Documents et échéances",
+      "add": "+ Nouveau document",
+      "type": "Type de document",
+      "reference": "N° de référence",
+      "referencePlaceholder": "ex. n° de police/certificat",
+      "issuedAt": "Émis le",
+      "expiresAt": "Échéance",
+      "issuer": "Émetteur",
+      "amount": "Montant (€)",
+      "notes": "Notes",
+      "save": "Enregistrer le document",
+      "edit": "Modifier le document",
+      "delete": "Supprimer le document",
+      "none": "Aucun document enregistré.",
+      "statusValid": "Valide",
+      "statusExpiring": "À échéance",
+      "statusExpired": "Expiré",
+      "expiresAtRequired": "La date d'échéance est obligatoire."
+    },
+    "maintenance": {
+      "title": "Plan d'entretien",
+      "add": "+ Nouveau plan",
+      "name": "Nom du plan",
+      "category": "Catégorie",
+      "categoryRoutine": "Ordinaire",
+      "categoryExtraordinary": "Extraordinaire",
+      "triggerType": "Déclencheur",
+      "triggerTime": "Par temps",
+      "triggerHours": "Par heures",
+      "intervalDays": "Récurrence (jours)",
+      "dueDate": "Prochaine échéance",
+      "intervalHours": "Récurrence (heures)",
+      "dueHours": "Prochaines heures",
+      "active": "Plan actif",
+      "inactive": "En pause",
+      "notes": "Notes",
+      "save": "Enregistrer le plan",
+      "delete": "Supprimer le plan",
+      "none": "Aucun plan d'entretien.",
+      "urgencyOk": "OK",
+      "urgencyDue": "Bientôt",
+      "urgencyOverdue": "En retard",
+      "remainingDays": "{{count}} jours",
+      "remainingHours": "{{count}} h",
+      "overdueDays": "{{count}} jours de retard",
+      "overdueHours": "{{count}} h de retard",
+      "recordIntervention": "Enregistrer l'intervention",
+      "linkedSchedule": "Plan",
+      "noSchedule": "— sans plan (extraordinaire) —",
+      "performedAt": "Date de réalisation",
+      "counterHours": "Relevé du compteur",
+      "description": "Description",
+      "cost": "Coût (€)",
+      "parts": "Pièces (texte libre)",
+      "partsFromWarehouse": "Pièce du magasin (facultatif)",
+      "partsLot": "Lot",
+      "noLot": "— aucun —",
+      "partsQuantity": "Quantité",
+      "partsAvailable": "dispo {{qty}} {{unit}}",
+      "submitIntervention": "Enregistrer l'intervention",
+      "history": "Historique des interventions",
+      "noHistory": "Aucune intervention enregistrée.",
+      "usedPart": "Pièce utilisée : {{qty}} {{unit}} du lot {{lot}}"
+    },
+    "fuel": {
+      "title": "Consommation de carburant",
+      "avg": "Moyenne",
+      "last": "Dernier",
+      "perHour": "l/h",
+      "samples": "{{count}} intervalles plein à plein",
+      "anomaly": "Consommation anormale par rapport à la moyenne",
+      "noData": "Données insuffisantes pour calculer la consommation (au moins un plein à plein avec relevé du compteur requis)."
+    },
+    "import": {
+      "title": "Importer des engins depuis un CSV",
+      "instructions": "Colonnes attendues (ligne d'en-tête) : name, machine_type, license_plate, brand, model, year, hour_counter.",
+      "chooseFile": "Choisir un fichier CSV",
+      "noFile": "Aucun fichier sélectionné.",
+      "parseError": "Impossible de lire le fichier : {{message}}",
+      "missingHeader": "En-tête manquant : une colonne « name » est requise.",
+      "previewTitle": "Aperçu ({{valid}} valides sur {{total}})",
+      "errorNameRequired": "nom requis",
+      "errorYear": "année non numérique",
+      "errorHourCounter": "compteur non numérique",
+      "submit": "Importer {{count}} engins",
+      "importing": "Importation… ({{done}}/{{total}})",
+      "resultSummary": "{{success}} engins importés sur {{total}}.",
+      "resultWithErrors": "{{success}} importés, {{failed}} en échec.",
+      "close": "Fermer"
+    }
+  },
+  "machineryRefill": {
+    "title": "Plein de carburant",
+    "newRefill": "Nouveau plein",
+    "quickHint": "Plein rapide — l'essentiel seulement, enregistré en un geste.",
+    "machine": "Engin",
+    "selectMachine": "Choisir l'engin…",
+    "notOperational": "Engin non opérationnel — vérifiez avant de faire le plein.",
+    "cistern": "Cuve / lot",
+    "selectCistern": "Choisir la cuve…",
+    "available": "{{qty}} l disponibles",
+    "uma": "UMA",
+    "liters": "Litres",
+    "date": "Date",
+    "counterHours": "Compteur horaire",
+    "operator": "Opérateur",
+    "fullTank": "Plein complet (consommation plein à plein)",
+    "notes": "Notes",
+    "save": "Enregistrer le plein",
+    "insufficient": "Les litres dépassent le stock de la cuve.",
+    "noFuelLots": "Aucune cuve de carburant au magasin. Créez un produit carburant et chargez un lot (la cuve) depuis l'onglet Produits.",
+    "noMachines": "Aucun engin enregistré. Ajoutez-en un depuis l'onglet Engins.",
+    "filterMachine": "Engin",
+    "filterCistern": "Cuve",
+    "allMachines": "Tous les engins",
+    "allCisterns": "Toutes les cuves",
+    "empty": "Aucun plein enregistré.",
+    "byMachineTotal": "{{liters}} l au total",
+    "litersShort": "l",
+    "partial": "partiel",
+    "deleteRefill": "Supprimer le plein",
+    "quickAction": "Plein rapide"
   }
 }

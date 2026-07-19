@@ -20,6 +20,8 @@ import { openTenantDb } from "./tenant-db";
  *                               soil, scouting, asset);
  *   - {@link AgroDalWarehouse} — Magazzino (products, lots, carichi CUMP,
  *                               issue atomico agganciato alle attività);
+ *   - {@link AgroDalMachinery} — Parco macchine (mezzi/attrezzi, contatori ore
+ *                               automatici, manutenzione, documenti, refill);
  *   - {@link AgroDalLocal}    — moduli local-only (meteo, DSS, bilancio
  *                               idrico, trasferimenti, cataloghi).
  */

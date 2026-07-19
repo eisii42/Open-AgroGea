@@ -272,13 +272,175 @@ export class AgroDalWarehouse extends AgroDalLogbook {
   // -- issue atomico (attività ↔ lots) --------------------------------------
 
   /**
+   * Inserisce il `treatment_log` (row + voce di outbox) DENTRO la transazione
+   * passata. Mattone condiviso tra lo scarico atomico del Magazzino e
+   * l'orchestrazione del Parco macchine (`AgroDalMachinery`), che aggiunge la
+   * giunzione mezzi e l'incremento dei contatori nella STESSA transazione.
+   */
+  protected async insertTreatmentTx(
+    tx: Transaction,
+    treatment: TreatmentLog,
+  ): Promise<void> {
+    const insTratt = upsertSql("treatment_logs", treatment as unknown as Row);
+    await tx.query(insTratt.sql, insTratt.values);
+    await this.enqueueOutbox(
+      tx,
+      "treatment_logs",
+      "insert",
+      treatment as unknown as Row & { id: string },
+    );
+  }
+
+  /**
+   * Scarico ATOMICO dei lots richiesti da un'attività DENTRO la transazione
+   * passata: blocco su lot inesistente/scaduto/giacenza insufficiente
+   * (l'eccezione WarehouseError annulla l'INTERA transazione). Ritorna le
+   * giunzioni `activity_products` create (costo = CUMP congelato allo issue).
+   */
+  protected async issueLotsTx(
+    tx: Transaction,
+    treatmentId: string,
+    issues: IssueRequest[],
+    ts: string,
+  ): Promise<ActivityProduct[]> {
+    const issueRows: ActivityProduct[] = [];
+    for (const richiesta of issues) {
+      const lookup = await tx.query<ProductLot & { avg_unit_cost: number | string; product_name: string }>(
+        `select l.*, p.avg_unit_cost, p.name as product_name
+         from product_lots l join products p on p.id = l.product_id
+         where l.id = $1 and l.deleted_at is null`,
+        [richiesta.product_lot_id],
+      );
+      const lot = lookup.rows[0];
+      if (!lot) {
+        throw new WarehouseError(
+          "lot_not_found",
+          `Lotto ${richiesta.product_lot_id} inesistente: registrazione annullata.`,
+        );
+      }
+      // Uso di lots scaduti BLOCCATO (comportamento §5.1, esplicitato in UI).
+      if (lotExpired(lot)) {
+        throw new WarehouseError(
+          "expired_lot",
+          `Il lot ${lot.lot_number ?? lot.id.slice(0, 8)} di "${lot.product_name}" è scaduto il ${lot.expires_at}: uso bloccato.`,
+        );
+      }
+      const available = Number(lot.quantity_on_hand);
+      if (richiesta.quantity > available) {
+        throw new WarehouseError(
+          "insufficient_stock",
+          `Giacenza insufficiente per il lot ${lot.lot_number ?? lot.id.slice(0, 8)} di "${lot.product_name}": disponibili ${available}, richiesti ${richiesta.quantity}. Nessuno issue eseguito.`,
+        );
+      }
+
+      // UPDATE della stock: il CHECK `quantity_on_hand >= 0` a schema è la
+      // rete di sicurezza atomica anche in caso di scritture concorrenti.
+      // La row di outbox è COMPLETA (solo columns di product_lots, senza i
+      // campi del join) come ogni altra mutazione sincronizzata.
+      const updatedLot: ProductLot = {
+        id: lot.id,
+        tenant_id: lot.tenant_id,
+        product_id: lot.product_id,
+        lot_number: lot.lot_number,
+        expires_at: lot.expires_at,
+        initial_quantity: lot.initial_quantity,
+        quantity_on_hand:
+          Math.round((available - richiesta.quantity) * 1000) / 1000,
+        unit_cost: lot.unit_cost,
+        created_at: lot.created_at,
+        updated_at: ts,
+        deleted_at: null,
+      };
+      const updLot = upsertSql("product_lots", updatedLot as unknown as Row);
+      await tx.query(updLot.sql, updLot.values);
+      await this.enqueueOutbox(
+        tx,
+        "product_lots",
+        "update",
+        updatedLot as unknown as Row & { id: string },
+      );
+
+      // Costo imputato = CUMP del product CONGELATO al momento dello issue.
+      const cump = Number(lot.avg_unit_cost);
+      const issue: ActivityProduct = {
+        id: uuidv4(),
+        tenant_id: this.tenantId,
+        treatment_log_id: treatmentId,
+        product_lot_id: lot.id,
+        quantity: richiesta.quantity,
+        unit_cost: cump,
+        total_cost: Math.round(richiesta.quantity * cump * 10000) / 10000,
+        created_at: ts,
+        updated_at: ts,
+        deleted_at: null,
+      };
+      const insIssue = upsertSql("activity_products", issue as unknown as Row);
+      await tx.query(insIssue.sql, insIssue.values);
+      await this.enqueueOutbox(
+        tx,
+        "activity_products",
+        "insert",
+        issue as unknown as Row & { id: string },
+      );
+      issueRows.push(issue);
+    }
+    return issueRows;
+  }
+
+  /**
+   * Storno warehouse dei lots scaricati da un'attività DENTRO la transazione
+   * passata: reintegro delle giacenze + tombstone degli `activity_products`
+   * (l'inventario resta coerente). Condiviso da {@link deleteTreatment} e
+   * dall'override del Parco macchine.
+   */
+  protected async reverseIssuesTx(
+    tx: Transaction,
+    treatmentId: string,
+    ts: string,
+  ): Promise<void> {
+    const issues = await tx.query<ActivityProduct>(
+      `select * from activity_products
+       where treatment_log_id = $1 and deleted_at is null`,
+      [treatmentId],
+    );
+    for (const issue of issues.rows) {
+      await tx.query(
+        `update product_lots
+         set quantity_on_hand = quantity_on_hand + $2, updated_at = $3
+         where id = $1 and deleted_at is null`,
+        [issue.product_lot_id, issue.quantity, ts],
+      );
+      const lot = await tx.query<ProductLot>(
+        `select * from product_lots where id = $1`,
+        [issue.product_lot_id],
+      );
+      if (lot.rows[0]) {
+        await this.enqueueOutbox(
+          tx,
+          "product_lots",
+          "update",
+          lot.rows[0] as unknown as Row & { id: string },
+        );
+      }
+      await tx.query(
+        `update activity_products set deleted_at = $2, updated_at = $2 where id = $1`,
+        [issue.id, ts],
+      );
+      await this.enqueueOutbox(tx, "activity_products", "delete", {
+        id: issue.id,
+        updated_at: ts,
+      } as Row & { id: string });
+    }
+  }
+
+  /**
    * Registra un'attività del Quaderno E download i lots richiesti in UN'UNICA
    * transazione (§5.2): se un lot è scaduto, inesistente o la stock
    * andrebbe sotto zero, l'INTERA operation fallisce (nessuno issue
    * parziale, nessuna attività orfana). Il costo imputato è quantità × CUMP
    * del product al momento dello issue (§5.3), congelato in
-   * `activity_products` (§5.4). Con `scarichi` vuoto degrada a
-   * {@link insertTreatment} (fallback testo libero intatto).
+   * `activity_products` (§5.4). Con `scarichi` vuoto scrive la sola attività.
+   * L'aggancio dei mezzi (contatori ore) è nell'override di `AgroDalMachinery`.
    */
   async insertTreatmentWithIssues(
     input: Omit<
@@ -287,9 +449,6 @@ export class AgroDalWarehouse extends AgroDalLogbook {
     > & { id?: string },
     issues: IssueRequest[],
   ): Promise<{ treatment: TreatmentLog; issues: ActivityProduct[] }> {
-    if (issues.length === 0) {
-      return { treatment: await this.insertTreatment(input), issues: [] };
-    }
     const ts = nowIso();
     const treatment: TreatmentLog = {
       ...input,
@@ -299,98 +458,10 @@ export class AgroDalWarehouse extends AgroDalLogbook {
       updated_at: ts,
       deleted_at: null,
     };
-    const issueRows: ActivityProduct[] = [];
-
+    let issueRows: ActivityProduct[] = [];
     await this.db.transaction(async (tx: Transaction) => {
-      const insTratt = upsertSql("treatment_logs", treatment as unknown as Row);
-      await tx.query(insTratt.sql, insTratt.values);
-      await this.enqueueOutbox(
-        tx,
-        "treatment_logs",
-        "insert",
-        treatment as unknown as Row & { id: string },
-      );
-
-      for (const richiesta of issues) {
-        const lookup = await tx.query<ProductLot & { avg_unit_cost: number | string; product_name: string }>(
-          `select l.*, p.avg_unit_cost, p.name as product_name
-           from product_lots l join products p on p.id = l.product_id
-           where l.id = $1 and l.deleted_at is null`,
-          [richiesta.product_lot_id],
-        );
-        const lot = lookup.rows[0];
-        if (!lot) {
-          throw new WarehouseError(
-            "lot_not_found",
-            `Lotto ${richiesta.product_lot_id} inesistente: registrazione annullata.`,
-          );
-        }
-        // Uso di lots scaduti BLOCCATO (comportamento §5.1, esplicitato in UI).
-        if (lotExpired(lot)) {
-          throw new WarehouseError(
-            "expired_lot",
-            `Il lot ${lot.lot_number ?? lot.id.slice(0, 8)} di "${lot.product_name}" è scaduto il ${lot.expires_at}: uso bloccato.`,
-          );
-        }
-        const available = Number(lot.quantity_on_hand);
-        if (richiesta.quantity > available) {
-          throw new WarehouseError(
-            "insufficient_stock",
-            `Giacenza insufficiente per il lot ${lot.lot_number ?? lot.id.slice(0, 8)} di "${lot.product_name}": disponibili ${available}, richiesti ${richiesta.quantity}. Nessuno issue eseguito.`,
-          );
-        }
-
-        // UPDATE della stock: il CHECK `quantity_on_hand >= 0` a schema è la
-        // rete di sicurezza atomica anche in caso di scritture concorrenti.
-        // La row di outbox è COMPLETA (solo columns di product_lots, senza i
-        // campi del join) come ogni altra mutazione sincronizzata.
-        const updatedLot: ProductLot = {
-          id: lot.id,
-          tenant_id: lot.tenant_id,
-          product_id: lot.product_id,
-          lot_number: lot.lot_number,
-          expires_at: lot.expires_at,
-          initial_quantity: lot.initial_quantity,
-          quantity_on_hand:
-            Math.round((available - richiesta.quantity) * 1000) / 1000,
-          unit_cost: lot.unit_cost,
-          created_at: lot.created_at,
-          updated_at: ts,
-          deleted_at: null,
-        };
-        const updLot = upsertSql("product_lots", updatedLot as unknown as Row);
-        await tx.query(updLot.sql, updLot.values);
-        await this.enqueueOutbox(
-          tx,
-          "product_lots",
-          "update",
-          updatedLot as unknown as Row & { id: string },
-        );
-
-        // Costo imputato = CUMP del product CONGELATO al momento dello issue.
-        const cump = Number(lot.avg_unit_cost);
-        const issue: ActivityProduct = {
-          id: uuidv4(),
-          tenant_id: this.tenantId,
-          treatment_log_id: treatment.id,
-          product_lot_id: lot.id,
-          quantity: richiesta.quantity,
-          unit_cost: cump,
-          total_cost: Math.round(richiesta.quantity * cump * 10000) / 10000,
-          created_at: ts,
-          updated_at: ts,
-          deleted_at: null,
-        };
-        const insIssue = upsertSql("activity_products", issue as unknown as Row);
-        await tx.query(insIssue.sql, insIssue.values);
-        await this.enqueueOutbox(
-          tx,
-          "activity_products",
-          "insert",
-          issue as unknown as Row & { id: string },
-        );
-        issueRows.push(issue);
-      }
+      await this.insertTreatmentTx(tx, treatment);
+      issueRows = await this.issueLotsTx(tx, treatment.id, issues, ts);
     });
     return { treatment, issues: issueRows };
   }
@@ -399,7 +470,8 @@ export class AgroDalWarehouse extends AgroDalLogbook {
    * Soft-delete di un'operazione del Quaderno con STORNO warehouse: tombstone
    * dell'attività e dei suoi issues + reintegro delle giacenze dei lots,
    * tutto in un'unica transazione (l'inventario resta coerente). Sostituisce
-   * {@link AgroDalLogbook.deleteTreatment} per le attività con issues.
+   * {@link AgroDalLogbook.deleteTreatment} per le attività con issues; il
+   * Parco macchine estende questa cancellazione stornando anche i contatori.
    */
   override async deleteTreatment(id: string): Promise<void> {
     const ts = nowIso();
@@ -412,40 +484,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
         id,
         updated_at: ts,
       } as Row & { id: string });
-
-      const issues = await tx.query<ActivityProduct>(
-        `select * from activity_products
-         where treatment_log_id = $1 and deleted_at is null`,
-        [id],
-      );
-      for (const issue of issues.rows) {
-        await tx.query(
-          `update product_lots
-           set quantity_on_hand = quantity_on_hand + $2, updated_at = $3
-           where id = $1 and deleted_at is null`,
-          [issue.product_lot_id, issue.quantity, ts],
-        );
-        const lot = await tx.query<ProductLot>(
-          `select * from product_lots where id = $1`,
-          [issue.product_lot_id],
-        );
-        if (lot.rows[0]) {
-          await this.enqueueOutbox(
-            tx,
-            "product_lots",
-            "update",
-            lot.rows[0] as unknown as Row & { id: string },
-          );
-        }
-        await tx.query(
-          `update activity_products set deleted_at = $2, updated_at = $2 where id = $1`,
-          [issue.id, ts],
-        );
-        await this.enqueueOutbox(tx, "activity_products", "delete", {
-          id: issue.id,
-          updated_at: ts,
-        } as Row & { id: string });
-      }
+      await this.reverseIssuesTx(tx, id, ts);
     });
   }
 

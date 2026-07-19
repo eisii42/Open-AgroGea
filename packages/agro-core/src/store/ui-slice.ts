@@ -19,6 +19,8 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
     mapOperationIds: null,
     mapHarvestIds: null,
     scoutingPlacing: false,
+    warehouseTab: "products",
+    quickRefillPending: false,
 
     setTheme: (theme) => {
       persistTheme(theme);
@@ -50,6 +52,32 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
         panelMode: mode,
         openPanels: mode === "docked" ? s.openPanels.slice(-1) : s.openPanels,
       })),
+
+    setWarehouseTab: (tab) => set({ warehouseTab: tab }),
+
+    openWarehouseTab: (tab) =>
+      set((s) => ({
+        warehouseTab: tab,
+        openPanels:
+          s.panelMode === "docked"
+            ? ["magazzino"]
+            : s.openPanels.includes("magazzino")
+              ? s.openPanels
+              : [...s.openPanels, "magazzino"],
+      })),
+
+    openRefillPanel: (options) =>
+      set((s) => ({
+        quickRefillPending: options?.quickRefill ?? false,
+        openPanels:
+          s.panelMode === "docked"
+            ? ["refill"]
+            : s.openPanels.includes("refill")
+              ? s.openPanels
+              : [...s.openPanels, "refill"],
+      })),
+
+    consumeQuickRefill: () => set({ quickRefillPending: false }),
 
     selectPlot: async (id) => {
       set({ selectedPlotId: id, lastOperation: null });
