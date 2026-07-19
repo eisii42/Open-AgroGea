@@ -171,7 +171,8 @@
     },
     "aboutModal": {
       "title": "About AgroGea",
-      "legal": "Local-first data: each company is stored in an isolated PGlite database on this device. Nothing leaves the device until you sync to your cloud or company server."
+      "legal": "Local-first data: each company is stored in an isolated PGlite database on this device. Nothing leaves the device until you sync to your cloud or company server.",
+      "manual": "User manual"
     },
     "diagnosticsModal": {
       "title": "Diagnostics",

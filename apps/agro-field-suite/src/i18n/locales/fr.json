@@ -171,7 +171,8 @@
     },
     "aboutModal": {
       "title": "À propos d'AgroGea",
-      "legal": "Données local-first : chaque exploitation est stockée dans une base PGlite isolée sur cet appareil. Rien ne quitte l'appareil tant que vous ne synchronisez pas vers votre cloud ou le serveur de l'entreprise."
+      "legal": "Données local-first : chaque exploitation est stockée dans une base PGlite isolée sur cet appareil. Rien ne quitte l'appareil tant que vous ne synchronisez pas vers votre cloud ou le serveur de l'entreprise.",
+      "manual": "Manuel d'utilisation"
     },
     "diagnosticsModal": {
       "title": "Diagnostic",

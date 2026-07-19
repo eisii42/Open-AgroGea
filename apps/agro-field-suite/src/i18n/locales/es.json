@@ -171,7 +171,8 @@
     },
     "aboutModal": {
       "title": "Acerca de AgroGea",
-      "legal": "Datos local-first: cada empresa se almacena en una base de datos PGlite aislada en este dispositivo. Nada sale del dispositivo hasta que sincronizas con tu nube o el servidor de la empresa."
+      "legal": "Datos local-first: cada empresa se almacena en una base de datos PGlite aislada en este dispositivo. Nada sale del dispositivo hasta que sincronizas con tu nube o el servidor de la empresa.",
+      "manual": "Manual de usuario"
     },
     "diagnosticsModal": {
       "title": "Diagnóstico",
