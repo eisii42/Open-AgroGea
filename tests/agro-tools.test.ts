@@ -782,17 +782,21 @@ describe("griglia celle raster d'index (rendering vettoriale)", () => {
     }
   });
 
-  it("relativeRamp NDWI: verso agronomico, blu sui value bassi e beige sugli alti", () => {
-    // L'NDWI di McFeeters (Green−NIR) dentro un appezzamento vegetato CRESCE
-    // dove la copertura cala: i value alti sono suolo nudo/arido. La rampa
-    // deve quindi partire dal blu (basso = vegetazione densa/umida) e finire
-    // sul beige (alto = arido), all'inverso della lettura idrologica.
-    const relativa = relativeRamp("ndwi", [-0.5, -0.2]);
-    assert.equal(relativa[0][1], "#1f5fa6"); // blu profondo sul minimo
-    assert.equal(relativa[relativa.length - 1][1], "#caa472"); // beige sul massimo
-    // Il verso è opposto a quello del vigore (NDVI: rosso in basso, verde in alto).
-    const vigore = relativeRamp("ndvi", [-0.5, -0.2]);
-    assert.notEqual(relativa[0][1], vigore[0][1]);
+  it("NDMI: bande B08/B11 e rampa umidità (secco in basso, umido in alto)", () => {
+    // NDMI = (NIR − SWIR)/(NIR + SWIR): la SWIR è assorbita dall'acqua nelle
+    // foglie, quindi misura l'umidità DELLA CHIOMA (a differenza dell'NDWI di
+    // McFeeters, che individua l'acqua libera). B11 è la banda in più da
+    // scaricare rispetto agli altri indici.
+    assert.deepEqual(requiredBandsForIndices(["ndmi"]).sort(), ["B08", "B11"]);
+
+    // Valori alti = coltura idratata: verde-acqua in cima, marrone secco in basso.
+    const relativa = relativeRamp("ndmi", [-0.1, 0.3]);
+    assert.equal(relativa[0][1], "#8c510a"); // marrone secco sul minimo
+    assert.equal(relativa[relativa.length - 1][1], "#01665e"); // verde-acqua sul massimo
+
+    // L'NDWI resta invece sulla sua rampa idrologica (blu = acqua libera alta).
+    const idrologica = relativeRamp("ndwi", [-0.1, 0.3]);
+    assert.equal(idrologica[idrologica.length - 1][1], "#1f5fa6");
   });
 
   it("indexCellColorExpression: espressione interpolate ben formata", () => {

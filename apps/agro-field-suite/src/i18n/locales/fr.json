@@ -1118,7 +1118,7 @@
     },
     "indices": {
       "ndwi": {
-        "descr": "Teneur en eau"
+        "descr": "Eau libre / stagnation"
       },
       "overlay": "superposition",
       "title": "Indices",
@@ -1134,6 +1134,9 @@
       "primaryTooltip": "Indice principal (superposition sur la carte)",
       "savi": {
         "descr": "Corrigé pour le sol"
+      },
+      "ndmi": {
+        "descr": "Humidité de la culture (stress hydrique)"
       }
     },
     "period": {

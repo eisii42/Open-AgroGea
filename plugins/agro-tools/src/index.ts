@@ -11,6 +11,7 @@ export {
   isSoilIndex,
   NDVI_RAMP,
   NDWI_RAMP,
+  NDMI_RAMP,
   ndviColor,
   INDEX_RAMP,
   rampForIndex,

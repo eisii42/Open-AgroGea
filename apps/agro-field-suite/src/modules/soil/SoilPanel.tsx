@@ -58,6 +58,7 @@ function getIndices(
       descr: t("soilPanel.indices.msavi2.descr"),
     },
     { id: "savi", label: "SAVI", descr: t("soilPanel.indices.savi.descr") },
+    { id: "ndmi", label: "NDMI", descr: t("soilPanel.indices.ndmi.descr") },
     { id: "ndwi", label: "NDWI", descr: t("soilPanel.indices.ndwi.descr") },
   ];
 }

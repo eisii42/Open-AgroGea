@@ -1334,7 +1334,7 @@
     },
     "indices": {
       "ndwi": {
-        "descr": "Water content"
+        "descr": "Open water / ponding"
       },
       "overlay": "overlay",
       "title": "Indices",
@@ -1350,6 +1350,9 @@
       "primaryTooltip": "Primary index (map overlay)",
       "savi": {
         "descr": "Soil-adjusted"
+      },
+      "ndmi": {
+        "descr": "Crop moisture (water stress)"
       }
     },
     "period": {

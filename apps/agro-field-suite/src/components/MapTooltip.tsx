@@ -12,7 +12,14 @@ import { assetIcon } from "../lib/assetIcon";
 import type { HoverState } from "../hooks/useHoverTooltips";
 
 /** Ordine di visualizzazione degli indici nel tooltip cella (solo quelli presenti). */
-const INDEX_ORDER: VegetationIndex[] = ["ndvi", "ndre", "savi", "msavi2", "ndwi"];
+const INDEX_ORDER: VegetationIndex[] = [
+  "ndvi",
+  "ndre",
+  "savi",
+  "msavi2",
+  "ndmi",
+  "ndwi",
+];
 
 /**
  * Popup fluttuante mostrato all'hover su un layer vettoriale (Modulo UI §2).

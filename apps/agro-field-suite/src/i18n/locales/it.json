@@ -1334,7 +1334,7 @@
     },
     "indices": {
       "ndwi": {
-        "descr": "Contenuto idrico"
+        "descr": "Acqua libera / ristagni"
       },
       "overlay": "overlay",
       "title": "Indici",
@@ -1350,6 +1350,9 @@
       "primaryTooltip": "Indice primario (overlay sulla mappa)",
       "savi": {
         "descr": "Corretto per il suolo"
+      },
+      "ndmi": {
+        "descr": "Umidità della coltura (stress idrico)"
       }
     },
     "period": {

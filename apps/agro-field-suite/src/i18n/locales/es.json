@@ -1118,7 +1118,7 @@
     },
     "indices": {
       "ndwi": {
-        "descr": "Contenido de agua"
+        "descr": "Agua libre / encharcamiento"
       },
       "overlay": "superposición",
       "title": "Índices",
@@ -1134,6 +1134,9 @@
       "primaryTooltip": "Índice primario (superposición en el mapa)",
       "savi": {
         "descr": "Corregido por el suelo"
+      },
+      "ndmi": {
+        "descr": "Humedad del cultivo (estrés hídrico)"
       }
     },
     "period": {

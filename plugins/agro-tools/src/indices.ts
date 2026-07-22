@@ -5,7 +5,7 @@
  */
 
 /** Indici a differenza normalizzata (a − b)/(a + b). */
-export type NormalizedIndex = "ndvi" | "ndre" | "ndwi";
+export type NormalizedIndex = "ndvi" | "ndre" | "ndwi" | "ndmi";
 /** Indici corretti per il suolo (NIR/Red + fattore L). */
 export type SoilIndex = "savi" | "msavi2";
 export type VegetationIndex = NormalizedIndex | SoilIndex;
@@ -19,8 +19,12 @@ export const REQUIRED_BANDS: Record<
   ndvi: { a: "B08", b: "B04" },
   // (NIR − RedEdge) / (NIR + RedEdge) — stato azotato, vigneto/frutteto
   ndre: { a: "B08", b: "B05" },
-  // (Green − NIR) / (Green + NIR) — contenuto idrico/superfici irrigue
+  // (Green − NIR) / (Green + NIR) — acqua libera: ristagni, invasi, allagamenti
   ndwi: { a: "B03", b: "B08" },
+  // (NIR − SWIR) / (NIR + SWIR) — umidità della chioma, stress idrico.
+  // B11 è nativa a 20 m: il worker la ricampiona sulla griglia 10 m di B08
+  // (stesso trattamento di B05 per l'NDRE).
+  ndmi: { a: "B08", b: "B11" },
 };
 
 /** Bande NIR/Red usate dagli indici corretti per il suolo. */
@@ -224,8 +228,14 @@ export function ndviColor(value: number): string {
 }
 
 /**
- * Rampa "acqua" per NDWI (Green−NIR / Green+NIR): valori alti = più contenuto
- * idrico/superfici sature. Dal beige asciutto al blu profondo.
+ * Rampa "acqua libera" per NDWI (Green−NIR / Green+NIR): valori alti = superfici
+ * sature/specchi d'acqua. Dal beige asciutto al blu profondo.
+ *
+ * ⚠️ NDWI è McFeeters: individua l'ACQUA LIBERA (ristagni, invasi, allagamenti),
+ * NON l'umidità della coltura. Dentro un appezzamento vegetato resta negativo e
+ * CRESCE dove la copertura fogliare cala, quindi i suoi valori alti intra-campo
+ * sono suolo nudo, non zone umide: su una scala relativa la lettura si ribalta.
+ * Per l'umidità della chioma usare {@link NDMI_RAMP} (NDMI, NIR−SWIR).
  */
 export const NDWI_RAMP: [number, string][] = [
   [-0.3, "#caa472"],
@@ -237,9 +247,26 @@ export const NDWI_RAMP: [number, string][] = [
 ];
 
 /**
- * Rampa colore consigliata per ciascun index, base dell'overlay raster sulla
+ * Rampa "umidità" per NDMI (NIR−SWIR / NIR+SWIR, detto anche NDWI di Gao):
+ * ColorBrewer BrBG, dal marrone secco al verde-acqua umido. A differenza
+ * dell'NDWI, l'NDMI misura il contenuto idrico DELLA CHIOMA — la SWIR (B11) è
+ * assorbita dall'acqua nelle foglie — quindi valori alti = coltura ben idratata
+ * e valori bassi = stress idrico, lettura valida anche intra-appezzamento.
+ */
+export const NDMI_RAMP: [number, string][] = [
+  [-0.2, "#8c510a"],
+  [-0.05, "#d8b365"],
+  [0.05, "#f6e8c3"],
+  [0.15, "#c7eae5"],
+  [0.25, "#5ab4ac"],
+  [0.4, "#01665e"],
+];
+
+/**
+ * Rampa colore consigliata per ciascun index, base del fill delle celle sulla
  * mappa. NDVI/SAVI/MSAVI2/NDRE condividono la rampa di vigore vegetale; NDWI usa
- * la rampa idrica. Editabile come gli altri default agronomici.
+ * la rampa dell'acqua libera, NDMI quella dell'umidità della chioma. Editabile
+ * come gli altri default agronomici.
  */
 export const INDEX_RAMP: Record<VegetationIndex, [number, string][]> = {
   ndvi: NDVI_RAMP,
@@ -247,6 +274,7 @@ export const INDEX_RAMP: Record<VegetationIndex, [number, string][]> = {
   savi: NDVI_RAMP,
   msavi2: NDVI_RAMP,
   ndwi: NDWI_RAMP,
+  ndmi: NDMI_RAMP,
 };
 
 export function rampForIndex(index: VegetationIndex): [number, string][] {
