@@ -726,6 +726,7 @@
     "critical": "Critical",
     "dssRisk": "DSS risk",
     "optimal": "Optimal",
+    "relativeScale": "Relative scale",
     "warning": "Warning"
   },
   "fieldDashboard": {
@@ -1373,6 +1374,7 @@
     "results": {
       "cloudSuffix": " · {{percent}}% clouds",
       "noScene": "No usable scene with the chosen filters.",
+      "relativeScale": "Relative scale {{index}}: {{min}} – {{max}}",
       "sceneDate": "scene from {{date}}",
       "title": "Results",
       "trend": "Trend",
@@ -1769,7 +1771,9 @@
     "mobile": "Mobile",
     "fixed": "Fixed",
     "poi": "POI",
-    "id": "ID"
+    "id": "ID",
+    "indexCell": "Index cell",
+    "cellSize": "{{size}} × {{size}} m"
   },
   "appHeader": {
     "commandCenter": "Command Center",

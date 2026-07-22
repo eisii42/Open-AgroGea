@@ -2,13 +2,17 @@ import {
   assetStyle,
   cropStyle,
   formatArea,
+  useAgroStore,
   useSettingsStore,
 } from "@agrogea/core";
-import { ndviColor } from "@agrogea/tools";
+import { ndviColor, type VegetationIndex } from "@agrogea/tools";
 import { useTranslation } from "react-i18next";
 import { cropIcon } from "../lib/cropIcon";
 import { assetIcon } from "../lib/assetIcon";
 import type { HoverState } from "../hooks/useHoverTooltips";
+
+/** Ordine di visualizzazione degli indici nel tooltip cella (solo quelli presenti). */
+const INDEX_ORDER: VegetationIndex[] = ["ndvi", "ndre", "savi", "msavi2", "ndwi"];
 
 /**
  * Popup fluttuante mostrato all'hover su un layer vettoriale (Modulo UI §2).
@@ -52,6 +56,7 @@ export function MapTooltip({ hover }: { hover: HoverState | null }) {
       {kind === "appezzamento" && <PlotBody props={props} />}
       {kind === "infrastruttura" && <InfrastructureBody props={props} />}
       {kind === "poi" && <PoiBody props={props} />}
+      {kind === "indexCell" && <IndexCellBody props={props} />}
     </div>
   );
 }
@@ -153,6 +158,33 @@ function PoiBody({ props }: { props: Record<string, unknown> }) {
         <span className="min-w-0 truncate">{poiType}</span>
       </p>
       {id && <Row label={t("mapTooltip.id")} value={<span className="agro-num">{id.slice(0, 8)}</span>} />}
+    </div>
+  );
+}
+
+function IndexCellBody({ props }: { props: Record<string, unknown> }) {
+  const { t } = useTranslation();
+  const plots = useAgroStore((s) => s.plots);
+  const plotId = str(props.plotId);
+  const plot = plotId ? plots.find((p) => p.id === plotId) : undefined;
+  const name = plot?.user_plot_name ?? t("mapTooltip.indexCell");
+  const cellSizeM = num(props.cellSizeM);
+  const indici = INDEX_ORDER.filter((ind) => num(props[ind]) != null);
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="text-[13px] font-semibold">{name}</p>
+      {indici.map((ind) => (
+        <Row
+          key={ind}
+          label={ind.toUpperCase()}
+          value={<span className="agro-num">{(num(props[ind]) as number).toFixed(3)}</span>}
+        />
+      ))}
+      {cellSizeM != null && (
+        <p className="mt-0.5 text-[10px] text-[var(--ink-4)]">
+          {t("mapTooltip.cellSize", { size: Math.round(cellSizeM) })}
+        </p>
+      )}
     </div>
   );
 }

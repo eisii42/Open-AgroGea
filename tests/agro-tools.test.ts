@@ -15,10 +15,13 @@ import {
   applySasToken,
   extractSceneSeries,
   filterWindowFromLatest,
-  windowToCoordinates,
   signPlanetaryComputerHref,
   planetaryComputerToken,
-  indexToRgba,
+  rasterToIndexCells,
+  indexCellValues,
+  relativeDomain,
+  relativeRamp,
+  indexCellColorExpression,
   rampForIndex,
   utmToLonLat,
   normalizedDifference,
@@ -641,27 +644,6 @@ describe("proiezione UTM", () => {
 });
 
 describe("overlay raster d'index", () => {
-  it("windowToCoordinates dà 4 angoli [lng,lat] coerenti col bbox della finestra", () => {
-    const centro = lonLatToUtm(11.25, 43.77, 32632);
-    const win: RasterWindow = {
-      epsg: 32632,
-      originEasting: centro.easting - 100,
-      originNorthing: centro.northing + 100,
-      pixelWidth: 10,
-      pixelHeight: 10,
-      width: 20,
-      height: 20,
-    };
-    const [tl, tr, br, bl] = windowToCoordinates(win);
-    // Alto-sx più a ovest e più a nord; basso-dx più a est e più a sud.
-    assert.ok(tl[0] < tr[0], "alto-sx più a ovest di alto-dx");
-    assert.ok(tl[1] > bl[1], "alto-sx più a nord di basso-sx");
-    assert.ok(br[0] > bl[0], "basso-dx più a est di basso-sx");
-    assert.ok(br[1] < tr[1], "basso-dx più a sud di alto-dx");
-    // Gli angoli devono cadere attorno al centro noto.
-    assert.ok(Math.abs(tl[0] - 11.25) < 0.01 && Math.abs(tl[1] - 43.77) < 0.01);
-  });
-
   it("colorFromRamp: NaN trasparente, soglie applicate in ordine", () => {
     const rampa = rampForIndex("ndvi");
     assert.equal(colorFromRamp(Number.NaN, rampa), null);
@@ -669,14 +651,173 @@ describe("overlay raster d'index", () => {
     const alto = colorFromRamp(0.95, rampa);
     assert.ok(alto && alto.g > alto.r, "vigore alto = verde");
   });
+});
 
-  it("indexToRgba: i pixel NaN restano trasparenti, i validi opachi", () => {
-    const values = Float32Array.from([0.8, Number.NaN, 0.2, 0.6]);
-    const rgba = indexToRgba(values, rampForIndex("ndvi"), 200);
-    assert.equal(rgba.length, 16);
-    assert.equal(rgba[3], 200); // pixel 0 valido
-    assert.equal(rgba[7], 0); // pixel 1 NaN → trasparente
-    assert.equal(rgba[11], 200); // pixel 2 valido
+describe("griglia celle raster d'index (rendering vettoriale)", () => {
+  // Finestra 2×2 px a 10 m/pixel, centrata su un punto reale.
+  const centro = lonLatToUtm(11.25, 43.77, 32632);
+  const win: RasterWindow = {
+    epsg: 32632,
+    originEasting: centro.easting - 10,
+    originNorthing: centro.northing + 10,
+    pixelWidth: 10,
+    pixelHeight: 10,
+    width: 2,
+    height: 2,
+  };
+
+  it("rasterToIndexCells: una cella per pixel con l'indice primario finito", () => {
+    // Row-major: [0,0]=alto-sx, [0,1]=alto-dx, [1,0]=basso-sx, [1,1]=basso-dx.
+    // Il pixel [1,1] è NaN (fuori poligono) sull'indice primario → omesso.
+    const ndvi = Float32Array.from([0.5, 0.6, 0.7, Number.NaN]);
+    const fc = rasterToIndexCells(
+      [{ index: "ndvi", values: ndvi }],
+      win,
+      { primaryIndex: "ndvi", plotId: "plot-1" },
+    );
+    assert.equal(fc.features.length, 3);
+    for (const f of fc.features) {
+      assert.equal(f.properties.plotId, "plot-1");
+      assert.ok(Number.isFinite(f.properties.value));
+    }
+  });
+
+  it("ogni cella è un anello chiuso a 5 punti", () => {
+    const ndvi = Float32Array.from([0.5, 0.6, 0.7, 0.8]);
+    const fc = rasterToIndexCells(
+      [{ index: "ndvi", values: ndvi }],
+      win,
+      { primaryIndex: "ndvi", plotId: "plot-1" },
+    );
+    for (const f of fc.features) {
+      const ring = f.geometry.coordinates[0];
+      assert.equal(ring.length, 5, "anello di 5 punti (chiuso)");
+      assert.deepEqual(ring[0], ring[4], "primo e ultimo punto coincidono");
+    }
+  });
+
+  it("celle adiacenti condividono esattamente gli stessi angoli (nessuna fessura)", () => {
+    const ndvi = Float32Array.from([0.5, 0.6, 0.7, 0.8]);
+    const fc = rasterToIndexCells(
+      [{ index: "ndvi", values: ndvi }],
+      win,
+      { primaryIndex: "ndvi", plotId: "plot-1" },
+    );
+    // [0,0] (alto-sx) e [0,1] (alto-dx) sono adiacenti in colonna: lo spigolo
+    // destro del primo coincide con lo spigolo sinistro del secondo.
+    const topLeft = fc.features[0].geometry.coordinates[0];
+    const topRight = fc.features[1].geometry.coordinates[0];
+    assert.deepEqual(topLeft[1], topRight[0], "alto-dx della cella 0 = alto-sx della cella 1");
+    assert.deepEqual(topLeft[2], topRight[3], "basso-dx della cella 0 = basso-sx della cella 1");
+  });
+
+  it("properties per-indice presenti solo se finite, arrotondate a 3 decimali", () => {
+    const ndvi = Float32Array.from([0.5001, 0.60006]);
+    const ndre = Float32Array.from([0.3111, Number.NaN]);
+    const singleWin: RasterWindow = { ...win, width: 2, height: 1 };
+    const fc = rasterToIndexCells(
+      [
+        { index: "ndvi", values: ndvi },
+        { index: "ndre", values: ndre },
+      ],
+      singleWin,
+      { primaryIndex: "ndvi", plotId: "plot-9" },
+    );
+    assert.equal(fc.features.length, 2);
+    assert.equal(fc.features[0].properties.value, 0.5);
+    assert.equal(fc.features[0].properties.ndre, 0.311);
+    // Il secondo pixel ha NDRE NaN: la property non compare affatto.
+    assert.equal("ndre" in fc.features[1].properties, false);
+  });
+
+  it("nessuna cella se l'indice primario non è fra i layer forniti", () => {
+    const ndre = Float32Array.from([0.3, 0.4, 0.5, 0.6]);
+    const fc = rasterToIndexCells(
+      [{ index: "ndre", values: ndre }],
+      win,
+      { primaryIndex: "ndvi", plotId: "plot-1" },
+    );
+    assert.equal(fc.features.length, 0);
+  });
+
+  it("relativeDomain: lo stretch 2-98 percentile ignora un outlier isolato", () => {
+    // Un solo pixel a 0.99 in mezzo a un cluster fitto attorno a 0.5-0.6: lo
+    // stretch percentile non deve farlo diventare l'estremo del dominio.
+    const values = [
+      ...Array.from({ length: 96 }, (_, i) => 0.5 + (i % 10) * 0.01),
+      0.99,
+      0.01,
+      0.5,
+      0.55,
+    ];
+    const [lo, hi] = relativeDomain(values);
+    assert.ok(hi < 0.99, `hi=${hi} deve escludere l'outlier alto`);
+    assert.ok(lo > 0.01, `lo=${lo} deve escludere l'outlier basso`);
+  });
+
+  it("relativeDomain: input costante degenera su [v-0.01, v+0.01]", () => {
+    const [lo, hi] = relativeDomain([0.42, 0.42, 0.42]);
+    assert.ok(Math.abs(lo - 0.41) < 1e-9);
+    assert.ok(Math.abs(hi - 0.43) < 1e-9);
+  });
+
+  it("relativeDomain: input vuoto → [0, 1]", () => {
+    assert.deepEqual(relativeDomain([]), [0, 1]);
+    // Solo NaN/non finiti: trattato come vuoto.
+    assert.deepEqual(relativeDomain([Number.NaN, Number.POSITIVE_INFINITY]), [0, 1]);
+  });
+
+  it("relativeRamp: colori della rampa dell'indice spalmati sul dominio, estremi = lo/hi", () => {
+    const base = rampForIndex("ndvi");
+    const domain: [number, number] = [0.2, 0.8];
+    const relativa = relativeRamp("ndvi", domain);
+    assert.equal(relativa.length, base.length);
+    assert.equal(relativa[0][0], domain[0]);
+    assert.equal(relativa[relativa.length - 1][0], domain[1]);
+    // Stessi colori della rampa base, nello stesso ordine.
+    assert.deepEqual(relativa.map(([, c]) => c), base.map(([, c]) => c));
+    // sorted crescente per value.
+    for (let i = 1; i < relativa.length; i++) {
+      assert.ok(relativa[i][0] > relativa[i - 1][0]);
+    }
+  });
+
+  it("relativeRamp NDWI: verso agronomico, blu sui value bassi e beige sugli alti", () => {
+    // L'NDWI di McFeeters (Green−NIR) dentro un appezzamento vegetato CRESCE
+    // dove la copertura cala: i value alti sono suolo nudo/arido. La rampa
+    // deve quindi partire dal blu (basso = vegetazione densa/umida) e finire
+    // sul beige (alto = arido), all'inverso della lettura idrologica.
+    const relativa = relativeRamp("ndwi", [-0.5, -0.2]);
+    assert.equal(relativa[0][1], "#1f5fa6"); // blu profondo sul minimo
+    assert.equal(relativa[relativa.length - 1][1], "#caa472"); // beige sul massimo
+    // Il verso è opposto a quello del vigore (NDVI: rosso in basso, verde in alto).
+    const vigore = relativeRamp("ndvi", [-0.5, -0.2]);
+    assert.notEqual(relativa[0][1], vigore[0][1]);
+  });
+
+  it("indexCellColorExpression: espressione interpolate ben formata", () => {
+    const ramp = relativeRamp("ndvi", [0.2, 0.8]);
+    const expr = indexCellColorExpression(ramp);
+    assert.equal(expr[0], "interpolate");
+    assert.deepEqual(expr[1], ["linear"]);
+    assert.deepEqual(expr[2], ["to-number", ["get", "value"], ramp[0][0]]);
+    // Dopo i primi 3 elementi: coppie [value, colore] in ordine crescente.
+    const stops = expr.slice(3);
+    assert.equal(stops.length, ramp.length * 2);
+    for (let i = 0; i < ramp.length; i++) {
+      assert.equal(stops[i * 2], ramp[i][0]);
+      assert.equal(stops[i * 2 + 1], ramp[i][1]);
+    }
+  });
+
+  it("indexCellValues: estrae il value primario di ogni cella", () => {
+    const ndvi = Float32Array.from([0.5, 0.6, 0.7, 0.8]);
+    const fc = rasterToIndexCells(
+      [{ index: "ndvi", values: ndvi }],
+      win,
+      { primaryIndex: "ndvi", plotId: "plot-1" },
+    );
+    assert.deepEqual(indexCellValues(fc), [0.5, 0.6, 0.7, 0.8]);
   });
 });
 

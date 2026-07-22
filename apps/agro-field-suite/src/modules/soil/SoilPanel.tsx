@@ -463,6 +463,15 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
               {t("soilPanel.results.title")}
             </p>
+            {status.domain && (
+              <p className="text-xs text-[var(--ink-4)]">
+                {t("soilPanel.results.relativeScale", {
+                  index: status.primaryIndex.toUpperCase(),
+                  min: status.domain[0].toFixed(3),
+                  max: status.domain[1].toFixed(3),
+                })}
+              </p>
+            )}
             {status.results.map((r) => {
               const last = r.series.at(-1);
               return (

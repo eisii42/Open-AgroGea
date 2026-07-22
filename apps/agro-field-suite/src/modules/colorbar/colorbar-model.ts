@@ -21,8 +21,20 @@ export interface ColorbarModel {
   max: number;
 }
 
-function round(value: number): number {
-  return Math.round(value * 100) / 100;
+function round(value: number, decimals: number): number {
+  const fattore = 10 ** decimals;
+  return Math.round(value * fattore) / fattore;
+}
+
+/**
+ * Decimali delle tacche: 2 bastano sui domini ampi (rampa assoluta 0..1, risk
+ * DSS), ma una scala RELATIVA può stringersi su pochi centesimi (es. NDVI
+ * 0.62–0.66) e a 2 decimali le tacche collasserebbero sullo stesso value.
+ */
+function tickDecimals(span: number): number {
+  if (span < 0.05) return 4;
+  if (span < 0.5) return 3;
+  return 2;
 }
 
 /**
@@ -37,6 +49,7 @@ export function buildColorbar(rampa: ColorRamp): ColorbarModel {
   const min = rampa[0][0];
   const max = rampa[rampa.length - 1][0];
   const span = max - min || 1;
+  const decimali = tickDecimals(max - min);
 
   const stops = rampa.map(([value, color]) => {
     const pos = (value - min) / span; // 0..1
@@ -48,16 +61,16 @@ export function buildColorbar(rampa: ColorRamp): ColorbarModel {
     rampa.length === 1
       ? rampa[0][1]
       : `linear-gradient(to top, ${stops
-          .map((s) => `${s.color} ${round(s.pos * 100)}%`)
+          .map((s) => `${s.color} ${round(s.pos * 100, 2)}%`)
           .join(", ")})`;
 
   return {
     cssGradient,
     ticks: stops.map((s) => ({
       pos: Math.round(s.pos * 10000) / 10000,
-      value: round(s.value),
+      value: round(s.value, decimali),
     })),
-    min: round(min),
-    max: round(max),
+    min: round(min, decimali),
+    max: round(max, decimali),
   };
 }
