@@ -1,49 +1,11 @@
 /**
- * Costruzione dell'overlay raster d'index da renderizzare sopra il poligono
- * dell'appezzamento (refactor modulo Suolo).
- *
- * Parti pure e testabili: dalla finestra raster letta dal COG (in UTM) ai
- * quattro angoli geografici per la sorgente immagine MapLibre, e dalla matrice
- * di valori d'index (NDVI/NDRE/…) al buffer RGBA colorato via rampa. La
- * codifica in PNG/data-URL resta al chiamante (main thread: usa un canvas), così
- * questo modulo gira identico in un Web Worker senza dipendere dal DOM.
+ * Colori e rampe per il fill degli indici sulla mappa (refactor modulo
+ * Suolo): dal parsing di un colore esadecimale alla scelta del colore di un
+ * value secondo una rampa `[soglia, colore][]`. Parti pure e testabili: nessun
+ * accesso a DOM/rete, girano identiche in un Web Worker. Il consumo di queste
+ * rampe (fill-color/espressione MapLibre delle celle indice) sta in
+ * `./index-grid` e nell'app.
  */
-
-import type { RasterWindow } from "./clip";
-import { utmToLonLat } from "./utm";
-
-/** Quattro angoli [lng, lat] nell'ordine richiesto da MapLibre image source. */
-export type OverlayCoordinates = [
-  [number, number],
-  [number, number],
-  [number, number],
-  [number, number],
-];
-
-/**
- * Angoli geografici (lng/lat) della finestra raster, nell'ordine che la sorgente
- * `image` di MapLibre si aspetta: alto-sx, alto-dx, basso-dx, basso-sx. La
- * finestra è un rettangolo allineato agli assi in UTM; proiettandone i vertici
- * in WGS84 si ottiene un quadrilatero non rettangolare, che MapLibre gestisce.
- */
-export function windowToCoordinates(win: RasterWindow): OverlayCoordinates {
-  const east0 = win.originEasting;
-  const east1 = win.originEasting + win.width * win.pixelWidth;
-  const north0 = win.originNorthing; // bordo superiore (northing maggiore)
-  const north1 = win.originNorthing - win.height * win.pixelHeight; // inferiore
-
-  const toLngLat = (e: number, n: number): [number, number] => {
-    const { lon, lat } = utmToLonLat(e, n, win.epsg);
-    return [lon, lat];
-  };
-
-  return [
-    toLngLat(east0, north0), // alto-sx
-    toLngLat(east1, north0), // alto-dx
-    toLngLat(east1, north1), // basso-dx
-    toLngLat(east0, north1), // basso-sx
-  ];
-}
 
 /** Una rampa colore: coppie [soglia, "#rrggbb"] in ordine crescente di soglia. */
 export type ColorRamp = [number, string][];
@@ -68,9 +30,9 @@ export function hexToRgb(hex: string): Rgb {
 }
 
 /**
- * Colore di un valore d'index secondo la rampa: l'ultima soglia raggiunta dal
- * valore vince (sotto la prima soglia usa il primo colore). `NaN` → null
- * (pixel trasparente fuori dal poligono o nodata).
+ * Colore di un value d'index secondo la rampa: l'ultima soglia raggiunta dal
+ * value vince (sotto la prima soglia usa il primo colore). `NaN` → null
+ * (pixel fuori dal poligono o nodata).
  */
 export function colorFromRamp(value: number, rampa: ColorRamp): Rgb | null {
   if (Number.isNaN(value)) return null;
@@ -79,31 +41,4 @@ export function colorFromRamp(value: number, rampa: ColorRamp): Rgb | null {
     if (value >= threshold) hex = color;
   }
   return hexToRgb(hex);
-}
-
-/**
- * Buffer RGBA (row-major, length = width·height·4) della matrice d'index
- * colorata via rampa. I pixel `NaN` (fuori dal poligono / nodata) restano
- * completamente trasparenti, così l'overlay segue il perimetro dell'appezzamento.
- * `alpha` (0..255) regola l'opacità dei pixel validi.
- */
-export function indexToRgba(
-  values: Float32Array,
-  rampa: ColorRamp,
-  alpha = 220,
-): Uint8ClampedArray {
-  const out = new Uint8ClampedArray(values.length * 4);
-  for (let i = 0; i < values.length; i++) {
-    const rgb = colorFromRamp(values[i], rampa);
-    const o = i * 4;
-    if (!rgb) {
-      out[o + 3] = 0; // trasparente
-      continue;
-    }
-    out[o] = rgb.r;
-    out[o + 1] = rgb.g;
-    out[o + 2] = rgb.b;
-    out[o + 3] = alpha;
-  }
-  return out;
 }

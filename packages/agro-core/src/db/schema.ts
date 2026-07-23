@@ -73,9 +73,38 @@
  *   unique_plot_per_campaign unique (plot_id, campaign_year)` (possibile solo se
  *   non esistono doppioni da secondo raccolto); le columns additive possono
  *   restare (ignorate dal codice pre-v17), nessun dato viene perso.
+ *
+ * v18 — additiva: Parco macchine (0.3.0). Otto tabelle sincronizzate via outbox:
+ *   * `machines` — unità motrici (trattori, mietitrebbie…) tracciate a ORE di
+ *     lavoro (`hour_counter`, incrementale materializzato); `status`
+ *     operational/maintenance/breakdown/decommissioned; campi 0.4.0 predisposti
+ *     (valore/data d'acquisto, vita utile, valore residuo) ma NON calcolati qui;
+ *   * `equipment` — attrezzi (aratri, botti…) tracciati per usura
+ *     (`usage_counter`) e `working_width_m`; niente motore proprio;
+ *   * `activity_machines` — giunzione attività (`treatment_logs`) ↔ macchina ↔
+ *     attrezzo (opz.) con le ORE di utilizzo: al salvataggio incrementa i
+ *     contatori, alla modifica/cancellazione li storna (nessun doppio conteggio);
+ *   * `maintenance_schedules` / `maintenance_logs` — scadenziario manutenzione
+ *     ordinaria/straordinaria a trigger `time` (data/intervallo) o `hours`
+ *     (soglia contaore); l'intervento riprogramma il piano ricorrente e può
+ *     scaricare un ricambio dal magazzino (blocco atomico, riuso logica 0.2.0);
+ *   * `machine_documents` — revisione/assicurazione/bollo/collaudo con alert a
+ *     soglia sulla `expires_at` (allegato locale opz.);
+ *   * `counter_adjustments` — audit trail delle rettifiche contaore (lettura
+ *     iniziale, rettifica manuale, sostituzione motore/reset);
+ *   * `fuel_refills` — rifornimenti che SCARICANO un lot `carburante`
+ *     (cisterna aziendale) dal magazzino con blocco atomico, tracciati per mezzo
+ *     con litri/data/contaore/UMA (base derivabile per l'export UMA futuro).
+ *   Rollback logico v18 (solo-additivo, nessuna colonna esistente cambiata):
+ *   1) `delete from sync_outbox where table_name in ('fuel_refills',
+ *   'counter_adjustments','machine_documents','maintenance_logs',
+ *   'maintenance_schedules','activity_machines','equipment','machines')`;
+ *   2) `drop table` delle stesse in quest'ordine (FK child→parent). I contatori
+ *   ore vivono nelle colonne additive `machines.hour_counter` /
+ *   `equipment.usage_counter`: nessun dato pre-v18 è toccato.
  */
 
-export const AGRO_LOCAL_SCHEMA_VERSION = 17;
+export const AGRO_LOCAL_SCHEMA_VERSION = 18;
 
 export const AGRO_LOCAL_SCHEMA_SQL = `
 create table if not exists agro_meta (
@@ -604,4 +633,239 @@ create index if not exists activity_products_treatment_idx
   on activity_products (treatment_log_id);
 create index if not exists activity_products_lot_idx
   on activity_products (product_lot_id);
+
+-- v18 — Parco macchine (0.3.0) -----------------------------------------------
+
+-- machines — unità motrici (trattori, mietitrebbie…). Tracciate a ORE di lavoro:
+-- hour_counter è il contatore materializzato, incrementato in transazione dalle
+-- attività (activity_machines) e SETtato dalle rettifiche (counter_adjustments).
+-- I campi purchase_*/useful_life_*/residual_value sono PREDISPOSTI per il costo
+-- orario/ammortamento della 0.4.0 (solo struttura, non calcolati qui).
+create table if not exists machines (
+  id                uuid primary key,
+  tenant_id         uuid not null,
+  company_id        uuid not null references companies (id),
+  name              text not null,
+  machine_type      text,
+  license_plate     text,
+  chassis_number    text,
+  brand             text,
+  model             text,
+  year              smallint,
+  hour_counter      numeric(12, 2) not null default 0,
+  status            text not null default 'operational' check (
+    status in ('operational', 'maintenance', 'breakdown', 'decommissioned')
+  ),
+  purchase_value    numeric(14, 2),
+  purchase_date     date,
+  useful_life_hours numeric(12, 2),
+  useful_life_years smallint,
+  residual_value    numeric(14, 2),
+  notes             text,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now(),
+  deleted_at        timestamptz
+);
+
+create index if not exists machines_company_idx
+  on machines (company_id, status);
+
+-- equipment — attrezzi (aratri, botti, seminatrici…). Niente motore proprio:
+-- tracciati per USURA (usage_counter, accumula le ore d'uso) e larghezza di
+-- lavoro (working_width_m, precompila superfici/VRA nel form attività). Stessi
+-- campi 0.4.0 predisposti di machines.
+create table if not exists equipment (
+  id                uuid primary key,
+  tenant_id         uuid not null,
+  company_id        uuid not null references companies (id),
+  name              text not null,
+  equipment_type    text,
+  working_width_m   numeric(8, 2),
+  usage_counter     numeric(12, 2) not null default 0,
+  status            text not null default 'operational' check (
+    status in ('operational', 'maintenance', 'breakdown', 'decommissioned')
+  ),
+  purchase_value    numeric(14, 2),
+  purchase_date     date,
+  useful_life_hours numeric(12, 2),
+  useful_life_years smallint,
+  residual_value    numeric(14, 2),
+  notes             text,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now(),
+  deleted_at        timestamptz
+);
+
+create index if not exists equipment_company_idx
+  on equipment (company_id, status);
+
+-- activity_machines — giunzione attività ↔ macchina ↔ attrezzo (opz.) con le ORE
+-- di utilizzo. I riferimenti puntano SEMPRE a record esistenti (FK, niente testo
+-- libero). Al salvataggio dell'attività il DAL incrementa hour_counter/
+-- usage_counter delle ore dichiarate; modifica/cancellazione le stornano (storno
+-- esatto della riga, come il reintegro giacenze del Magazzino: nessun doppio
+-- conteggio, nessuno scostamento).
+create table if not exists activity_machines (
+  id               uuid primary key,
+  tenant_id        uuid not null,
+  treatment_log_id uuid not null references treatment_logs (id),
+  machine_id       uuid not null references machines (id),
+  equipment_id     uuid references equipment (id),
+  hours            numeric(8, 2) not null default 0 check (hours >= 0),
+  operator_name    text,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  deleted_at       timestamptz
+);
+
+create index if not exists activity_machines_treatment_idx
+  on activity_machines (treatment_log_id);
+create index if not exists activity_machines_machine_idx
+  on activity_machines (machine_id);
+create index if not exists activity_machines_equipment_idx
+  on activity_machines (equipment_id);
+
+-- maintenance_schedules — piani di manutenzione ordinaria (routine) e
+-- straordinaria (extraordinary) per macchina O attrezzo. Trigger dell'alert su
+-- TEMPO (trigger_type 'time': interval_days + due_date) OPPURE su ORE effettive
+-- (trigger_type 'hours': interval_hours + due_hours, soglia sul contatore). Alla
+-- registrazione di un intervento il piano ricorrente si riprogramma (prossima
+-- scadenza = ora/data intervento + intervallo).
+create table if not exists maintenance_schedules (
+  id             uuid primary key,
+  tenant_id      uuid not null,
+  machine_id     uuid references machines (id),
+  equipment_id   uuid references equipment (id),
+  name           text not null,
+  category       text not null default 'routine'
+    check (category in ('routine', 'extraordinary')),
+  trigger_type   text not null check (trigger_type in ('time', 'hours')),
+  interval_days  integer,
+  due_date       date,
+  interval_hours numeric(12, 2),
+  due_hours      numeric(12, 2),
+  active         boolean not null default true,
+  notes          text,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  deleted_at     timestamptz
+);
+
+create index if not exists maintenance_schedules_machine_idx
+  on maintenance_schedules (machine_id);
+create index if not exists maintenance_schedules_equipment_idx
+  on maintenance_schedules (equipment_id);
+
+-- maintenance_logs — interventi eseguiti (data, ore al momento, descrizione,
+-- costo opz., ricambi). §5.3: se product_lot_id + parts_quantity sono valorizzati
+-- il DAL scarica il ricambio dal Magazzino con blocco atomico (riuso 0.2.0);
+-- altrimenti i ricambi restano testo libero in parts + costo. Un intervento su
+-- un piano ricorrente lo riprogramma (schedule_id).
+create table if not exists maintenance_logs (
+  id             uuid primary key,
+  tenant_id      uuid not null,
+  schedule_id    uuid references maintenance_schedules (id),
+  machine_id     uuid references machines (id),
+  equipment_id   uuid references equipment (id),
+  performed_at   date not null,
+  counter_hours  numeric(12, 2),
+  description    text,
+  cost           numeric(14, 2),
+  parts          text,
+  product_lot_id uuid references product_lots (id),
+  parts_quantity numeric(12, 3),
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  deleted_at     timestamptz
+);
+
+create index if not exists maintenance_logs_machine_idx
+  on maintenance_logs (machine_id, performed_at desc);
+create index if not exists maintenance_logs_schedule_idx
+  on maintenance_logs (schedule_id);
+
+-- machine_documents — documenti e scadenze del mezzo. type: inspection
+-- (revisione macchine agricole), insurance (assicurazione/RCA), road_tax
+-- (bollo), certification (collaudo), other. Alert a soglia sulla expires_at
+-- (riuso del canale alert 0.2.0), semaforo valido/in scadenza/scaduto nel
+-- dettaglio. attachment_path = allegato locale opzionale (100% offline).
+create table if not exists machine_documents (
+  id              uuid primary key,
+  tenant_id       uuid not null,
+  machine_id      uuid references machines (id),
+  equipment_id    uuid references equipment (id),
+  type            text not null check (
+    type in ('inspection', 'insurance', 'road_tax', 'certification', 'other')
+  ),
+  reference       text,
+  issued_at       date,
+  expires_at      date not null,
+  issuer          text,
+  amount          numeric(14, 2),
+  attachment_path text,
+  notes           text,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now(),
+  deleted_at      timestamptz
+);
+
+create index if not exists machine_documents_machine_idx
+  on machine_documents (machine_id, expires_at);
+
+-- counter_adjustments — audit trail delle rettifiche MANUALI del contaore:
+-- initial_reading (lettura all'inserimento), manual (rettifica), engine_reset
+-- (sostituzione motore/reset). I contatori automatici (activity_machines) NON
+-- creano righe qui. Ogni riga SETta machines.hour_counter/equipment.usage_counter
+-- a new_value, così l'incremento automatico riparte dal valore reale rettificato.
+create table if not exists counter_adjustments (
+  id             uuid primary key,
+  tenant_id      uuid not null,
+  machine_id     uuid references machines (id),
+  equipment_id   uuid references equipment (id),
+  type           text not null
+    check (type in ('initial_reading', 'manual', 'engine_reset')),
+  previous_value numeric(12, 2),
+  new_value      numeric(12, 2) not null,
+  adjusted_at    date not null,
+  reason         text,
+  author         text,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  deleted_at     timestamptz
+);
+
+create index if not exists counter_adjustments_machine_idx
+  on counter_adjustments (machine_id, created_at desc);
+create index if not exists counter_adjustments_equipment_idx
+  on counter_adjustments (equipment_id, created_at desc);
+
+-- fuel_refills — rifornimenti carburante. Ogni refill SCARICA la giacenza del
+-- lot carburante (tipicamente la cisterna aziendale) dal Magazzino in
+-- transazione atomica (blocco se negativa, riuso logica 0.2.0): così si
+-- ricostruisce carico/scarico sia a livello cisterna sia per singolo mezzo.
+-- Tracciato per mezzo con litri/data/lettura contaore/UMA e full_tank
+-- (pieno-a-pieno) per il calcolo del consumo l/h (§5.6). uma_code è derivato dal
+-- product carburante: base per l'export UMA derivabile in futuro (nessun export
+-- normativo nuovo in questa versione).
+create table if not exists fuel_refills (
+  id             uuid primary key,
+  tenant_id      uuid not null,
+  machine_id     uuid not null references machines (id),
+  product_lot_id uuid not null references product_lots (id),
+  liters         numeric(12, 3) not null check (liters > 0),
+  refueled_at    date not null,
+  counter_hours  numeric(12, 2),
+  operator_name  text,
+  uma_code       text,
+  full_tank      boolean not null default true,
+  notes          text,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  deleted_at     timestamptz
+);
+
+create index if not exists fuel_refills_machine_idx
+  on fuel_refills (machine_id, refueled_at desc);
+create index if not exists fuel_refills_lot_idx
+  on fuel_refills (product_lot_id);
 `;

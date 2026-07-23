@@ -11,6 +11,7 @@ export {
   isSoilIndex,
   NDVI_RAMP,
   NDWI_RAMP,
+  NDMI_RAMP,
   ndviColor,
   INDEX_RAMP,
   rampForIndex,
@@ -21,15 +22,24 @@ export {
   type VegetationIndex,
 } from "./indices";
 
-// -- Overlay raster d'index sulla mappa (refactor modulo Suolo) --
+// -- Colori/rampe per il fill degli indici (refactor modulo Suolo) --
 export {
   colorFromRamp,
-  windowToCoordinates,
   hexToRgb,
-  indexToRgba,
-  type OverlayCoordinates,
   type ColorRamp,
 } from "./overlay";
+
+// -- Griglia celle raster d'index (10×10 m, color scale relativa) --
+export {
+  rasterToIndexCells,
+  indexCellValues,
+  relativeDomain,
+  relativeRamp,
+  indexCellColorExpression,
+  type IndexLayerRaster,
+  type IndexCellProperties,
+  type IndexGridOptions,
+} from "./index-grid";
 
 // -- Matrici di calibrazione fenologica (Modulo 1) --
 export {
@@ -96,6 +106,20 @@ export {
   type RiskLevel,
   type ThermalPoint,
 } from "./phytopathology";
+
+// -- Parco macchine: consumo l/h, anomalie, scadenziario manutenzione (0.3.0) --
+export {
+  fuelConsumption,
+  evaluateMaintenance,
+  rescheduleMaintenance,
+  type RefillPoint,
+  type FuelConsumptionResult,
+  type FuelConsumptionOptions,
+  type MaintenanceUrgency,
+  type MaintenanceScheduleInput,
+  type MaintenanceEvaluation,
+  type MaintenanceThresholds,
+} from "./machinery";
 
 // -- Clip raster sul poligono + proiezione UTM (Modulo 1) --
 export {

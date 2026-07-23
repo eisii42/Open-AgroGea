@@ -28,6 +28,7 @@ import {
   Shapes,
   ShieldCheck,
   Sprout,
+  Tractor,
   Warehouse,
   Wheat,
 } from "lucide-react";
@@ -83,6 +84,7 @@ export function ModuleSidebar({
   const { t } = useTranslation();
   const openPanels = useAgroStore((s) => s.openPanels);
   const togglePanel = useAgroStore((s) => s.togglePanel);
+  const openWarehouseTab = useAgroStore((s) => s.openWarehouseTab);
   const drawIntent = useAgroStore((s) => s.drawIntent);
   const setDrawIntent = useAgroStore((s) => s.setDrawIntent);
   const flags = useSettingsStore((s) => s.dashboardLayout);
@@ -236,8 +238,15 @@ export function ModuleSidebar({
           id: "magazzino",
           labelKey: "nav.toolWarehouse",
           Icon: Warehouse,
-          action: { kind: "panel", panel: "magazzino" },
+          action: { kind: "run", run: () => openWarehouseTab("products") },
           flag: "panelMagazzino",
+        },
+        {
+          id: "mezzi",
+          labelKey: "nav.toolMachinery",
+          Icon: Tractor,
+          action: { kind: "run", run: () => openWarehouseTab("machines") },
+          flag: "panelMezzi",
         },
       ],
     },

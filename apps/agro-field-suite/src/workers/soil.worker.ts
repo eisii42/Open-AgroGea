@@ -3,13 +3,12 @@ import {
   applySasToken,
   computeIndex,
   clipRasterToPolygon,
-  windowToCoordinates,
-  indexToRgba,
+  rasterToIndexCells,
+  type IndexLayerRaster,
+  type IndexCellProperties,
   type VegetationIndex,
   lonLatToUtm,
-  type OverlayCoordinates,
   type RasterWindow,
-  rampForIndex,
   type IndicesScene,
   SENTINEL2_COLLECTION,
   indexStatistics,
@@ -21,12 +20,14 @@ import type { FeatureCollection, MultiPolygon, Polygon } from "geojson";
 import { rasterToGridCells } from "../modules/vra/raster-cells";
 
 /**
- * Web Worker del module Suolo (refactor pipeline indici STAC). Fa il lavoro
- * pesante fuori dal main thread: per ogni scena della series temporale download
- * SOLO le bande necessarie (finestra COG via HTTP-Range), le riallinea su una
- * griglia comune, compute gli indici scelti, ritaglia sul poligono e ne fa la
- * media. Per la scena più recente produce anche il buffer RGBA dell'index
- * primario (overlay raster sulla mappa) e i quattro angoli geografici.
+ * Web Worker del module Suolo (refactor pipeline indici STAC + rendering
+ * vettoriale). Fa il lavoro pesante fuori dal main thread: per ogni scena
+ * della series temporale download SOLO le bande necessarie (finestra COG via
+ * HTTP-Range), le riallinea su una griglia comune, compute gli indici scelti,
+ * ritaglia sul poligono e ne fa la media. Per la scena più recente produce
+ * anche le celle vettoriali (una per pixel, 10×10 m) dell'index primario —
+ * con i value di TUTTI gli indici calcolati come properties, per il tooltip
+ * hover — pronte per un layer `geojson` con color scale relativa alla run.
  *
  * Le bande Sentinel-2 hanno risoluzioni diverse (B05 a 20 m, B03/B04/B08 a
  * 10 m): tutte vengono ricampionate (nearest neighbor) sulla griglia di
@@ -39,16 +40,20 @@ export interface SoilJob {
   /** Serie di scene, dalla più recente alla più vecchia (vedi searchSceneSeries). */
   scene: IndicesScene[];
   indices: VegetationIndex[];
-  /** Indice da renderizzare come overlay raster (sulla scena più recente). */
+  /** Indice renderizzato come celle vettoriali (sulla scena più recente). */
   primaryIndex: VegetationIndex;
   geometria: Polygon | MultiPolygon;
   bbox: [number, number, number, number];
+  /** Id del plot in lavorazione: stampato sulle celle indice (proprietà `plotId`, per il tooltip hover). */
+  plotId: string;
   /** Fattore L per SAVI (default lato libreria). */
   L?: number;
   /**
-   * Quando presente, oltre all'overlay il worker vettorizza il raster
-   * dell'index primario (scena più recente) in celle quadrate di `step` pixel,
-   * input della zonazione VRA. Assente per la sola analisi indici.
+   * Quando presente, il worker vettorizza il raster dell'index primario
+   * (scena più recente) in celle quadrate di `step` pixel per la zonazione
+   * VRA, SALTANDO la costruzione delle celle indice (non servono al
+   * generatore VRA e costerebbero lavoro inutile). Assente per la sola
+   * analisi indici.
    */
   vra?: { step: number };
 }
@@ -64,15 +69,17 @@ export interface SeriesPoint {
   validPixels: number;
 }
 
-export interface OverlayRaster {
+/**
+ * Celle vettoriali (10×10 m, una per pixel) dell'index primario sulla scena
+ * più recente, con i value di tutti gli indici calcolati come properties
+ * (tooltip hover multi-indice). `cellSizeM` = passo pixel della scena (10 per
+ * Sentinel-2), utile alla UI per la didascalia della dimensione cella.
+ */
+export interface IndexCellsResult {
   index: VegetationIndex;
   datetime: string;
-  /** RGBA row-major (width·height·4); i pixel fuori dal poligono sono trasparenti. */
-  rgba: Uint8ClampedArray;
-  width: number;
-  height: number;
-  /** Angoli [lng,lat] per la sorgente image MapLibre (TL, TR, BR, BL). */
-  coordinates: OverlayCoordinates;
+  cellSizeM: number;
+  cells: FeatureCollection<Polygon, IndexCellProperties>;
 }
 
 export type SoilProgress =
@@ -85,7 +92,8 @@ export type SoilProgress =
   | {
       type: "done";
       series: SeriesPoint[];
-      overlay: OverlayRaster | null;
+      /** Celle vettoriali dell'index primario, assenti quando `job.vra` è impostato. */
+      cells: IndexCellsResult | null;
       /** Celle VRA dell'index primario, solo se `job.vra` è impostato. */
       vraCells: VraCells | null;
     }
@@ -251,7 +259,7 @@ async function elaboraScena(
   conOverlay: boolean,
 ): Promise<{
   punto: SeriesPoint;
-  overlay: OverlayRaster | null;
+  cells: IndexCellsResult | null;
   vraCells: VraCells | null;
 }> {
   const bandNames = Object.keys(scena.bandHrefs);
@@ -269,8 +277,11 @@ async function elaboraScena(
 
   const medie: Partial<Record<VegetationIndex, number>> = {};
   let validPixels = 0;
-  let overlay: OverlayRaster | null = null;
   let vraCells: VraCells | null = null;
+  // Masked di TUTTI gli indici della scena corrente: input di rasterToIndexCells
+  // (celle vettoriali multi-indice). Popolato solo quando serve davvero
+  // (scena più recente, e non per il job VRA che non ne ha bisogno).
+  const layers: IndexLayerRaster[] = [];
 
   for (const index of job.indices) {
     const valori = computeIndex(index, bande, { L: job.L });
@@ -279,20 +290,29 @@ async function elaboraScena(
     medie[index] = stats.media;
     validPixels = Math.max(validPixels, stats.validPixels);
 
-    if (conOverlay && index === job.primaryIndex) {
-      overlay = {
-        index,
-        datetime: scena.datetime,
-        rgba: indexToRgba(masked, rampForIndex(index)),
-        width: ref.width,
-        height: ref.height,
-        coordinates: windowToCoordinates(ref),
-      };
-      // Vettorizzazione VRA solo se richiesta (module Mappe VRA, non analisi).
+    if (conOverlay) {
       if (job.vra) {
-        vraCells = rasterToGridCells(masked, ref, job.vra.step);
+        // Vettorizzazione VRA solo se richiesta (module Mappe VRA, non analisi).
+        if (index === job.primaryIndex) {
+          vraCells = rasterToGridCells(masked, ref, job.vra.step);
+        }
+      } else {
+        layers.push({ index, values: masked });
       }
     }
+  }
+
+  let cells: IndexCellsResult | null = null;
+  if (conOverlay && !job.vra && layers.length > 0) {
+    cells = {
+      index: job.primaryIndex,
+      datetime: scena.datetime,
+      cellSizeM: ref.pixelWidth,
+      cells: rasterToIndexCells(layers, ref, {
+        primaryIndex: job.primaryIndex,
+        plotId: job.plotId,
+      }),
+    };
   }
 
   return {
@@ -302,7 +322,7 @@ async function elaboraScena(
       medie,
       validPixels,
     },
-    overlay,
+    cells,
     vraCells,
   };
 }
@@ -315,7 +335,7 @@ ctx.addEventListener("message", async (event: MessageEvent<SoilJob>) => {
       throw new Error("Nessuna scena available per i filters scelti.");
     }
     const series: SeriesPoint[] = [];
-    let overlay: OverlayRaster | null = null;
+    let cells: IndexCellsResult | null = null;
     let vraCells: VraCells | null = null;
 
     for (let i = 0; i < job.scene.length; i++) {
@@ -326,25 +346,23 @@ ctx.addEventListener("message", async (event: MessageEvent<SoilJob>) => {
         sceneTotali: job.scene.length,
       } satisfies SoilProgress);
 
-      // La scena più recente (i === 0) produce l'overlay (e le celle VRA).
-      const { punto, overlay: o, vraCells: c } = await elaboraScena(
+      // La scena più recente (i === 0) produce le celle indice (e quelle VRA).
+      const { punto, cells: cellsResult, vraCells: c } = await elaboraScena(
         job.scene[i],
         job,
         i === 0,
       );
       series.push(punto);
-      if (o) overlay = o;
+      if (cellsResult) cells = cellsResult;
       if (c) vraCells = c;
     }
 
     // Serie cronologica crescente per il grafico di trend.
     series.reverse();
 
-    const transfer = overlay ? [overlay.rgba.buffer] : [];
-    ctx.postMessage(
-      { type: "done", series, overlay, vraCells } satisfies SoilProgress,
-      transfer,
-    );
+    // GeoJSON è strutturato via structured clone: nessun buffer da trasferire
+    // (a differenza del vecchio RGBA raster).
+    ctx.postMessage({ type: "done", series, cells, vraCells } satisfies SoilProgress);
   } catch (error) {
     ctx.postMessage({
       type: "error",

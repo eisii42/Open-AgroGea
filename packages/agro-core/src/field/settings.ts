@@ -33,6 +33,8 @@ export type DashboardModuleId =
   | "panelQuaderno"
   | "panelRaccolta"
   | "panelMagazzino"
+  | "panelMezzi"
+  | "panelRefill"
   | "panelSian"
   | "panelStampa"
   | "panelRegistro"
@@ -64,6 +66,8 @@ export const DASHBOARD_MODULE_IDS: readonly DashboardModuleId[] = [
   "panelQuaderno",
   "panelRaccolta",
   "panelMagazzino",
+  "panelMezzi",
+  "panelRefill",
   "panelSian",
   "panelStampa",
   "panelRegistro",
@@ -102,6 +106,8 @@ export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayoutConfig = {
   panelQuaderno: true,
   panelRaccolta: true,
   panelMagazzino: true,
+  panelMezzi: true,
+  panelRefill: true,
   panelSian: true,
   panelStampa: true,
   panelRegistro: true,

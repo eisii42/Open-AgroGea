@@ -11,8 +11,26 @@ import { isTauriRuntime } from "@agrogea/core";
  * tentano di risolvere staticamente moduli che potrebbero non esistere.
  */
 
-/** Versione current del software (allineata a tauri.conf.json / package.json). */
-export const APP_VERSION = "0.1.0";
+/** Versione current del software, iniettata a build-time da `package.json` (vedi vite.config.ts). */
+export const APP_VERSION = __APP_VERSION__;
+
+/**
+ * Versione reale del software: su Tauri interroga il binario installato
+ * (più accurata di `APP_VERSION`, che riflette solo il `package.json` usato
+ * in fase di build); fuori da Tauri, o in caso di errore, ricade su
+ * {@link APP_VERSION}.
+ */
+export async function getAppVersion(): Promise<string> {
+  if (isTauriRuntime()) {
+    try {
+      const { getVersion } = await import("@tauri-apps/api/app");
+      return await getVersion();
+    } catch {
+      /* fallback sotto */
+    }
+  }
+  return APP_VERSION;
+}
 
 /** Destinatario del module di feedback (vedi CLAUDE.md). */
 export const FEEDBACK_EMAIL = "gea.watcher@gmail.com";
@@ -45,6 +63,23 @@ export function buildFeedbackBody(message: string, meta: FeedbackMetadata): stri
     `Workspace: ${meta.tenantId ?? "—"}`,
     `User-Agent: ${typeof navigator !== "undefined" ? navigator.userAgent : "—"}`,
   ].join("\n");
+}
+
+/**
+ * Apre un URL esterno (link web, `mailto:`, ecc.). Su Tauri usa il plugin
+ * opener se available, altrimenti (e sul Web) ricade su `window.open`.
+ */
+export async function openExternal(url: string): Promise<void> {
+  if (isTauriRuntime()) {
+    const opener = await loadOptional<{ openUrl?: (u: string) => Promise<void> }>(
+      "@tauri-apps/plugin-opener",
+    );
+    if (opener?.openUrl) {
+      await opener.openUrl(url);
+      return;
+    }
+  }
+  if (typeof window !== "undefined") window.open(url, "_blank", "noopener,noreferrer");
 }
 
 /**
@@ -89,12 +124,12 @@ export type UpdateResult =
 export async function checkForUpdates(): Promise<UpdateResult> {
   if (!isTauriRuntime()) return { status: "unavailable" };
   const updater = await loadOptional<{
-    check?: () => Promise<{ available: boolean; version?: string } | null>;
+    check?: () => Promise<{ version?: string } | null>;
   }>("@tauri-apps/plugin-updater");
   if (!updater?.check) return { status: "unavailable" };
   try {
     const update = await updater.check();
-    if (update?.available) {
+    if (update) {
       return { status: "available", version: update.version ?? "?" };
     }
     return { status: "uptodate" };

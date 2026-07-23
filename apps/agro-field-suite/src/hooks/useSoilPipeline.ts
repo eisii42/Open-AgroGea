@@ -1,6 +1,10 @@
 import { boundingBox, useAgroStore } from "@agrogea/core";
 import type { Plot } from "@agrogea/core";
 import {
+  indexCellColorExpression,
+  indexCellValues,
+  relativeDomain,
+  relativeRamp,
   searchSceneSeries,
   filterWindowFromLatest,
   type VegetationIndex,
@@ -8,26 +12,32 @@ import {
 import {
   DEFAULT_LAYER_STYLE,
   type GeoLibreLayer,
+  type LayerStyle,
   useAppStore,
 } from "@geolibre/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
-  OverlayRaster,
+  IndexCellsResult,
   SeriesPoint,
   SoilJob,
   SoilProgress,
 } from "../workers/soil.worker";
 
 /**
- * Pipeline indici del module Suolo (refactor STAC). Orchestrazione main-thread
- * della ricerca STAC (multi-index, multi-plot, filtro cloud cover,
- * strategie temporali) e del worker di calcolo. Per ogni plot:
+ * Pipeline indici del module Suolo (refactor STAC + rendering vettoriale).
+ * Orchestrazione main-thread della ricerca STAC (multi-index, multi-plot,
+ * filtro cloud cover, strategie temporali) e del worker di calcolo. Per ogni
+ * plot:
  *
  *   1. bbox del poligono → `searchSceneSeries` (series storica filtrata);
- *   2. worker `soil.worker` → medie per index e per data + overlay RGBA
- *      dell'index primario sulla scena più recente;
- *   3. l'overlay viene iniettato come layer `image` georeferenziato nello store
- *      GeoLibre (sopra la basemap, persistente al cambio basemap via syncLayers);
+ *   2. worker `soil.worker` → medie per index e per data + celle vettoriali
+ *      (10×10 m, una per pixel raster) dell'index primario sulla scena più
+ *      recente, con i value di tutti gli indici come properties;
+ *   3. le celle vengono iniettate come layer `geojson` (fill-color = espressione
+ *      `interpolate` sulla property `value`) nello store GeoLibre, sopra la
+ *      basemap e persistenti al cambio basemap via syncLayers. La color scale
+ *      è RELATIVA: pooled sui value di TUTTI i plots calcolati in questa run,
+ *      ricalcolata e riallineata su ogni layer a fine run;
  *   4. la media NDVI più recente è salvata nella cache offline (DAL).
  */
 
@@ -66,10 +76,21 @@ export type SoilStatus =
       results: PlotResult[];
       indices: VegetationIndex[];
       primaryIndex: VegetationIndex;
+      /** Dominio relativo (2-98 percentile) pooled sui plots della run; null se nessuna cella calcolata. */
+      domain: [number, number] | null;
     }
   | { phase: "errore"; message: string };
 
-const OVERLAY_PREFIX = "agrogea-overlay-";
+/** Prefisso id dei layer celle indice (uno per plot, sostituisce il vecchio overlay immagine). */
+export const INDEX_CELLS_PREFIX = "agrogea-index-cells-";
+
+/** Rimuove tutti i layer celle indice dallo store (prima di un nuovo calcolo). */
+function removeIndexCells(): void {
+  const store = useAppStore.getState();
+  for (const layer of store.layers) {
+    if (layer.id.startsWith(INDEX_CELLS_PREFIX)) store.removeLayer(layer.id);
+  }
+}
 
 /**
  * Normalizza l'intervallo personalizzato: ordina gli estremi e taglia la durata
@@ -92,61 +113,78 @@ function clampRange(
   return { inizio, fine };
 }
 
-/** Converte il buffer RGBA dell'overlay in un data-URL PNG (solo main thread). */
-function rgbaToDataUrl(overlay: OverlayRaster): string {
-  const canvas = document.createElement("canvas");
-  canvas.width = overlay.width;
-  canvas.height = overlay.height;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas 2D non available per l'overlay.");
-  // Copia in un buffer ArrayBuffer dedicato: dopo il transfer dal worker il
-  // tipo è Uint8ClampedArray<ArrayBufferLike>, che ImageData non accetta.
-  const pixels = new Uint8ClampedArray(overlay.rgba);
-  ctx.putImageData(
-    new ImageData(pixels, overlay.width, overlay.height),
-    0,
-    0,
-  );
-  return canvas.toDataURL("image/png");
+/** Stile del layer celle: espressione `interpolate` sulla rampa relativa dell'index. */
+function cellStyle(
+  index: VegetationIndex,
+  domain: [number, number],
+): LayerStyle {
+  const ramp = relativeRamp(index, domain);
+  const middleColor = ramp[Math.floor(ramp.length / 2)]?.[1] ?? ramp[0]?.[1] ?? DEFAULT_LAYER_STYLE.fillColor;
+  return {
+    ...DEFAULT_LAYER_STYLE,
+    fillColor: middleColor,
+    fillOpacity: 0.85,
+    strokeWidth: 0,
+    vectorStyleMode: "expression",
+    vectorStyleExpression: JSON.stringify(indexCellColorExpression(ramp)),
+  };
 }
 
-/** Rimuove tutti gli overlay d'index dallo store (prima di un nuovo calcolo). */
-function removeOverlay(): void {
+/**
+ * Inietta (o aggiorna) il layer `geojson` delle celle indice del plot, con la
+ * color scale relativa al dominio corrente (pooled fin lì nella run).
+ */
+function iniettaIndexCells(
+  plot: Plot,
+  result: IndexCellsResult,
+  domain: [number, number],
+): void {
   const store = useAppStore.getState();
-  for (const layer of store.layers) {
-    if (layer.id.startsWith(OVERLAY_PREFIX)) store.removeLayer(layer.id);
-  }
-}
-
-/** Inietta l'overlay raster come layer `image` sopra gli altri layer (in cima). */
-function iniettaOverlay(plotId: string, overlay: OverlayRaster): void {
-  const store = useAppStore.getState();
-  const id = `${OVERLAY_PREFIX}${plotId}`;
-  const layer: GeoLibreLayer = {
-    id,
-    name: `Indice ${overlay.index.toUpperCase()}`,
-    type: "image",
-    source: {
-      type: "image",
-      url: rgbaToDataUrl(overlay),
-      coordinates: overlay.coordinates,
-    },
-    visible: true,
-    opacity: 0.85,
-    style: { ...DEFAULT_LAYER_STYLE },
-    metadata: { agrogea: true, overlay: true, index: overlay.index },
-    sourcePath: `agrogea://overlay-${plotId}`,
+  const id = `${INDEX_CELLS_PREFIX}${plot.id}`;
+  const style = cellStyle(result.index, domain);
+  const metadata = {
+    agrogea: true,
+    overlay: true,
+    indexCells: true,
+    index: result.index,
+    domain,
+    cellSizeM: result.cellSizeM,
+    datetime: result.datetime,
   };
   if (store.layers.some((l) => l.id === id)) {
-    store.updateLayer(id, {
-      source: layer.source,
-      name: layer.name,
-      metadata: layer.metadata,
-    });
-  } else {
-    // Append (in cima): il raster dell'index resta visibile sopra il poligono.
-    store.addLayer(layer);
+    store.updateLayer(id, { geojson: result.cells, style, metadata });
+    return;
   }
+  const layer: GeoLibreLayer = {
+    id,
+    name: `Indice ${result.index.toUpperCase()} · ${plot.user_plot_name}`,
+    type: "geojson",
+    source: { type: "geojson" },
+    geojson: result.cells,
+    visible: true,
+    opacity: 1,
+    style,
+    metadata,
+    sourcePath: `agrogea://index-cells-${plot.id}`,
+  };
+  // Append (in cima): le celle indice restano visibili sopra il poligono.
+  store.addLayer(layer);
+}
+
+/** Riallinea SOLO lo stile/dominio del layer celle di un plot già iniettato. */
+function aggiornaScalaIndexCells(
+  plotId: string,
+  index: VegetationIndex,
+  domain: [number, number],
+): void {
+  const store = useAppStore.getState();
+  const id = `${INDEX_CELLS_PREFIX}${plotId}`;
+  const layer = store.layers.find((l) => l.id === id);
+  if (!layer) return;
+  store.updateLayer(id, {
+    style: cellStyle(index, domain),
+    metadata: { ...layer.metadata, domain },
+  });
 }
 
 export function useSoilPipeline() {
@@ -168,7 +206,7 @@ export function useSoilPipeline() {
 
   const runJob = useCallback(
     (job: SoilJob, onProgress: (p: SoilProgress) => void) =>
-      new Promise<{ series: SeriesPoint[]; overlay: OverlayRaster | null }>(
+      new Promise<{ series: SeriesPoint[]; cells: IndexCellsResult | null }>(
         (resolve, reject) => {
           const worker = workerRef.current;
           if (!worker) {
@@ -183,7 +221,7 @@ export function useSoilPipeline() {
             }
             worker.removeEventListener("message", onMessage);
             if (msg.type === "error") reject(new Error(msg.message));
-            else resolve({ series: msg.series, overlay: msg.overlay });
+            else resolve({ series: msg.series, cells: msg.cells });
           };
           worker.addEventListener("message", onMessage);
           worker.postMessage(job);
@@ -195,8 +233,12 @@ export function useSoilPipeline() {
   const compute = useCallback(
     async (plots: Plot[], options: SoilOptions) => {
       if (plots.length === 0 || options.indices.length === 0) return;
-      removeOverlay();
+      removeIndexCells();
       const results: PlotResult[] = [];
+      // Value pooled per plot (property `value` = index primario di ogni cella):
+      // la color scale relativa si ricalcola man mano su TUTTI i plots già
+      // calcolati, e viene riallineata su tutti i layer a fine run.
+      const cellValuesByPlot = new Map<string, number[]>();
 
       try {
         const strategia = options.strategia;
@@ -257,8 +299,9 @@ export function useSoilPipeline() {
             primaryIndex: options.primaryIndex,
             geometria: plot.geometry,
             bbox,
+            plotId: plot.id,
           };
-          const { series, overlay } = await runJob(job, (p) => {
+          const { series, cells } = await runJob(job, (p) => {
             if (p.type !== "progress") return;
             setStatus({
               phase: "lavorazione",
@@ -268,7 +311,16 @@ export function useSoilPipeline() {
             });
           });
 
-          if (overlay) iniettaOverlay(plot.id, overlay);
+          if (cells) {
+            cellValuesByPlot.set(plot.id, indexCellValues(cells.cells));
+            // Dominio "in corso": pooled sui plots calcolati finora, così
+            // l'utente vede progressivamente la mappa mentre gli altri plots
+            // sono ancora in lavorazione.
+            const runningDomain = relativeDomain(
+              [...cellValuesByPlot.values()].flat(),
+            );
+            iniettaIndexCells(plot, cells, runningDomain);
+          }
 
           // Cache offline della media NDVI più recente (series crescente: ultimo
           // = più recente), così la scheda plot la mostra offline.
@@ -284,11 +336,22 @@ export function useSoilPipeline() {
           });
         }
 
+        // Dominio FINALE: pooled su tutti i plots della run, riallineato su
+        // ogni layer già iniettato così condividono tutti la stessa scala.
+        let domain: [number, number] | null = null;
+        if (cellValuesByPlot.size > 0) {
+          domain = relativeDomain([...cellValuesByPlot.values()].flat());
+          for (const plotId of cellValuesByPlot.keys()) {
+            aggiornaScalaIndexCells(plotId, options.primaryIndex, domain);
+          }
+        }
+
         setStatus({
           phase: "completato",
           results,
           indices: options.indices,
           primaryIndex: options.primaryIndex,
+          domain,
         });
       } catch (error) {
         setStatus({
@@ -301,7 +364,7 @@ export function useSoilPipeline() {
   );
 
   const reset = useCallback(() => {
-    removeOverlay();
+    removeIndexCells();
     setStatus({ phase: "idle" });
   }, []);
 

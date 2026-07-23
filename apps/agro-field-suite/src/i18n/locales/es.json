@@ -135,7 +135,9 @@
     "toolExport": "Exportar (CSV)…",
     "toolProfile": "Datos de la explotación",
     "toolWeather": "Fuente meteo y variables",
-    "toolGeoCompliance": "GeoCompliance"
+    "toolGeoCompliance": "GeoCompliance",
+    "toolMachinery": "Parque de maquinaria",
+    "toolRefill": "Repostaje"
   },
   "help": {
     "menu": "Ayuda",
@@ -169,7 +171,8 @@
     },
     "aboutModal": {
       "title": "Acerca de AgroGea",
-      "legal": "Datos local-first: cada empresa se almacena en una base de datos PGlite aislada en este dispositivo. Nada sale del dispositivo hasta que sincronizas con tu nube o el servidor de la empresa."
+      "legal": "Datos local-first: cada empresa se almacena en una base de datos PGlite aislada en este dispositivo. Nada sale del dispositivo hasta que sincronizas con tu nube o el servidor de la empresa.",
+      "manual": "Manual de usuario"
     },
     "diagnosticsModal": {
       "title": "Diagnóstico",
@@ -723,6 +726,7 @@
     "critical": "Crítico",
     "dssRisk": "Riesgo DSS",
     "optimal": "Óptimo",
+    "relativeScale": "Escala relativa",
     "warning": "Alerta"
   },
   "fieldDashboard": {
@@ -823,7 +827,21 @@
     "warehouseMismatch": "≠ total calculado ({{total}} {{unit}})",
     "warehouseSplitFefo": "Dividir en varios lotes (FEFO)",
     "assignCropLabel": "Asignar {{crop}} a «{{plot}}» para la campaña {{year}}",
-    "assignCropHint": "Crea automáticamente la ficha de cultivo y la campaña. Los datos declarativos (códigos SIAN, parcela de referencia) quedan por completar en Datos de cultivo."
+    "assignCropHint": "Crea automáticamente la ficha de cultivo y la campaña. Los datos declarativos (códigos SIAN, parcela de referencia) quedan por completar en Datos de cultivo.",
+    "machineSection": "Maquinaria",
+    "machine": "Máquina",
+    "machineNoneOption": "— ninguna —",
+    "machineNotOperationalOption": "no operativa",
+    "machineNotOperationalWarn": "La máquina seleccionada no está operativa — confirma antes de guardar.",
+    "equipment": "Apero",
+    "equipmentNoneOption": "— ninguno —",
+    "equipmentWidth": "Ancho de trabajo {{width}} m",
+    "machineHours": "Horas",
+    "machineNone": "No hay máquinas registradas. Crea una para vincularla a la operación.",
+    "machineCreate": "Nueva máquina",
+    "machineNewName": "Nombre",
+    "machineNewType": "Tipo",
+    "machineCreateSave": "Crear y seleccionar"
   },
   "warehouse": {
     "title": "Almacén",
@@ -885,6 +903,12 @@
     "validation": {
       "required": "campo obligatorio",
       "npkPercent": "riqueza requerida (0–100%)"
+    },
+    "comingSoon": "Próximamente.",
+    "tabs": {
+      "products": "Productos / lotes",
+      "machines": "Maquinaria",
+      "refill": "Repostaje"
     }
   },
   "sianExportDialog": {
@@ -1094,7 +1118,7 @@
     },
     "indices": {
       "ndwi": {
-        "descr": "Contenido de agua"
+        "descr": "Agua libre / encharcamiento"
       },
       "overlay": "superposición",
       "title": "Índices",
@@ -1110,6 +1134,9 @@
       "primaryTooltip": "Índice primario (superposición en el mapa)",
       "savi": {
         "descr": "Corregido por el suelo"
+      },
+      "ndmi": {
+        "descr": "Humedad del cultivo (estrés hídrico)"
       }
     },
     "period": {
@@ -1134,6 +1161,7 @@
     "results": {
       "cloudSuffix": " · {{percent}}% nubes",
       "noScene": "Ninguna escena útil con los filtros elegidos.",
+      "relativeScale": "Escala relativa {{index}}: {{min}} – {{max}}",
       "sceneDate": "escena del {{date}}",
       "title": "Resultados",
       "trend": "Tendencia",
@@ -1416,6 +1444,14 @@
       "panelVra": {
         "label": "Dosis variable (VRA)",
         "descr": "Mapas de prescripción"
+      },
+      "panelMezzi": {
+        "label": "Parque de maquinaria",
+        "descr": "Máquinas, aperos y mantenimiento"
+      },
+      "panelRefill": {
+        "label": "Repostaje",
+        "descr": "Botón rápido de repostaje en el mapa"
       }
     },
     "unit": {
@@ -1522,7 +1558,9 @@
     "mobile": "Móvil",
     "fixed": "Fijo",
     "poi": "POI",
-    "id": "ID"
+    "id": "ID",
+    "indexCell": "Celda de índice",
+    "cellSize": "{{size}} × {{size}} m"
   },
   "appHeader": {
     "commandCenter": "Centro de mando",
@@ -1636,5 +1674,221 @@
         "serra": "Invernadero"
       }
     }
+  },
+  "machinery": {
+    "newMachine": "Nueva máquina",
+    "newEquipment": "Nuevo apero",
+    "editMachine": "Editar máquina",
+    "editEquipment": "Editar apero",
+    "importCsv": "Importar CSV",
+    "showDecommissioned": "Mostrar dadas de baja",
+    "status": {
+      "operational": "Operativa",
+      "maintenance": "En mantenimiento",
+      "breakdown": "Averiada",
+      "decommissioned": "Dada de baja"
+    },
+    "docType": {
+      "inspection": "Inspección técnica",
+      "insurance": "Seguro",
+      "road_tax": "Impuesto de circulación",
+      "certification": "Homologación",
+      "other": "Otro"
+    },
+    "adjustType": {
+      "initial_reading": "Lectura inicial",
+      "manual": "Ajuste manual",
+      "engine_reset": "Sustitución de motor/reset"
+    },
+    "attention": {
+      "title": "Requiere atención",
+      "maintenance_due": "Mantenimiento próximo",
+      "maintenance_overdue": "Mantenimiento vencido",
+      "document_expiring": "Documento por vencer",
+      "document_expired": "Documento vencido",
+      "fuel_anomaly": "Anomalía de consumo",
+      "machine_down": "Máquina parada",
+      "inDays": "en {{count}} días",
+      "inHours": "en {{count}} h",
+      "overdueByDays": "{{count}} días de retraso",
+      "overdueByHours": "{{count}} h de retraso"
+    },
+    "list": {
+      "machinesSection": "Máquinas",
+      "equipmentSection": "Aperos"
+    },
+    "noMachines": "Aún no hay máquinas registradas.",
+    "noEquipment": "Aún no hay aperos registrados.",
+    "form": {
+      "name": "Nombre",
+      "machineType": "Tipo",
+      "machineTypePlaceholder": "p. ej. tractor, cosechadora",
+      "equipmentType": "Tipo",
+      "equipmentTypePlaceholder": "p. ej. arado, cuba, sembradora",
+      "licensePlate": "Matrícula",
+      "chassisNumber": "N.º de bastidor",
+      "brand": "Marca",
+      "model": "Modelo",
+      "year": "Año",
+      "workingWidth": "Ancho de trabajo (m)",
+      "status": "Estado",
+      "notes": "Notas",
+      "advancedSection": "Amortización (0.4.0)",
+      "advancedHint": "Campos preparados para el cálculo de coste horario/amortización de la 0.4.0; aún no se usan.",
+      "purchaseValue": "Valor de compra (€)",
+      "purchaseDate": "Fecha de compra",
+      "usefulLifeHours": "Vida útil (horas)",
+      "usefulLifeYears": "Vida útil (años)",
+      "residualValue": "Valor residual (€)",
+      "initialCounter": "Lectura inicial del contador",
+      "initialCounterHint": "Opcional: si la máquina/apero ya tiene horas/desgaste, registra la lectura inicial (auditada).",
+      "saveMachine": "Guardar máquina",
+      "saveEquipment": "Guardar apero",
+      "nameRequired": "El nombre es obligatorio."
+    },
+    "detail": {
+      "backToList": "‹ Lista de máquinas",
+      "hourCounter": "Contador de horas",
+      "usageCounter": "Contador de desgaste",
+      "edit": "Editar",
+      "deleteMachine": "Eliminar máquina",
+      "deleteEquipment": "Eliminar apero",
+      "notFound": "Registro no encontrado."
+    },
+    "counter": {
+      "adjustTitle": "Ajuste del contador",
+      "type": "Tipo de ajuste",
+      "newValue": "Nuevo valor",
+      "date": "Fecha",
+      "reason": "Motivo",
+      "reasonPlaceholder": "p. ej. sustitución de motor, corrección manual",
+      "submit": "Registrar ajuste",
+      "history": "Historial de ajustes",
+      "noHistory": "Sin ajustes registrados.",
+      "from": "desde {{value}}"
+    },
+    "documents": {
+      "title": "Documentos y vencimientos",
+      "add": "+ Nuevo documento",
+      "type": "Tipo de documento",
+      "reference": "N.º de referencia",
+      "referencePlaceholder": "p. ej. n.º de póliza/certificado",
+      "issuedAt": "Emitido el",
+      "expiresAt": "Vencimiento",
+      "issuer": "Emisor",
+      "amount": "Importe (€)",
+      "notes": "Notas",
+      "save": "Guardar documento",
+      "edit": "Editar documento",
+      "delete": "Eliminar documento",
+      "none": "Sin documentos registrados.",
+      "statusValid": "Vigente",
+      "statusExpiring": "Por vencer",
+      "statusExpired": "Vencido",
+      "expiresAtRequired": "La fecha de vencimiento es obligatoria."
+    },
+    "maintenance": {
+      "title": "Plan de mantenimiento",
+      "add": "+ Nuevo plan",
+      "name": "Nombre del plan",
+      "category": "Categoría",
+      "categoryRoutine": "Ordinario",
+      "categoryExtraordinary": "Extraordinario",
+      "triggerType": "Disparador",
+      "triggerTime": "Por tiempo",
+      "triggerHours": "Por horas",
+      "intervalDays": "Recurrencia (días)",
+      "dueDate": "Próxima fecha",
+      "intervalHours": "Recurrencia (horas)",
+      "dueHours": "Próximas horas",
+      "active": "Plan activo",
+      "inactive": "Pausado",
+      "notes": "Notas",
+      "save": "Guardar plan",
+      "delete": "Eliminar plan",
+      "none": "Sin planes de mantenimiento.",
+      "urgencyOk": "OK",
+      "urgencyDue": "Próximo",
+      "urgencyOverdue": "Vencido",
+      "remainingDays": "{{count}} días",
+      "remainingHours": "{{count}} h",
+      "overdueDays": "{{count}} días de retraso",
+      "overdueHours": "{{count}} h de retraso",
+      "recordIntervention": "Registrar intervención",
+      "linkedSchedule": "Plan",
+      "noSchedule": "— sin plan (extraordinaria) —",
+      "performedAt": "Fecha de realización",
+      "counterHours": "Lectura del contador",
+      "description": "Descripción",
+      "cost": "Coste (€)",
+      "parts": "Repuestos (texto libre)",
+      "partsFromWarehouse": "Repuesto del almacén (opcional)",
+      "partsLot": "Lote",
+      "noLot": "— ninguno —",
+      "partsQuantity": "Cantidad",
+      "partsAvailable": "disp. {{qty}} {{unit}}",
+      "submitIntervention": "Registrar intervención",
+      "history": "Historial de intervenciones",
+      "noHistory": "Sin intervenciones registradas.",
+      "usedPart": "Repuesto usado: {{qty}} {{unit}} del lote {{lot}}"
+    },
+    "fuel": {
+      "title": "Consumo de combustible",
+      "avg": "Media",
+      "last": "Último",
+      "perHour": "l/h",
+      "samples": "{{count}} intervalos lleno a lleno",
+      "anomaly": "Consumo anómalo respecto a la media",
+      "noData": "Datos insuficientes para calcular el consumo (se necesita al menos un repostaje lleno a lleno con lectura del contador)."
+    },
+    "import": {
+      "title": "Importar máquinas desde CSV",
+      "instructions": "Columnas esperadas (fila de encabezado): name, machine_type, license_plate, brand, model, year, hour_counter.",
+      "chooseFile": "Elegir archivo CSV",
+      "noFile": "Ningún archivo seleccionado.",
+      "parseError": "No se pudo leer el archivo: {{message}}",
+      "missingHeader": "Falta el encabezado: se requiere una columna \"name\".",
+      "previewTitle": "Vista previa ({{valid}} válidas de {{total}})",
+      "errorNameRequired": "nombre obligatorio",
+      "errorYear": "año no numérico",
+      "errorHourCounter": "contador no numérico",
+      "submit": "Importar {{count}} máquinas",
+      "importing": "Importando… ({{done}}/{{total}})",
+      "resultSummary": "{{success}} máquinas importadas de {{total}}.",
+      "resultWithErrors": "{{success}} importadas, {{failed}} con error.",
+      "close": "Cerrar"
+    }
+  },
+  "machineryRefill": {
+    "title": "Repostaje de combustible",
+    "newRefill": "Nuevo repostaje",
+    "quickHint": "Repostaje rápido — solo lo esencial, guardas en un toque.",
+    "machine": "Máquina",
+    "selectMachine": "Selecciona máquina…",
+    "notOperational": "Máquina no operativa — comprueba antes de repostar.",
+    "cistern": "Depósito / lote",
+    "selectCistern": "Selecciona depósito…",
+    "available": "{{qty}} l disponibles",
+    "uma": "UMA",
+    "liters": "Litros",
+    "date": "Fecha",
+    "counterHours": "Contador de horas",
+    "operator": "Operario",
+    "fullTank": "Depósito lleno (consumo lleno a lleno)",
+    "notes": "Notas",
+    "save": "Guardar repostaje",
+    "insufficient": "Los litros superan la existencia del depósito.",
+    "noFuelLots": "No hay depósito de combustible en el almacén. Crea un producto de combustible y carga un lote (el depósito) desde la pestaña Productos.",
+    "noMachines": "Aún no hay máquinas registradas. Añade una desde la pestaña Máquinas.",
+    "filterMachine": "Máquina",
+    "filterCistern": "Depósito",
+    "allMachines": "Todas las máquinas",
+    "allCisterns": "Todos los depósitos",
+    "empty": "Aún no hay repostajes registrados.",
+    "byMachineTotal": "{{liters}} l en total",
+    "litersShort": "l",
+    "partial": "parcial",
+    "deleteRefill": "Eliminar repostaje",
+    "quickAction": "Repostaje rápido"
   }
 }

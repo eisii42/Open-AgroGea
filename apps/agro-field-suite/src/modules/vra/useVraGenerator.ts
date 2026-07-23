@@ -153,6 +153,7 @@ export function useVraGenerator() {
           primaryIndex: options.index,
           geometria: plot.geometry,
           bbox,
+          plotId: plot.id,
           vra: { step: options.step },
         });
         if (!cells || cells.features.length === 0) {

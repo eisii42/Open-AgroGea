@@ -5,10 +5,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@geolibre/ui";
-import { Loader2, RefreshCw, Sprout } from "lucide-react";
-import { useState } from "react";
+import { BookOpen, Loader2, RefreshCw, Sprout } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { APP_VERSION, checkForUpdates, type UpdateResult } from "./helpActions";
+import {
+  APP_VERSION,
+  checkForUpdates,
+  getAppVersion,
+  openExternal,
+  type UpdateResult,
+} from "./helpActions";
+
+const MANUAL_BASE_URL =
+  "https://github.com/eisii42/Open-AgroGea/blob/main/docs/user-guide/";
 
 /**
  * Modal "Informazioni": logo AgroGea, versione current del software e nota
@@ -24,9 +33,17 @@ export function AboutModal({
   open: boolean;
   onClose: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [checking, setChecking] = useState(false);
   const [updateResult, setUpdateResult] = useState<UpdateResult | null>(null);
+  const [version, setVersion] = useState(APP_VERSION);
+
+  useEffect(() => {
+    void getAppVersion().then(setVersion);
+  }, []);
+
+  const manualFile = i18n.language.startsWith("it") ? "manuale.md" : "manual.en.md";
+  const manualUrl = `${MANUAL_BASE_URL}${manualFile}`;
 
   const handleCheckUpdates = async () => {
     if (checking) return;
@@ -67,7 +84,7 @@ export function AboutModal({
           </span>
           <h2 className="text-lg font-semibold tracking-tight">AgroGea</h2>
           <span className="rounded-full bg-[var(--panel-2)] px-2.5 py-1 font-mono text-xs text-[var(--ink-3)]">
-            v{APP_VERSION}-alpha
+            v{version}
           </span>
           <p className="text-xs leading-relaxed text-[var(--ink-3)]">
             {t("help.aboutModal.legal")}
@@ -89,6 +106,15 @@ export function AboutModal({
           {updateMessage && (
             <p className="text-xs text-[var(--ink-4)]">{updateMessage}</p>
           )}
+
+          <button
+            type="button"
+            onClick={() => void openExternal(manualUrl)}
+            className="flex items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] px-3 py-1.5 text-xs font-medium text-[var(--ink-2)] hover:bg-[var(--panel-2)]"
+          >
+            <BookOpen size={13} className="text-[var(--ink-3)]" />
+            {t("help.aboutModal.manual")}
+          </button>
         </div>
       </DialogContent>
     </Dialog>

@@ -23,6 +23,7 @@ const INDICES: { id: VegetationIndex; label: string }[] = [
   { id: "ndre", label: "NDRE" },
   { id: "msavi2", label: "MSAVI2" },
   { id: "savi", label: "SAVI" },
+  { id: "ndmi", label: "NDMI" },
   { id: "ndwi", label: "NDWI" },
 ];
 

@@ -5,6 +5,7 @@ import {
   type Product,
   expiryStatus,
   useAgroStore,
+  useSettingsStore,
   validateProduct,
 } from "@agrogea/core";
 import { FieldSheet } from "@agrogea/ui";
@@ -12,6 +13,24 @@ import { Button, cn, Input, Label, Select } from "@geolibre/ui";
 import { PackagePlus, Trash2 } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { WarehouseTabBar } from "./WarehouseTabBar";
+import { MachineryTab } from "../machinery/MachineryTab";
+
+/**
+ * Modulo Magazzino a SOTTO-SCHEDE (0.3.0): Prodotti/Lotti (storico 0.2.0) e
+ * Mezzi (parco macchine). La scheda attiva vive nello store (`warehouseTab`);
+ * ogni scheda ha la propria FieldSheet con la WarehouseTabBar in testa. Il
+ * router rispetta i flag di abilitazione (Impostazioni, §6.1). Il Refill
+ * carburante è un pannello a sé (FieldPanel `refill`), aperto solo dal FAB.
+ */
+export function WarehousePanel({ onClose }: { onClose: () => void }) {
+  const tab = useAgroStore((s) => s.warehouseTab);
+  const flags = useSettingsStore((s) => s.dashboardLayout);
+  if (tab === "machines" && flags.panelMezzi) {
+    return <MachineryTab onClose={onClose} />;
+  }
+  return <ProductsTab onClose={onClose} />;
+}
 
 /**
  * Modulo Magazzino (0.2.0): anagrafica products a categorie RIGIDE (la
@@ -77,7 +96,7 @@ function ExpiryBadge({
   );
 }
 
-export function WarehousePanel({ onClose }: { onClose: () => void }) {
+function ProductsTab({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const products = useAgroStore((s) => s.products);
   const lots = useAgroStore((s) => s.lots);
@@ -159,6 +178,7 @@ export function WarehousePanel({ onClose }: { onClose: () => void }) {
         )
       }
     >
+      {!creatingNew && !openProduct && <WarehouseTabBar />}
       {errore && (
         <p className="mb-3 rounded-[var(--r-2)] border border-[var(--danger)] bg-[var(--danger-l)] px-3 py-2 text-xs text-[var(--danger)]">
           {errore}

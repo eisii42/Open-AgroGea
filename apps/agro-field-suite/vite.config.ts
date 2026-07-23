@@ -1,7 +1,12 @@
+import { readFileSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { type Plugin, defineConfig } from "vite";
+
+const pkg = JSON.parse(
+  readFileSync(new URL("./package.json", import.meta.url), "utf8"),
+) as { version: string };
 
 // Deve combaciare con WMS_PROXY_PATH di @geolibre/map (layer-sync.ts): in dev i
 // tile WMS (token {bbox-epsg-3857}) vengono instradati qui perché i server WMS —
@@ -56,6 +61,9 @@ function wmsProxyPlugin(): Plugin {
 export default defineConfig({
   plugins: [react(), wmsProxyPlugin()],
   clearScreen: false,
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   server: {
     port: 5174,
     strictPort: true,

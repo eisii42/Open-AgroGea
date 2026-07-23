@@ -1,7 +1,7 @@
-import { useAgroStore } from "@agrogea/core";
+import { useAgroStore, useSettingsStore } from "@agrogea/core";
 import { MapCanvas, type MapController } from "@geolibre/map";
 import { cn } from "@geolibre/ui";
-import { Lock, MapPin, Menu, NotebookPen, PanelLeftClose, PanelLeftOpen, Wifi } from "lucide-react";
+import { Fuel, Lock, MapPin, Menu, NotebookPen, PanelLeftClose, PanelLeftOpen, Wifi } from "lucide-react";
 import { type ReactNode, lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet } from "../components/BottomSheet";
@@ -42,6 +42,11 @@ const HarvestPanel = lazy(() =>
 const WarehousePanel = lazy(() =>
   import("../modules/warehouse/WarehousePanel").then((m) => ({
     default: m.WarehousePanel,
+  })),
+);
+const FuelRefillPanel = lazy(() =>
+  import("../modules/machinery/FuelRefillTab").then((m) => ({
+    default: m.FuelRefillTab,
   })),
 );
 const SoilPanel = lazy(() =>
@@ -133,6 +138,11 @@ export function FieldDashboard() {
   const readOnly = useReadOnly(activeCompanyId);
   const sidebarCollapsed = useAgroStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useAgroStore((s) => s.toggleSidebar);
+  const openRefillPanel = useAgroStore((s) => s.openRefillPanel);
+  // Accesso rapido al refill a bordo campo (§6.2): il pannello Refill è staccato
+  // dal Magazzino e raggiungibile SOLO da questo FAB, visibile se abilitato in
+  // Impostazioni del profilo.
+  const refillEnabled = useSettingsStore((s) => s.dashboardLayout.panelRefill);
   const pendingGeometry = useAgroStore((s) => s.pendingGeometry);
   const selectedFeature = useAgroStore((s) => s.selectedFeature);
 
@@ -261,6 +271,19 @@ export function FieldDashboard() {
               <MapPin size={18} />
             </button>
           )}
+          {/* Accesso rapido al refill carburante a bordo campo (§6.2): apre la
+              sotto-scheda Refill del Magazzino con il form già precompilato. */}
+          {mapReady && refillEnabled && (
+            <button
+              type="button"
+              onClick={() => openRefillPanel({ quickRefill: true })}
+              title={t("machineryRefill.quickAction")}
+              aria-label={t("machineryRefill.quickAction")}
+              className="flex h-10 w-10 items-center justify-center rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] text-[var(--ink-2)] shadow-[var(--sh-1)] hover:bg-[var(--panel-2)]"
+            >
+              <Fuel size={18} />
+            </button>
+          )}
           {/* Strumenti di MODIFICA: compaiono a lato dei moduli solo durante
               l'editing geometrico, con i soli tool di modifica (non di disegno). */}
           <GeometryEditToolbar />
@@ -304,6 +327,11 @@ export function FieldDashboard() {
           )}
           {openPanels.includes("magazzino") && (
             <WarehousePanel onClose={() => togglePanel("magazzino")} />
+          )}
+          {/* Refill carburante: pannello a sé (staccato dal Magazzino), aperto
+              solo dal FAB rapido a bordo campo (§6.2). */}
+          {openPanels.includes("refill") && (
+            <FuelRefillPanel onClose={() => togglePanel("refill")} />
           )}
           {openPanels.includes("ndvi") && (
             <SoilPanel onClose={() => togglePanel("ndvi")} />

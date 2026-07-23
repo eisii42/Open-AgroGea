@@ -27,6 +27,15 @@ import type {
   TenantClaims,
   TenantMembership,
   LastOperation,
+  WarehouseTab,
+  Machine,
+  Equipment,
+  MachineUsageRequest,
+  MaintenanceSchedule,
+  MaintenanceLog,
+  MachineDocument,
+  CounterAdjustment,
+  FuelRefill,
 } from "../types";
 
 /**
@@ -208,6 +217,16 @@ export interface DomainSlice {
   products: Product[];
   /** Lotti di warehouse (tutti i products dell'azienda attiva). */
   lots: ProductLot[];
+  /** Unità motrici del parco macchine dell'azienda attiva (0.3.0). */
+  machines: Machine[];
+  /** Attrezzi del parco macchine dell'azienda attiva. */
+  equipment: Equipment[];
+  /** Piani di manutenzione dei mezzi/attrezzi dell'azienda attiva. */
+  maintenanceSchedules: MaintenanceSchedule[];
+  /** Documenti/scadenze dei mezzi dell'azienda attiva. */
+  machineDocuments: MachineDocument[];
+  /** Rifornimenti carburante dell'azienda attiva. */
+  fuelRefills: FuelRefill[];
 
   setActiveCompany: (companyId: string | null) => Promise<void>;
   /**
@@ -273,6 +292,7 @@ export interface DomainSlice {
       "id" | "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
     >,
     issues?: IssueRequest[],
+    machineUsages?: MachineUsageRequest[],
   ) => Promise<TreatmentLog>;
   /**
    * Cancellazione protetta di una singola operation del Quaderno (soft-delete
@@ -383,6 +403,94 @@ export interface DomainSlice {
   ) => Promise<ProductLot | null>;
   /** Soft-delete di un lot di warehouse. */
   deleteLot: (id: string) => Promise<void>;
+
+  // -- Parco macchine (0.3.0) -------------------------------------------------
+  /** Crea/aggiorna una macchina (il contatore ore non si tocca da qui) e idrata. */
+  saveMachine: (
+    input: Omit<
+      Machine,
+      | "id"
+      | "tenant_id"
+      | "company_id"
+      | "hour_counter"
+      | "created_at"
+      | "updated_at"
+      | "deleted_at"
+    > & { id?: string },
+  ) => Promise<Machine | null>;
+  /** Soft-delete di una macchina (lo storico resta consultabile). */
+  deleteMachine: (id: string) => Promise<void>;
+  /** Crea/aggiorna un attrezzo (l'usura non si tocca da qui) e idrata. */
+  saveEquipment: (
+    input: Omit<
+      Equipment,
+      | "id"
+      | "tenant_id"
+      | "company_id"
+      | "usage_counter"
+      | "created_at"
+      | "updated_at"
+      | "deleted_at"
+    > & { id?: string },
+  ) => Promise<Equipment | null>;
+  /** Soft-delete di un attrezzo. */
+  deleteEquipment: (id: string) => Promise<void>;
+  /**
+   * Rettifica MANUALE del contatore di un mezzo/attrezzo (lettura iniziale,
+   * rettifica, sostituzione motore): audit in `counter_adjustments` + SET del
+   * contatore, poi idrata mezzi/attrezzi.
+   */
+  adjustCounter: (input: {
+    machine_id?: string | null;
+    equipment_id?: string | null;
+    type: CounterAdjustment["type"];
+    new_value: number;
+    adjusted_at: string;
+    reason?: string | null;
+    author?: string | null;
+  }) => Promise<CounterAdjustment | null>;
+  /** Crea/aggiorna un piano di manutenzione e idrata lo store. */
+  saveMaintenanceSchedule: (
+    input: Omit<
+      MaintenanceSchedule,
+      "id" | "tenant_id" | "created_at" | "updated_at" | "deleted_at"
+    > & { id?: string },
+  ) => Promise<MaintenanceSchedule | null>;
+  /** Soft-delete di un piano di manutenzione. */
+  deleteMaintenanceSchedule: (id: string) => Promise<void>;
+  /**
+   * Registra un intervento di manutenzione: riprogramma il piano ricorrente e,
+   * se indicato un lotto ricambio, lo scarica dal Magazzino (atomico). Idrata
+   * piani e lots.
+   */
+  recordMaintenance: (
+    input: Omit<
+      MaintenanceLog,
+      "id" | "tenant_id" | "created_at" | "updated_at" | "deleted_at"
+    > & { id?: string },
+  ) => Promise<MaintenanceLog | null>;
+  /** Crea/aggiorna un documento del mezzo e idrata lo store. */
+  saveMachineDocument: (
+    input: Omit<
+      MachineDocument,
+      "id" | "tenant_id" | "created_at" | "updated_at" | "deleted_at"
+    > & { id?: string },
+  ) => Promise<MachineDocument | null>;
+  /** Soft-delete di un documento del mezzo. */
+  deleteMachineDocument: (id: string) => Promise<void>;
+  /**
+   * Registra un rifornimento carburante: scarico atomico della cisterna dal
+   * Magazzino (blocco se negativo) e idratazione di refill e lots.
+   */
+  recordFuelRefill: (
+    input: Omit<
+      FuelRefill,
+      "id" | "tenant_id" | "uma_code" | "created_at" | "updated_at" | "deleted_at"
+    > & { id?: string; uma_code?: string | null },
+  ) => Promise<FuelRefill | null>;
+  /** Storno di un rifornimento (reintegra la cisterna) e idratazione. */
+  deleteFuelRefill: (id: string) => Promise<void>;
+
   /** Registra un soilSample di soil (`soil_samples`) e idrata lo store. */
   saveSoilSample: (
     input: Omit<
@@ -431,6 +539,17 @@ export interface UiSlice {
    * = gli ID delle SOLE operazioni attualmente visibili nel registro (rispetta
    * i filters temporali/plot applicati nel pannello).
    */
+  /**
+   * Sotto-scheda attiva del modulo Magazzino (Prodotti/Lotti · Mezzi). Vive
+   * nello store così la nav può aprire il pannello puntando la scheda giusta.
+   */
+  warehouseTab: WarehouseTab;
+  /**
+   * `true` quando l'accesso rapido a bordo campo (FAB refill) chiede al pannello
+   * Refill (staccato dal Magazzino) di aprire SUBITO il form precompilato.
+   * Consumato e azzerato dal pannello all'apertura.
+   */
+  quickRefillPending: boolean;
   mapOperationIds: string[] | null;
   /**
    * Harvests da renderizzare come simboli sulla mappa (toggle "Mostra sulla
@@ -455,6 +574,17 @@ export interface UiSlice {
   setSidebarCollapsed: (collapsed: boolean) => void;
   togglePanel: (panel: FieldPanel) => void;
   setPanelMode: (mode: PanelMode) => void;
+  /** Imposta la sotto-scheda attiva del Magazzino (usata dalla tab bar). */
+  setWarehouseTab: (tab: WarehouseTab) => void;
+  /** Apre il modulo Magazzino puntando una sotto-scheda (nav Prodotti/Mezzi). */
+  openWarehouseTab: (tab: WarehouseTab) => void;
+  /**
+   * Apre il pannello Refill carburante (staccato dal Magazzino), tipicamente dal
+   * FAB a bordo campo. Con `quickRefill` chiede l'apertura del form precompilato.
+   */
+  openRefillPanel: (options?: { quickRefill?: boolean }) => void;
+  /** Consuma la richiesta di refill rapido (chiamata dal pannello Refill). */
+  consumeQuickRefill: () => void;
   selectPlot: (id: string | null) => Promise<void>;
   /** Apre il Quaderno filtrato sulle lavorazioni dell'appezzamento (click sul field). */
   openLogbookForPlot: (plotId: string | null) => void;

@@ -120,6 +120,8 @@
     "moduleLogbook": "Quaderno di Campagna",
     "moduleWarehouse": "Magazzino",
     "toolWarehouse": "Prodotti e lotti",
+    "toolMachinery": "Parco macchine",
+    "toolRefill": "Refill carburante",
     "moduleSettings": "Impostazioni Azienda",
     "toolNdvi": "Analisi indici (NDVI, NDRE…)",
     "toolVra": "Mappe a rateo variabile (VRA)",
@@ -169,7 +171,8 @@
     },
     "aboutModal": {
       "title": "Informazioni su AgroGea",
-      "legal": "Dati local-first: ogni azienda è archiviata in un database PGlite isolato su questo dispositivo. Nulla lascia il dispositivo finché non sincronizzi verso il tuo cloud o il server aziendale."
+      "legal": "Dati local-first: ogni azienda è archiviata in un database PGlite isolato su questo dispositivo. Nulla lascia il dispositivo finché non sincronizzi verso il tuo cloud o il server aziendale.",
+      "manual": "Manuale utente"
     },
     "diagnosticsModal": {
       "title": "Diagnostica",
@@ -723,6 +726,7 @@
     "critical": "Critico",
     "dssRisk": "Rischio DSS",
     "optimal": "Ottimale",
+    "relativeScale": "Scala relativa",
     "warning": "Allerta"
   },
   "fieldDashboard": {
@@ -823,10 +827,30 @@
     "warehouseMismatch": "≠ totale calcolato ({{total}} {{unit}})",
     "warehouseSplitFefo": "Dividi su più lotti (FEFO)",
     "assignCropLabel": "Assegna {{crop}} a «{{plot}}» per la campagna {{year}}",
-    "assignCropHint": "Crea automaticamente scheda coltura e campagna agraria. I dati dichiarativi (codici SIAN, isola) restano da completare in Dati coltura."
+    "assignCropHint": "Crea automaticamente scheda coltura e campagna agraria. I dati dichiarativi (codici SIAN, isola) restano da completare in Dati coltura.",
+    "machineSection": "Mezzo",
+    "machine": "Mezzo",
+    "machineNoneOption": "— nessuno —",
+    "machineNotOperationalOption": "non operativo",
+    "machineNotOperationalWarn": "Il mezzo selezionato non è operativo — conferma prima di salvare.",
+    "equipment": "Attrezzo",
+    "equipmentNoneOption": "— nessuno —",
+    "equipmentWidth": "Larghezza di lavoro {{width}} m",
+    "machineHours": "Ore",
+    "machineNone": "Nessun mezzo registrato. Creane uno per collegarlo all'operazione.",
+    "machineCreate": "Nuovo mezzo",
+    "machineNewName": "Nome",
+    "machineNewType": "Tipo",
+    "machineCreateSave": "Crea e seleziona"
   },
   "warehouse": {
     "title": "Magazzino",
+    "comingSoon": "In arrivo.",
+    "tabs": {
+      "products": "Prodotti / lotti",
+      "machines": "Mezzi",
+      "refill": "Refill carburante"
+    },
     "newProduct": "Nuovo prodotto",
     "productName": "Denominazione commerciale",
     "category": "Categoria",
@@ -886,6 +910,222 @@
       "required": "campo obbligatorio",
       "npkPercent": "titolo richiesto (0–100%)"
     }
+  },
+  "machinery": {
+    "newMachine": "Nuovo mezzo",
+    "newEquipment": "Nuovo attrezzo",
+    "editMachine": "Modifica mezzo",
+    "editEquipment": "Modifica attrezzo",
+    "importCsv": "Importa CSV",
+    "showDecommissioned": "Mostra dismessi",
+    "status": {
+      "operational": "Operativo",
+      "maintenance": "In manutenzione",
+      "breakdown": "Guasto",
+      "decommissioned": "Dismesso"
+    },
+    "docType": {
+      "inspection": "Revisione",
+      "insurance": "Assicurazione",
+      "road_tax": "Bollo",
+      "certification": "Collaudo",
+      "other": "Altro"
+    },
+    "adjustType": {
+      "initial_reading": "Lettura iniziale",
+      "manual": "Rettifica manuale",
+      "engine_reset": "Sostituzione/reset motore"
+    },
+    "attention": {
+      "title": "Richiede attenzione",
+      "maintenance_due": "Manutenzione in scadenza",
+      "maintenance_overdue": "Manutenzione scaduta",
+      "document_expiring": "Documento in scadenza",
+      "document_expired": "Documento scaduto",
+      "fuel_anomaly": "Consumo carburante anomalo",
+      "machine_down": "Mezzo fermo",
+      "inDays": "tra {{count}} giorni",
+      "inHours": "tra {{count}} h",
+      "overdueByDays": "in ritardo di {{count}} giorni",
+      "overdueByHours": "in ritardo di {{count}} h"
+    },
+    "list": {
+      "machinesSection": "Mezzi",
+      "equipmentSection": "Attrezzatura"
+    },
+    "noMachines": "Nessun mezzo in anagrafica.",
+    "noEquipment": "Nessun attrezzo in anagrafica.",
+    "form": {
+      "name": "Denominazione",
+      "machineType": "Tipo",
+      "machineTypePlaceholder": "es. trattore, mietitrebbia",
+      "equipmentType": "Tipo",
+      "equipmentTypePlaceholder": "es. aratro, botte, seminatrice",
+      "licensePlate": "Targa",
+      "chassisNumber": "N. telaio",
+      "brand": "Marca",
+      "model": "Modello",
+      "year": "Anno",
+      "workingWidth": "Larghezza di lavoro (m)",
+      "status": "Stato",
+      "notes": "Note",
+      "advancedSection": "Ammortamento (0.4.0)",
+      "advancedHint": "Campi predisposti per il calcolo costo orario/ammortamento della 0.4.0: non ancora utilizzati.",
+      "purchaseValue": "Valore d'acquisto (€)",
+      "purchaseDate": "Data d'acquisto",
+      "usefulLifeHours": "Vita utile (ore)",
+      "usefulLifeYears": "Vita utile (anni)",
+      "residualValue": "Valore residuo (€)",
+      "initialCounter": "Lettura iniziale contatore",
+      "initialCounterHint": "Opzionale: se il mezzo/attrezzo ha già ore/usura, registra la lettura di partenza (con audit).",
+      "saveMachine": "Salva mezzo",
+      "saveEquipment": "Salva attrezzo",
+      "nameRequired": "La denominazione è obbligatoria."
+    },
+    "detail": {
+      "backToList": "‹ Elenco mezzi",
+      "hourCounter": "Contatore ore",
+      "usageCounter": "Contatore usura",
+      "edit": "Modifica",
+      "deleteMachine": "Elimina mezzo",
+      "deleteEquipment": "Elimina attrezzo",
+      "notFound": "Record non trovato."
+    },
+    "counter": {
+      "adjustTitle": "Rettifica contatore",
+      "type": "Tipo rettifica",
+      "newValue": "Nuovo valore",
+      "date": "Data",
+      "reason": "Motivo",
+      "reasonPlaceholder": "es. sostituzione motore, correzione manuale",
+      "submit": "Registra rettifica",
+      "history": "Storico rettifiche",
+      "noHistory": "Nessuna rettifica registrata.",
+      "from": "da {{value}}"
+    },
+    "documents": {
+      "title": "Documenti e scadenze",
+      "add": "+ Nuovo documento",
+      "type": "Tipo documento",
+      "reference": "N. riferimento",
+      "referencePlaceholder": "es. n. polizza/certificato",
+      "issuedAt": "Emesso il",
+      "expiresAt": "Scadenza",
+      "issuer": "Ente/compagnia",
+      "amount": "Importo (€)",
+      "notes": "Note",
+      "save": "Salva documento",
+      "edit": "Modifica documento",
+      "delete": "Elimina documento",
+      "none": "Nessun documento registrato.",
+      "statusValid": "Valido",
+      "statusExpiring": "In scadenza",
+      "statusExpired": "Scaduto",
+      "expiresAtRequired": "La data di scadenza è obbligatoria."
+    },
+    "maintenance": {
+      "title": "Scadenziario manutenzione",
+      "add": "+ Nuovo piano",
+      "name": "Nome piano",
+      "category": "Categoria",
+      "categoryRoutine": "Ordinaria",
+      "categoryExtraordinary": "Straordinaria",
+      "triggerType": "Criterio",
+      "triggerTime": "A tempo",
+      "triggerHours": "A ore",
+      "intervalDays": "Ricorrenza (giorni)",
+      "dueDate": "Prossima scadenza",
+      "intervalHours": "Ricorrenza (ore)",
+      "dueHours": "Prossima soglia ore",
+      "active": "Piano attivo",
+      "inactive": "In pausa",
+      "notes": "Note",
+      "save": "Salva piano",
+      "delete": "Elimina piano",
+      "none": "Nessun piano di manutenzione.",
+      "urgencyOk": "Regolare",
+      "urgencyDue": "In scadenza",
+      "urgencyOverdue": "Scaduta",
+      "remainingDays": "{{count}} giorni",
+      "remainingHours": "{{count}} h",
+      "overdueDays": "{{count}} giorni di ritardo",
+      "overdueHours": "{{count}} h di ritardo",
+      "recordIntervention": "Registra intervento",
+      "linkedSchedule": "Piano",
+      "noSchedule": "— nessun piano (straordinario) —",
+      "performedAt": "Data intervento",
+      "counterHours": "Lettura contatore",
+      "description": "Descrizione",
+      "cost": "Costo (€)",
+      "parts": "Ricambi (testo libero)",
+      "partsFromWarehouse": "Ricambio da magazzino (opzionale)",
+      "partsLot": "Lotto",
+      "noLot": "— nessuno —",
+      "partsQuantity": "Quantità",
+      "partsAvailable": "disp. {{qty}} {{unit}}",
+      "submitIntervention": "Registra intervento",
+      "history": "Storico interventi",
+      "noHistory": "Nessun intervento registrato.",
+      "usedPart": "Ricambio usato: {{qty}} {{unit}} dal lotto {{lot}}"
+    },
+    "fuel": {
+      "title": "Consumo carburante",
+      "avg": "Media",
+      "last": "Ultimo",
+      "perHour": "l/h",
+      "samples": "{{count}} intervalli pieno-a-pieno",
+      "anomaly": "Consumo anomalo rispetto alla media",
+      "noData": "Dati insufficienti per calcolare il consumo (serve almeno un pieno-a-pieno con lettura contaore)."
+    },
+    "import": {
+      "title": "Importa mezzi da CSV",
+      "instructions": "Colonne attese (riga d'intestazione): name, machine_type, license_plate, brand, model, year, hour_counter.",
+      "chooseFile": "Scegli file CSV",
+      "noFile": "Nessun file selezionato.",
+      "parseError": "Impossibile leggere il file: {{message}}",
+      "missingHeader": "Intestazione mancante: la colonna \"name\" è richiesta.",
+      "previewTitle": "Anteprima ({{valid}} validi su {{total}})",
+      "errorNameRequired": "nome obbligatorio",
+      "errorYear": "anno non numerico",
+      "errorHourCounter": "contaore non numerico",
+      "submit": "Importa {{count}} mezzi",
+      "importing": "Importazione in corso… ({{done}}/{{total}})",
+      "resultSummary": "{{success}} mezzi importati su {{total}}.",
+      "resultWithErrors": "{{success}} importati, {{failed}} falliti.",
+      "close": "Chiudi"
+    }
+  },
+  "machineryRefill": {
+    "title": "Refill carburante",
+    "newRefill": "Nuovo rifornimento",
+    "quickHint": "Refill rapido — solo l'essenziale, salvi in un tap.",
+    "machine": "Mezzo",
+    "selectMachine": "Seleziona mezzo…",
+    "notOperational": "Mezzo non operativo — verifica prima di rifornire.",
+    "cistern": "Cisterna / lotto",
+    "selectCistern": "Seleziona cisterna…",
+    "available": "{{qty}} l disponibili",
+    "uma": "UMA",
+    "liters": "Litri",
+    "date": "Data",
+    "counterHours": "Contaore",
+    "operator": "Operatore",
+    "fullTank": "Pieno completo (consumo pieno-a-pieno)",
+    "notes": "Note",
+    "save": "Salva rifornimento",
+    "insufficient": "I litri superano la giacenza della cisterna.",
+    "noFuelLots": "Nessuna cisterna a magazzino. Crea un prodotto carburante e carica un lotto (la cisterna) dalla scheda Prodotti.",
+    "noMachines": "Nessun mezzo registrato. Aggiungine uno dalla scheda Mezzi.",
+    "filterMachine": "Mezzo",
+    "filterCistern": "Cisterna",
+    "allMachines": "Tutti i mezzi",
+    "allCisterns": "Tutte le cisterne",
+    "empty": "Nessun rifornimento registrato.",
+    "byMachineTotal": "{{liters}} l totali",
+    "litersShort": "l",
+    "partial": "parziale",
+    "deleteRefill": "Elimina rifornimento",
+    "quickAction": "Refill carburante rapido"
   },
   "sianExportDialog": {
     "chooseField": "— scegli un campo —",
@@ -1094,7 +1334,7 @@
     },
     "indices": {
       "ndwi": {
-        "descr": "Contenuto idrico"
+        "descr": "Acqua libera / ristagni"
       },
       "overlay": "overlay",
       "title": "Indici",
@@ -1110,6 +1350,9 @@
       "primaryTooltip": "Indice primario (overlay sulla mappa)",
       "savi": {
         "descr": "Corretto per il suolo"
+      },
+      "ndmi": {
+        "descr": "Umidità della coltura (stress idrico)"
       }
     },
     "period": {
@@ -1134,6 +1377,7 @@
     "results": {
       "cloudSuffix": " · {{percent}}% nubi",
       "noScene": "Nessuna scena utile coi filtri scelti.",
+      "relativeScale": "Scala relativa {{index}}: {{min}} – {{max}}",
       "sceneDate": "scena del {{date}}",
       "title": "Risultati",
       "trend": "Trend",
@@ -1401,6 +1645,14 @@
         "label": "Magazzino",
         "descr": "Prodotti, lotti e giacenze"
       },
+      "panelMezzi": {
+        "label": "Parco macchine",
+        "descr": "Mezzi, attrezzi e manutenzione"
+      },
+      "panelRefill": {
+        "label": "Refill carburante",
+        "descr": "Pulsante rapido di rifornimento in mappa"
+      },
       "panelRegistro": {
         "label": "Registro geometrie",
         "descr": "Modifica / elimina elementi"
@@ -1522,7 +1774,9 @@
     "mobile": "Mobile",
     "fixed": "Fisso",
     "poi": "POI",
-    "id": "ID"
+    "id": "ID",
+    "indexCell": "Cella indice",
+    "cellSize": "{{size}} × {{size}} m"
   },
   "appHeader": {
     "commandCenter": "Command Center",

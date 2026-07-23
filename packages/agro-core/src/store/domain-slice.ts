@@ -22,6 +22,11 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
     memberships: [],
     products: [],
     lots: [],
+    machines: [],
+    equipment: [],
+    maintenanceSchedules: [],
+    machineDocuments: [],
+    fuelRefills: [],
 
     setActiveCompany: async (companyId) => {
       set({
@@ -39,6 +44,11 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         memberships: [],
         products: [],
         lots: [],
+        machines: [],
+        equipment: [],
+        maintenanceSchedules: [],
+        machineDocuments: [],
+        fuelRefills: [],
         activeView: "map",
         selectedFeature: null,
         geomEdit: null,
@@ -226,6 +236,11 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         memberships,
         products,
         lots,
+        machines,
+        equipment,
+        maintenanceSchedules,
+        machineDocuments,
+        fuelRefills,
       ] = await Promise.all([
         dal.listPlots(activeCompanyId),
         dal.listCrops(),
@@ -239,6 +254,11 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         dal.listMemberships(),
         dal.listProducts(activeCompanyId),
         dal.listLotti(activeCompanyId),
+        dal.listMachines(activeCompanyId),
+        dal.listEquipment(activeCompanyId),
+        dal.listMaintenanceSchedules(activeCompanyId),
+        dal.listMachineDocuments(activeCompanyId),
+        dal.listFuelRefills(activeCompanyId),
       ]);
       set({
         companies,
@@ -254,6 +274,11 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         memberships,
         products,
         lots,
+        machines,
+        equipment,
+        maintenanceSchedules,
+        machineDocuments,
+        fuelRefills,
       });
     },
 
@@ -287,7 +312,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       set({ weatherConfig: config });
     },
 
-    recordTreatment: async (input, issues) => {
+    recordTreatment: async (input, issues, machineUsages) => {
       assertWritable(get);
       const { dal, activeCompanyId, syncRouter } = get();
       if (!dal || !activeCompanyId) {
@@ -295,14 +320,24 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       }
       // Con issues: attività + issue lots + costo CUMP in un'unica
       // transazione (l'eccezione WarehouseError risale al form senza scritture
-      // parziali). Senza issues: percorso classico (fallback testo libero).
+      // parziali). Con machineUsages: giunzione mezzi + incremento contatori
+      // nella stessa transazione (§5.2). Senza nessuno: percorso classico.
       const { treatment: record } = await dal.insertTreatmentWithIssues(
         { ...input, company_id: activeCompanyId },
         issues ?? [],
+        machineUsages ?? [],
       );
       set((s) => ({ treatments: [record, ...s.treatments] }));
       if (issues && issues.length > 0) {
         set({ lots: await dal.listLotti(activeCompanyId) });
+      }
+      // Lo scarico mezzi incrementa i contatori ore/usura: si riidratano.
+      if (machineUsages && machineUsages.length > 0) {
+        const [machines, equipment] = await Promise.all([
+          dal.listMachines(activeCompanyId),
+          dal.listEquipment(activeCompanyId),
+        ]);
+        set({ machines, equipment });
       }
       syncRouter?.notifyLocalWrite();
       return record;
@@ -314,9 +349,15 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       if (!dal) return;
       await dal.deleteTreatment(id);
       set((s) => ({ treatments: s.treatments.filter((t) => t.id !== id) }));
-      // Lo storno warehouse del DAL può aver reintegrato giacenze: si riidratano.
+      // Lo storno del DAL può aver reintegrato giacenze e stornato i contatori
+      // ore dei mezzi agganciati: si riidratano lots, mezzi e attrezzi.
       if (activeCompanyId) {
-        set({ lots: await dal.listLotti(activeCompanyId) });
+        const [lots, machines, equipment] = await Promise.all([
+          dal.listLotti(activeCompanyId),
+          dal.listMachines(activeCompanyId),
+          dal.listEquipment(activeCompanyId),
+        ]);
+        set({ lots, machines, equipment });
       }
       syncRouter?.notifyLocalWrite();
       // L'ultima operation mostrata nella scheda dettaglio può essere quella
@@ -545,6 +586,175 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       if (!dal) return;
       await dal.deleteLot(id);
       set((s) => ({ lots: s.lots.filter((l) => l.id !== id) }));
+      syncRouter?.notifyLocalWrite();
+    },
+
+    // -- Parco macchine (0.3.0) -----------------------------------------------
+
+    saveMachine: async (input) => {
+      assertWritable(get);
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return null;
+      const record = await dal.upsertMachine({
+        ...input,
+        company_id: activeCompanyId,
+      });
+      set((s) => ({
+        machines: [...s.machines.filter((m) => m.id !== record.id), record].sort(
+          (a, b) => a.name.localeCompare(b.name),
+        ),
+      }));
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    deleteMachine: async (id) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return;
+      await dal.deleteMachine(id);
+      set((s) => ({ machines: s.machines.filter((m) => m.id !== id) }));
+      syncRouter?.notifyLocalWrite();
+    },
+
+    saveEquipment: async (input) => {
+      assertWritable(get);
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return null;
+      const record = await dal.upsertEquipment({
+        ...input,
+        company_id: activeCompanyId,
+      });
+      set((s) => ({
+        equipment: [
+          ...s.equipment.filter((e) => e.id !== record.id),
+          record,
+        ].sort((a, b) => a.name.localeCompare(b.name)),
+      }));
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    deleteEquipment: async (id) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return;
+      await dal.deleteEquipment(id);
+      set((s) => ({ equipment: s.equipment.filter((e) => e.id !== id) }));
+      syncRouter?.notifyLocalWrite();
+    },
+
+    adjustCounter: async (input) => {
+      assertWritable(get);
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return null;
+      const record = await dal.adjustCounter(input);
+      // Il contatore è cambiato: si riidratano mezzi e attrezzi.
+      const [machines, equipment] = await Promise.all([
+        dal.listMachines(activeCompanyId),
+        dal.listEquipment(activeCompanyId),
+      ]);
+      set({ machines, equipment });
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    saveMaintenanceSchedule: async (input) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return null;
+      const record = await dal.upsertMaintenanceSchedule(input);
+      set((s) => ({
+        maintenanceSchedules: [
+          ...s.maintenanceSchedules.filter((m) => m.id !== record.id),
+          record,
+        ],
+      }));
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    deleteMaintenanceSchedule: async (id) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return;
+      await dal.deleteMaintenanceSchedule(id);
+      set((s) => ({
+        maintenanceSchedules: s.maintenanceSchedules.filter((m) => m.id !== id),
+      }));
+      syncRouter?.notifyLocalWrite();
+    },
+
+    recordMaintenance: async (input) => {
+      assertWritable(get);
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return null;
+      const record = await dal.recordMaintenance(input);
+      // Riprogrammazione del piano + eventuale scarico ricambio: si riidratano
+      // piani e lots.
+      const [maintenanceSchedules, lots] = await Promise.all([
+        dal.listMaintenanceSchedules(activeCompanyId),
+        dal.listLotti(activeCompanyId),
+      ]);
+      set({ maintenanceSchedules, lots });
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    saveMachineDocument: async (input) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return null;
+      const record = await dal.upsertMachineDocument(input);
+      set((s) => ({
+        machineDocuments: [
+          ...s.machineDocuments.filter((d) => d.id !== record.id),
+          record,
+        ],
+      }));
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    deleteMachineDocument: async (id) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return;
+      await dal.deleteMachineDocument(id);
+      set((s) => ({
+        machineDocuments: s.machineDocuments.filter((d) => d.id !== id),
+      }));
+      syncRouter?.notifyLocalWrite();
+    },
+
+    recordFuelRefill: async (input) => {
+      assertWritable(get);
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return null;
+      const record = await dal.recordFuelRefill(input);
+      // Lo scarico della cisterna aggiorna la giacenza del lot: si riidratano
+      // refill e lots.
+      const [fuelRefills, lots] = await Promise.all([
+        dal.listFuelRefills(activeCompanyId),
+        dal.listLotti(activeCompanyId),
+      ]);
+      set({ fuelRefills, lots });
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    deleteFuelRefill: async (id) => {
+      assertWritable(get);
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal) return;
+      await dal.deleteFuelRefill(id);
+      if (activeCompanyId) {
+        const [fuelRefills, lots] = await Promise.all([
+          dal.listFuelRefills(activeCompanyId),
+          dal.listLotti(activeCompanyId),
+        ]);
+        set({ fuelRefills, lots });
+      }
       syncRouter?.notifyLocalWrite();
     },
   };

@@ -11,3 +11,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/** Versione dell'app, iniettata a build-time da `vite.config.ts` (define). */
+declare const __APP_VERSION__: string;
