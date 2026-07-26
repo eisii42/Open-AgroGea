@@ -236,6 +236,10 @@
       "subtitle": "Programma le lavorazioni sugli appezzamenti e gestisci le ricette riutilizzabili.",
       "closeAria": "Chiudi pianificazione"
     },
+    "geofenceStatus": {
+      "active": "Rilevamento field attivo",
+      "noPlots": "Nessun appezzamento da monitorare"
+    },
     "readOnlyNotice": "Sola lettura: in questo ruolo non puoi creare o modificare task e ricette.",
     "newTask": "Nuova Task",
     "newRecipe": "Nuova Ricetta",
@@ -1977,6 +1981,49 @@
         "tunnel": "Tunnel",
         "serra": "Serra"
       }
+    }
+  },
+  "fieldMode": {
+    "error": {
+      "permission_denied": "Permesso GPS negato. Abilita la geolocalizzazione nelle impostazioni.",
+      "unavailable": "GPS non disponibile. Controlla il segnale.",
+      "timeout": "Timeout GPS. Riprova all'aperto."
+    },
+    "detection": {
+      "headerPrefix": "Sei nel campo:",
+      "dismiss": "Non ora",
+      "readOnly": "Sola lettura: non puoi avviare lavorazioni a bordo campo con questo ruolo.",
+      "confirmTitle": "Sessione avviata",
+      "confirmBody": "Il tracciamento a bordo campo comparirà presto qui.",
+      "close": "Chiudi",
+      "abortSession": "Annulla sessione (avviata per errore)",
+      "taskSectionTitle": "Task pianificata",
+      "taskRecommended": "Prossima",
+      "startTask": "Avvia task",
+      "noDate": "Senza data",
+      "noTaskTitle": "Nessuna task pianificata per questo field",
+      "chooseOperation": "Cosa stai facendo?",
+      "quickOperation": {
+        "phytosanitary": "Trattamento",
+        "fertilization": "Concimazione",
+        "tillage": "Lavorazione",
+        "other": "Altro"
+      },
+      "recipeLabel": "Ricetta (opzionale)",
+      "recipeNone": "— nessuna ricetta —",
+      "startFree": "Avvia lavorazione"
+    }
+  },
+  "reentryAlert": {
+    "banner": {
+      "title": "Tempo di rientro",
+      "message": "Su questo field è stato applicato {{product}}: il rientro è sconsigliato per altri operatori per ancora circa {{hours}}h. Chi lo ha applicato può rientrare coi DPI.",
+      "genericProduct": "un prodotto fitosanitario",
+      "ack": "Confermo di aver letto l'avviso (sono l'operatore che ha trattato e indosso i DPI, oppure accetto il rischio)."
+    },
+    "badge": {
+      "title": "Rientro",
+      "tooltip": "Mancano ancora circa {{count}}h alla fine del tempo di rientro"
     }
   }
 }

@@ -235,7 +235,7 @@ export interface DomainSlice {
   recipes: Recipe[];
   /** Task programmate dell'azienda attiva (tutte, non filtrate: il pannello filtra a runtime). */
   plannedTasks: PlannedTask[];
-  /** Sessioni a bordo campo dell'azienda attiva (Modalità Campo, step 2-4). */
+  /** Sessioni a bordo campo dell'azienda attiva (Modalità Campo). */
   fieldSessions: FieldOperationSession[];
 
   setActiveCompany: (companyId: string | null) => Promise<void>;
@@ -501,7 +501,7 @@ export interface DomainSlice {
   /** Storno di un rifornimento (reintegra la cisterna) e idratazione. */
   deleteFuelRefill: (id: string) => Promise<void>;
 
-  // -- Riquadro Pianificazione Task / Ricette (Step 1) ------------------------
+  // -- Riquadro Pianificazione Task / Ricette ------------------------
   /** Crea/aggiorna una ricetta riutilizzabile e idrata lo store. */
   saveRecipe: (
     input: Omit<
@@ -543,11 +543,63 @@ export interface DomainSlice {
       "id" | "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
     > & { id?: string },
   ) => Promise<SoilSample | null>;
+
+  // -- Modalità Campo: sessioni a bordo campo dal geofencing ---------
+  /**
+   * Avvia una sessione a bordo campo: insert via DAL (che, se agganciata a una
+   * task programmata, la porta ATOMICAMENTE a IN_PROGRESS — vedi
+   * {@link AgroDalTasks.startFieldSession}) e idrata `fieldSessions` E
+   * `plannedTasks` (la task cambiata). Ritorna la row o null senza DAL/company.
+   */
+  startFieldSession: (
+    input: Omit<
+      FieldOperationSession,
+      | "id"
+      | "tenant_id"
+      | "company_id"
+      | "start_time"
+      | "end_time"
+      | "path"
+      | "path_length_m"
+      | "area_worked_ha"
+      | "status"
+      | "audio_notes"
+      | "treatment_log_ids"
+      | "created_at"
+      | "updated_at"
+      | "deleted_at"
+    > & { id?: string; start_time?: string },
+  ) => Promise<FieldOperationSession | null>;
+  /**
+   * Abbandona una sessione a bordo campo (avvio accidentale, geofencing sulla
+   * task sbagliata): la porta ad ABORTED e, se agganciata a una task
+   * programmata, la riporta a PLANNED — ATOMICO lato DAL (vedi
+   * {@link AgroDalTasks.abortFieldSession}). Idrata entrambe le collezioni.
+   */
+  abortFieldSession: (id: string) => Promise<FieldOperationSession | null>;
 }
 
 // ---------------------------------------------------------------------------
 // Slice: UI Modalità Campo
 // ---------------------------------------------------------------------------
+
+/**
+ * Stato del watch GPS del geofencing: "idle" prima dell'avvio/senza plots da
+ * osservare, "watching" mentre cerca un dwell, "inside" con un appezzamento
+ * confermato, "error" su un fallimento GPS bloccante (vedi
+ * {@link GeofenceWatchErrorCode}). Duplicato qui invece che importato
+ * dall'app — @agrogea/core non dipende dal layer app — ma è lo STESSO union
+ * type di `GeofenceWatchStatus` in
+ * `apps/agro-field-suite/src/modules/field-mode/useGeofenceWatch.ts`.
+ */
+export type GeofenceWatchStatus = "idle" | "watching" | "inside" | "error";
+
+/**
+ * Codici di errore GPS stabili: mirror di `GeofenceErrorCode` in
+ * `apps/agro-field-suite/src/services/geofencing/geofence-watcher.ts`
+ * (stessa ragione di duplicazione di {@link GeofenceWatchStatus}).
+ */
+export type GeofenceWatchErrorCode = "permission_denied" | "unavailable" | "timeout";
 
 export interface UiSlice {
   theme: AgroTheme;
@@ -617,6 +669,35 @@ export interface UiSlice {
    * così il click serve a posizionare la nota e non apre il Quaderno/dettaglio.
    */
   scoutingPlacing: boolean;
+  /**
+   * Proposta PENDENTE di ingresso in field (geofencing): valorizzata
+   * dall'evento `enter` confermato dal watcher GPS (`useGeofenceWatch`), letta
+   * da `FieldDetectionModal` per proporre la task PLANNED del plot o l'avvio
+   * libero di una lavorazione. `null` = nessuna proposta pendente.
+   */
+  geofenceDetection: { plotId: string; at: number } | null;
+  /**
+   * Plot dell'ultima proposta di ingresso ignorata con "Non ora" (o null se
+   * nessuna soppressione attiva). Impedisce che lo stesso plot ripeta subito
+   * la modale a ogni campione GPS successivo: resta soppresso finché non
+   * arriva un evento `exit` per quel plot (o un timeout, vedi
+   * `useGeofenceWatch`), poi {@link clearGeofenceDismissal} lo libera.
+   */
+  geofenceDismissedPlotId: string | null;
+  /** Timestamp (epoch ms) della soppressione current, base del fallback a timeout. */
+  geofenceDismissedAt: number | null;
+  /**
+   * Stato CORRENTE del watch GPS del geofencing, aggiornato dall'UNICA
+   * istanza di `useGeofenceWatch` (montata sempre in `FieldDashboard`) solo
+   * sulle transizioni di stato — MAI per-campione GPS (~1 Hz): quei valori
+   * (ultimo campione, velocità, countdown dwell) restano locali all'hook e
+   * non toccano mai lo store, altrimenti ogni consumer (es. la mappa)
+   * ri-renderizzerebbe ogni secondo. Letto da `TaskPlannerPanel` per una riga
+   * di stato informativa, senza aprire un secondo `watchPosition`.
+   */
+  geofenceWatchStatus: GeofenceWatchStatus;
+  /** Codice di errore GPS current quando `geofenceWatchStatus === "error"`, altrimenti null. */
+  geofenceWatchErrorCode: GeofenceWatchErrorCode | null;
 
   // -- tema / layout --
   setTheme: (theme: AgroTheme) => void;
@@ -660,6 +741,27 @@ export interface UiSlice {
   setMapHarvestIds: (ids: string[] | null) => void;
   /** Attiva/disattiva l'attesa di un tap per posare la nota scouting. */
   setScoutingPlacing: (placing: boolean) => void;
+  /** Imposta (o azzera con `null`) la proposta pendente di ingresso in field. */
+  setGeofenceDetection: (
+    detection: { plotId: string; at: number } | null,
+  ) => void;
+  /**
+   * Ignora "Non ora" la proposta current: la chiude e ne sopprime la
+   * ripetizione immediata per lo stesso plot (vedi {@link geofenceDismissedPlotId}).
+   * No-op se non c'è alcuna proposta pendente.
+   */
+  dismissGeofenceDetection: () => void;
+  /** Libera la soppressione di un plot (chiamata dal watcher su evento `exit`). */
+  clearGeofenceDismissal: (plotId: string) => void;
+  /**
+   * Aggiorna stato/errore del watch geofencing (chiamata SOLO da
+   * `useGeofenceWatch` sulle transizioni di stato, mai per-campione).
+   * `errorCode` è ignorato quando `status !== "error"`.
+   */
+  setGeofenceWatchStatus: (
+    status: GeofenceWatchStatus,
+    errorCode?: GeofenceWatchErrorCode | null,
+  ) => void;
 }
 
 // ---------------------------------------------------------------------------

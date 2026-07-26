@@ -1,10 +1,20 @@
 import { useAgroStore, useSettingsStore } from "@agrogea/core";
 import { MapCanvas, type MapController } from "@geolibre/map";
 import { cn } from "@geolibre/ui";
-import { Fuel, Lock, MapPin, Menu, NotebookPen, PanelLeftClose, PanelLeftOpen, Wifi } from "lucide-react";
+import {
+  Fuel,
+  Lock,
+  MapPin,
+  Menu,
+  NotebookPen,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Wifi,
+} from "lucide-react";
 import { type ReactNode, lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet } from "../components/BottomSheet";
+import { useGeofenceWatch } from "../modules/field-mode/useGeofenceWatch";
 import { usePlatform } from "../hooks/usePlatform";
 import { AppHeader } from "../components/AppHeader";
 import { BasemapSwitcher } from "../components/BasemapSwitcher";
@@ -128,6 +138,11 @@ const OfflineAreaDialog = lazy(() =>
     default: m.OfflineAreaDialog,
   })),
 );
+const FieldDetectionModal = lazy(() =>
+  import("../modules/field-mode/FieldDetectionModal").then((m) => ({
+    default: m.FieldDetectionModal,
+  })),
+);
 
 /**
  * Stadio 3 — Dashboard geocentrica. Layout: header in alto, sidebar moduli a
@@ -150,6 +165,10 @@ export function FieldDashboard() {
   const refillEnabled = useSettingsStore((s) => s.dashboardLayout.panelRefill);
   const pendingGeometry = useAgroStore((s) => s.pendingGeometry);
   const selectedFeature = useAgroStore((s) => s.selectedFeature);
+  // Geofencing GPS: rilevamento AUTOMATICO dell'ingresso in un appezzamento.
+  // Nessun pulsante e nessun flag — il hook arma il watch da sé e alimenta la
+  // modale di rilevamento; qui basta tenerlo montato.
+  useGeofenceWatch();
 
   const mapControllerRef = useRef<MapController | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -289,6 +308,10 @@ export function FieldDashboard() {
               <Fuel size={18} />
             </button>
           )}
+          {/* Nessun pulsante per il geofencing: il rilevamento è automatico e
+              il GPS "mostrami sulla mappa" è già il controllo nativo in alto a
+              destra. Lo stato del watch è consultabile nel Riquadro
+              Pianificazione Task, non come chrome di mappa. */}
           {/* Strumenti di MODIFICA: compaiono a lato dei moduli solo durante
               l'editing geometrico, con i soli tool di modifica (non di disegno). */}
           <GeometryEditToolbar />
@@ -426,6 +449,13 @@ export function FieldDashboard() {
               mapControllerRef={mapControllerRef}
             />
           )}
+        </Suspense>
+
+        {/* Modalità Campo: modale di rilevamento ingresso in field, sopra ogni
+            altro overlay (z-index massimo). Compare da sé quando il geofencing
+            conferma l'ingresso in un appezzamento. */}
+        <Suspense fallback={null}>
+          <FieldDetectionModal />
         </Suspense>
 
         {/* Tab bar mobile: navigazione principale su smartphone (sostituisce la

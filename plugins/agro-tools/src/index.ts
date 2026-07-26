@@ -121,6 +121,30 @@ export {
   type MaintenanceThresholds,
 } from "./machinery";
 
+// -- Geofencing GPS + tempo di rientro PAN --
+export {
+  GEOFENCE_DEFAULTS,
+  advanceGeofence,
+  dwellRemainingSeconds,
+  haversineMeters,
+  initialGeofenceState,
+  pathLengthMeters,
+  plotContainingPoint,
+  speedKmh,
+  workedAreaHectares,
+  type GeoSample,
+  type GeofenceEvent,
+  type GeofenceOptions,
+  type GeofencePlot,
+  type GeofenceState,
+} from "./geofencing";
+export {
+  activeReentryWindows,
+  reentryWindowForPlot,
+  type ReentryLogInput,
+  type ReentryWindow,
+} from "./reentry";
+
 // -- Clip raster sul poligono + proiezione UTM (Modulo 1) --
 export {
   clipRasterToPolygon,

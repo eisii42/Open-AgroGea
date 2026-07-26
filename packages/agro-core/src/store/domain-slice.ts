@@ -774,7 +774,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       syncRouter?.notifyLocalWrite();
     },
 
-    // -- Riquadro Pianificazione Task / Ricette (Step 1) -----------------------
+    // -- Riquadro Pianificazione Task / Ricette -----------------------
 
     saveRecipe: async (input) => {
       assertWritable(get);
@@ -838,6 +838,44 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       set((s) => ({
         plannedTasks: s.plannedTasks.map((t) => (t.id === record.id ? record : t)),
       }));
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    // -- Modalità Campo: sessioni a bordo campo dal geofencing -------
+
+    startFieldSession: async (input) => {
+      assertWritable(get);
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return null;
+      const record = await dal.startFieldSession({
+        ...input,
+        company_id: activeCompanyId,
+      });
+      // L'avvio può aver flippato una task PLANNED a IN_PROGRESS (atomico lato
+      // DAL): si riidratano entrambe le collezioni.
+      const [fieldSessions, plannedTasks] = await Promise.all([
+        dal.listFieldSessions(activeCompanyId),
+        dal.listPlannedTasks(activeCompanyId),
+      ]);
+      set({ fieldSessions, plannedTasks });
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    abortFieldSession: async (id) => {
+      assertWritable(get);
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal) return null;
+      const record = await dal.abortFieldSession(id);
+      if (!record) return null;
+      if (activeCompanyId) {
+        const [fieldSessions, plannedTasks] = await Promise.all([
+          dal.listFieldSessions(activeCompanyId),
+          dal.listPlannedTasks(activeCompanyId),
+        ]);
+        set({ fieldSessions, plannedTasks });
+      }
       syncRouter?.notifyLocalWrite();
       return record;
     },

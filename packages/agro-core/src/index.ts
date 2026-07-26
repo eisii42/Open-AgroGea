@@ -92,6 +92,8 @@ export {
   type AppView,
   type PlotDrawAttrs,
   type AssetDrawAttrs,
+  type GeofenceWatchErrorCode,
+  type GeofenceWatchStatus,
   type NewCompanyInput,
   type PendingGeometry,
   type SelectableKind,

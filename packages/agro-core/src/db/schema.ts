@@ -103,20 +103,20 @@
  *   ore vivono nelle colonne additive `machines.hour_counter` /
  *   `equipment.usage_counter`: nessun dato pre-v18 è toccato.
  *
- * v19 — additiva: Pianificazione task & Modalità Campo low-touch (fondamenta
- * dati dello Step 1; geofencing, tracking GPS e chiusura sessione arrivano
- * negli step successivi, ma le tabelle nascono già complete). Quattro tabelle:
+ * v19 — additiva: Pianificazione task & Modalità Campo low-touch. Quattro
+ * tabelle nate già complete, popolate progressivamente dal geofencing, dal
+ * tracking GPS e dalla chiusura di sessione:
  *   * `recipes` — ricetta/miscela preimpostata riutilizzabile (MODELLO, non
  *     movimento di magazzino): i products vivono in `products` JSONB, il
- *     legame coi lots reali avviene solo alla chiusura della sessione (step
- *     futuro). Sincronizzata via outbox;
+ *     legame coi lots reali avviene solo alla chiusura della sessione.
+ *     Sincronizzata via outbox;
  *   * `planned_tasks` — scheda di lavorazione PROGRAMMATA su un plot: è
- *     l'oggetto che il geofencing (step 2) cerca all'ingresso nel field
+ *     l'oggetto che il geofencing cerca all'ingresso nel field
  *     (`status = 'PLANNED'` sul `plot_id` rilevato). Sincronizzata via outbox;
  *   * `field_operation_sessions` — sessione ESEGUITA a bordo campo (tracciato
  *     GPS in `path` GeoJSON jsonb, superficie lavorata, note vocali, log
- *     collegati); creata e tracciata nello Step 1 ma popolata dal tracking
- *     GPS/chiusura degli step 2-4. Sincronizzata via outbox;
+ *     collegati), popolata dal tracking GPS e dalla chiusura.
+ *     Sincronizzata via outbox;
  *   * `field_session_audio` — LOCAL-ONLY: contenuto delle note vocali (base64
  *     in `text`, mai bytea: resta ispezionabile/testabile senza ambiguità di
  *     serializzazione del driver). Non transita dall'outbox: pesante e non

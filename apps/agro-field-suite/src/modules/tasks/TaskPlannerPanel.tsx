@@ -1,9 +1,11 @@
 import {
   type PlannedTask,
   type Recipe,
+  geometryHasCoordinates,
   useAgroStore,
   useReadOnly,
 } from "@agrogea/core";
+import { activeReentryWindows } from "@agrogea/tools";
 import { Button, cn } from "@geolibre/ui";
 import {
   ClipboardList,
@@ -11,6 +13,7 @@ import {
   ListChecks,
   Pencil,
   Plus,
+  ShieldAlert,
   Trash2,
   X,
   XCircle,
@@ -32,10 +35,9 @@ type View =
   | { kind: "editRecipe"; id: string };
 
 /**
- * Riquadro Pianificazione Task / Ricette (Step 1 della flow low-touch a bordo
- * campo). Pagina a tutto schermo (come `UserProfileSettingsPage`, non un
+ * Riquadro Pianificazione Task / Ricette della flow low-touch a bordo campo. Pagina a tutto schermo (come `UserProfileSettingsPage`, non un
  * drawer): due sezioni — task in programmazione su un plot (l'oggetto che il
- * geofencing dello step 2 propone all'ingresso nel field) e la libreria
+ * geofencing propone all'ingresso nel field) e la libreria
  * ricette riutilizzabili che le task possono suggerire.
  */
 export function TaskPlannerPanel({ onClose }: { onClose: () => void }) {
@@ -44,12 +46,18 @@ export function TaskPlannerPanel({ onClose }: { onClose: () => void }) {
   const readOnly = useReadOnly(activeCompanyId);
   const plots = useAgroStore((s) => s.plots);
   const recipes = useAgroStore((s) => s.recipes);
+  const treatments = useAgroStore((s) => s.treatments);
   const plannedTasks = useAgroStore((s) => s.plannedTasks);
   const deletePlannedTask = useAgroStore((s) => s.deletePlannedTask);
   const setPlannedTaskStatus = useAgroStore((s) => s.setPlannedTaskStatus);
   const deleteRecipe = useAgroStore((s) => s.deleteRecipe);
   const tasksOpenPlotId = useAgroStore((s) => s.tasksOpenPlotId);
   const consumeTasksOpen = useAgroStore((s) => s.consumeTasksOpen);
+  // Stato del rilevamento GPS, letto DALLO STORE: il watch è uno solo (armato
+  // da `useGeofenceWatch` in FieldDashboard) e qui se ne legge solo lo stato,
+  // mai un secondo `watchPosition`. Cambia di rado, non a ogni campione.
+  const geofenceWatchStatus = useAgroStore((s) => s.geofenceWatchStatus);
+  const geofenceWatchErrorCode = useAgroStore((s) => s.geofenceWatchErrorCode);
 
   const [tab, setTab] = useState<Tab>("tasks");
   const [view, setView] = useState<View>({ kind: "list" });
@@ -73,6 +81,15 @@ export function TaskPlannerPanel({ onClose }: { onClose: () => void }) {
 
   const recipeName = (recipeId: string | null) =>
     recipeId ? (recipes.find((r) => r.id === recipeId)?.name ?? "—") : "—";
+
+  // Finestre di rientro PAN ANCORA APERTE, una per plot (§Part G): badge di
+  // allerta sulle task il cui field ha un trattamento con tempo di rientro
+  // non ancora scaduto — l'operatore vede subito che quel field va evitato
+  // senza DPI prima di partire.
+  const reentryByPlot = useMemo(() => {
+    const windows = activeReentryWindows(treatments, Date.now());
+    return new Map(windows.map((w) => [w.plotId, w]));
+  }, [treatments]);
 
   const upcoming = useMemo(
     () =>
@@ -123,6 +140,21 @@ export function TaskPlannerPanel({ onClose }: { onClose: () => void }) {
         ? t("taskPlanner.title.recipeForm")
         : t("taskPlanner.header.title");
 
+  // Riepilogo del rilevamento automatico. Senza appezzamenti monitorabili il
+  // geofencing non ha nulla su cui scattare: è una condizione da segnalare
+  // quanto un permesso GPS negato, non un "tutto a posto".
+  const watchablePlots = plots.filter(
+    (p) => p.deleted_at == null && geometryHasCoordinates(p.geometry),
+  ).length;
+  const geofenceOk =
+    watchablePlots > 0 && geofenceWatchStatus !== "error";
+  const geofenceHint =
+    watchablePlots === 0
+      ? t("taskPlanner.geofenceStatus.noPlots")
+      : geofenceWatchStatus === "error" && geofenceWatchErrorCode
+        ? t(`fieldMode.error.${geofenceWatchErrorCode}` as never)
+        : t("taskPlanner.geofenceStatus.active");
+
   return (
     <div className="absolute inset-0 z-40 overflow-y-auto bg-[var(--bg,var(--panel-2))]">
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--line)] bg-[var(--panel)] px-4 py-3">
@@ -137,6 +169,29 @@ export function TaskPlannerPanel({ onClose }: { onClose: () => void }) {
             </p>
           )}
         </div>
+        {/* Stato del rilevamento automatico: puramente informativo (niente
+            toggle) — è l'unico punto in cui l'operatore vede se il geofencing
+            è armato, ora che la mappa non ha più un pulsante dedicato. */}
+        {view.kind === "list" && (
+          <span
+            title={geofenceHint}
+            className={cn(
+              "hidden shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] sm:flex",
+              geofenceOk
+                ? "bg-[var(--panel-2)] text-[var(--ink-3)]"
+                : "bg-[var(--warn-l)] text-[var(--warn)]",
+            )}
+          >
+            <span
+              aria-hidden
+              className={cn(
+                "h-1.5 w-1.5 rounded-full",
+                geofenceOk ? "bg-[var(--ok,var(--accent))]" : "bg-[var(--warn)]",
+              )}
+            />
+            {geofenceHint}
+          </span>
+        )}
         <button
           type="button"
           aria-label={t("taskPlanner.header.closeAria")}
@@ -221,6 +276,17 @@ export function TaskPlannerPanel({ onClose }: { onClose: () => void }) {
                               {plotName(task.plot_id)}
                             </span>
                             <TaskStatusBadge status={task.status} />
+                            {reentryByPlot.has(task.plot_id) && (
+                              <span
+                                title={t("reentryAlert.badge.tooltip", {
+                                  count: reentryByPlot.get(task.plot_id)?.hoursRemaining,
+                                })}
+                                className="flex shrink-0 items-center gap-0.5 rounded-full bg-[var(--warn-l)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--warn)]"
+                              >
+                                <ShieldAlert size={11} />
+                                {t("reentryAlert.badge.title")}
+                              </span>
+                            )}
                           </span>
                           <span className="mt-0.5 block text-xs text-[var(--ink-3)]">
                             {[

@@ -22,6 +22,11 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
     scoutingPlacing: false,
     warehouseTab: "products",
     quickRefillPending: false,
+    geofenceDetection: null,
+    geofenceDismissedPlotId: null,
+    geofenceDismissedAt: null,
+    geofenceWatchStatus: "idle",
+    geofenceWatchErrorCode: null,
 
     setTheme: (theme) => {
       persistTheme(theme);
@@ -157,5 +162,38 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
     setMapHarvestIds: (ids) => set({ mapHarvestIds: ids }),
 
     setScoutingPlacing: (placing) => set({ scoutingPlacing: placing }),
+
+    setGeofenceDetection: (detection) => set({ geofenceDetection: detection }),
+
+    dismissGeofenceDetection: () =>
+      set((s) =>
+        s.geofenceDetection
+          ? {
+              geofenceDetection: null,
+              geofenceDismissedPlotId: s.geofenceDetection.plotId,
+              geofenceDismissedAt: Date.now(),
+            }
+          : s,
+      ),
+
+    clearGeofenceDismissal: (plotId) =>
+      set((s) =>
+        s.geofenceDismissedPlotId === plotId
+          ? { geofenceDismissedPlotId: null, geofenceDismissedAt: null }
+          : s,
+      ),
+
+    // Canale a BASSA frequenza: lo stato del watch cambia di rado (avvio,
+    // ingresso/uscita da un plot, errore GPS), mai a ogni campione. Il set è
+    // comunque guardato sull'uguaglianza così una risincronizzazione ridondante
+    // non sveglia i subscriber dello store (fra cui la mappa).
+    setGeofenceWatchStatus: (status, errorCode = null) =>
+      set((s) => {
+        const nextError = status === "error" ? errorCode : null;
+        return s.geofenceWatchStatus === status &&
+          s.geofenceWatchErrorCode === nextError
+          ? s
+          : { geofenceWatchStatus: status, geofenceWatchErrorCode: nextError };
+      }),
   };
 }

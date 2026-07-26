@@ -236,6 +236,10 @@
       "subtitle": "Planifiez les travaux sur les parcelles et gérez les recettes réutilisables.",
       "closeAria": "Fermer la planification"
     },
+    "geofenceStatus": {
+      "active": "Détection de champ active",
+      "noPlots": "Aucune parcelle à surveiller"
+    },
     "readOnlyNotice": "Lecture seule : ce rôle ne permet pas de créer ni de modifier des tâches ou des recettes.",
     "newTask": "Nouvelle tâche",
     "newRecipe": "Nouvelle recette",
@@ -1978,5 +1982,48 @@
     "partial": "partiel",
     "deleteRefill": "Supprimer le plein",
     "quickAction": "Plein rapide"
+  },
+  "fieldMode": {
+    "error": {
+      "permission_denied": "Permission GPS refusée. Activez la géolocalisation dans les paramètres.",
+      "unavailable": "GPS indisponible. Vérifiez le signal.",
+      "timeout": "Délai GPS dépassé. Réessayez à l'extérieur."
+    },
+    "detection": {
+      "headerPrefix": "Vous êtes dans le champ :",
+      "dismiss": "Pas maintenant",
+      "readOnly": "Lecture seule : vous ne pouvez pas démarrer de travaux aux champs avec ce rôle.",
+      "confirmTitle": "Session démarrée",
+      "confirmBody": "Le suivi au champ apparaîtra bientôt ici.",
+      "close": "Fermer",
+      "abortSession": "Annuler la session (démarrée par erreur)",
+      "taskSectionTitle": "Tâche planifiée",
+      "taskRecommended": "À suivre",
+      "startTask": "Démarrer la tâche",
+      "noDate": "Sans date",
+      "noTaskTitle": "Aucune tâche planifiée pour cette parcelle",
+      "chooseOperation": "Que faites-vous ?",
+      "quickOperation": {
+        "phytosanitary": "Traitement",
+        "fertilization": "Fertilisation",
+        "tillage": "Travail du sol",
+        "other": "Autre"
+      },
+      "recipeLabel": "Recette (optionnelle)",
+      "recipeNone": "— aucune recette —",
+      "startFree": "Démarrer les travaux"
+    }
+  },
+  "reentryAlert": {
+    "banner": {
+      "title": "Délai de réentrée",
+      "message": "{{product}} a été appliqué sur cette parcelle : la réentrée est déconseillée aux autres opérateurs pendant encore environ {{hours}}h. La personne qui l'a appliqué peut y retourner avec un EPI.",
+      "genericProduct": "un produit phytosanitaire",
+      "ack": "Je confirme avoir lu l'avertissement (je suis l'opérateur qui a traité et je porte un EPI, ou j'accepte le risque)."
+    },
+    "badge": {
+      "title": "Réentrée",
+      "tooltip": "Encore environ {{count}}h avant la fin du délai de réentrée"
+    }
   }
 }

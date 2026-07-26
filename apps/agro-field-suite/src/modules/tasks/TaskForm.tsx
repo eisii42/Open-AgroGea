@@ -35,7 +35,7 @@ export function taskOperationLabel(t: TFunction, type: OperationType): string {
  * Form di creazione/modifica di una task programmata (`planned_tasks`):
  * plot + tipo operation (obbligatori), ricetta suggerita (filtrata sul tipo
  * operation quando impostato), avversità/patogeno bersaglio, data
- * pianificata, operatore, note. Il geofencing (step 2) userà lo status
+ * pianificata, operatore, note. Il geofencing userà lo status
  * 'PLANNED' risultante per proporre questa task all'ingresso nel field.
  */
 export function TaskForm({

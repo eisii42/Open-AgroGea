@@ -236,6 +236,10 @@
       "subtitle": "Programa las labores en las parcelas y gestiona las recetas reutilizables.",
       "closeAria": "Cerrar planificación"
     },
+    "geofenceStatus": {
+      "active": "Detección de campo activa",
+      "noPlots": "Ninguna parcela que monitorizar"
+    },
     "readOnlyNotice": "Solo lectura: en este rol no puedes crear ni modificar tareas ni recetas.",
     "newTask": "Nueva tarea",
     "newRecipe": "Nueva receta",
@@ -1978,5 +1982,48 @@
     "partial": "parcial",
     "deleteRefill": "Eliminar repostaje",
     "quickAction": "Repostaje rápido"
+  },
+  "fieldMode": {
+    "error": {
+      "permission_denied": "Permiso de GPS denegado. Activa la geolocalización en los ajustes.",
+      "unavailable": "GPS no disponible. Comprueba la señal.",
+      "timeout": "Tiempo de espera del GPS agotado. Inténtalo al aire libre."
+    },
+    "detection": {
+      "headerPrefix": "Estás en el campo:",
+      "dismiss": "Ahora no",
+      "readOnly": "Solo lectura: no puedes iniciar labores de campo con este rol.",
+      "confirmTitle": "Sesión iniciada",
+      "confirmBody": "El seguimiento en campo aparecerá aquí pronto.",
+      "close": "Cerrar",
+      "abortSession": "Anular sesión (iniciada por error)",
+      "taskSectionTitle": "Tarea planificada",
+      "taskRecommended": "Siguiente",
+      "startTask": "Iniciar tarea",
+      "noDate": "Sin fecha",
+      "noTaskTitle": "No hay tareas planificadas para esta parcela",
+      "chooseOperation": "¿Qué estás haciendo?",
+      "quickOperation": {
+        "phytosanitary": "Tratamiento",
+        "fertilization": "Abonado",
+        "tillage": "Laboreo",
+        "other": "Otro"
+      },
+      "recipeLabel": "Receta (opcional)",
+      "recipeNone": "— sin receta —",
+      "startFree": "Iniciar labor"
+    }
+  },
+  "reentryAlert": {
+    "banner": {
+      "title": "Plazo de reentrada",
+      "message": "En esta parcela se aplicó {{product}}: se desaconseja la reentrada de otros operarios durante unas {{hours}}h más. Quien lo aplicó puede reentrar con EPI.",
+      "genericProduct": "un producto fitosanitario",
+      "ack": "Confirmo que he leído el aviso (soy el operario que aplicó el tratamiento y llevo EPI, o asumo el riesgo)."
+    },
+    "badge": {
+      "title": "Reentrada",
+      "tooltip": "Quedan unas {{count}}h para que termine el plazo de reentrada"
+    }
   }
 }

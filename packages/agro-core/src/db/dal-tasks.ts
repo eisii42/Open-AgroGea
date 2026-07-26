@@ -20,12 +20,10 @@ import { nowIso, type Row, upsertSql } from "./write";
 export const AUDIO_URI_SCHEME = "agro-audio://";
 
 /**
- * Strato "Pianificazione task & Modalità Campo low-touch" del DAL (fondamenta
- * dati dello Step 1): ricette riutilizzabili, task PROGRAMMATE su un plot
- * (l'oggetto che il geofencing dello step 2 cerca all'ingresso nel field) e
+ * Strato "Pianificazione task & Modalità Campo low-touch" del DAL: ricette riutilizzabili, task PROGRAMMATE su un plot
+ * (l'oggetto che il geofencing cerca all'ingresso nel field) e
  * sessioni ESEGUITE a bordo campo (tracciato GPS, chiusura verso il Quaderno —
- * popolate dal tracking GPS/riepilogo degli step 2-4, ma la tabella e le
- * operazioni base nascono qui). L'avvio di una sessione da una task
+ * popolate dal tracking GPS e dal riepilogo post-operazione). L'avvio di una sessione da una task
  * programmata è ATOMICO: inserisce la sessione E porta la task a IN_PROGRESS
  * nella stessa transazione (mai una sessione "orfana" con la task ancora
  * PLANNED, né viceversa).
@@ -172,7 +170,7 @@ export class AgroDalTasks extends AgroDalMachinery {
   /**
    * Task PROGRAMMATE (status = 'PLANNED') di un singolo plot, ordinate per
    * data pianificata (senza data in coda) poi per creazione: è la query che il
-   * geofencing (step 2) esegue all'ingresso nel field per proporre la task
+   * geofencing esegue all'ingresso nel field per proporre la task
    * prioritaria nella modale di rilevamento.
    */
   async plannedTasksForPlot(plotId: string): Promise<PlannedTask[]> {
@@ -209,7 +207,7 @@ export class AgroDalTasks extends AgroDalMachinery {
 
   /**
    * Avvia una sessione a bordo campo: insert della sessione IN_PROGRESS con
-   * tracciato vuoto (il tracking GPS dello step 3 lo popola) e, se agganciata
+   * tracciato vuoto (il tracking GPS lo popola) e, se agganciata
    * a una task programmata, flip ATOMICO della task a IN_PROGRESS — stessa
    * transazione, entrambe le voci di outbox: mai una sessione avviata con la
    * task ancora PLANNED, né una task IN_PROGRESS senza sessione viva.
@@ -302,8 +300,8 @@ export class AgroDalTasks extends AgroDalMachinery {
 
   /**
    * Aggiornamento parziale di una sessione (rilettura + merge + riscrittura
-   * completa via outbox): usato dal tracking GPS (step 3, patch di `path`/
-   * `path_length_m`/`area_worked_ha`) e dalla chiusura (step 4, patch di
+   * completa via outbox): usato dal tracking GPS (patch di `path`/
+   * `path_length_m`/`area_worked_ha`) e dalla chiusura (patch di
    * `status`/`end_time`/`audio_notes`/`treatment_log_ids`). Ritorna la row
    * aggiornata o null se la sessione non esiste.
    */
@@ -329,6 +327,67 @@ export class AgroDalTasks extends AgroDalMachinery {
       row as unknown as Row & { id: string },
     );
     return row;
+  }
+
+  /**
+   * Abbandona una sessione a bordo campo SENZA registrarla: sessione ⇒
+   * ABORTED (`end_time` valorizzato, come ogni transizione terminale) e, se
+   * agganciata a una task programmata, la task torna a PLANNED nella STESSA
+   * transazione — l'avvio accidentale di una sessione (geofencing con task
+   * sbagliata, tap involontario) è così completamente reversibile: mai una
+   * task bloccata IN_PROGRESS senza una sessione viva a cui appartiene.
+   * Ritorna la sessione aggiornata o null se non esiste/già cancellata.
+   */
+  async abortFieldSession(id: string): Promise<FieldOperationSession | null> {
+    const existing = await this.getFieldSession(id);
+    if (!existing || existing.deleted_at) return null;
+    const ts = nowIso();
+    const session: FieldOperationSession = {
+      ...existing,
+      status: "ABORTED",
+      end_time: existing.end_time ?? ts,
+      updated_at: ts,
+    };
+    await this.db.transaction(async (tx: Transaction) => {
+      const updSession = upsertSql(
+        "field_operation_sessions",
+        session as unknown as Row,
+      );
+      await tx.query(updSession.sql, updSession.values);
+      await this.enqueueOutbox(
+        tx,
+        "field_operation_sessions",
+        "update",
+        session as unknown as Row & { id: string },
+      );
+
+      if (session.planned_task_id) {
+        const found = await tx.query<PlannedTask>(
+          `select * from planned_tasks where id = $1 and deleted_at is null`,
+          [session.planned_task_id],
+        );
+        const task = found.rows[0];
+        if (task && task.status === "IN_PROGRESS") {
+          const updatedTask: PlannedTask = {
+            ...task,
+            status: "PLANNED",
+            updated_at: ts,
+          };
+          const updTask = upsertSql(
+            "planned_tasks",
+            updatedTask as unknown as Row,
+          );
+          await tx.query(updTask.sql, updTask.values);
+          await this.enqueueOutbox(
+            tx,
+            "planned_tasks",
+            "update",
+            updatedTask as unknown as Row & { id: string },
+          );
+        }
+      }
+    });
+    return session;
   }
 
   async getFieldSession(id: string): Promise<FieldOperationSession | null> {
@@ -370,7 +429,7 @@ export class AgroDalTasks extends AgroDalMachinery {
 
   /**
    * Sessione attiva dell'azienda (status IN_PROGRESS o PAUSED), la più
-   * recente, o null se nessuna: la Modalità Campo (step 3) ne ammette una sola
+   * recente, o null se nessuna: la Modalità Campo ne ammette una sola
    * alla volta per azienda.
    */
   async activeFieldSession(

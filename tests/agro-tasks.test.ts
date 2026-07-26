@@ -5,7 +5,7 @@ import { AgroDal } from "../packages/agro-core/src/db/dal";
 import { AGRO_LOCAL_SCHEMA_SQL } from "../packages/agro-core/src/db/schema";
 
 /**
- * Pianificazione task & Modalità Campo low-touch — Step 1 (schema v19):
+ * Pianificazione task & Modalità Campo low-touch (schema v19):
  * fondamenta dati (ricette, task programmate su plot, sessioni a bordo campo,
  * note vocali local-only). Migrazione ADDITIVA non distruttiva (le quattro
  * nuove tabelle si creano, sono idempotenti e i dati pre-esistenti
@@ -413,6 +413,117 @@ describe("DAL Pianificazione task / sessioni a bordo campo", () => {
 
     const activeAfter = await dal.activeFieldSession(companyId);
     assert.equal(activeAfter, null);
+  });
+
+  // -- abortFieldSession: abbandono ATOMICO, reversibile ------------
+
+  it("abortFieldSession: porta la sessione ad ABORTED e la task agganciata torna a PLANNED (atomico)", async () => {
+    const dal = await TestDal.create();
+    const companyId = await seedCompany(dal);
+    const plotId = await seedPlot(dal, companyId);
+    const task = await dal.savePlannedTask({
+      company_id: companyId,
+      plot_id: plotId,
+      operation_type: "phytosanitary",
+      recipe_id: null,
+      target_pest_or_disease: "Peronospora",
+      planned_date: relativeDay(0),
+      operator_name: null,
+      notes: null,
+    });
+    const session = await dal.startFieldSession({
+      company_id: companyId,
+      planned_task_id: task.id,
+      plot_id: plotId,
+      operation_type: "phytosanitary",
+      recipe_id: null,
+      machine_id: null,
+      equipment_id: null,
+      working_width_m: null,
+      operator_name: null,
+      notes: null,
+    });
+    // L'avvio ha già portato la task a IN_PROGRESS (comportamento di startFieldSession).
+    assert.equal((await dal.getPlannedTask(task.id))?.status, "IN_PROGRESS");
+
+    const aborted = await dal.abortFieldSession(session.id);
+    assert.equal(aborted?.status, "ABORTED");
+    assert.ok(aborted?.end_time);
+
+    const rereadSession = await dal.getFieldSession(session.id);
+    assert.equal(rereadSession?.status, "ABORTED");
+
+    const rereadTask = await dal.getPlannedTask(task.id);
+    assert.equal(rereadTask?.status, "PLANNED");
+  });
+
+  it("abortFieldSession senza planned_task_id non tocca alcuna task", async () => {
+    const dal = await TestDal.create();
+    const companyId = await seedCompany(dal);
+    const plotId = await seedPlot(dal, companyId);
+    const session = await dal.startFieldSession({
+      company_id: companyId,
+      planned_task_id: null,
+      plot_id: plotId,
+      operation_type: "tillage",
+      recipe_id: null,
+      machine_id: null,
+      equipment_id: null,
+      working_width_m: null,
+      operator_name: null,
+      notes: null,
+    });
+
+    const aborted = await dal.abortFieldSession(session.id);
+    assert.equal(aborted?.status, "ABORTED");
+    assert.equal(aborted?.planned_task_id, null);
+  });
+
+  it("abortFieldSession su una sessione inesistente ritorna null", async () => {
+    const dal = await TestDal.create();
+    await seedCompany(dal);
+    const result = await dal.abortFieldSession("00000000-0000-0000-0000-000000000000");
+    assert.equal(result, null);
+  });
+
+  it("abortFieldSession accoda le voci di outbox della sessione E della task nella stessa transazione", async () => {
+    const dal = await TestDal.create();
+    const companyId = await seedCompany(dal);
+    const plotId = await seedPlot(dal, companyId);
+    const task = await dal.savePlannedTask({
+      company_id: companyId,
+      plot_id: plotId,
+      operation_type: "tillage",
+      recipe_id: null,
+      target_pest_or_disease: null,
+      planned_date: null,
+      operator_name: null,
+      notes: null,
+    });
+    const session = await dal.startFieldSession({
+      company_id: companyId,
+      planned_task_id: task.id,
+      plot_id: plotId,
+      operation_type: "tillage",
+      recipe_id: null,
+      machine_id: null,
+      equipment_id: null,
+      working_width_m: null,
+      operator_name: null,
+      notes: null,
+    });
+
+    await dal.abortFieldSession(session.id);
+
+    const counts = await dal.rawQuery<{ table_name: string; n: number }>(
+      `select table_name, count(*)::int as n from sync_outbox group by table_name`,
+    );
+    const byTable = Object.fromEntries(counts.rows.map((r) => [r.table_name, r.n]));
+    // planned_tasks: 1 insert (savePlannedTask) + 1 update (flip a IN_PROGRESS
+    // in startFieldSession) + 1 update (ritorno a PLANNED in abortFieldSession).
+    assert.equal(byTable.planned_tasks, 3);
+    // field_operation_sessions: 1 insert (startFieldSession) + 1 update (abortFieldSession).
+    assert.equal(byTable.field_operation_sessions, 2);
   });
 });
 

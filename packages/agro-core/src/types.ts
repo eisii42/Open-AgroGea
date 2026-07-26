@@ -956,7 +956,7 @@ export interface MachineAttentionItem {
 }
 
 // ---------------------------------------------------------------------------
-// Pianificazione task & Modalità Campo low-touch (Step 1): ricette, task
+// Pianificazione task & Modalità Campo low-touch: ricette, task
 // programmate, sessioni a bordo campo
 // ---------------------------------------------------------------------------
 
@@ -1003,7 +1003,7 @@ export interface Recipe {
 
 /**
  * Stato di avanzamento di una {@link PlannedTask}: `PLANNED` è l'unico stato
- * che il geofencing (step 2) propone all'ingresso nel field; `IN_PROGRESS`
+ * che il geofencing propone all'ingresso nel field; `IN_PROGRESS`
  * viene impostato atomicamente da {@link FieldOperationSession} all'avvio
  * della sessione a bordo campo; `COMPLETED`/`CANCELLED` sono terminali.
  */
@@ -1015,7 +1015,7 @@ export type PlannedTaskStatus =
 
 /**
  * Scheda di lavorazione PROGRAMMATA su un plot (`planned_tasks`). È l'oggetto
- * che il geofencing (step 2) cerca all'ingresso nel field: una task con
+ * che il geofencing cerca all'ingresso nel field: una task con
  * `status = "PLANNED"` sul `plot_id` rilevato diventa la proposta prioritaria
  * nella modale di rilevamento.
  */
@@ -1041,7 +1041,7 @@ export interface PlannedTask {
 /**
  * Stato di una sessione a bordo campo (`field_operation_sessions.status`):
  * `IN_PROGRESS`/`PAUSED` sono gli stati attivi (il tracking GPS scrive
- * `path`), `COMPLETED` chiude la sessione (step 4, scrive il Quaderno),
+ * `path`), `COMPLETED` chiude la sessione (e scrive il Quaderno),
  * `ABORTED` è l'uscita senza registrazione.
  */
 export type FieldSessionStatus =
@@ -1070,8 +1070,8 @@ export interface AudioNote {
 /**
  * Sessione ESEGUITA a bordo campo (`field_operation_sessions`): tracciato GPS,
  * superficie realmente lavorata, note vocali, log del Quaderno collegati alla
- * chiusura. Creata dal geofencing (step 2) o manualmente, aggiornata dal
- * tracking GPS (step 3) e chiusa dal riepilogo post-operazione (step 4).
+ * chiusura. Creata dal geofencing o manualmente, aggiornata dal
+ * tracking GPS e chiusa dal riepilogo post-operazione.
  */
 export interface FieldOperationSession {
   id: string;
@@ -1093,7 +1093,7 @@ export interface FieldOperationSession {
   area_worked_ha: number;
   status: FieldSessionStatus;
   audio_notes: AudioNote[];
-  /** `treatment_logs.id` scritti al Quaderno alla chiusura (step 4). */
+  /** `treatment_logs.id` scritti al Quaderno alla chiusura. */
   treatment_log_ids: string[];
   operator_name: string | null;
   notes: string | null;

@@ -26,6 +26,8 @@ export type {
   AppView,
   PlotDrawAttrs,
   AssetDrawAttrs,
+  GeofenceWatchErrorCode,
+  GeofenceWatchStatus,
   GeomEditRequest,
   GeomEditSession,
   GeometrySnapshot,
