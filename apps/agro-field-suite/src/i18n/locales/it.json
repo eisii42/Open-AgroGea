@@ -117,6 +117,8 @@
     "moduleCrop": "Coltura",
     "moduleWater": "Acqua",
     "moduleDraw": "Disegna elemento",
+    "moduleTasks": "Pianificazione Task",
+    "toolTaskPlanner": "Task & Ricette",
     "moduleLogbook": "Quaderno di Campagna",
     "moduleWarehouse": "Magazzino",
     "toolWarehouse": "Prodotti e lotti",
@@ -227,6 +229,88 @@
       "repeatOperation": "Ripeti operazione (form precompilato, data di oggi)",
       "deleteAriaLabel": "Elimina {{label}}"
     }
+  },
+  "taskPlanner": {
+    "header": {
+      "title": "Pianificazione Task / Ricette",
+      "subtitle": "Programma le lavorazioni sugli appezzamenti e gestisci le ricette riutilizzabili.",
+      "closeAria": "Chiudi pianificazione"
+    },
+    "readOnlyNotice": "Sola lettura: in questo ruolo non puoi creare o modificare task e ricette.",
+    "newTask": "Nuova Task",
+    "newRecipe": "Nuova Ricetta",
+    "tab": {
+      "tasks": "Task in programmazione",
+      "recipes": "Ricette"
+    },
+    "title": {
+      "taskForm": "Task programmata",
+      "recipeForm": "Ricetta"
+    },
+    "emptyTasks": "Nessuna task in programmazione: pianifica la prossima lavorazione.",
+    "emptyRecipes": "Nessuna ricetta salvata: crea la prima ricetta riutilizzabile.",
+    "noDate": "Senza data",
+    "unknownPlot": "Appezzamento sconosciuto",
+    "productCount": "{{count}} prodotti",
+    "action": {
+      "edit": "Modifica",
+      "cancel": "Annulla task",
+      "delete": "Elimina"
+    },
+    "history": {
+      "title": "Storico",
+      "empty": "Nessuna task in corso, completata o annullata."
+    },
+    "status": {
+      "PLANNED": "Programmata",
+      "IN_PROGRESS": "In corso",
+      "COMPLETED": "Completata",
+      "CANCELLED": "Annullata"
+    }
+  },
+  "taskForm": {
+    "plot": "Appezzamento",
+    "plotPlaceholder": "— seleziona appezzamento —",
+    "plotRequired": "Seleziona un appezzamento.",
+    "operationTypeLabel": "Tipo operazione",
+    "operationTypePlaceholder": "— seleziona tipo —",
+    "operationTypeRequired": "Seleziona il tipo di operazione.",
+    "operationType": {
+      "phytosanitary": "Trattamento fitosanitario",
+      "fertilization": "Fertilizzazione",
+      "irrigation": "Irrigazione",
+      "tillage": "Lavorazione del terreno",
+      "sowing": "Semina",
+      "harvest": "Raccolta",
+      "sampling": "Campionamento"
+    },
+    "recipe": "Ricetta suggerita",
+    "noRecipe": "— nessuna ricetta —",
+    "targetPestOrDisease": "Avversità / patogeno bersaglio",
+    "targetPestOrDiseasePlaceholder": "es. peronospora, afidi",
+    "plannedDate": "Data programmata",
+    "operatorName": "Operatore",
+    "notes": "Note",
+    "save": "Salva task"
+  },
+  "recipeForm": {
+    "name": "Nome ricetta",
+    "nameRequired": "Il nome della ricetta è obbligatorio.",
+    "operationTypeLabel": "Tipo operazione",
+    "operationTypePlaceholder": "— seleziona tipo —",
+    "targetDisease": "Avversità / patogeno bersaglio",
+    "targetDiseasePlaceholder": "es. peronospora, afidi",
+    "products": "Prodotti",
+    "addProduct": "Aggiungi prodotto",
+    "product": "Prodotto",
+    "freeTextProduct": "— testo libero —",
+    "productNamePlaceholder": "Nome prodotto",
+    "dosePerHa": "Dose/ha",
+    "unit": "Unità",
+    "removeProduct": "Rimuovi prodotto",
+    "productRowRequired": "Aggiungi almeno un prodotto con dose maggiore di zero.",
+    "notes": "Note",
+    "save": "Salva ricetta"
   },
   "syncPanel": {
     "title": "Coda di sincronizzazione",
@@ -1664,6 +1748,10 @@
       "panelStampa": {
         "label": "Stampa mappa",
         "descr": "Print Composer (PAC/PSR)"
+      },
+      "panelTasks": {
+        "label": "Pianificazione Task",
+        "descr": "Task programmate e ricette"
       },
       "panelVra": {
         "label": "Rateo variabile (VRA)",

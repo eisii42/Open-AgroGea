@@ -9,7 +9,7 @@ import type {
   SoilWaterIndex,
   CatalogType,
 } from "../types";
-import { AgroDalMachinery } from "./dal-machinery";
+import { AgroDalTasks } from "./dal-tasks";
 import { nowIso, type Row, upsertSql } from "./write";
 
 /**
@@ -18,7 +18,7 @@ import { nowIso, type Row, upsertSql } from "./write";
  * Tranne le readings meteo di stazione, sono tabelle LOCAL-ONLY: scritture
  * dirette, mai dall'outbox.
  */
-export class AgroDalLocal extends AgroDalMachinery {
+export class AgroDalLocal extends AgroDalTasks {
   // -- readings meteo (Smart IoT / agrometeo) ---------------------------------
 
   /**

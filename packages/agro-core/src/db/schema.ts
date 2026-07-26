@@ -102,9 +102,33 @@
  *   2) `drop table` delle stesse in quest'ordine (FK child→parent). I contatori
  *   ore vivono nelle colonne additive `machines.hour_counter` /
  *   `equipment.usage_counter`: nessun dato pre-v18 è toccato.
+ *
+ * v19 — additiva: Pianificazione task & Modalità Campo low-touch (fondamenta
+ * dati dello Step 1; geofencing, tracking GPS e chiusura sessione arrivano
+ * negli step successivi, ma le tabelle nascono già complete). Quattro tabelle:
+ *   * `recipes` — ricetta/miscela preimpostata riutilizzabile (MODELLO, non
+ *     movimento di magazzino): i products vivono in `products` JSONB, il
+ *     legame coi lots reali avviene solo alla chiusura della sessione (step
+ *     futuro). Sincronizzata via outbox;
+ *   * `planned_tasks` — scheda di lavorazione PROGRAMMATA su un plot: è
+ *     l'oggetto che il geofencing (step 2) cerca all'ingresso nel field
+ *     (`status = 'PLANNED'` sul `plot_id` rilevato). Sincronizzata via outbox;
+ *   * `field_operation_sessions` — sessione ESEGUITA a bordo campo (tracciato
+ *     GPS in `path` GeoJSON jsonb, superficie lavorata, note vocali, log
+ *     collegati); creata e tracciata nello Step 1 ma popolata dal tracking
+ *     GPS/chiusura degli step 2-4. Sincronizzata via outbox;
+ *   * `field_session_audio` — LOCAL-ONLY: contenuto delle note vocali (base64
+ *     in `text`, mai bytea: resta ispezionabile/testabile senza ambiguità di
+ *     serializzazione del driver). Non transita dall'outbox: pesante e non
+ *     necessaria al data plane; la sessione porta solo l'URI (`audio_uri`).
+ *   Rollback logico v19 (solo-additivo, nessuna colonna esistente cambiata):
+ *   1) `delete from sync_outbox where table_name in ('field_operation_sessions',
+ *   'planned_tasks','recipes')`; 2) `drop table field_session_audio,
+ *   field_operation_sessions, planned_tasks, recipes` (in quest'ordine per le
+ *   FK). Nessun dato pre-v19 è toccato.
  */
 
-export const AGRO_LOCAL_SCHEMA_VERSION = 18;
+export const AGRO_LOCAL_SCHEMA_VERSION = 19;
 
 export const AGRO_LOCAL_SCHEMA_SQL = `
 create table if not exists agro_meta (
@@ -868,4 +892,112 @@ create index if not exists fuel_refills_machine_idx
   on fuel_refills (machine_id, refueled_at desc);
 create index if not exists fuel_refills_lot_idx
   on fuel_refills (product_lot_id);
+
+-- v19 — Pianificazione task & Modalità Campo low-touch -----------------------
+
+-- recipes — ricetta/miscela preimpostata riutilizzabile. I products vivono in
+-- "products" JSONB (array di {product_id, product_name, dose_per_ha, unit}):
+-- una ricetta è un MODELLO, non un movimento di magazzino (il legame con i lots
+-- reali avviene solo alla chiusura della sessione). Sincronizzata via outbox.
+create table if not exists recipes (
+  id             uuid primary key,
+  tenant_id      uuid not null,
+  company_id     uuid not null references companies (id),
+  name           text not null,
+  operation_type text,
+  products       jsonb not null default '[]',
+  target_disease text,
+  notes          text,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  deleted_at     timestamptz
+);
+create index if not exists recipes_company_idx on recipes (company_id, name);
+
+-- planned_tasks — scheda di lavorazione PROGRAMMATA su un plot. È l'oggetto
+-- che il geofencing cerca all'ingresso nel field: status 'PLANNED' sul
+-- plot_id rilevato ⇒ proposta prioritaria nella modale di rilevamento.
+create table if not exists planned_tasks (
+  id                     uuid primary key,
+  tenant_id              uuid not null,
+  company_id             uuid not null references companies (id),
+  plot_id                uuid not null references plots_registry (id),
+  operation_type         text not null check (
+    operation_type in (
+      'phytosanitary', 'fertilization', 'irrigation',
+      'tillage', 'sowing', 'harvest', 'sampling'
+    )
+  ),
+  recipe_id              uuid references recipes (id),
+  target_pest_or_disease text,
+  status                 text not null default 'PLANNED' check (
+    status in ('PLANNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED')
+  ),
+  planned_date           date,
+  operator_name          text,
+  notes                  text,
+  created_at             timestamptz not null default now(),
+  updated_at             timestamptz not null default now(),
+  deleted_at             timestamptz
+);
+create index if not exists planned_tasks_plot_idx on planned_tasks (plot_id, status);
+create index if not exists planned_tasks_company_idx
+  on planned_tasks (company_id, status, planned_date);
+
+-- field_operation_sessions — sessione ESEGUITA a bordo campo (tracciato GPS,
+-- superficie realmente lavorata, note vocali). "path" è una LineString GeoJSON
+-- in jsonb (niente PostGIS in PGlite, come tutte le geometrie locali).
+create table if not exists field_operation_sessions (
+  id                uuid primary key,
+  tenant_id         uuid not null,
+  company_id        uuid not null references companies (id),
+  planned_task_id   uuid references planned_tasks (id),
+  plot_id           uuid not null references plots_registry (id),
+  operation_type    text not null check (
+    operation_type in (
+      'phytosanitary', 'fertilization', 'irrigation',
+      'tillage', 'sowing', 'harvest', 'sampling'
+    )
+  ),
+  recipe_id         uuid references recipes (id),
+  machine_id        uuid references machines (id),
+  equipment_id      uuid references equipment (id),
+  working_width_m   numeric(8, 2),
+  start_time        timestamptz not null,
+  end_time          timestamptz,
+  path              jsonb not null default '{"type":"LineString","coordinates":[]}',
+  path_length_m     numeric(12, 2) not null default 0,
+  area_worked_ha    numeric(10, 4) not null default 0,
+  status            text not null default 'IN_PROGRESS' check (
+    status in ('IN_PROGRESS', 'PAUSED', 'COMPLETED', 'ABORTED')
+  ),
+  audio_notes       jsonb not null default '[]',
+  treatment_log_ids jsonb not null default '[]',
+  operator_name     text,
+  notes             text,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now(),
+  deleted_at        timestamptz
+);
+create index if not exists field_operation_sessions_plot_idx
+  on field_operation_sessions (plot_id, start_time desc);
+create index if not exists field_operation_sessions_company_idx
+  on field_operation_sessions (company_id, status, start_time desc);
+create index if not exists field_operation_sessions_task_idx
+  on field_operation_sessions (planned_task_id);
+
+-- field_session_audio — LOCAL-ONLY: i contenuti delle note vocali restano sul
+-- device (non transitano dall'outbox: sono pesanti e non servono al data plane).
+-- Il payload è base64 in "text": evita ogni ambiguità di serializzazione bytea
+-- del driver e resta ispezionabile/testabile. La sessione porta solo l'URI.
+create table if not exists field_session_audio (
+  id          uuid primary key,
+  session_id  uuid not null references field_operation_sessions (id) on delete cascade,
+  mime_type   text not null default 'audio/webm',
+  duration_s  numeric(8, 2),
+  data_base64 text not null,
+  created_at  timestamptz not null default now()
+);
+create index if not exists field_session_audio_session_idx
+  on field_session_audio (session_id);
 `;

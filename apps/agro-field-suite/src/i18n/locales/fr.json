@@ -117,6 +117,8 @@
     "moduleCrop": "Culture",
     "moduleWater": "Eau",
     "moduleDraw": "Dessiner un élément",
+    "moduleTasks": "Planification des tâches",
+    "toolTaskPlanner": "Tâches et recettes",
     "moduleLogbook": "Carnet de champ",
     "moduleWarehouse": "Magasin",
     "toolWarehouse": "Produits et lots",
@@ -227,6 +229,88 @@
       "repeatOperation": "Répéter l'opération (formulaire prérempli, date du jour)",
       "deleteAriaLabel": "Supprimer {{label}}"
     }
+  },
+  "taskPlanner": {
+    "header": {
+      "title": "Planification des tâches / Recettes",
+      "subtitle": "Planifiez les travaux sur les parcelles et gérez les recettes réutilisables.",
+      "closeAria": "Fermer la planification"
+    },
+    "readOnlyNotice": "Lecture seule : ce rôle ne permet pas de créer ni de modifier des tâches ou des recettes.",
+    "newTask": "Nouvelle tâche",
+    "newRecipe": "Nouvelle recette",
+    "tab": {
+      "tasks": "Tâches planifiées",
+      "recipes": "Recettes"
+    },
+    "title": {
+      "taskForm": "Tâche planifiée",
+      "recipeForm": "Recette"
+    },
+    "emptyTasks": "Aucune tâche planifiée : planifiez la prochaine intervention.",
+    "emptyRecipes": "Aucune recette enregistrée : créez la première recette réutilisable.",
+    "noDate": "Sans date",
+    "unknownPlot": "Parcelle inconnue",
+    "productCount": "{{count}} produits",
+    "action": {
+      "edit": "Modifier",
+      "cancel": "Annuler la tâche",
+      "delete": "Supprimer"
+    },
+    "history": {
+      "title": "Historique",
+      "empty": "Aucune tâche en cours, terminée ou annulée."
+    },
+    "status": {
+      "PLANNED": "Planifiée",
+      "IN_PROGRESS": "En cours",
+      "COMPLETED": "Terminée",
+      "CANCELLED": "Annulée"
+    }
+  },
+  "taskForm": {
+    "plot": "Parcelle",
+    "plotPlaceholder": "— sélectionner la parcelle —",
+    "plotRequired": "Sélectionnez une parcelle.",
+    "operationTypeLabel": "Type d'opération",
+    "operationTypePlaceholder": "— sélectionner le type —",
+    "operationTypeRequired": "Sélectionnez le type d'opération.",
+    "operationType": {
+      "phytosanitary": "Traitement phytosanitaire",
+      "fertilization": "Fertilisation",
+      "irrigation": "Irrigation",
+      "tillage": "Travail du sol",
+      "sowing": "Semis",
+      "harvest": "Récolte",
+      "sampling": "Échantillonnage"
+    },
+    "recipe": "Recette suggérée",
+    "noRecipe": "— aucune recette —",
+    "targetPestOrDisease": "Ravageur / maladie ciblé(e)",
+    "targetPestOrDiseasePlaceholder": "ex. mildiou, pucerons",
+    "plannedDate": "Date planifiée",
+    "operatorName": "Opérateur",
+    "notes": "Notes",
+    "save": "Enregistrer la tâche"
+  },
+  "recipeForm": {
+    "name": "Nom de la recette",
+    "nameRequired": "Le nom de la recette est obligatoire.",
+    "operationTypeLabel": "Type d'opération",
+    "operationTypePlaceholder": "— sélectionner le type —",
+    "targetDisease": "Ravageur / maladie ciblé(e)",
+    "targetDiseasePlaceholder": "ex. mildiou, pucerons",
+    "products": "Produits",
+    "addProduct": "Ajouter un produit",
+    "product": "Produit",
+    "freeTextProduct": "— texte libre —",
+    "productNamePlaceholder": "Nom du produit",
+    "dosePerHa": "Dose/ha",
+    "unit": "Unité",
+    "removeProduct": "Retirer le produit",
+    "productRowRequired": "Ajoutez au moins un produit avec une dose supérieure à zéro.",
+    "notes": "Notes",
+    "save": "Enregistrer la recette"
   },
   "syncPanel": {
     "title": "File de synchronisation",
@@ -1440,6 +1524,10 @@
       "panelStampa": {
         "label": "Imprimer la carte",
         "descr": "Print Composer (PAC/PDR)"
+      },
+      "panelTasks": {
+        "label": "Planification des tâches",
+        "descr": "Tâches planifiées et recettes"
       },
       "panelVra": {
         "label": "Dose variable (VRA)",

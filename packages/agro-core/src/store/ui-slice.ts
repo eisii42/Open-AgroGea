@@ -14,6 +14,7 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
     selectedPlotId: null,
     lastOperation: null,
     logbookOpenPlotId: null,
+    tasksOpenPlotId: null,
     scoutingOpenObservationId: null,
     cropOpenPlotId: null,
     mapOperationIds: null,
@@ -106,6 +107,20 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
       })),
 
     consumeLogbookOpen: () => set({ logbookOpenPlotId: null }),
+
+    openTasksForPlot: (plotId) =>
+      set((s) => ({
+        tasksOpenPlotId: plotId,
+        selectedFeature: null,
+        openPanels:
+          s.panelMode === "docked"
+            ? ["tasks"]
+            : s.openPanels.includes("tasks")
+              ? s.openPanels
+              : [...s.openPanels, "tasks"],
+      })),
+
+    consumeTasksOpen: () => set({ tasksOpenPlotId: null }),
 
     openScoutingForObservation: (observationId) =>
       set((s) => ({

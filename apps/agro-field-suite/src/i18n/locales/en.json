@@ -117,6 +117,8 @@
     "moduleCrop": "Crop",
     "moduleWater": "Water",
     "moduleDraw": "Draw element",
+    "moduleTasks": "Task Planning",
+    "toolTaskPlanner": "Tasks & Recipes",
     "moduleLogbook": "Field logbook",
     "moduleWarehouse": "Warehouse",
     "toolWarehouse": "Products and lots",
@@ -227,6 +229,88 @@
       "repeatOperation": "Repeat operation (prefilled form, today's date)",
       "deleteAriaLabel": "Delete {{label}}"
     }
+  },
+  "taskPlanner": {
+    "header": {
+      "title": "Task Planning / Recipes",
+      "subtitle": "Schedule field operations on your plots and manage reusable recipes.",
+      "closeAria": "Close planning"
+    },
+    "readOnlyNotice": "Read-only: you cannot create or edit tasks and recipes in this role.",
+    "newTask": "New Task",
+    "newRecipe": "New Recipe",
+    "tab": {
+      "tasks": "Planned tasks",
+      "recipes": "Recipes"
+    },
+    "title": {
+      "taskForm": "Planned task",
+      "recipeForm": "Recipe"
+    },
+    "emptyTasks": "No planned tasks: schedule your next operation.",
+    "emptyRecipes": "No recipes saved: create your first reusable recipe.",
+    "noDate": "No date",
+    "unknownPlot": "Unknown plot",
+    "productCount": "{{count}} products",
+    "action": {
+      "edit": "Edit",
+      "cancel": "Cancel task",
+      "delete": "Delete"
+    },
+    "history": {
+      "title": "History",
+      "empty": "No in-progress, completed, or cancelled tasks."
+    },
+    "status": {
+      "PLANNED": "Planned",
+      "IN_PROGRESS": "In progress",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    }
+  },
+  "taskForm": {
+    "plot": "Plot",
+    "plotPlaceholder": "— select plot —",
+    "plotRequired": "Select a plot.",
+    "operationTypeLabel": "Operation type",
+    "operationTypePlaceholder": "— select type —",
+    "operationTypeRequired": "Select the operation type.",
+    "operationType": {
+      "phytosanitary": "Phytosanitary treatment",
+      "fertilization": "Fertilization",
+      "irrigation": "Irrigation",
+      "tillage": "Tillage",
+      "sowing": "Sowing",
+      "harvest": "Harvest",
+      "sampling": "Sampling"
+    },
+    "recipe": "Suggested recipe",
+    "noRecipe": "— no recipe —",
+    "targetPestOrDisease": "Target pest / disease",
+    "targetPestOrDiseasePlaceholder": "e.g. downy mildew, aphids",
+    "plannedDate": "Planned date",
+    "operatorName": "Operator",
+    "notes": "Notes",
+    "save": "Save task"
+  },
+  "recipeForm": {
+    "name": "Recipe name",
+    "nameRequired": "The recipe name is required.",
+    "operationTypeLabel": "Operation type",
+    "operationTypePlaceholder": "— select type —",
+    "targetDisease": "Target pest / disease",
+    "targetDiseasePlaceholder": "e.g. downy mildew, aphids",
+    "products": "Products",
+    "addProduct": "Add product",
+    "product": "Product",
+    "freeTextProduct": "— free text —",
+    "productNamePlaceholder": "Product name",
+    "dosePerHa": "Dose/ha",
+    "unit": "Unit",
+    "removeProduct": "Remove product",
+    "productRowRequired": "Add at least one product with a dose greater than zero.",
+    "notes": "Notes",
+    "save": "Save recipe"
   },
   "syncPanel": {
     "title": "Sync queue",
@@ -1664,6 +1748,10 @@
       "panelStampa": {
         "label": "Print map",
         "descr": "Print Composer (CAP/RDP)"
+      },
+      "panelTasks": {
+        "label": "Task Planning",
+        "descr": "Planned tasks and recipes"
       },
       "panelVra": {
         "label": "Variable-rate application (VRA)",

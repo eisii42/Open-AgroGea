@@ -36,6 +36,10 @@ import type {
   MachineDocument,
   CounterAdjustment,
   FuelRefill,
+  Recipe,
+  PlannedTask,
+  PlannedTaskStatus,
+  FieldOperationSession,
 } from "../types";
 
 /**
@@ -227,6 +231,12 @@ export interface DomainSlice {
   machineDocuments: MachineDocument[];
   /** Rifornimenti carburante dell'azienda attiva. */
   fuelRefills: FuelRefill[];
+  /** Ricette riutilizzabili dell'azienda attiva (Riquadro Pianificazione). */
+  recipes: Recipe[];
+  /** Task programmate dell'azienda attiva (tutte, non filtrate: il pannello filtra a runtime). */
+  plannedTasks: PlannedTask[];
+  /** Sessioni a bordo campo dell'azienda attiva (Modalità Campo, step 2-4). */
+  fieldSessions: FieldOperationSession[];
 
   setActiveCompany: (companyId: string | null) => Promise<void>;
   /**
@@ -491,6 +501,41 @@ export interface DomainSlice {
   /** Storno di un rifornimento (reintegra la cisterna) e idratazione. */
   deleteFuelRefill: (id: string) => Promise<void>;
 
+  // -- Riquadro Pianificazione Task / Ricette (Step 1) ------------------------
+  /** Crea/aggiorna una ricetta riutilizzabile e idrata lo store. */
+  saveRecipe: (
+    input: Omit<
+      Recipe,
+      "id" | "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
+    > & { id?: string },
+  ) => Promise<Recipe | null>;
+  /** Soft-delete di una ricetta (le task già collegate mantengono il riferimento). */
+  deleteRecipe: (id: string) => Promise<void>;
+  /**
+   * Crea/aggiorna una task programmata su un plot e idrata lo store. Senza
+   * `status` esplicito resta/parte 'PLANNED': le transizioni successive
+   * passano da {@link setPlannedTaskStatus} o dall'avvio di una sessione.
+   */
+  savePlannedTask: (
+    input: Omit<
+      PlannedTask,
+      | "id"
+      | "tenant_id"
+      | "company_id"
+      | "status"
+      | "created_at"
+      | "updated_at"
+      | "deleted_at"
+    > & { id?: string; status?: PlannedTaskStatus },
+  ) => Promise<PlannedTask | null>;
+  /** Soft-delete di una task programmata. */
+  deletePlannedTask: (id: string) => Promise<void>;
+  /** Transizione di stato di una task programmata (es. annullamento → CANCELLED). */
+  setPlannedTaskStatus: (
+    id: string,
+    status: PlannedTaskStatus,
+  ) => Promise<PlannedTask | null>;
+
   /** Registra un soilSample di soil (`soil_samples`) e idrata lo store. */
   saveSoilSample: (
     input: Omit<
@@ -521,6 +566,13 @@ export interface UiSlice {
    * LogbookPanel lo consuma all'apertura impostando il filtro.
    */
   logbookOpenPlotId: string | null;
+  /**
+   * Plot per cui aprire il Riquadro Pianificazione Task pre-mirato (click sul
+   * field in mappa → "Pianifica task"). `null` = nessuna richiesta pendente.
+   * Il TaskPlannerPanel lo consuma all'apertura preselezionando il plot nel
+   * form di creazione (stesso pattern di {@link logbookOpenPlotId}).
+   */
+  tasksOpenPlotId: string | null;
   /**
    * Osservazione scouting da aprire in scheda dettaglio (click sul punto in
    * mappa). `null` = nessuna richiesta pendente. Il FieldCollectionTool lo
@@ -590,6 +642,10 @@ export interface UiSlice {
   openLogbookForPlot: (plotId: string | null) => void;
   /** Consuma la richiesta di apertura Quaderno (chiamata dal LogbookPanel). */
   consumeLogbookOpen: () => void;
+  /** Apre il Riquadro Pianificazione Task pre-mirato su un plot (click sul field). */
+  openTasksForPlot: (plotId: string | null) => void;
+  /** Consuma la richiesta di apertura pianificazione (chiamata dal TaskPlannerPanel). */
+  consumeTasksOpen: () => void;
   /** Apre il pannello Scouting con la scheda della nota (click sul punto in mappa). */
   openScoutingForObservation: (observationId: string | null) => void;
   /** Consuma la richiesta di apertura Scouting (chiamata dal FieldCollectionTool). */

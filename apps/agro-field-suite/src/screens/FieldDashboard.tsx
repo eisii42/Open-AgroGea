@@ -113,6 +113,11 @@ const UserProfileSettingsPage = lazy(() =>
     default: m.UserProfileSettingsPage,
   })),
 );
+const TaskPlannerPanel = lazy(() =>
+  import("../modules/tasks/TaskPlannerPanel").then((m) => ({
+    default: m.TaskPlannerPanel,
+  })),
+);
 const FieldCollectionTool = lazy(() =>
   import("../components/FieldCollectionTool").then((m) => ({
     default: m.FieldCollectionTool,
@@ -370,6 +375,11 @@ export function FieldDashboard() {
               mappa e pannelli. Raggiunta dal menù profile e dalla Command Palette. */}
           {openPanels.includes("profile") && (
             <UserProfileSettingsPage onClose={() => togglePanel("profile")} />
+          )}
+          {/* Riquadro Pianificazione Task / Ricette: pagina a tutto schermo
+              come le Impostazioni Profilo (non un drawer). */}
+          {openPanels.includes("tasks") && (
+            <TaskPlannerPanel onClose={() => togglePanel("tasks")} />
           )}
           {/* Registro: drawer destro come la scheda dettaglio. Quando un
               elemento è selezionato lascia il posto alla scheda e riappare alla

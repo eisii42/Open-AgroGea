@@ -35,6 +35,7 @@ export {
 } from "./db/tenant-db";
 export { AgroDal } from "./db/dal";
 export { WarehouseError } from "./db/dal-warehouse";
+export { AUDIO_URI_SCHEME } from "./db/dal-tasks";
 export {
   EXPIRY_WARNING_DAYS_DEFAULT,
   categoryForOperation,

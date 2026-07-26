@@ -1,4 +1,10 @@
-import type { FeatureCollection, MultiPolygon, Point, Polygon } from "geojson";
+import type {
+  FeatureCollection,
+  LineString,
+  MultiPolygon,
+  Point,
+  Polygon,
+} from "geojson";
 
 // ---------------------------------------------------------------------------
 // Claims di licenza
@@ -950,6 +956,153 @@ export interface MachineAttentionItem {
 }
 
 // ---------------------------------------------------------------------------
+// Pianificazione task & Modalità Campo low-touch (Step 1): ricette, task
+// programmate, sessioni a bordo campo
+// ---------------------------------------------------------------------------
+
+/** Unità di dose di una riga di ricetta: sottoinsieme per-ettaro di {@link DoseUnit}. */
+export type RecipeDoseUnit = Extract<DoseUnit, "kg/ha" | "l/ha">;
+
+/**
+ * Riga di una ricetta (`recipes.products` JSONB): product + dose per ettaro.
+ * Non è un movimento di magazzino — il legame coi lots reali (issue) avviene
+ * solo alla chiusura della sessione a bordo campo (step futuro).
+ */
+export interface RecipeProduct {
+  /** FK `products` se scelto dal Magazzino; null se inserito a testo libero. */
+  product_id: string | null;
+  product_name: string;
+  dose_per_ha: number;
+  unit: RecipeDoseUnit;
+  /** Copia denormalizzata dall'anagrafica: precompila il Quaderno a fine sessione. */
+  active_substance?: string | null;
+  /** Copia denormalizzata dall'anagrafica: precompila il Quaderno a fine sessione. */
+  registration_number?: string | null;
+}
+
+/**
+ * Ricetta/miscela preimpostata riutilizzabile (`recipes`). È un MODELLO
+ * (dosi per ettaro), non un movimento di magazzino: il Riquadro Pianificazione
+ * la propone come base di una {@link PlannedTask}, la Modalità Campo la
+ * traduce in issue reali solo alla chiusura della sessione (step futuro).
+ */
+export interface Recipe {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  name: string;
+  operation_type: OperationType | null;
+  products: RecipeProduct[];
+  /** Avversità/patogeno bersaglio della ricetta (ex avversita_target). */
+  target_disease: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/**
+ * Stato di avanzamento di una {@link PlannedTask}: `PLANNED` è l'unico stato
+ * che il geofencing (step 2) propone all'ingresso nel field; `IN_PROGRESS`
+ * viene impostato atomicamente da {@link FieldOperationSession} all'avvio
+ * della sessione a bordo campo; `COMPLETED`/`CANCELLED` sono terminali.
+ */
+export type PlannedTaskStatus =
+  | "PLANNED"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "CANCELLED";
+
+/**
+ * Scheda di lavorazione PROGRAMMATA su un plot (`planned_tasks`). È l'oggetto
+ * che il geofencing (step 2) cerca all'ingresso nel field: una task con
+ * `status = "PLANNED"` sul `plot_id` rilevato diventa la proposta prioritaria
+ * nella modale di rilevamento.
+ */
+export interface PlannedTask {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  plot_id: string;
+  operation_type: OperationType;
+  /** Ricetta suggerita (opz.): precompila prodotti/dosi in Modalità Campo. */
+  recipe_id: string | null;
+  target_pest_or_disease: string | null;
+  status: PlannedTaskStatus;
+  /** Data programmata (ISO "YYYY-MM-DD"), null = senza data (in coda). */
+  planned_date: string | null;
+  operator_name: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/**
+ * Stato di una sessione a bordo campo (`field_operation_sessions.status`):
+ * `IN_PROGRESS`/`PAUSED` sono gli stati attivi (il tracking GPS scrive
+ * `path`), `COMPLETED` chiude la sessione (step 4, scrive il Quaderno),
+ * `ABORTED` è l'uscita senza registrazione.
+ */
+export type FieldSessionStatus =
+  | "IN_PROGRESS"
+  | "PAUSED"
+  | "COMPLETED"
+  | "ABORTED";
+
+/**
+ * Nota vocale geotaggata di una sessione (`field_operation_sessions.audio_notes`
+ * JSONB). Il contenuto audio vero vive in `field_session_audio` (LOCAL-ONLY,
+ * mai nell'outbox): `audio_uri` referenzia il blob con lo schema
+ * {@link AUDIO_URI_SCHEME}.
+ */
+export interface AudioNote {
+  id: string;
+  recorded_at: string;
+  lat: number;
+  lon: number;
+  duration_s: number | null;
+  mime_type: string;
+  /** URI nel formato `agro-audio://<blob_id>` (vedi {@link AUDIO_URI_SCHEME}). */
+  audio_uri: string;
+}
+
+/**
+ * Sessione ESEGUITA a bordo campo (`field_operation_sessions`): tracciato GPS,
+ * superficie realmente lavorata, note vocali, log del Quaderno collegati alla
+ * chiusura. Creata dal geofencing (step 2) o manualmente, aggiornata dal
+ * tracking GPS (step 3) e chiusa dal riepilogo post-operazione (step 4).
+ */
+export interface FieldOperationSession {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  /** Task programmata da cui è nata la sessione (opz.: può partire anche libera). */
+  planned_task_id: string | null;
+  plot_id: string;
+  operation_type: OperationType;
+  recipe_id: string | null;
+  machine_id: string | null;
+  equipment_id: string | null;
+  working_width_m: number | null;
+  start_time: string;
+  end_time: string | null;
+  /** Tracciato GPS della sessione (GeoJSON LineString, jsonb: niente PostGIS in locale). */
+  path: LineString;
+  path_length_m: number;
+  area_worked_ha: number;
+  status: FieldSessionStatus;
+  audio_notes: AudioNote[];
+  /** `treatment_logs.id` scritti al Quaderno alla chiusura (step 4). */
+  treatment_log_ids: string[];
+  operator_name: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // Multiutente — posti collaboratore per company (`tenant_memberships`)
 // ---------------------------------------------------------------------------
 
@@ -1006,7 +1159,10 @@ export type SyncTable =
   | "maintenance_logs"
   | "machine_documents"
   | "counter_adjustments"
-  | "fuel_refills";
+  | "fuel_refills"
+  | "recipes"
+  | "planned_tasks"
+  | "field_operation_sessions";
 
 export type MutationOperation = "insert" | "update" | "delete";
 
@@ -1083,7 +1239,8 @@ export type FieldPanel =
   | "impostazioni"
   | "geocompliance"
   | "profile"
-  | "scouting";
+  | "scouting"
+  | "tasks";
 
 /** Rilievo GPS in field, sincronizzato via outbox come le altre tabelle. */
 export interface ScoutingObservation {

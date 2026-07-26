@@ -27,6 +27,9 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
     maintenanceSchedules: [],
     machineDocuments: [],
     fuelRefills: [],
+    recipes: [],
+    plannedTasks: [],
+    fieldSessions: [],
 
     setActiveCompany: async (companyId) => {
       set({
@@ -49,6 +52,9 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         maintenanceSchedules: [],
         machineDocuments: [],
         fuelRefills: [],
+        recipes: [],
+        plannedTasks: [],
+        fieldSessions: [],
         activeView: "map",
         selectedFeature: null,
         geomEdit: null,
@@ -58,6 +64,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         pendingGeometry: null,
         drawIntent: null,
         logbookOpenPlotId: null,
+        tasksOpenPlotId: null,
         cropOpenPlotId: null,
         mapOperationIds: null,
         mapHarvestIds: null,
@@ -241,6 +248,9 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         maintenanceSchedules,
         machineDocuments,
         fuelRefills,
+        recipes,
+        plannedTasks,
+        fieldSessions,
       ] = await Promise.all([
         dal.listPlots(activeCompanyId),
         dal.listCrops(),
@@ -259,6 +269,9 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         dal.listMaintenanceSchedules(activeCompanyId),
         dal.listMachineDocuments(activeCompanyId),
         dal.listFuelRefills(activeCompanyId),
+        dal.listRecipes(activeCompanyId),
+        dal.listPlannedTasks(activeCompanyId),
+        dal.listFieldSessions(activeCompanyId),
       ]);
       set({
         companies,
@@ -279,6 +292,9 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         maintenanceSchedules,
         machineDocuments,
         fuelRefills,
+        recipes,
+        plannedTasks,
+        fieldSessions,
       });
     },
 
@@ -756,6 +772,74 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         set({ fuelRefills, lots });
       }
       syncRouter?.notifyLocalWrite();
+    },
+
+    // -- Riquadro Pianificazione Task / Ricette (Step 1) -----------------------
+
+    saveRecipe: async (input) => {
+      assertWritable(get);
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return null;
+      const record = await dal.saveRecipe({
+        ...input,
+        company_id: activeCompanyId,
+      });
+      set((s) => ({
+        recipes: [...s.recipes.filter((r) => r.id !== record.id), record].sort(
+          (a, b) => a.name.localeCompare(b.name),
+        ),
+      }));
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    deleteRecipe: async (id) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return;
+      await dal.deleteRecipe(id);
+      set((s) => ({ recipes: s.recipes.filter((r) => r.id !== id) }));
+      syncRouter?.notifyLocalWrite();
+    },
+
+    savePlannedTask: async (input) => {
+      assertWritable(get);
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return null;
+      const record = await dal.savePlannedTask({
+        ...input,
+        company_id: activeCompanyId,
+      });
+      set((s) => ({
+        plannedTasks: [
+          ...s.plannedTasks.filter((t) => t.id !== record.id),
+          record,
+        ],
+      }));
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    deletePlannedTask: async (id) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return;
+      await dal.deletePlannedTask(id);
+      set((s) => ({ plannedTasks: s.plannedTasks.filter((t) => t.id !== id) }));
+      syncRouter?.notifyLocalWrite();
+    },
+
+    setPlannedTaskStatus: async (id, status) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return null;
+      const record = await dal.setPlannedTaskStatus(id, status);
+      if (!record) return null;
+      set((s) => ({
+        plannedTasks: s.plannedTasks.map((t) => (t.id === record.id ? record : t)),
+      }));
+      syncRouter?.notifyLocalWrite();
+      return record;
     },
   };
 }

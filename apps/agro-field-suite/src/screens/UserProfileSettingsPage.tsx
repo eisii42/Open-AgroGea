@@ -9,6 +9,7 @@ import {
 import { Button, Label, Select, cn } from "@geolibre/ui";
 import {
   Building2,
+  ClipboardList,
   CloudSun,
   Database,
   Droplets,
@@ -89,6 +90,7 @@ const MODULE_GROUPS: ModuleGroup[] = [
       { id: "panelVra", Icon: Grid3x3 },
       { id: "panelColtura", Icon: Leaf },
       { id: "panelAcqua", Icon: Droplets },
+      { id: "panelTasks", Icon: ClipboardList },
       { id: "panelQuaderno", Icon: NotebookPen },
       { id: "panelRaccolta", Icon: Wheat },
       { id: "panelMagazzino", Icon: Warehouse },
@@ -144,6 +146,7 @@ function moduleItemText(t: TFunction, id: DashboardModuleId): { label: string; d
     panelVra: { label: t("userProfileSettingsPage.module.panelVra.label"), descr: t("userProfileSettingsPage.module.panelVra.descr") },
     panelColtura: { label: t("userProfileSettingsPage.module.panelColtura.label"), descr: t("userProfileSettingsPage.module.panelColtura.descr") },
     panelAcqua: { label: t("userProfileSettingsPage.module.panelAcqua.label"), descr: t("userProfileSettingsPage.module.panelAcqua.descr") },
+    panelTasks: { label: t("userProfileSettingsPage.module.panelTasks.label"), descr: t("userProfileSettingsPage.module.panelTasks.descr") },
     panelQuaderno: { label: t("userProfileSettingsPage.module.panelQuaderno.label"), descr: t("userProfileSettingsPage.module.panelQuaderno.descr") },
     panelRaccolta: { label: t("userProfileSettingsPage.module.panelRaccolta.label"), descr: t("userProfileSettingsPage.module.panelRaccolta.descr") },
     panelMagazzino: { label: t("userProfileSettingsPage.module.panelMagazzino.label"), descr: t("userProfileSettingsPage.module.panelMagazzino.descr") },
