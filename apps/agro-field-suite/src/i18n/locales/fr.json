@@ -1987,16 +1987,15 @@
     "error": {
       "permission_denied": "Permission GPS refusée. Activez la géolocalisation dans les paramètres.",
       "unavailable": "GPS indisponible. Vérifiez le signal.",
-      "timeout": "Délai GPS dépassé. Réessayez à l'extérieur."
+      "timeout": "Délai GPS dépassé. Réessayez à l'extérieur.",
+      "mic_unsupported": "L'enregistrement vocal n'est pas pris en charge sur cet appareil/navigateur.",
+      "mic_permission_denied": "Permission du microphone refusée. Activez le microphone dans les paramètres.",
+      "mic_recording_failed": "Échec de l'enregistrement. Réessayez."
     },
     "detection": {
       "headerPrefix": "Vous êtes dans le champ :",
       "dismiss": "Pas maintenant",
       "readOnly": "Lecture seule : vous ne pouvez pas démarrer de travaux aux champs avec ce rôle.",
-      "confirmTitle": "Session démarrée",
-      "confirmBody": "Le suivi au champ apparaîtra bientôt ici.",
-      "close": "Fermer",
-      "abortSession": "Annuler la session (démarrée par erreur)",
       "taskSectionTitle": "Tâche planifiée",
       "taskRecommended": "À suivre",
       "startTask": "Démarrer la tâche",
@@ -2012,6 +2011,28 @@
       "recipeLabel": "Recette (optionnelle)",
       "recipeNone": "— aucune recette —",
       "startFree": "Démarrer les travaux"
+    },
+    "dashboard": {
+      "unknownPlot": "Parcelle",
+      "pausedBadge": "EN PAUSE",
+      "concludedTitle": "Session terminée",
+      "concludedBody": "Le récapitulatif de fin de travaux apparaîtra bientôt ici. Vous pouvez encore reprendre si vous avez terminé par erreur.",
+      "readOnly": "Lecture seule : les commandes sont désactivées avec ce rôle.",
+      "speed": "Vitesse",
+      "areaWorked": "Hectares travaillés",
+      "elapsed": "Temps écoulé",
+      "pause": "Pause",
+      "resume": "Reprendre",
+      "conclude": "Terminer",
+      "recordStart": "Enregistrer une note vocale",
+      "recordingStop": "Arrêter l'enregistrement ({{seconds}}s)",
+      "abort": "Annuler la session",
+      "abortConfirm": "Annuler cette session ? Le suivi effectué jusqu'ici sera perdu et la tâche redeviendra planifiée.",
+      "audioNotes": {
+        "title": "Notes vocales ({{count}})",
+        "play": "Lire la note vocale",
+        "pause": "Mettre la lecture en pause"
+      }
     }
   },
   "reentryAlert": {

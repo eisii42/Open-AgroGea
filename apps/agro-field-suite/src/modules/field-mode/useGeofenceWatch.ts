@@ -12,6 +12,7 @@ import {
   createGeofenceWatcher,
 } from "../../services/geofencing/geofence-watcher";
 import { loadFieldModeConfig } from "./field-mode-config";
+import { publishLiveSample } from "./live-sample-channel";
 
 /**
  * Soppressione di un "Non ora": oltre questa durata dalla dismissal, la
@@ -106,8 +107,13 @@ export function useGeofenceWatch() {
         setErrorCode(null);
         setLastSample(sample);
         const prev = prevSampleRef.current;
-        setSpeed(prev ? speedKmh(prev, sample) : null);
+        const currentSpeed = prev ? speedKmh(prev, sample) : null;
+        setSpeed(currentSpeed);
         prevSampleRef.current = sample;
+        // Pubblica sul canale dedicato dell'InFieldDashboard (vedi
+        // live-sample-channel.ts): NON è uno `set` sullo store, quindi non
+        // ri-renderizza la mappa né altri consumer di useAgroStore.
+        publishLiveSample(sample, currentSpeed);
         setCandidatePlotId(engineState.candidatePlotId);
         setDwellRemaining(
           dwellRemainingSeconds(engineState, sample.timestamp, {

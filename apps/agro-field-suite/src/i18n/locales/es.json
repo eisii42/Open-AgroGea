@@ -1987,16 +1987,15 @@
     "error": {
       "permission_denied": "Permiso de GPS denegado. Activa la geolocalización en los ajustes.",
       "unavailable": "GPS no disponible. Comprueba la señal.",
-      "timeout": "Tiempo de espera del GPS agotado. Inténtalo al aire libre."
+      "timeout": "Tiempo de espera del GPS agotado. Inténtalo al aire libre.",
+      "mic_unsupported": "La grabación de voz no es compatible con este dispositivo/navegador.",
+      "mic_permission_denied": "Permiso de micrófono denegado. Activa el micrófono en los ajustes.",
+      "mic_recording_failed": "La grabación ha fallado. Inténtalo de nuevo."
     },
     "detection": {
       "headerPrefix": "Estás en el campo:",
       "dismiss": "Ahora no",
       "readOnly": "Solo lectura: no puedes iniciar labores de campo con este rol.",
-      "confirmTitle": "Sesión iniciada",
-      "confirmBody": "El seguimiento en campo aparecerá aquí pronto.",
-      "close": "Cerrar",
-      "abortSession": "Anular sesión (iniciada por error)",
       "taskSectionTitle": "Tarea planificada",
       "taskRecommended": "Siguiente",
       "startTask": "Iniciar tarea",
@@ -2012,6 +2011,28 @@
       "recipeLabel": "Receta (opcional)",
       "recipeNone": "— sin receta —",
       "startFree": "Iniciar labor"
+    },
+    "dashboard": {
+      "unknownPlot": "Parcela",
+      "pausedBadge": "EN PAUSA",
+      "concludedTitle": "Sesión concluida",
+      "concludedBody": "El resumen de fin de labor aparecerá aquí pronto. Todavía puedes reanudar si has concluido por error.",
+      "readOnly": "Solo lectura: los controles están desactivados con este rol.",
+      "speed": "Velocidad",
+      "areaWorked": "Hectáreas trabajadas",
+      "elapsed": "Tiempo transcurrido",
+      "pause": "Pausa",
+      "resume": "Reanudar",
+      "conclude": "Finalizar",
+      "recordStart": "Grabar nota de voz",
+      "recordingStop": "Detener grabación ({{seconds}}s)",
+      "abort": "Anular sesión",
+      "abortConfirm": "¿Anular esta sesión? El seguimiento realizado hasta ahora se perderá y la tarea volverá a estar planificada.",
+      "audioNotes": {
+        "title": "Notas de voz ({{count}})",
+        "play": "Reproducir nota de voz",
+        "pause": "Pausar reproducción"
+      }
     }
   },
   "reentryAlert": {

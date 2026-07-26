@@ -1,6 +1,7 @@
 import type { Transaction } from "@electric-sql/pglite";
 import { v4 as uuidv4 } from "uuid";
 import type {
+  AudioNote,
   FieldOperationSession,
   FieldSessionStatus,
   PlannedTask,
@@ -13,11 +14,18 @@ import { nowIso, type Row, upsertSql } from "./write";
 /**
  * Schema dell'URI dei blob audio delle sessioni a bordo campo
  * (`field_session_audio`, LOCAL-ONLY): `AudioNote.audio_uri` è sempre
- * `${AUDIO_URI_SCHEME}<blob_id>`. Usato dagli step futuri (registrazione e
- * riproduzione delle note vocali); qui solo definito perché la forma del dato
- * (`AudioNote`) nasce in questo step.
+ * `${AUDIO_URI_SCHEME}<blob_id>`. Usato da {@link AgroDalTasks.saveAudioNote}/
+ * {@link AgroDalTasks.loadAudioBlob} (registrazione e riproduzione delle note
+ * vocali dell'InFieldDashboard).
  */
 export const AUDIO_URI_SCHEME = "agro-audio://";
+
+/** Blob di una nota vocale letto da `field_session_audio` (senza il `session_id`: chi legge parte sempre dall'`audio_uri`, non serve). */
+export interface AudioBlob {
+  mime_type: string;
+  data_base64: string;
+  duration_s: number | null;
+}
 
 /**
  * Strato "Pianificazione task & Modalità Campo low-touch" del DAL: ricette riutilizzabili, task PROGRAMMATE su un plot
@@ -443,6 +451,85 @@ export class AgroDalTasks extends AgroDalMachinery {
        order by start_time desc
        limit 1`,
       [companyId],
+    );
+    return result.rows[0] ?? null;
+  }
+
+  // -- note vocali geotaggate (LOCAL-ONLY) ---------------------------------
+
+  /**
+   * Registra una nota vocale della sessione: INSERT diretto (query normale,
+   * NON {@link writeWithOutbox}) del blob in `field_session_audio` — quella
+   * tabella è LOCAL-ONLY e non deve MAI produrre una voce in `sync_outbox` —
+   * più append dell'{@link AudioNote} nel jsonb `audio_notes` della sessione,
+   * che invece SÌ sincronizza (viaggia la sessione, non il peso del blob).
+   * Le due scritture avvengono nella STESSA transazione: mai un blob orfano
+   * senza la sua voce in `audio_notes`, né una voce senza il blob referenziato.
+   * Ritorna la nota creata, o null se la sessione non esiste/è cancellata.
+   */
+  async saveAudioNote(
+    sessionId: string,
+    input: {
+      mime_type: string;
+      duration_s: number | null;
+      data_base64: string;
+      lat: number;
+      lon: number;
+    },
+  ): Promise<AudioNote | null> {
+    const existing = await this.getFieldSession(sessionId);
+    if (!existing || existing.deleted_at) return null;
+    const blobId = uuidv4();
+    const note: AudioNote = {
+      id: uuidv4(),
+      recorded_at: nowIso(),
+      lat: input.lat,
+      lon: input.lon,
+      duration_s: input.duration_s,
+      mime_type: input.mime_type,
+      audio_uri: `${AUDIO_URI_SCHEME}${blobId}`,
+    };
+    const session: FieldOperationSession = {
+      ...existing,
+      audio_notes: [...existing.audio_notes, note],
+      updated_at: nowIso(),
+    };
+    await this.db.transaction(async (tx: Transaction) => {
+      // Blob LOCAL-ONLY: insert diretto senza passare da enqueueOutbox.
+      await tx.query(
+        `insert into field_session_audio (id, session_id, mime_type, duration_s, data_base64)
+         values ($1, $2, $3, $4, $5)`,
+        [blobId, sessionId, input.mime_type, input.duration_s, input.data_base64],
+      );
+      const upd = upsertSql(
+        "field_operation_sessions",
+        session as unknown as Row,
+      );
+      await tx.query(upd.sql, upd.values);
+      await this.enqueueOutbox(
+        tx,
+        "field_operation_sessions",
+        "update",
+        session as unknown as Row & { id: string },
+      );
+    });
+    return note;
+  }
+
+  /**
+   * Legge il blob di una nota vocale dal suo `audio_uri`
+   * (`${AUDIO_URI_SCHEME}<blob_id>`). Ritorna null se l'URI non ha lo schema
+   * atteso o se il blob non esiste (es. già cancellato a cascata con la
+   * sessione, vedi `field_session_audio.session_id ... on delete cascade`).
+   */
+  async loadAudioBlob(audioUri: string): Promise<AudioBlob | null> {
+    if (!audioUri.startsWith(AUDIO_URI_SCHEME)) return null;
+    const blobId = audioUri.slice(AUDIO_URI_SCHEME.length);
+    const result = await this.db.query<AudioBlob>(
+      `select mime_type, duration_s, data_base64
+       from field_session_audio
+       where id = $1`,
+      [blobId],
     );
     return result.rows[0] ?? null;
   }

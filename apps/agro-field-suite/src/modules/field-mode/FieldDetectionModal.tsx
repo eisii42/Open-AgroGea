@@ -9,7 +9,6 @@ import {
 import { reentryWindowForPlot } from "@agrogea/tools";
 import { Button, Select, cn } from "@geolibre/ui";
 import {
-  CheckCircle2,
   ChevronRight,
   Droplets,
   FlaskConical,
@@ -86,7 +85,6 @@ export function FieldDetectionModal() {
   const readOnly = useReadOnly(activeCompanyId);
   const units = useSettingsStore((s) => s.units);
   const startFieldSession = useAgroStore((s) => s.startFieldSession);
-  const abortFieldSession = useAgroStore((s) => s.abortFieldSession);
 
   const [operationType, setOperationType] = useState<OperationType | "">("");
   const [showOtherTypes, setShowOtherTypes] = useState(false);
@@ -94,8 +92,6 @@ export function FieldDetectionModal() {
   const [reentryAck, setReentryAck] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
-  const [startedSessionId, setStartedSessionId] = useState<string | null>(null);
-  const [aborting, setAborting] = useState(false);
 
   const plot = geofenceDetection
     ? (plots.find((p) => p.id === geofenceDetection.plotId) ?? null)
@@ -160,32 +156,14 @@ export function FieldDetectionModal() {
         operator_name: null,
         notes: null,
       });
-      if (record) setStartedSessionId(record.id);
+      // Handoff: la sessione avviata fa apparire l'InFieldDashboard (montato
+      // a livello di App, vedi `useActiveFieldSession`) — questa modale non
+      // mostra più una vista di conferma propria, si chiude e basta.
+      if (record) setGeofenceDetection(null);
     } catch (e) {
       setStartError(e instanceof Error ? e.message : String(e));
     } finally {
       setStarting(false);
-    }
-  }
-
-  function handleClose() {
-    setGeofenceDetection(null);
-  }
-
-  /**
-   * Annulla una sessione avviata per errore (tap involontario, task
-   * sbagliata): finché l'InFieldDashboard non esiste, questa è l'unica via
-   * per correggere un avvio accidentale — il pulsante di abbandono "vero"
-   * (con conferma) vivrà lì.
-   */
-  async function handleAbort() {
-    if (!startedSessionId || aborting) return;
-    setAborting(true);
-    try {
-      await abortFieldSession(startedSessionId);
-    } finally {
-      setAborting(false);
-      setGeofenceDetection(null);
     }
   }
 
@@ -204,16 +182,14 @@ export function FieldDetectionModal() {
             {formatArea(plot.area_ha, units.area)}
           </p>
         </div>
-        {!startedSessionId && (
-          <button
-            type="button"
-            aria-label={t("fieldMode.detection.dismiss")}
-            onClick={dismissGeofenceDetection}
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--r-2)] text-[var(--ink-3)] hover:bg-[var(--panel-2)]"
-          >
-            <X size={28} />
-          </button>
-        )}
+        <button
+          type="button"
+          aria-label={t("fieldMode.detection.dismiss")}
+          onClick={dismissGeofenceDetection}
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--r-2)] text-[var(--ink-3)] hover:bg-[var(--panel-2)]"
+        >
+          <X size={28} />
+        </button>
       </header>
 
       <main className="mx-auto flex w-full max-w-[720px] flex-1 flex-col gap-5 p-5">
@@ -254,36 +230,7 @@ export function FieldDetectionModal() {
           </p>
         )}
 
-        {startedSessionId ? (
-          <div className="flex flex-col items-center gap-3 rounded-[var(--r-3)] border border-[var(--ok)] bg-[var(--ok-l)] p-6 text-center">
-            <CheckCircle2 size={40} className="text-[var(--ok)]" />
-            <p className="text-lg font-bold text-[var(--ok)]">
-              {t("fieldMode.detection.confirmTitle")}
-            </p>
-            <p className="text-sm text-[var(--ink-2)]">
-              {t("fieldMode.detection.confirmBody")}
-            </p>
-            {/* TODO: qui monterà InFieldDashboard (tracking GPS,
-                superficie lavorata, note vocali) invece di questa conferma. */}
-            <div className="flex w-full flex-col gap-2">
-              <Button
-                type="button"
-                className="min-h-[64px] w-full text-base"
-                onClick={handleClose}
-              >
-                {t("fieldMode.detection.close")}
-              </Button>
-              <button
-                type="button"
-                disabled={aborting}
-                onClick={() => void handleAbort()}
-                className="min-h-[44px] self-center px-4 text-sm font-medium text-[var(--danger)] hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {t("fieldMode.detection.abortSession")}
-              </button>
-            </div>
-          </div>
-        ) : readOnly ? (
+        {readOnly ? (
           <p className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-4 py-3 text-sm text-[var(--ink-2)]">
             {t("fieldMode.detection.readOnly")}
           </p>
@@ -453,7 +400,7 @@ export function FieldDetectionModal() {
           </div>
         )}
 
-        {!startedSessionId && !readOnly && (
+        {!readOnly && (
           <button
             type="button"
             onClick={dismissGeofenceDetection}

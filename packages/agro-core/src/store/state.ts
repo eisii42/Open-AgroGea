@@ -40,6 +40,7 @@ import type {
   PlannedTask,
   PlannedTaskStatus,
   FieldOperationSession,
+  AudioNote,
 } from "../types";
 
 /**
@@ -577,6 +578,38 @@ export interface DomainSlice {
    * {@link AgroDalTasks.abortFieldSession}). Idrata entrambe le collezioni.
    */
   abortFieldSession: (id: string) => Promise<FieldOperationSession | null>;
+  /**
+   * Aggiornamento parziale di una sessione a bordo campo (patch + merge lato
+   * DAL, vedi {@link AgroDalTasks.updateFieldSession}): usato dal tracking GPS
+   * dell'InFieldDashboard (`path`/`path_length_m`/`area_worked_ha`, pausa/
+   * ripresa) e dalla sua chiusura. Idrata `fieldSessions` con la row
+   * aggiornata. Ritorna null se la sessione non esiste/senza DAL active.
+   */
+  updateFieldSession: (
+    id: string,
+    patch: Partial<
+      Omit<
+        FieldOperationSession,
+        "id" | "tenant_id" | "company_id" | "created_at" | "deleted_at"
+      >
+    >,
+  ) => Promise<FieldOperationSession | null>;
+  /**
+   * Registra una nota vocale geotaggata della sessione (blob LOCAL-ONLY in
+   * `field_session_audio` + append in `audio_notes`, vedi
+   * {@link AgroDalTasks.saveAudioNote}) e idrata `fieldSessions` con la
+   * sessione aggiornata. Ritorna la nota creata o null senza DAL/sessione.
+   */
+  saveSessionAudioNote: (
+    sessionId: string,
+    input: {
+      mime_type: string;
+      duration_s: number | null;
+      data_base64: string;
+      lat: number;
+      lon: number;
+    },
+  ) => Promise<AudioNote | null>;
 }
 
 // ---------------------------------------------------------------------------

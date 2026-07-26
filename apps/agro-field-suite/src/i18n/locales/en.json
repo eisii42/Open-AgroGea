@@ -1987,16 +1987,15 @@
     "error": {
       "permission_denied": "GPS permission denied. Enable geolocation in settings.",
       "unavailable": "GPS unavailable. Check signal.",
-      "timeout": "GPS timeout. Try again in the open."
+      "timeout": "GPS timeout. Try again in the open.",
+      "mic_unsupported": "Voice recording is not supported on this device/browser.",
+      "mic_permission_denied": "Microphone permission denied. Enable the microphone in settings.",
+      "mic_recording_failed": "Recording failed. Try again."
     },
     "detection": {
       "headerPrefix": "You're in the field:",
       "dismiss": "Not now",
       "readOnly": "Read-only: you cannot start field operations in this role.",
-      "confirmTitle": "Session started",
-      "confirmBody": "Field tracking will appear here soon.",
-      "close": "Close",
-      "abortSession": "Abort session (started by mistake)",
       "taskSectionTitle": "Planned task",
       "taskRecommended": "Next up",
       "startTask": "Start task",
@@ -2012,6 +2011,28 @@
       "recipeLabel": "Recipe (optional)",
       "recipeNone": "— no recipe —",
       "startFree": "Start work"
+    },
+    "dashboard": {
+      "unknownPlot": "Plot",
+      "pausedBadge": "PAUSED",
+      "concludedTitle": "Session concluded",
+      "concludedBody": "The end-of-work summary will appear here soon. You can still resume if you concluded by mistake.",
+      "readOnly": "Read-only: controls are disabled with this role.",
+      "speed": "Speed",
+      "areaWorked": "Hectares worked",
+      "elapsed": "Elapsed time",
+      "pause": "Pause",
+      "resume": "Resume",
+      "conclude": "Finish",
+      "recordStart": "Record voice note",
+      "recordingStop": "Stop recording ({{seconds}}s)",
+      "abort": "Abort session",
+      "abortConfirm": "Abort this session? The tracking done so far will be lost and the task will go back to planned.",
+      "audioNotes": {
+        "title": "Voice notes ({{count}})",
+        "play": "Play voice note",
+        "pause": "Pause playback"
+      }
     }
   },
   "reentryAlert": {

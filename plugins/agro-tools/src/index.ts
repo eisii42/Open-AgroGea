@@ -144,6 +144,7 @@ export {
   type ReentryLogInput,
   type ReentryWindow,
 } from "./reentry";
+export { sessionElapsedMs, formatElapsedClock } from "./field-session-clock";
 
 // -- Clip raster sul poligono + proiezione UTM (Modulo 1) --
 export {

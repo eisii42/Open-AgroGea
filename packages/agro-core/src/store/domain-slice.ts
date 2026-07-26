@@ -879,5 +879,36 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       syncRouter?.notifyLocalWrite();
       return record;
     },
+
+    updateFieldSession: async (id, patch) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return null;
+      const record = await dal.updateFieldSession(id, patch);
+      if (!record) return null;
+      set((s) => ({
+        fieldSessions: s.fieldSessions.map((f) => (f.id === record.id ? record : f)),
+      }));
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    saveSessionAudioNote: async (sessionId, input) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return null;
+      const note = await dal.saveAudioNote(sessionId, input);
+      if (!note) return null;
+      // Rilettura puntuale della sola sessione toccata (il blob non entra
+      // nello store: resta LOCAL-ONLY, la UI lo legge on-demand da `dal`).
+      const record = await dal.getFieldSession(sessionId);
+      if (record) {
+        set((s) => ({
+          fieldSessions: s.fieldSessions.map((f) => (f.id === record.id ? record : f)),
+        }));
+      }
+      syncRouter?.notifyLocalWrite();
+      return note;
+    },
   };
 }

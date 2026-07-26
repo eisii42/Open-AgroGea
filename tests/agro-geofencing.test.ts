@@ -6,11 +6,13 @@ import {
   activeReentryWindows,
   advanceGeofence,
   dwellRemainingSeconds,
+  formatElapsedClock,
   haversineMeters,
   initialGeofenceState,
   pathLengthMeters,
   plotContainingPoint,
   reentryWindowForPlot,
+  sessionElapsedMs,
   speedKmh,
   workedAreaHectares,
 } from "@agrogea/tools";
@@ -428,5 +430,78 @@ describe("activeReentryWindows / reentryWindowForPlot", () => {
     ];
     const window = reentryWindowForPlot(soonLogs, "plot-d", NOW);
     assert.equal(window?.hoursRemaining, 1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Orologio della sessione a bordo campo: tempo trascorso al netto delle pause
+// ---------------------------------------------------------------------------
+
+describe("sessionElapsedMs", () => {
+  const START = Date.parse("2024-06-01T08:00:00.000Z");
+
+  it("senza pause: elapsed == now - start_time", () => {
+    const now = START + 10 * 60_000; // +10 minuti
+    assert.equal(sessionElapsedMs(new Date(START).toISOString(), 0, null, now), 10 * 60_000);
+  });
+
+  it("sottrae il totale delle pause già concluse", () => {
+    const now = START + 30 * 60_000; // +30 minuti dall'avvio
+    const pausedMs = 5 * 60_000; // 5 minuti già passati in pausa (conclusi)
+    assert.equal(
+      sessionElapsedMs(new Date(START).toISOString(), pausedMs, null, now),
+      25 * 60_000,
+    );
+  });
+
+  it("con una pausa CORRENTE ancora aperta, il tempo resta congelato mentre `now` avanza", () => {
+    const pauseStarted = START + 10 * 60_000;
+    const pausedSince = new Date(pauseStarted).toISOString();
+    // 5 minuti dopo l'avvio della pausa corrente: elapsed deve restare quello
+    // maturato PRIMA della pausa (10 minuti), non crescere oltre.
+    const now = pauseStarted + 5 * 60_000;
+    assert.equal(
+      sessionElapsedMs(new Date(START).toISOString(), 0, pausedSince, now),
+      10 * 60_000,
+    );
+  });
+
+  it("combina pause concluse + pausa corrente aperta", () => {
+    const pauseStarted = START + 20 * 60_000;
+    const pausedSince = new Date(pauseStarted).toISOString();
+    const now = pauseStarted + 3 * 60_000;
+    // 20 minuti di lavoro prima della pausa corrente, 4 minuti già passati in
+    // una pausa precedente conclusa: elapsed atteso = 20 - 4 = 16 minuti,
+    // congelato indipendentemente dai 3 minuti già trascorsi nella pausa aperta.
+    assert.equal(
+      sessionElapsedMs(new Date(START).toISOString(), 4 * 60_000, pausedSince, now),
+      16 * 60_000,
+    );
+  });
+
+  it("non va mai sotto zero (start_time nel futuro o pause che eccedono il trascorso)", () => {
+    assert.equal(sessionElapsedMs(new Date(START).toISOString(), 999_999, null, START), 0);
+    assert.equal(sessionElapsedMs(new Date(START + 60_000).toISOString(), 0, null, START), 0);
+  });
+
+  it("start_time non valido ritorna 0", () => {
+    assert.equal(sessionElapsedMs("non-una-data", 0, null, Date.now()), 0);
+  });
+});
+
+describe("formatElapsedClock", () => {
+  it("formatta sotto l'ora come m:ss", () => {
+    assert.equal(formatElapsedClock(0), "0:00");
+    assert.equal(formatElapsedClock(65_000), "1:05");
+    assert.equal(formatElapsedClock(59 * 60_000 + 59_000), "59:59");
+  });
+
+  it("formatta da un'ora in su come h:mm:ss", () => {
+    assert.equal(formatElapsedClock(60 * 60_000), "1:00:00");
+    assert.equal(formatElapsedClock(60 * 60_000 + 5 * 60_000 + 9_000), "1:05:09");
+  });
+
+  it("valori negativi sono trattati come zero", () => {
+    assert.equal(formatElapsedClock(-1_000), "0:00");
   });
 });
