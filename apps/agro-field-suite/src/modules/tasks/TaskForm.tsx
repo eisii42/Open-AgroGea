@@ -1,12 +1,17 @@
 import {
+  evaluateTaskCompleteness,
+  loadOperatorMemory,
   type OperationType,
+  persistOperatorMemory,
   type PlannedTask,
   useAgroStore,
 } from "@agrogea/core";
 import { Button, Input, Label, Select } from "@geolibre/ui";
-import { type FormEvent, useState } from "react";
+import { AlertTriangle } from "lucide-react";
+import { type FormEvent, useMemo, useState } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
+import { completenessFieldLabel } from "./task-completeness-view";
 
 /**
  * Tipi operation ammessi per task/ricette (Riquadro Pianificazione): stesso
@@ -35,8 +40,17 @@ export function taskOperationLabel(t: TFunction, type: OperationType): string {
  * Form di creazione/modifica di una task programmata (`planned_tasks`):
  * plot + tipo operation (obbligatori), ricetta suggerita (filtrata sul tipo
  * operation quando impostato), avversità/patogeno bersaglio, data
- * pianificata, operatore, note. Il geofencing userà lo status
+ * pianificata, operatore + patentino, note. Il geofencing userà lo status
  * 'PLANNED' risultante per proporre questa task all'ingresso nel field.
+ *
+ * Completezza del futuro record del Quaderno (Modalità Campo low-touch): la
+ * chiusura della sessione a bordo campo scriverà il Quaderno SENZA alcuna
+ * conferma dell'operatore, quindi qui si valuta in diretta — con lo stesso
+ * motore riusato dal cruscotto "Record incompleti" del Riquadro
+ * Pianificazione — se la task, così com'è, produrrebbe un record fitosanitario/
+ * di fertilizzazione conforme al PAN, e si mostra un avviso non bloccante con
+ * l'elenco di ciò che manca (il salvataggio resta comunque possibile: è
+ * l'elenco "Record incompleti" a rendere sicuro rimandare il completamento).
  */
 export function TaskForm({
   existing,
@@ -56,6 +70,13 @@ export function TaskForm({
   const recipes = useAgroStore((s) => s.recipes);
   const savePlannedTask = useAgroStore((s) => s.savePlannedTask);
 
+  // Memoria per-device dell'operatore (condivisa col Quaderno, vedi
+  // `field/operator-memory.ts`): il patentino non è una colonna di
+  // `planned_tasks` (è un dato dell'operatore/dispositivo, non della singola
+  // task) — qui si legge solo per precompilare, senza richiedere di
+  // ridigitarlo se già noto da un'altra operation registrata sullo stesso device.
+  const opMemory = useMemo(loadOperatorMemory, []);
+
   const [plotId, setPlotId] = useState(existing?.plot_id ?? defaultPlotId ?? "");
   const [operationType, setOperationType] = useState<OperationType | "">(
     existing?.operation_type ?? "",
@@ -67,11 +88,36 @@ export function TaskForm({
   const [plannedDate, setPlannedDate] = useState(
     existing?.planned_date ? existing.planned_date.slice(0, 10) : "",
   );
-  const [operatorName, setOperatorName] = useState(existing?.operator_name ?? "");
+  const [operatorName, setOperatorName] = useState(
+    existing?.operator_name ?? opMemory.name ?? "",
+  );
+  const [licenseNumber, setLicenseNumber] = useState(opMemory.license ?? "");
   const [notes, setNotes] = useState(existing?.notes ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  // Anteprima di completezza del futuro record (vedi doc-comment sopra):
+  // ricalcolata a ogni modifica rilevante, sulla ricetta EFFETTIVAMENTE
+  // selezionata (che porta i suoi prodotti/dosi/registrazioni).
+  const selectedRecipe = recipeId ? (recipes.find((r) => r.id === recipeId) ?? null) : null;
+  const completeness = useMemo(() => {
+    if (operationType === "") return null;
+    return evaluateTaskCompleteness(
+      {
+        plot_id: plotId,
+        operation_type: operationType,
+        target_pest_or_disease: targetPestOrDisease.trim() || null,
+        operator_name: operatorName.trim() || null,
+      },
+      selectedRecipe,
+      {
+        operatorName: operatorName.trim() || null,
+        operatorLicenseNumber: licenseNumber.trim() || null,
+      },
+    );
+  }, [operationType, plotId, targetPestOrDisease, operatorName, licenseNumber, selectedRecipe]);
+  const blockingMissing = completeness?.missing.filter((m) => m.severity === "blocking") ?? [];
 
   const availableRecipes = recipes.filter(
     (r) =>
@@ -103,6 +149,15 @@ export function TaskForm({
         notes: notes.trim() || null,
       });
       if (!record) return;
+      // Memoria operatore (condivisa col Quaderno): l'ultimo operatore/
+      // patentino usati precompilano il prossimo form, qui o in OperationForm.
+      if (operatorName.trim() || licenseNumber.trim()) {
+        persistOperatorMemory({
+          ...opMemory,
+          name: operatorName.trim() || undefined,
+          license: licenseNumber.trim() || undefined,
+        });
+      }
       onSaved(record.id);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -217,7 +272,32 @@ export function TaskForm({
             onChange={(e) => setOperatorName(e.target.value)}
           />
         </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="tf-license">{t("taskForm.operatorLicenseNumber")}</Label>
+          <Input
+            id="tf-license"
+            value={licenseNumber}
+            onChange={(e) => setLicenseNumber(e.target.value)}
+            className="agro-num"
+          />
+          <p className="text-[11px] text-[var(--ink-4)]">
+            {t("taskForm.operatorLicenseNumberHint")}
+          </p>
+        </div>
       </div>
+
+      {blockingMissing.length > 0 && (
+        <div className="flex flex-col gap-1 rounded-[var(--r-2)] border border-[var(--warn)] bg-[var(--warn-l)] px-3 py-2 text-xs text-[var(--warn)]">
+          <span className="flex items-center gap-1.5 font-semibold">
+            <AlertTriangle size={14} /> {t("taskForm.completenessWarning.title")}
+          </span>
+          <ul className="list-disc pl-5 text-[var(--ink-2)]">
+            {blockingMissing.map((m) => (
+              <li key={m.field}>{completenessFieldLabel(t, m.field)}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="tf-notes">{t("taskForm.notes")}</Label>

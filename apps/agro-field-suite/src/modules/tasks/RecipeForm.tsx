@@ -1,5 +1,7 @@
 import {
   categoryForOperation,
+  fertilizerTypeFromProduct,
+  npkRatioFromProduct,
   type OperationType,
   type Recipe,
   type RecipeDoseUnit,
@@ -24,6 +26,10 @@ interface ProductRowDraft {
   registrationNumber: string;
   dosePerHa: string;
   unit: RecipeDoseUnit;
+  /** Tipo di concime (solo ricette di fertilizzazione): campo additivo del jsonb `recipes.products`. */
+  fertilizerType: string;
+  /** Titolo N-P-K (solo ricette di fertilizzazione): idem sopra. */
+  npkRatio: string;
 }
 
 function emptyRow(key: string): ProductRowDraft {
@@ -35,6 +41,8 @@ function emptyRow(key: string): ProductRowDraft {
     registrationNumber: "",
     dosePerHa: "",
     unit: "kg/ha",
+    fertilizerType: "minerale",
+    npkRatio: "",
   };
 }
 
@@ -48,15 +56,23 @@ function rowsFromRecipe(products: RecipeProduct[]): ProductRowDraft[] {
     registrationNumber: p.registration_number ?? "",
     dosePerHa: String(p.dose_per_ha),
     unit: p.unit,
+    fertilizerType: p.fertilizer_type ?? "minerale",
+    npkRatio: p.npk_ratio ?? "",
   }));
 }
 
 /**
  * Form di creazione/modifica di una ricetta riutilizzabile (`recipes`): name +
  * tipo operation + avversità/patogeno bersaglio + righe prodotto dinamiche
- * (prodotto da Magazzino, che precompila sostanza attiva/n. registrazione e
- * suggerisce l'unità di dose dall'unità di stock, oppure testo libero) +
- * dose/ha + unità + note.
+ * (prodotto da Magazzino, che precompila sostanza attiva/n. registrazione (e,
+ * per la fertilizzazione, tipo/titolo concime) e suggerisce l'unità di dose
+ * dall'unità di stock, oppure testo libero) + dose/ha + unità + note.
+ *
+ * Completezza del futuro record del Quaderno: tipo/titolo concime sono
+ * raccolti QUI (per riga prodotto, come sostanza attiva/n. registrazione)
+ * perché il motore di completezza (`task-completeness.ts`) li richiede per le
+ * ricette di fertilizzazione — la task che la userà erediterà questi campi
+ * senza doverli ridigitare.
  */
 export function RecipeForm({
   existing,
@@ -113,6 +129,11 @@ export function RecipeForm({
       activeSubstance: product.active_substance ?? "",
       registrationNumber: product.registration_number ?? "",
       unit: impliedUnit,
+      // Tipo/titolo concime: derivati dall'anagrafica quando il product li
+      // porta (stesso riuso di OperationForm), altrimenti la riga resta sui
+      // valori correnti (l'utente può ancora completarli a mano).
+      fertilizerType: fertilizerTypeFromProduct(product) ?? "minerale",
+      npkRatio: npkRatioFromProduct(product) ?? "",
     });
   }
 
@@ -138,6 +159,10 @@ export function RecipeForm({
     setSaving(true);
     setError(null);
     try {
+      // Tipo/titolo concime: salvati solo per le ricette di fertilizzazione —
+      // per gli altri tipi operation sarebbero rumore senza significato (il
+      // Select di default "minerale" non riflette una scelta dell'utente).
+      const isFertilization = operationType === "fertilization";
       const recipeProducts: RecipeProduct[] = completeRows.map((r) => ({
         product_id: r.productId || null,
         product_name: r.productName.trim(),
@@ -145,6 +170,8 @@ export function RecipeForm({
         unit: r.unit,
         active_substance: r.activeSubstance.trim() || null,
         registration_number: r.registrationNumber.trim() || null,
+        fertilizer_type: isFertilization ? r.fertilizerType : null,
+        npk_ratio: isFertilization ? r.npkRatio.trim() || null : null,
       }));
       const record = await saveRecipe({
         id: existing?.id,
@@ -290,6 +317,36 @@ export function RecipeForm({
                 </div>
               </div>
             </div>
+            {/* Tipo/titolo concime: solo per le ricette di fertilizzazione — il
+                Quaderno li richiede per un record conforme (PAN) e la ricetta
+                è il punto in cui, per il product scelto, si derivano da soli
+                (vedi pickProduct); in "testo libero" vanno completati a mano. */}
+            {operationType === "fertilization" && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor={`${row.key}-fert-type`}>{t("logbook.fertilization.type")}</Label>
+                  <Select
+                    id={`${row.key}-fert-type`}
+                    value={row.fertilizerType}
+                    onChange={(e) => updateRow(row.key, { fertilizerType: e.target.value })}
+                  >
+                    <option value="minerale">{t("logbook.fertilization.mineral")}</option>
+                    <option value="organico">{t("logbook.fertilization.organic")}</option>
+                    <option value="organo-minerale">{t("operationForm.organoMineral")}</option>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor={`${row.key}-npk`}>{t("logbook.fertilization.npk")}</Label>
+                  <Input
+                    id={`${row.key}-npk`}
+                    value={row.npkRatio}
+                    onChange={(e) => updateRow(row.key, { npkRatio: e.target.value })}
+                    placeholder={t("logbook.fertilization.npkPlaceholder")}
+                    className="agro-num"
+                  />
+                </div>
+              </div>
+            )}
             <div className="flex justify-end">
               <button
                 type="button"

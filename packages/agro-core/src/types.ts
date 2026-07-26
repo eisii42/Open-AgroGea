@@ -978,6 +978,16 @@ export interface RecipeProduct {
   active_substance?: string | null;
   /** Copia denormalizzata dall'anagrafica: precompila il Quaderno a fine sessione. */
   registration_number?: string | null;
+  /**
+   * Tipo di concime ("organico"/"minerale"/…), copiato dall'anagrafica del
+   * product quando scelto dal Magazzino o inserito a mano in "testo libero".
+   * Rilevante solo per le ricette di fertilizzazione. Campo additivo del
+   * jsonb `recipes.products`: nessuna migrazione di schema, le ricette
+   * salvate prima della sua introduzione lo leggono semplicemente come assente.
+   */
+  fertilizer_type?: string | null;
+  /** Titolo N-P-K ("n-p-k"), idem sopra: copiato dall'anagrafica o inserito a mano. Rilevante solo per le ricette di fertilizzazione. */
+  npk_ratio?: string | null;
 }
 
 /**

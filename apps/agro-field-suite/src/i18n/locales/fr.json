@@ -40,7 +40,8 @@
     "positiveNumber": "Saisissez une valeur supérieure à zéro.",
     "invalidUnit": "Unités autorisées : {{allowed}}.",
     "invalidFertilizerType": "Le type doit être organique ou minéral.",
-    "npkFormat": "Utilisez le format N-P-K (ex. 15-15-15)."
+    "npkFormat": "Utilisez le format N-P-K (ex. 15-15-15).",
+    "resolvedAtExecution": "Déterminé automatiquement à la clôture de l'opération au champ."
   },
   "logbook": {
     "common": {
@@ -294,7 +295,12 @@
     "targetPestOrDiseasePlaceholder": "ex. mildiou, pucerons",
     "plannedDate": "Date planifiée",
     "operatorName": "Opérateur",
+    "operatorLicenseNumber": "N° d'agrément de l'opérateur",
+    "operatorLicenseNumberHint": "Partagé par tous les formulaires de cet appareil : à renseigner une seule fois.",
     "notes": "Notes",
+    "completenessWarning": {
+      "title": "Cette tâche produira un enregistrement incomplet"
+    },
     "save": "Enregistrer la tâche"
   },
   "recipeForm": {
@@ -315,6 +321,19 @@
     "productRowRequired": "Ajoutez au moins un produit avec une dose supérieure à zéro.",
     "notes": "Notes",
     "save": "Enregistrer la recette"
+  },
+  "taskCompleteness": {
+    "panel": {
+      "title": "Enregistrements incomplets",
+      "missing": "Manque : {{fields}}",
+      "kindPlannedTask": "Tâche planifiée",
+      "kindTreatmentLog": "Opération du carnet",
+      "productField": "{{field}} (produit {{index}})"
+    },
+    "rowBadge": {
+      "title": "Incomplète",
+      "tooltip": "{{count}} champs encore manquants pour un enregistrement conforme"
+    }
   },
   "syncPanel": {
     "title": "File de synchronisation",
@@ -650,6 +669,8 @@
     "readOnly": "lecture seule",
     "readOnlyUnavailable": "Non disponible en lecture seule (rôle Lecteur)",
     "warehouseAlerts": "{{count}} lots à contrôler (périmés ou bientôt périmés)",
+    "taskCompletenessAlerts": "{{count}} tâches avec un enregistrement incomplet",
+    "logCompletenessAlerts": "{{count}} opérations du carnet avec un enregistrement incomplet",
     "cropData": "Données de culture",
     "dssModels": "DSS · modèles prévisionnels",
     "exportSian": "Exporter SIAN (CSV)…"

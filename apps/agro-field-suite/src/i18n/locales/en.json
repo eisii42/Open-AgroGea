@@ -40,7 +40,8 @@
     "positiveNumber": "Enter a value greater than zero.",
     "invalidUnit": "Allowed units: {{allowed}}.",
     "invalidFertilizerType": "Type must be organic or mineral.",
-    "npkFormat": "Use the N-P-K format (e.g. 15-15-15)."
+    "npkFormat": "Use the N-P-K format (e.g. 15-15-15).",
+    "resolvedAtExecution": "Determined automatically when the field operation is completed."
   },
   "logbook": {
     "common": {
@@ -294,7 +295,12 @@
     "targetPestOrDiseasePlaceholder": "e.g. downy mildew, aphids",
     "plannedDate": "Planned date",
     "operatorName": "Operator",
+    "operatorLicenseNumber": "Operator licence no.",
+    "operatorLicenseNumberHint": "Shared across every form on this device — set it once.",
     "notes": "Notes",
+    "completenessWarning": {
+      "title": "This task will produce an incomplete record"
+    },
     "save": "Save task"
   },
   "recipeForm": {
@@ -315,6 +321,19 @@
     "productRowRequired": "Add at least one product with a dose greater than zero.",
     "notes": "Notes",
     "save": "Save recipe"
+  },
+  "taskCompleteness": {
+    "panel": {
+      "title": "Incomplete records",
+      "missing": "Missing: {{fields}}",
+      "kindPlannedTask": "Planned task",
+      "kindTreatmentLog": "Logbook entry",
+      "productField": "{{field}} (product {{index}})"
+    },
+    "rowBadge": {
+      "title": "Incomplete",
+      "tooltip": "{{count}} fields still missing for a compliant record"
+    }
   },
   "syncPanel": {
     "title": "Sync queue",
@@ -650,6 +669,8 @@
     "readOnly": "read-only",
     "readOnlyUnavailable": "Not available in read-only mode (Viewer role)",
     "warehouseAlerts": "{{count}} lots to check (expired or expiring)",
+    "taskCompletenessAlerts": "{{count}} tasks with an incomplete record",
+    "logCompletenessAlerts": "{{count}} logbook entries with an incomplete record",
     "cropData": "Crop data",
     "dssModels": "DSS · forecast models",
     "exportSian": "Export SIAN (CSV)…"

@@ -5,8 +5,12 @@ import {
   categoryForOperation,
   centroid,
   type DoseUnit,
+  fertilizerTypeFromProduct,
   irrigationToLitres,
   litresToIrrigation,
+  loadOperatorMemory,
+  npkRatioFromProduct,
+  persistOperatorMemory,
   type ProductLot,
   type Product,
   type IssueRequest,
@@ -224,32 +228,6 @@ export interface CropAssignment {
   declaredAreaHa: number;
 }
 
-/** Memoria per-device dell'ultimo operatore usato (precompilazione form). */
-const OPERATOR_KEY = "agrogea.last_operator";
-
-interface OperatorMemory {
-  name?: string;
-  taxCode?: string;
-  license?: string;
-}
-
-function loadOperatorMemory(): OperatorMemory {
-  try {
-    const raw = globalThis.localStorage?.getItem(OPERATOR_KEY);
-    return raw ? (JSON.parse(raw) as OperatorMemory) : {};
-  } catch {
-    return {};
-  }
-}
-
-function persistOperatorMemory(memory: OperatorMemory) {
-  try {
-    globalThis.localStorage?.setItem(OPERATOR_KEY, JSON.stringify(memory));
-  } catch {
-    // storage non available: la memoria resta di sessione.
-  }
-}
-
 /** Memoria per-device dell'ultima combinazione mezzo+attrezzo usata (§5.1). */
 const MACHINE_KEY = "agrogea.last_machine";
 
@@ -277,16 +255,6 @@ function persistMachineMemory(memory: MachineMemory) {
 
 /** Stringa da number nullable (per i default della ripetizione operation). */
 const numStr = (v: number | null | undefined) => (v == null ? "" : String(v));
-
-/** Titolo N-P-K ("n-p-k") da un product di warehouse; vuoto se nessun titolo. */
-function npkRatioFromProduct(p: {
-  npk_n: number | null;
-  npk_p: number | null;
-  npk_k: number | null;
-}): string {
-  if (p.npk_n == null && p.npk_p == null && p.npk_k == null) return "";
-  return [p.npk_n ?? 0, p.npk_p ?? 0, p.npk_k ?? 0].join("-");
-}
 
 /** Conversione dell'unità di stock del product in kg (per il totale concime). */
 const UNIT_TO_KG: Record<string, number> = { kg: 1, q: 100, t: 1000 };
@@ -910,8 +878,8 @@ export function OperationForm({
         if (f.registrationNumber) setRegistrationNumber(p.registration_number ?? "");
         if (f.activeSubstance) setSostanzaAttiva(p.active_substance ?? "");
         if (f.fertilizerType) {
-          const ft = meta["fertilizer_type"];
-          if (typeof ft === "string" && ft.trim()) setFertilizerType(ft);
+          const ft = fertilizerTypeFromProduct(p);
+          if (ft) setFertilizerType(ft);
         }
         if (f.npkRatio) {
           const ratio = npkRatioFromProduct(p);

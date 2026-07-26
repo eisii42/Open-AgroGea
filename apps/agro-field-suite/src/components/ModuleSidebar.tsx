@@ -3,6 +3,7 @@ import {
   type FieldPanel,
   type DrawnGeometry,
   expiryStatus,
+  loadOperatorMemory,
   useAgroStore,
   useSettingsStore,
 } from "@agrogea/core";
@@ -34,11 +35,12 @@ import {
   Warehouse,
   Wheat,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useReadOnly } from "@agrogea/core";
 import { STANDALONE } from "../standalone";
 import { SianExportDialog } from "../modules/sian/SianExportDialog";
+import { buildTaskCompletenessEntries } from "../modules/tasks/task-completeness-view";
 
 /**
  * Sidebar moduli a scomparsa (Modulo UI §5 + §6). Raccoglie gli strumenti
@@ -105,6 +107,31 @@ export function ModuleSidebar({
       l.deleted_at == null &&
       Number(l.quantity_on_hand) > 0 &&
       expiryStatus(l.expires_at) !== "valid",
+  ).length;
+
+  // Badge "Record incompleti" (completezza PAN): task PROGRAMMATE e righe del
+  // Quaderno che, così come sono, produrrebbero/sono un record non conforme.
+  // Stesso motore riusato dal Riquadro Pianificazione (§TaskCompletenessPanel).
+  const plannedTasks = useAgroStore((s) => s.plannedTasks);
+  const recipes = useAgroStore((s) => s.recipes);
+  const treatments = useAgroStore((s) => s.treatments);
+  const operatorMemory = useMemo(loadOperatorMemory, []);
+  const completenessEntries = useMemo(
+    () =>
+      buildTaskCompletenessEntries({
+        plannedTasks,
+        recipes,
+        treatments,
+        operatorName: operatorMemory.name ?? null,
+        operatorLicenseNumber: operatorMemory.license ?? null,
+      }),
+    [plannedTasks, recipes, treatments, operatorMemory],
+  );
+  const taskCompletenessAlerts = completenessEntries.filter(
+    (e) => e.kind === "plannedTask",
+  ).length;
+  const logCompletenessAlerts = completenessEntries.filter(
+    (e) => e.kind === "treatmentLog",
   ).length;
 
   const moduli: ModuleDef[] = [
@@ -344,6 +371,26 @@ export function ModuleSidebar({
                   className="rounded-full bg-[var(--warn-l)] px-1.5 text-[10px] font-semibold text-[var(--warn)]"
                 >
                   {warehouseAlerts} ⚠
+                </span>
+              )}
+              {mod.id === "tasks" && taskCompletenessAlerts > 0 && (
+                <span
+                  title={t("moduleSidebar.taskCompletenessAlerts", {
+                    count: taskCompletenessAlerts,
+                  })}
+                  className="rounded-full bg-[var(--warn-l)] px-1.5 text-[10px] font-semibold text-[var(--warn)]"
+                >
+                  {taskCompletenessAlerts} ⚠
+                </span>
+              )}
+              {mod.id === "qdc" && logCompletenessAlerts > 0 && (
+                <span
+                  title={t("moduleSidebar.logCompletenessAlerts", {
+                    count: logCompletenessAlerts,
+                  })}
+                  className="rounded-full bg-[var(--warn-l)] px-1.5 text-[10px] font-semibold text-[var(--warn)]"
+                >
+                  {logCompletenessAlerts} ⚠
                 </span>
               )}
               <ChevronRight

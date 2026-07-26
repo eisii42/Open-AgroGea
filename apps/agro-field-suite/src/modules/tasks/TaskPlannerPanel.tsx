@@ -1,13 +1,15 @@
 import {
+  geometryHasCoordinates,
+  loadOperatorMemory,
   type PlannedTask,
   type Recipe,
-  geometryHasCoordinates,
   useAgroStore,
   useReadOnly,
 } from "@agrogea/core";
 import { activeReentryWindows } from "@agrogea/tools";
 import { Button, cn } from "@geolibre/ui";
 import {
+  AlertTriangle,
   ClipboardList,
   FlaskConical,
   ListChecks,
@@ -24,6 +26,11 @@ import { useTranslation } from "react-i18next";
 import { TaskForm, taskOperationLabel } from "./TaskForm";
 import { RecipeForm } from "./RecipeForm";
 import { TaskStatusBadge } from "./TaskStatusBadge";
+import { TaskCompletenessPanel } from "./TaskCompletenessPanel";
+import {
+  buildTaskCompletenessEntries,
+  type CompletenessAttentionEntry,
+} from "./task-completeness-view";
 
 type Tab = "tasks" | "recipes";
 
@@ -35,10 +42,11 @@ type View =
   | { kind: "editRecipe"; id: string };
 
 /**
- * Riquadro Pianificazione Task / Ricette della flow low-touch a bordo campo. Pagina a tutto schermo (come `UserProfileSettingsPage`, non un
- * drawer): due sezioni — task in programmazione su un plot (l'oggetto che il
- * geofencing propone all'ingresso nel field) e la libreria
- * ricette riutilizzabili che le task possono suggerire.
+ * Riquadro Pianificazione Task / Ricette della flow low-touch a bordo campo.
+ * Pagina a tutto schermo (come `UserProfileSettingsPage`, non un drawer): due
+ * sezioni — task in programmazione su un plot (l'oggetto che il geofencing
+ * propone all'ingresso nel field) e la libreria ricette riutilizzabili che le
+ * task possono suggerire.
  */
 export function TaskPlannerPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
@@ -53,6 +61,7 @@ export function TaskPlannerPanel({ onClose }: { onClose: () => void }) {
   const deleteRecipe = useAgroStore((s) => s.deleteRecipe);
   const tasksOpenPlotId = useAgroStore((s) => s.tasksOpenPlotId);
   const consumeTasksOpen = useAgroStore((s) => s.consumeTasksOpen);
+  const openLogbookForPlot = useAgroStore((s) => s.openLogbookForPlot);
   // Stato del rilevamento GPS, letto DALLO STORE: il watch è uno solo (armato
   // da `useGeofenceWatch` in FieldDashboard) e qui se ne legge solo lo stato,
   // mai un secondo `watchPosition`. Cambia di rado, non a ogni campione.
@@ -75,7 +84,7 @@ export function TaskPlannerPanel({ onClose }: { onClose: () => void }) {
     }
   }, [tasksOpenPlotId, consumeTasksOpen]);
 
-  const plotName = (plotId: string) =>
+  const plotName = (plotId: string | null) =>
     plots.find((p) => p.id === plotId)?.user_plot_name ??
     t("taskPlanner.unknownPlot");
 
@@ -90,6 +99,45 @@ export function TaskPlannerPanel({ onClose }: { onClose: () => void }) {
     const windows = activeReentryWindows(treatments, Date.now());
     return new Map(windows.map((w) => [w.plotId, w]));
   }, [treatments]);
+
+  // Record incompleti (§completezza PAN): task PROGRAMMATE e righe del
+  // Quaderno che, così come sono, produrrebbero/sono un record non conforme.
+  // La memoria dell'operatore è letta una volta sola: cambia solo quando un
+  // form la scrive (TaskForm/OperationForm), non serve un subscribe reattivo.
+  const opMemory = useMemo(loadOperatorMemory, []);
+  const completenessEntries = useMemo(
+    () =>
+      buildTaskCompletenessEntries({
+        plannedTasks,
+        recipes,
+        treatments,
+        operatorName: opMemory.name ?? null,
+        operatorLicenseNumber: opMemory.license ?? null,
+      }),
+    [plannedTasks, recipes, treatments, opMemory],
+  );
+  const incompleteTaskById = useMemo(
+    () =>
+      new Map(
+        completenessEntries
+          .filter((e) => e.kind === "plannedTask")
+          .map((e) => [e.refId, e]),
+      ),
+    [completenessEntries],
+  );
+
+  function handleCompletenessSelect(entry: CompletenessAttentionEntry) {
+    if (readOnly) return;
+    if (entry.kind === "plannedTask") {
+      setTab("tasks");
+      setView({ kind: "editTask", id: entry.refId });
+    } else {
+      // Riga già registrata: si apre il Quaderno sul plot interessato (stesso
+      // meccanismo della CTA compliance SIAN — `openCropForPlot`), dove
+      // l'operatore trova e completa l'operation.
+      openLogbookForPlot(entry.plotId);
+    }
+  }
 
   const upcoming = useMemo(
     () =>
@@ -231,6 +279,13 @@ export function TaskPlannerPanel({ onClose }: { onClose: () => void }) {
               </Button>
             </div>
 
+            <TaskCompletenessPanel
+              entries={completenessEntries}
+              plotName={plotName}
+              readOnly={readOnly}
+              onSelect={handleCompletenessSelect}
+            />
+
             <div className="flex gap-1 border-b border-[var(--line)]">
               <TabButton
                 active={tab === "tasks"}
@@ -285,6 +340,17 @@ export function TaskPlannerPanel({ onClose }: { onClose: () => void }) {
                               >
                                 <ShieldAlert size={11} />
                                 {t("reentryAlert.badge.title")}
+                              </span>
+                            )}
+                            {incompleteTaskById.has(task.id) && (
+                              <span
+                                title={t("taskCompleteness.rowBadge.tooltip", {
+                                  count: incompleteTaskById.get(task.id)?.missing.length,
+                                })}
+                                className="flex shrink-0 items-center gap-0.5 rounded-full bg-[var(--warn-l)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--warn)]"
+                              >
+                                <AlertTriangle size={11} />
+                                {t("taskCompleteness.rowBadge.title")}
                               </span>
                             )}
                           </span>

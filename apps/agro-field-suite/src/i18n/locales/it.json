@@ -40,7 +40,8 @@
     "positiveNumber": "Inserisci un valore maggiore di zero.",
     "invalidUnit": "Unità ammesse: {{allowed}}.",
     "invalidFertilizerType": "Il tipo dev'essere organico o minerale.",
-    "npkFormat": "Usa il formato N-P-K (es. 15-15-15)."
+    "npkFormat": "Usa il formato N-P-K (es. 15-15-15).",
+    "resolvedAtExecution": "Si determina automaticamente alla chiusura della lavorazione a bordo campo."
   },
   "logbook": {
     "common": {
@@ -294,7 +295,12 @@
     "targetPestOrDiseasePlaceholder": "es. peronospora, afidi",
     "plannedDate": "Data programmata",
     "operatorName": "Operatore",
+    "operatorLicenseNumber": "N. patentino operatore",
+    "operatorLicenseNumberHint": "Condiviso con tutti i form di questo dispositivo — va impostato una sola volta.",
     "notes": "Note",
+    "completenessWarning": {
+      "title": "Questa task produrrà un record incompleto"
+    },
     "save": "Salva task"
   },
   "recipeForm": {
@@ -315,6 +321,19 @@
     "productRowRequired": "Aggiungi almeno un prodotto con dose maggiore di zero.",
     "notes": "Note",
     "save": "Salva ricetta"
+  },
+  "taskCompleteness": {
+    "panel": {
+      "title": "Record incompleti",
+      "missing": "Mancano: {{fields}}",
+      "kindPlannedTask": "Task programmata",
+      "kindTreatmentLog": "Operazione del Quaderno",
+      "productField": "{{field}} (prodotto {{index}})"
+    },
+    "rowBadge": {
+      "title": "Incompleta",
+      "tooltip": "{{count}} campi ancora mancanti per un record conforme"
+    }
   },
   "syncPanel": {
     "title": "Coda di sincronizzazione",
@@ -650,6 +669,8 @@
     "readOnly": "sola lettura",
     "readOnlyUnavailable": "Non disponibile in sola lettura (ruolo Viewer)",
     "warehouseAlerts": "{{count}} lotti da controllare (scaduti o in scadenza)",
+    "taskCompletenessAlerts": "{{count}} task con record incompleto",
+    "logCompletenessAlerts": "{{count}} operazioni del Quaderno con record incompleto",
     "cropData": "Dati coltura",
     "dssModels": "DSS · modelli previsionali",
     "exportSian": "Esporta SIAN (CSV)…"

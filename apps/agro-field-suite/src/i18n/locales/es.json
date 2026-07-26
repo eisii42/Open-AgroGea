@@ -40,7 +40,8 @@
     "positiveNumber": "Introduce un valor mayor que cero.",
     "invalidUnit": "Unidades permitidas: {{allowed}}.",
     "invalidFertilizerType": "El tipo debe ser orgánico o mineral.",
-    "npkFormat": "Usa el formato N-P-K (ej. 15-15-15)."
+    "npkFormat": "Usa el formato N-P-K (ej. 15-15-15).",
+    "resolvedAtExecution": "Se determina automáticamente al cerrar la operación en campo."
   },
   "logbook": {
     "common": {
@@ -294,7 +295,12 @@
     "targetPestOrDiseasePlaceholder": "p. ej. mildiu, pulgones",
     "plannedDate": "Fecha planificada",
     "operatorName": "Operador",
+    "operatorLicenseNumber": "N.º carné del operador",
+    "operatorLicenseNumberHint": "Compartido por todos los formularios de este dispositivo: se configura una sola vez.",
     "notes": "Notas",
+    "completenessWarning": {
+      "title": "Esta tarea generará un registro incompleto"
+    },
     "save": "Guardar tarea"
   },
   "recipeForm": {
@@ -315,6 +321,19 @@
     "productRowRequired": "Añade al menos un producto con dosis mayor que cero.",
     "notes": "Notas",
     "save": "Guardar receta"
+  },
+  "taskCompleteness": {
+    "panel": {
+      "title": "Registros incompletos",
+      "missing": "Falta: {{fields}}",
+      "kindPlannedTask": "Tarea programada",
+      "kindTreatmentLog": "Operación del cuaderno",
+      "productField": "{{field}} (producto {{index}})"
+    },
+    "rowBadge": {
+      "title": "Incompleta",
+      "tooltip": "{{count}} campos aún pendientes para un registro conforme"
+    }
   },
   "syncPanel": {
     "title": "Cola de sincronización",
@@ -650,6 +669,8 @@
     "readOnly": "solo lectura",
     "readOnlyUnavailable": "No disponible en modo de solo lectura (rol de espectador)",
     "warehouseAlerts": "{{count}} lotes por revisar (caducados o próximos a caducar)",
+    "taskCompletenessAlerts": "{{count}} tareas con registro incompleto",
+    "logCompletenessAlerts": "{{count}} operaciones del cuaderno con registro incompleto",
     "cropData": "Datos del cultivo",
     "dssModels": "DSS · modelos predictivos",
     "exportSian": "Exportar SIAN (CSV)…"

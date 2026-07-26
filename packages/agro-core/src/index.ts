@@ -40,8 +40,10 @@ export {
   EXPIRY_WARNING_DAYS_DEFAULT,
   categoryForOperation,
   cumpAfterInbound,
+  fertilizerTypeFromProduct,
   lotExpired,
   expiryStatus,
+  npkRatioFromProduct,
   validateProduct,
   type ProductDraft,
   type ProductValidationError,
@@ -164,6 +166,21 @@ export {
   type TreatmentDraft,
   type ValidationError,
 } from "./field/pan-validation";
+export {
+  evaluateLogCompleteness,
+  evaluateTaskCompleteness,
+  type CompletenessField,
+  type CompletenessResult,
+  type CompletenessSeverity,
+  type RecipeCompletenessInput,
+  type TaskCompletenessContext,
+  type TaskCompletenessInput,
+} from "./field/task-completeness";
+export {
+  loadOperatorMemory,
+  persistOperatorMemory,
+  type OperatorMemory,
+} from "./field/operator-memory";
 export {
   missingDeclarative,
   sianComplete,
