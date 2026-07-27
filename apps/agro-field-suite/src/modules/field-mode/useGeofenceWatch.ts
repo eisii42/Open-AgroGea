@@ -77,6 +77,12 @@ export function useGeofenceWatch() {
   const [dwellRemaining, setDwellRemaining] = useState<number | null>(null);
   /** Accuratezza dell'ultimo campione (m): mostrata quando il segnale è troppo debole. */
   const [lastAccuracyM, setLastAccuracyM] = useState<number | null>(null);
+  /**
+   * Appezzamento in cui ci si trova CONFERMATI, o null. Cambia solo sugli
+   * eventi `enter`/`exit` (non a ogni campione), ed è ciò che permette di
+   * riproporre il rilevamento se le condizioni cambiano mentre si è già dentro.
+   */
+  const [insidePlotId, setInsidePlotId] = useState<string | null>(null);
 
   const watcherRef = useRef<GeofenceWatcher | null>(null);
   const prevSampleRef = useRef<GeoSample | null>(null);
@@ -141,6 +147,7 @@ export function useGeofenceWatch() {
             dwellSeconds: cfg.dwellSeconds,
           }),
         );
+        setInsidePlotId(engineState.insidePlotId);
         setStatus(engineState.insidePlotId ? "inside" : "watching");
       },
       onEvent: (event) => {
@@ -238,6 +245,58 @@ export function useGeofenceWatch() {
     registerGeofenceRetry(retry);
     return () => registerGeofenceRetry(null);
   }, [retry]);
+
+  /**
+   * Una task programmata NASCE mentre si è già dentro al campo.
+   *
+   * L'evento `enter` scatta una volta sola, all'ingresso: senza questo, chi
+   * pianifica la lavorazione stando già nell'appezzamento non vedrebbe mai la
+   * proposta — dovrebbe uscire e rientrare. Qui si riapre il rilevamento quando
+   * compare una task PLANNED NUOVA sul plot in cui ci si trova, e si libera
+   * anche l'eventuale "Dopo": è una condizione diversa da quella rifiutata,
+   * quindi merita di essere riproposta.
+   *
+   * Solo le task NUOVE contano (si confronta con l'insieme già visto), altrimenti
+   * chiudere la scheda la farebbe riapparire subito, all'infinito.
+   */
+  const plannedTasks = useAgroStore((s) => s.plannedTasks);
+  const fieldSessions = useAgroStore((s) => s.fieldSessions);
+  const knownTaskIdsRef = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const plannedIds = new Set(
+      plannedTasks
+        .filter(
+          (task) =>
+            task.plot_id === insidePlotId &&
+            task.status === "PLANNED" &&
+            task.deleted_at == null,
+        )
+        .map((task) => task.id),
+    );
+    const known = knownTaskIdsRef.current;
+    knownTaskIdsRef.current = plannedIds;
+
+    if (!insidePlotId || known == null) return; // primo giro: nulla da confrontare
+    const hasNew = [...plannedIds].some((id) => !known.has(id));
+    if (!hasNew) return;
+
+    // Mai proporre mentre una sessione è già in corso: si sta già lavorando.
+    const busy = fieldSessions.some(
+      (session) =>
+        session.deleted_at == null &&
+        (session.status === "IN_PROGRESS" || session.status === "PAUSED"),
+    );
+    if (busy) return;
+
+    clearGeofenceDismissal(insidePlotId);
+    setGeofenceDetection({ plotId: insidePlotId, at: Date.now() });
+  }, [
+    plannedTasks,
+    insidePlotId,
+    fieldSessions,
+    clearGeofenceDismissal,
+    setGeofenceDetection,
+  ]);
 
   // Specchia nello store SOLO i cambi di stato (non i campioni): è così che il
   // Riquadro Pianificazione Task mostra se il rilevamento è armato, senza

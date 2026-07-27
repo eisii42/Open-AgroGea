@@ -9,7 +9,7 @@ import {
 import { reentryWindowForPlot } from "@agrogea/tools";
 import { Button, Select, cn } from "@geolibre/ui";
 import {
-  ChevronRight,
+  Check,
   Droplets,
   FlaskConical,
   type LucideIcon,
@@ -22,7 +22,7 @@ import {
   X,
 } from "lucide-react";
 import type { TFunction } from "i18next";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { taskOperationLabel } from "../tasks/TaskForm";
 import { loadFieldModeConfig } from "./field-mode-config";
@@ -65,12 +65,18 @@ function sortByPriority(tasks: PlannedTask[]): PlannedTask[] {
 }
 
 /**
- * Modale GIGANTE a tutto schermo: compare quando il
- * geofencing conferma l'ingresso in un appezzamento (`geofenceDetection`
- * valorizzato in `useAgroStore`). Progettata per l'uso con una mano sola in
- * pieno sole: tipografia grande, spaziatura generosa, target touch ≥ 64px
- * (i pulsanti che avviano il lavoro ≥ 80px). Z-index massimo: sopra pannelli,
- * mappa e ogni altro overlay dell'app.
+ * SCHEDA di rilevamento: compare quando il geofencing conferma l'ingresso in un
+ * appezzamento (`geofenceDetection` valorizzato in `useAgroStore`).
+ *
+ * Grande e con target generosi (si usa in piedi, in pieno sole, coi guanti) ma
+ * deliberatamente NON a tutto schermo: è una proposta, non un sequestro
+ * dell'interfaccia, e lasciare la mappa visibile intorno permette di vedere
+ * DOVE ci si trova mentre si decide.
+ *
+ * Due sole azioni, sempre nello stesso posto: **INIZIO** avvia ciò che è
+ * selezionato (la task programmata prioritaria è già preselezionata, così il
+ * caso normale è un tocco solo) e **DOPO** rimanda. Le task programmate sono
+ * righe selezionabili, non pulsanti d'avvio: l'avvio resta uno e uno solo.
  */
 export function FieldDetectionModal() {
   const { t } = useTranslation();
@@ -92,6 +98,12 @@ export function FieldDetectionModal() {
   const [reentryAck, setReentryAck] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  /**
+   * Task scelta fra quelle programmate sul field. `null` finché non c'è una
+   * proposta: la task prioritaria viene preselezionata così INIZIO parte con un
+   * solo tocco, ma restano tutte selezionabili se l'operatore ne fa un'altra.
+   */
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const plot = geofenceDetection
     ? (plots.find((p) => p.id === geofenceDetection.plotId) ?? null)
@@ -128,6 +140,18 @@ export function FieldDetectionModal() {
       ),
     [recipes, operationType],
   );
+
+  // Preselezione della task prioritaria: INIZIO deve partire con UN tocco nel
+  // caso normale (una sola task, o quella più urgente). Si riallinea se
+  // l'insieme cambia — es. una task creata mentre si è già dentro al campo.
+  const topTaskId = tasksForPlot[0]?.id ?? null;
+  useEffect(() => {
+    setSelectedTaskId((current) =>
+      current && tasksForPlot.some((task) => task.id === current)
+        ? current
+        : topTaskId,
+    );
+  }, [topTaskId, tasksForPlot]);
 
   // Nessuna proposta pendente, o l'appezzamento non esiste più (soft-delete
   // concorrente): nulla da mostrare.
@@ -167,9 +191,46 @@ export function FieldDetectionModal() {
     }
   }
 
+  /** Task selezionata, se ce n'è una programmata su questo appezzamento. */
+  const selectedTask = tasksForPlot.find((task) => task.id === selectedTaskId) ?? null;
+
+  /**
+   * INIZIO è attivo quando c'è qualcosa da avviare: una task selezionata,
+   * oppure un tipo di lavorazione scelto nel caso senza task. Il tempo di
+   * rientro aperto lo blocca finché non c'è presa visione.
+   */
+  const canStart =
+    !starting &&
+    !reentryBlocking &&
+    (selectedTask != null || operationType !== "");
+
+  /** Avvia ciò che è selezionato: la task scelta, o la lavorazione libera. */
+  async function handleStartSelected() {
+    if (selectedTask) {
+      await handleStart({
+        operationType: selectedTask.operation_type,
+        plannedTaskId: selectedTask.id,
+        recipeId: selectedTask.recipe_id,
+      });
+      return;
+    }
+    if (operationType !== "") {
+      await handleStart({
+        operationType,
+        plannedTaskId: null,
+        recipeId: recipeId || null,
+      });
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-[80] flex flex-col overflow-y-auto bg-[var(--bg,var(--panel-2))]">
-      <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--line)] bg-[var(--panel)] px-5 py-4">
+    // SCHEDA, non schermo intero: il rilevamento è una proposta, non un
+    // sequestro dell'interfaccia — la mappa resta visibile intorno, così
+    // l'operatore vede DOVE si trova mentre decide. Grande e con target
+    // generosi (si usa in piedi, coi guanti), ma con un'uscita ovvia.
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4">
+      <div className="flex max-h-[88vh] w-full max-w-[560px] flex-col overflow-hidden rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-pop)]">
+      <header className="flex shrink-0 items-center gap-3 border-b border-[var(--line)] px-5 py-4">
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--r-3)] bg-[var(--accent)] text-white">
           <MapPinned size={26} />
         </span>
@@ -184,15 +245,15 @@ export function FieldDetectionModal() {
         </div>
         <button
           type="button"
-          aria-label={t("fieldMode.detection.dismiss")}
+          aria-label={t("fieldMode.detection.later")}
           onClick={dismissGeofenceDetection}
-          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--r-2)] text-[var(--ink-3)] hover:bg-[var(--panel-2)]"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--r-2)] text-[var(--ink-3)] hover:bg-[var(--panel-2)]"
         >
-          <X size={28} />
+          <X size={24} />
         </button>
       </header>
 
-      <main className="mx-auto flex w-full max-w-[720px] flex-1 flex-col gap-5 p-5">
+      <main className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5">
         {reentry && (
           <div className="flex flex-col gap-3 rounded-[var(--r-3)] border-2 border-[var(--warn)] bg-[var(--warn-l)] p-4">
             <div className="flex items-start gap-3">
@@ -239,53 +300,53 @@ export function FieldDetectionModal() {
             <p className="text-sm font-semibold uppercase tracking-wider text-[var(--ink-4)]">
               {t("fieldMode.detection.taskSectionTitle")}
             </p>
-            {tasksForPlot.map((task, index) => (
-              <button
-                key={task.id}
-                type="button"
-                disabled={starting || reentryBlocking}
-                onClick={() =>
-                  void handleStart({
-                    operationType: task.operation_type,
-                    plannedTaskId: task.id,
-                    recipeId: task.recipe_id,
-                  })
-                }
-                className={cn(
-                  "flex min-h-[88px] w-full flex-col items-start gap-1 rounded-[var(--r-3)] border-2 px-5 py-4 text-left shadow-[var(--sh-1)] transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-                  index === 0
-                    ? "border-[var(--accent)] bg-[var(--accent-l)]"
-                    : "border-[var(--line)] bg-[var(--panel)] hover:bg-[var(--panel-2)]",
-                )}
-              >
-                <span className="flex w-full items-center gap-2">
-                  {index === 0 && (
-                    <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[11px] font-bold uppercase text-white">
-                      {t("fieldMode.detection.taskRecommended")}
-                    </span>
+            {/* Righe SELEZIONABILI, non pulsanti d'avvio: l'avvio è uno solo
+                (INIZIO, nel footer). Con una sola task il tocco è già fatto —
+                è preselezionata — e restano visibili le altre. */}
+            {tasksForPlot.map((task, index) => {
+              const selected = selectedTaskId === task.id;
+              return (
+                <button
+                  key={task.id}
+                  type="button"
+                  aria-pressed={selected}
+                  disabled={starting}
+                  onClick={() => setSelectedTaskId(task.id)}
+                  className={cn(
+                    "flex min-h-[72px] w-full flex-col items-start gap-1 rounded-[var(--r-3)] border-2 px-4 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                    selected
+                      ? "border-[var(--accent)] bg-[var(--accent-l)]"
+                      : "border-[var(--line)] bg-[var(--panel)] hover:bg-[var(--panel-2)]",
                   )}
-                  <span className="text-lg font-bold text-[var(--ink)]">
-                    {taskOperationLabel(t, task.operation_type)}
-                    {task.recipe_id &&
-                      ` · ${recipes.find((r) => r.id === task.recipe_id)?.name ?? ""}`}
+                >
+                  <span className="flex w-full items-center gap-2">
+                    {index === 0 && tasksForPlot.length > 1 && (
+                      <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[11px] font-bold uppercase text-white">
+                        {t("fieldMode.detection.taskRecommended")}
+                      </span>
+                    )}
+                    <span className="text-lg font-bold text-[var(--ink)]">
+                      {taskOperationLabel(t, task.operation_type)}
+                      {task.recipe_id &&
+                        ` · ${recipes.find((r) => r.id === task.recipe_id)?.name ?? ""}`}
+                    </span>
+                    {selected && (
+                      <Check size={22} className="ml-auto shrink-0 text-[var(--accent)]" />
+                    )}
                   </span>
-                  <ChevronRight size={22} className="ml-auto shrink-0 text-[var(--accent)]" />
-                </span>
-                <span className="text-sm text-[var(--ink-3)]">
-                  {[
-                    task.target_pest_or_disease,
-                    task.planned_date
-                      ? new Date(task.planned_date).toLocaleDateString("it-IT")
-                      : t("fieldMode.detection.noDate"),
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </span>
-                <span className="mt-1 text-sm font-bold uppercase tracking-wide text-[var(--accent)]">
-                  {t("fieldMode.detection.startTask")}
-                </span>
-              </button>
-            ))}
+                  <span className="text-sm text-[var(--ink-3)]">
+                    {[
+                      task.target_pest_or_disease,
+                      task.planned_date
+                        ? new Date(task.planned_date).toLocaleDateString("it-IT")
+                        : t("fieldMode.detection.noDate"),
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         ) : (
           <div className="flex flex-col gap-4">
@@ -382,34 +443,34 @@ export function FieldDetectionModal() {
               </Select>
             </div>
 
-            <Button
-              type="button"
-              disabled={operationType === "" || starting || reentryBlocking}
-              className="min-h-[88px] w-full text-lg font-bold"
-              onClick={() =>
-                operationType !== "" &&
-                void handleStart({
-                  operationType,
-                  plannedTaskId: null,
-                  recipeId: recipeId || null,
-                })
-              }
-            >
-              {t("fieldMode.detection.startFree")}
-            </Button>
           </div>
         )}
-
-        {!readOnly && (
-          <button
-            type="button"
-            onClick={dismissGeofenceDetection}
-            className="min-h-[44px] self-center px-4 text-sm font-medium text-[var(--ink-3)] hover:text-[var(--ink)]"
-          >
-            {t("fieldMode.detection.dismiss")}
-          </button>
-        )}
       </main>
+
+      {/* Due sole azioni, sempre nello stesso posto: si comincia o si rimanda.
+          DOPO silenzia la proposta per questo appezzamento (torna se cambia
+          qualcosa, es. una nuova task programmata). */}
+      <footer className="flex shrink-0 gap-3 border-t border-[var(--line)] p-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={dismissGeofenceDetection}
+          className="min-h-[64px] flex-1 text-base font-bold uppercase tracking-wide"
+        >
+          {t("fieldMode.detection.later")}
+        </Button>
+        {!readOnly && (
+          <Button
+            type="button"
+            disabled={!canStart}
+            className="min-h-[64px] flex-[2] text-lg font-bold uppercase tracking-wide"
+            onClick={() => void handleStartSelected()}
+          >
+            {t("fieldMode.detection.start")}
+          </Button>
+        )}
+      </footer>
+      </div>
     </div>
   );
 }

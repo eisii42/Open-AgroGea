@@ -2022,11 +2022,9 @@
     },
     "detection": {
       "headerPrefix": "Vous êtes dans le champ :",
-      "dismiss": "Pas maintenant",
       "readOnly": "Lecture seule : vous ne pouvez pas démarrer de travaux aux champs avec ce rôle.",
       "taskSectionTitle": "Tâche planifiée",
       "taskRecommended": "À suivre",
-      "startTask": "Démarrer la tâche",
       "noDate": "Sans date",
       "noTaskTitle": "Aucune tâche planifiée pour cette parcelle",
       "chooseOperation": "Que faites-vous ?",
@@ -2038,7 +2036,8 @@
       },
       "recipeLabel": "Recette (optionnelle)",
       "recipeNone": "— aucune recette —",
-      "startFree": "Démarrer les travaux"
+      "start": "Commencer",
+      "later": "Plus tard"
     },
     "dashboard": {
       "unknownPlot": "Parcelle",

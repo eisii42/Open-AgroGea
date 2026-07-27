@@ -2022,11 +2022,9 @@
     },
     "detection": {
       "headerPrefix": "Sei nel campo:",
-      "dismiss": "Non ora",
       "readOnly": "Sola lettura: non puoi avviare lavorazioni a bordo campo con questo ruolo.",
       "taskSectionTitle": "Task pianificata",
       "taskRecommended": "Prossima",
-      "startTask": "Avvia task",
       "noDate": "Senza data",
       "noTaskTitle": "Nessuna task pianificata per questo field",
       "chooseOperation": "Cosa stai facendo?",
@@ -2038,7 +2036,8 @@
       },
       "recipeLabel": "Ricetta (opzionale)",
       "recipeNone": "— nessuna ricetta —",
-      "startFree": "Avvia lavorazione"
+      "start": "Inizio",
+      "later": "Dopo"
     },
     "dashboard": {
       "unknownPlot": "Appezzamento",

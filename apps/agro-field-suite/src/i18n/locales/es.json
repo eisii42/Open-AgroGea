@@ -2022,11 +2022,9 @@
     },
     "detection": {
       "headerPrefix": "Estás en el campo:",
-      "dismiss": "Ahora no",
       "readOnly": "Solo lectura: no puedes iniciar labores de campo con este rol.",
       "taskSectionTitle": "Tarea planificada",
       "taskRecommended": "Siguiente",
-      "startTask": "Iniciar tarea",
       "noDate": "Sin fecha",
       "noTaskTitle": "No hay tareas planificadas para esta parcela",
       "chooseOperation": "¿Qué estás haciendo?",
@@ -2038,7 +2036,8 @@
       },
       "recipeLabel": "Receta (opcional)",
       "recipeNone": "— sin receta —",
-      "startFree": "Iniciar labor"
+      "start": "Empezar",
+      "later": "Después"
     },
     "dashboard": {
       "unknownPlot": "Parcela",

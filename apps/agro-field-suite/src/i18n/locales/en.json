@@ -2022,11 +2022,9 @@
     },
     "detection": {
       "headerPrefix": "You're in the field:",
-      "dismiss": "Not now",
       "readOnly": "Read-only: you cannot start field operations in this role.",
       "taskSectionTitle": "Planned task",
       "taskRecommended": "Next up",
-      "startTask": "Start task",
       "noDate": "No date",
       "noTaskTitle": "No planned task for this field",
       "chooseOperation": "What are you doing?",
@@ -2038,7 +2036,8 @@
       },
       "recipeLabel": "Recipe (optional)",
       "recipeNone": "— no recipe —",
-      "startFree": "Start work"
+      "start": "Start",
+      "later": "Later"
     },
     "dashboard": {
       "unknownPlot": "Plot",
