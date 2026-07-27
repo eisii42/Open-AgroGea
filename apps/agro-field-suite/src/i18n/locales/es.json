@@ -291,8 +291,6 @@
     },
     "recipe": "Receta sugerida",
     "noRecipe": "— ninguna receta —",
-    "targetPestOrDisease": "Plaga / enfermedad objetivo",
-    "targetPestOrDiseasePlaceholder": "p. ej. mildiu, pulgones",
     "plannedDate": "Fecha planificada",
     "operatorName": "Operador",
     "operatorLicenseNumber": "N.º carné del operador",
@@ -301,7 +299,12 @@
     "completenessWarning": {
       "title": "Esta tarea generará un registro incompleto"
     },
-    "save": "Guardar tarea"
+    "save": "Guardar tarea",
+    "recipeProductCount_one": "{{count}} producto",
+    "recipeProductCount_other": "{{count}} productos",
+    "noRecipeYet": "Ninguna receta para este tipo: puedes guardar la tarea y vincularla después, o crear una en la pestaña Recetas.",
+    "seedProduct": "Semilla",
+    "seedProductPlaceholder": "Nombre de la semilla"
   },
   "recipeForm": {
     "name": "Nombre de la receta",

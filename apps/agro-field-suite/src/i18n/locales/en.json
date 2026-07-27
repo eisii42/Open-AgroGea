@@ -291,8 +291,6 @@
     },
     "recipe": "Suggested recipe",
     "noRecipe": "— no recipe —",
-    "targetPestOrDisease": "Target pest / disease",
-    "targetPestOrDiseasePlaceholder": "e.g. downy mildew, aphids",
     "plannedDate": "Planned date",
     "operatorName": "Operator",
     "operatorLicenseNumber": "Operator licence no.",
@@ -301,7 +299,12 @@
     "completenessWarning": {
       "title": "This task will produce an incomplete record"
     },
-    "save": "Save task"
+    "save": "Save task",
+    "recipeProductCount_one": "{{count}} product",
+    "recipeProductCount_other": "{{count}} products",
+    "noRecipeYet": "No recipe for this type yet: you can save the task and attach one later, or create one in the Recipes tab.",
+    "seedProduct": "Seed",
+    "seedProductPlaceholder": "Seed name"
   },
   "recipeForm": {
     "name": "Recipe name",

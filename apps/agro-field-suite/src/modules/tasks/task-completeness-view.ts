@@ -110,7 +110,9 @@ const FIELD_LABEL_KEYS: Record<string, string> = {
   plot_id: "taskForm.plot",
   operation_type: "taskForm.operationTypeLabel",
   operator_name: "taskForm.operatorName",
-  target_disease: "taskForm.targetPestOrDisease",
+  // Stessa etichetta del Quaderno: l'avversità è lo stesso campo, con la stessa
+  // lista rigorosa PAN, in entrambi i form.
+  target_disease: "operationForm.targetPest",
   product_name: "recipeForm.product",
   registration_number: "logbook.treatment.regNumber",
   active_substance: "logbook.treatment.activeSubstance",

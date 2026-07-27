@@ -126,9 +126,24 @@
  *   'planned_tasks','recipes')`; 2) `drop table field_session_audio,
  *   field_operation_sessions, planned_tasks, recipes` (in quest'ordine per le
  *   FK). Nessun dato pre-v19 è toccato.
+ *
+ * v20 — additiva: `planned_tasks.metadata` JSONB. La pianificazione di una task
+ * ricalca i campi del Quaderno pertinenti al suo tipo di operation (stessa
+ * struttura dati, vedi `modules/tasks/task-field-spec.ts`), ma i tipi che NON
+ * passano da una ricetta hanno bisogno di pochi valori sparsi e diversi fra
+ * loro: tipo di lavorazione (tillage), apporto irriguo + unità (irrigation),
+ * semente e dose (sowing). Una colonna JSONB invece di cinque columns sparse:
+ * l'aggiunta di un campo a un tipo futuro non richiederà un'altra migrazione.
+ *   Chiavi persistite (contratto, snake_case come le columns): `tillage_type`,
+ *   `irrigation_amount`, `irrigation_unit`, `seed_product_id`,
+ *   `seed_product_name`, `seed_dose`, `seed_dose_unit`. Sono i valori che la
+ *   chiusura della sessione riversa nella row del Quaderno, così l'operatore
+ *   non li ridigita a bordo campo.
+ *   Rollback logico v20: `alter table planned_tasks drop column metadata`
+ *   (nessun'altra colonna è cambiata; le task pre-v20 leggono `{}`).
  */
 
-export const AGRO_LOCAL_SCHEMA_VERSION = 19;
+export const AGRO_LOCAL_SCHEMA_VERSION = 20;
 
 export const AGRO_LOCAL_SCHEMA_SQL = `
 create table if not exists agro_meta (
@@ -943,6 +958,11 @@ create table if not exists planned_tasks (
 create index if not exists planned_tasks_plot_idx on planned_tasks (plot_id, status);
 create index if not exists planned_tasks_company_idx
   on planned_tasks (company_id, status, planned_date);
+
+-- v20: campi di pianificazione dei tipi che NON passano da una ricetta
+-- (lavorazione, irrigazione, semina). Additiva: le task pre-v20 leggono '{}'.
+alter table planned_tasks
+  add column if not exists metadata jsonb not null default '{}';
 
 -- field_operation_sessions — sessione ESEGUITA a bordo campo (tracciato GPS,
 -- superficie realmente lavorata, note vocali). "path" è una LineString GeoJSON

@@ -137,6 +137,7 @@ export class AgroDalTasks extends AgroDalMachinery {
       planned_date: input.planned_date ?? null,
       operator_name: input.operator_name ?? null,
       notes: input.notes ?? null,
+      metadata: input.metadata ?? existing?.metadata ?? {},
       created_at: input.created_at ?? existing?.created_at ?? ts,
       updated_at: ts,
       deleted_at: null,

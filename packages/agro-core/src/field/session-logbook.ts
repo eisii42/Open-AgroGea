@@ -3,12 +3,14 @@ import type {
   IssueRequest,
   Plot,
   PlannedTask,
+  PlannedTaskMetadata,
   Product,
   ProductLot,
   Recipe,
   RecipeProduct,
   TreatmentLog,
 } from "../types";
+import { irrigationToLitres } from "./settings";
 import { lotExpired } from "../warehouse/cump";
 import type { OperatorMemory } from "./operator-memory";
 import { toIsoString } from "./timestamps";
@@ -83,6 +85,12 @@ export interface SessionLogContext {
   plot: Pick<Plot, "id" | "area_ha"> | null;
   recipe: Pick<Recipe, "products" | "target_disease"> | null;
   task: Pick<PlannedTask, "operator_name" | "target_pest_or_disease"> | null;
+  /**
+   * Campi già pianificati sulla task per i tipi che non passano da una ricetta
+   * (`planned_tasks.metadata`): riversati nella row del Quaderno invece di
+   * essere richiesti di nuovo a bordo campo.
+   */
+  taskMetadata?: PlannedTaskMetadata | null;
   /** Campagna agraria aperta dell'appezzamento, se risolvibile. */
   plotCampaignId: string | null;
   operator: OperatorMemory;
@@ -199,19 +207,41 @@ export function composeSessionLogs(
   const recipeRows: RecipeProduct[] = recipe?.products ?? [];
 
   if (recipeRows.length === 0) {
-    // Nessuna ricetta: una sola row, senza product né dose (lavorazioni,
-    // semine e simili non ne hanno bisogno).
+    // Nessuna ricetta: una sola row. I tipi che non passano da una miscela
+    // (lavorazione, irrigazione, semina) portano però i propri campi già
+    // PIANIFICATI in `planned_tasks.metadata`: si riversano qui nella forma che
+    // il Quaderno usa per gli stessi dati, così l'operatore non li ridigita a
+    // bordo campo. Le mappature ricalcano quelle di `OperationForm`:
+    // tipo di lavorazione → `product_name`, apporto irriguo → `water_volume_l`
+    // (convertito sulla superficie REALE percorsa), semente → product + dose.
+    const planned = context.taskMetadata ?? {};
+    const seedDose =
+      planned.seed_dose != null && Number.isFinite(planned.seed_dose)
+        ? Number(planned.seed_dose)
+        : null;
+    const irrigationLitres =
+      planned.irrigation_amount != null
+        ? irrigationToLitres(
+            Number(planned.irrigation_amount),
+            planned.irrigation_unit ?? "mm",
+            areaUsedHa,
+          )
+        : null;
+
     return {
       drafts: [
         {
           input: {
             ...base,
-            product_name: null,
+            product_name:
+              planned.seed_product_name ?? planned.tillage_type ?? null,
             registration_number: null,
             active_substance: null,
-            dose_value: null,
-            dose_unit: null,
-            total_quantity: null,
+            dose_value: seedDose,
+            dose_unit: seedDose != null ? (planned.seed_dose_unit ?? "kg/ha") : null,
+            total_quantity:
+              seedDose != null ? round3(seedDose * areaUsedHa) : null,
+            water_volume_l: irrigationLitres,
             target_disease: targetDisease,
             fertilizer_type: null,
             npk_ratio: null,

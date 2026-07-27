@@ -5,6 +5,8 @@ import type {
   Point,
   Polygon,
 } from "geojson";
+// `field/settings` non importa nulla: import di solo tipo, nessun ciclo.
+import type { WaterUnit } from "./field/settings";
 
 // ---------------------------------------------------------------------------
 // Claims di licenza
@@ -1043,9 +1045,39 @@ export interface PlannedTask {
   planned_date: string | null;
   operator_name: string | null;
   notes: string | null;
+  /**
+   * Campi di pianificazione pertinenti ai tipi che NON passano da una ricetta
+   * (lavorazione, irrigazione, semina). Vedi {@link PlannedTaskMetadata} per le
+   * chiavi previste: sono un CONTRATTO persistito (jsonb `planned_tasks.
+   * metadata`, schema v20), quindi restano snake_case come le columns.
+   */
+  metadata: PlannedTaskMetadata;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+}
+
+/**
+ * Chiavi note di {@link PlannedTask.metadata}. Sono i valori che la chiusura
+ * della sessione riversa nella row del Quaderno, così l'operatore non li
+ * ridigita a bordo campo: `tillage_type` diventa `treatment_logs.product_name`,
+ * l'apporto irriguo diventa `water_volume_l`, la semente diventa
+ * product + dose. Tutte opzionali: una task porta solo ciò che il suo tipo
+ * di operation prevede (vedi `modules/tasks/task-field-spec.ts`).
+ */
+export interface PlannedTaskMetadata {
+  /** Tipo di lavorazione del terreno (es. "Aratura", "Erpicatura"). */
+  tillage_type?: string | null;
+  /** Apporto irriguo pianificato, nell'unità di {@link irrigation_unit}. */
+  irrigation_amount?: number | null;
+  /** Unità dell'apporto irriguo: lama d'acqua (mm) o volume (hl). */
+  irrigation_unit?: WaterUnit;
+  /** Semente scelta dal Magazzino (FK `products`), null se a testo libero. */
+  seed_product_id?: string | null;
+  seed_product_name?: string | null;
+  /** Dose di semina per ettaro. */
+  seed_dose?: number | null;
+  seed_dose_unit?: RecipeDoseUnit;
 }
 
 /**

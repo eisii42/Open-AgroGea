@@ -291,8 +291,6 @@
     },
     "recipe": "Recette suggérée",
     "noRecipe": "— aucune recette —",
-    "targetPestOrDisease": "Ravageur / maladie ciblé(e)",
-    "targetPestOrDiseasePlaceholder": "ex. mildiou, pucerons",
     "plannedDate": "Date planifiée",
     "operatorName": "Opérateur",
     "operatorLicenseNumber": "N° d'agrément de l'opérateur",
@@ -301,7 +299,12 @@
     "completenessWarning": {
       "title": "Cette tâche produira un enregistrement incomplet"
     },
-    "save": "Enregistrer la tâche"
+    "save": "Enregistrer la tâche",
+    "recipeProductCount_one": "{{count}} produit",
+    "recipeProductCount_other": "{{count}} produits",
+    "noRecipeYet": "Aucune recette pour ce type : vous pouvez enregistrer la tâche et en associer une plus tard, ou en créer une dans l''onglet Recettes.",
+    "seedProduct": "Semence",
+    "seedProductPlaceholder": "Nom de la semence"
   },
   "recipeForm": {
     "name": "Nom de la recette",

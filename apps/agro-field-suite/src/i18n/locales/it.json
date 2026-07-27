@@ -291,8 +291,6 @@
     },
     "recipe": "Ricetta suggerita",
     "noRecipe": "— nessuna ricetta —",
-    "targetPestOrDisease": "Avversità / patogeno bersaglio",
-    "targetPestOrDiseasePlaceholder": "es. peronospora, afidi",
     "plannedDate": "Data programmata",
     "operatorName": "Operatore",
     "operatorLicenseNumber": "N. patentino operatore",
@@ -301,7 +299,12 @@
     "completenessWarning": {
       "title": "Questa task produrrà un record incompleto"
     },
-    "save": "Salva task"
+    "save": "Salva task",
+    "recipeProductCount_one": "{{count}} prodotto",
+    "recipeProductCount_other": "{{count}} prodotti",
+    "noRecipeYet": "Nessuna ricetta per questo tipo: puoi salvare la task e agganciarla dopo, oppure crearne una nella scheda Ricette.",
+    "seedProduct": "Semente",
+    "seedProductPlaceholder": "Nome della semente"
   },
   "recipeForm": {
     "name": "Nome ricetta",

@@ -887,6 +887,12 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         task: merged.planned_task_id
           ? (state.plannedTasks.find((t) => t.id === merged.planned_task_id) ?? null)
           : null,
+        // Campi già pianificati (lavorazione/irrigazione/semina): riversati nel
+        // Quaderno invece di essere richiesti di nuovo a bordo campo.
+        taskMetadata: merged.planned_task_id
+          ? (state.plannedTasks.find((t) => t.id === merged.planned_task_id)
+              ?.metadata ?? null)
+          : null,
         plotCampaignId:
           state.campaignFields.find(
             (c) =>
