@@ -239,7 +239,10 @@
     },
     "geofenceStatus": {
       "active": "Rilevamento field attivo",
-      "noPlots": "Nessun appezzamento da monitorare"
+      "noPlots": "Nessun appezzamento da monitorare",
+      "retry": "Riprova",
+      "lowAccuracy": "Segnale GPS debole (±{{accuracy}} m): rilevamento in attesa",
+      "inside": "Sei dentro un appezzamento"
     },
     "readOnlyNotice": "Sola lettura: in questo ruolo non puoi creare o modificare task e ricette.",
     "newTask": "Nuova Task",
@@ -2014,7 +2017,8 @@
       "timeout": "Timeout GPS. Riprova all'aperto.",
       "mic_unsupported": "Registrazione audio non supportata su questo dispositivo/browser.",
       "mic_permission_denied": "Permesso microfono negato. Abilita il microfono nelle impostazioni.",
-      "mic_recording_failed": "Registrazione non riuscita. Riprova."
+      "mic_recording_failed": "Registrazione non riuscita. Riprova.",
+      "insecure_context": "Geolocalizzazione bloccata: la pagina non è su una connessione sicura (HTTPS). Apri l''app dal desktop o via HTTPS."
     },
     "detection": {
       "headerPrefix": "Sei nel campo:",

@@ -5,13 +5,14 @@ import {
   speedKmh,
 } from "@agrogea/tools";
 import { geometryHasCoordinates, useAgroStore } from "@agrogea/core";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type GeofenceErrorCode,
   type GeofenceWatcher,
   createGeofenceWatcher,
 } from "../../services/geofencing/geofence-watcher";
 import { loadFieldModeConfig } from "./field-mode-config";
+import { registerGeofenceRetry } from "./geofence-control";
 import { publishLiveSample } from "./live-sample-channel";
 
 /**
@@ -24,7 +25,18 @@ import { publishLiveSample } from "./live-sample-channel";
  */
 const DISMISS_TIMEOUT_MS = 15 * 60 * 1000;
 
-export type GeofenceWatchStatus = "idle" | "watching" | "inside" | "error";
+/**
+ * Stato del rilevamento. `low_accuracy` è distinto da `watching` di proposito:
+ * i campioni arrivano ma vengono tutti scartati perché troppo imprecisi, quindi
+ * nessun ingresso potrà scattare. Confonderlo con "in ascolto" lascerebbe
+ * l'operatore ad aspettare in mezzo al campo un banner che non arriverà.
+ */
+export type GeofenceWatchStatus =
+  | "idle"
+  | "watching"
+  | "low_accuracy"
+  | "inside"
+  | "error";
 
 /**
  * Hook della Modalità Campo: costruisce la lista appezzamenti dallo store,
@@ -63,6 +75,8 @@ export function useGeofenceWatch() {
   const [speed, setSpeed] = useState<number | null>(null);
   const [candidatePlotId, setCandidatePlotId] = useState<string | null>(null);
   const [dwellRemaining, setDwellRemaining] = useState<number | null>(null);
+  /** Accuratezza dell'ultimo campione (m): mostrata quando il segnale è troppo debole. */
+  const [lastAccuracyM, setLastAccuracyM] = useState<number | null>(null);
 
   const watcherRef = useRef<GeofenceWatcher | null>(null);
   const prevSampleRef = useRef<GeoSample | null>(null);
@@ -103,9 +117,16 @@ export function useGeofenceWatch() {
         exitGraceSeconds: cfg.exitGraceSeconds,
         maxAccuracyM: cfg.maxAccuracyM,
       },
-      onSample: (sample, engineState) => {
+      onSample: (sample, engineState, accepted) => {
         setErrorCode(null);
         setLastSample(sample);
+        setLastAccuracyM(sample.accuracy_m ?? null);
+        if (!accepted) {
+          // Campione scartato: nessun ingresso potrà scattare finché il segnale
+          // non migliora. Va DETTO, non nascosto dietro un generico "attivo".
+          setStatus("low_accuracy");
+          return;
+        }
         const prev = prevSampleRef.current;
         const currentSpeed = prev ? speedKmh(prev, sample) : null;
         setSpeed(currentSpeed);
@@ -167,17 +188,75 @@ export function useGeofenceWatch() {
     watcherRef.current?.setPlots(geofencePlots);
   }, [geofencePlots]);
 
+  /**
+   * Riavvia il watch e riporta lo stato a "in ascolto". È il recupero da un
+   * errore: senza di questo un permesso negato una volta spegnerebbe il
+   * rilevamento per l'INTERA sessione, perché un `watchPosition` respinto non
+   * consegna più posizioni e non si riavvia da sé.
+   */
+  const retry = useCallback(() => {
+    setErrorCode(null);
+    setStatus("watching");
+    prevSampleRef.current = null;
+    setCandidatePlotId(null);
+    setDwellRemaining(null);
+    watcherRef.current?.restart();
+  }, []);
+
+  // Il permesso può cambiare mentre l'app è aperta (l'operatore lo concede
+  // dopo aver visto l'avviso, o il sistema lo revoca). La Permissions API
+  // notifica il passaggio: alla concessione si riparte da soli, senza chiedere
+  // all'operatore di ricaricare l'app in mezzo a un campo.
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.permissions?.query) {
+      return; // browser senza Permissions API: resta il riavvio manuale
+    }
+    let status: PermissionStatus | null = null;
+    let disposed = false;
+    const onChange = () => {
+      if (status?.state === "granted") retry();
+    };
+    navigator.permissions
+      .query({ name: "geolocation" as PermissionName })
+      .then((result) => {
+        if (disposed) return;
+        status = result;
+        result.addEventListener("change", onChange);
+      })
+      .catch(() => {
+        /* query non supportata per 'geolocation': resta il riavvio manuale */
+      });
+    return () => {
+      disposed = true;
+      status?.removeEventListener("change", onChange);
+    };
+  }, [retry]);
+
+  // Espone il riavvio manuale a chi mostra lo stato (il Riquadro
+  // Pianificazione Task), senza che debba conoscere il watcher.
+  useEffect(() => {
+    registerGeofenceRetry(retry);
+    return () => registerGeofenceRetry(null);
+  }, [retry]);
+
   // Specchia nello store SOLO i cambi di stato (non i campioni): è così che il
   // Riquadro Pianificazione Task mostra se il rilevamento è armato, senza
-  // aprire un secondo `watchPosition`.
+  // aprire un secondo `watchPosition`. L'accuratezza è arrotondata a decine di
+  // metri prima di entrare nello store: cambia a ogni campione, e un valore
+  // esatto qui ri-renderizzerebbe la mappa un secondo su due.
+  const accuracyBucketM =
+    status === "low_accuracy" && lastAccuracyM != null
+      ? Math.round(lastAccuracyM / 10) * 10
+      : null;
   useEffect(() => {
-    setGeofenceWatchStatus(status, errorCode);
-  }, [status, errorCode, setGeofenceWatchStatus]);
+    setGeofenceWatchStatus(status, errorCode, accuracyBucketM);
+  }, [status, errorCode, accuracyBucketM, setGeofenceWatchStatus]);
 
   return {
     status,
     errorCode,
     lastSample,
+    lastAccuracyM,
     speedKmh: speed,
     candidatePlotId,
     dwellRemaining,

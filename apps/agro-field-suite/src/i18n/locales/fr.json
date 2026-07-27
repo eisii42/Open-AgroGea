@@ -239,7 +239,10 @@
     },
     "geofenceStatus": {
       "active": "Détection de champ active",
-      "noPlots": "Aucune parcelle à surveiller"
+      "noPlots": "Aucune parcelle à surveiller",
+      "retry": "Réessayer",
+      "lowAccuracy": "Signal GPS faible (±{{accuracy}} m) : détection en attente",
+      "inside": "Vous êtes dans une parcelle"
     },
     "readOnlyNotice": "Lecture seule : ce rôle ne permet pas de créer ni de modifier des tâches ou des recettes.",
     "newTask": "Nouvelle tâche",
@@ -2014,7 +2017,8 @@
       "timeout": "Délai GPS dépassé. Réessayez à l'extérieur.",
       "mic_unsupported": "L'enregistrement vocal n'est pas pris en charge sur cet appareil/navigateur.",
       "mic_permission_denied": "Permission du microphone refusée. Activez le microphone dans les paramètres.",
-      "mic_recording_failed": "Échec de l'enregistrement. Réessayez."
+      "mic_recording_failed": "Échec de l'enregistrement. Réessayez.",
+      "insecure_context": "Géolocalisation bloquée : la page n''est pas sur une connexion sécurisée (HTTPS). Ouvrez l''application depuis le bureau ou via HTTPS."
     },
     "detection": {
       "headerPrefix": "Vous êtes dans le champ :",

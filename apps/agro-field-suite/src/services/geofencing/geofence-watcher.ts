@@ -25,14 +25,35 @@ import {
  * `onError` con un codice stabile, mai propagata.
  */
 
-/** Codici di errore stabili, tradotti dalla UI (mai messaggi hard-coded qui). */
-export type GeofenceErrorCode = "permission_denied" | "unavailable" | "timeout";
+/**
+ * Codici di errore stabili, tradotti dalla UI (mai messaggi hard-coded qui).
+ *
+ * `insecure_context` è distinto da `permission_denied` di proposito: i browser
+ * bloccano la geolocalizzazione su origine NON sicura (http non-localhost, es.
+ * il server di sviluppo aperto dal telefono via IP di rete locale) e lo
+ * riportano con lo stesso codice 1 di un permesso negato. Confonderli manda
+ * l'operatore a cercare un'impostazione che non esiste.
+ */
+export type GeofenceErrorCode =
+  | "permission_denied"
+  | "insecure_context"
+  | "unavailable"
+  | "timeout";
 
 export interface GeofenceWatcherOptions {
   plots: GeofencePlot[];
   options?: GeofenceOptions;
-  /** Ogni campione accettato (anche se scartato per bassa accuratezza: vedi stato invariato). */
-  onSample?: (sample: GeoSample, state: GeofenceState) => void;
+  /**
+   * Ogni campione ricevuto. `accepted` è false quando il campione è stato
+   * SCARTATO per accuratezza insufficiente: lo stato torna invariato e nessun
+   * ingresso potrà mai scattare finché il segnale non migliora — il chiamante
+   * deve poterlo distinguere da "in ascolto, tutto a posto".
+   */
+  onSample?: (
+    sample: GeoSample,
+    state: GeofenceState,
+    accepted: boolean,
+  ) => void;
   /** Evento `enter`/`exit` confermato dal riduttore. */
   onEvent?: (event: GeofenceEvent, state: GeofenceState) => void;
   onError?: (code: GeofenceErrorCode) => void;
@@ -43,6 +64,8 @@ export interface GeofenceWatcher {
   start: () => void;
   /** Ferma `watchPosition`. Sicuro da chiamare più volte / senza `start` precedente. */
   stop: () => void;
+  /** Ferma e riavvia il watch azzerando lo stato del riduttore (recupero da errore). */
+  restart: () => void;
   /** Inietta un campione nella pipeline (usato da `watchPosition` e dai test). */
   pushSample: (sample: GeoSample) => void;
   /** Aggiorna la lista appezzamenti SENZA riavviare il watch GPS. */
@@ -79,7 +102,7 @@ export function createGeofenceWatcher(
       const result = advanceGeofence(state, sample, plots, options);
       state = result.state;
       try {
-        init.onSample?.(sample, state);
+        init.onSample?.(sample, state, result.accepted);
       } catch {
         /* isolata: un errore del chiamante non deve fermare il geofencing */
       }
@@ -103,6 +126,13 @@ export function createGeofenceWatcher(
       safeOnError("unavailable");
       return;
     }
+    // Origine non sicura: `watchPosition` fallirebbe con codice 1 (lo stesso di
+    // un permesso negato) senza che nessuna impostazione possa rimediare.
+    // Intercettato PRIMA di avviare, per poterlo dire con esattezza.
+    if (typeof window !== "undefined" && window.isSecureContext === false) {
+      safeOnError("insecure_context");
+      return;
+    }
     watchId = navigator.geolocation.watchPosition(
       (pos) => {
         pushSample({
@@ -112,7 +142,17 @@ export function createGeofenceWatcher(
           timestamp: pos.timestamp,
         });
       },
-      (err) => safeOnError(mapGeolocationError(err)),
+      (err) => {
+        const code = mapGeolocationError(err);
+        // Un permesso negato TERMINA il watch: il browser non consegnerà più
+        // posizioni su questo id. Se non lo si azzera, `start()` uscirebbe dal
+        // guard iniziale e il geofencing resterebbe morto per tutta la sessione
+        // anche dopo che l'utente ha concesso il permesso. Timeout e posizione
+        // temporaneamente indisponibile invece NON terminano il watch: quello
+        // resta vivo e può riprendersi da solo, quindi si lascia com'è.
+        if (code === "permission_denied") stop();
+        safeOnError(code);
+      },
       { enableHighAccuracy: true, maximumAge: 5000 },
     );
   }
@@ -127,6 +167,17 @@ export function createGeofenceWatcher(
   return {
     start,
     stop,
+    /**
+     * Riavvia il watch da zero, azzerando anche lo stato del riduttore: dopo un
+     * errore la permanenza accumulata non ha più senso (potremmo essere altrove
+     * da minuti) e ripartire da un candidato stantio produrrebbe un `enter`
+     * immediato e falso.
+     */
+    restart: () => {
+      stop();
+      state = initialGeofenceState();
+      start();
+    },
     pushSample,
     setPlots: (next) => {
       plots = next;

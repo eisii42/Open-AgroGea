@@ -134,14 +134,27 @@ export interface GeofenceOptions {
   dwellSeconds?: number;
   /** Secondi fuori perimetro per confermare l'uscita — isteresi anti-jitter (default 30). */
   exitGraceSeconds?: number;
-  /** Accuratezza GPS massima accettata in metri: i campioni peggiori sono scartati (default 50). */
+  /**
+   * Accuratezza GPS massima accettata in metri: i campioni peggiori sono
+   * scartati (default 100).
+   *
+   * La soglia serve a non confermare un ingresso quando il fix è troppo incerto
+   * per distinguere l'interno dal confine. Non va però stretta come sembra
+   * sensato a tavolino: un telefono al primo aggancio, sotto chioma o con cielo
+   * coperto riporta facilmente 50-80 m, e con una soglia a 50 m OGNI campione
+   * verrebbe scartato — il rilevamento non scatterebbe mai, restando però
+   * apparentemente attivo. Un fix a 80 m ben DENTRO un appezzamento di qualche
+   * ettaro è perfettamente utilizzabile; la protezione contro i falsi positivi
+   * la dà comunque la permanenza minima ({@link dwellSeconds}), che pretende
+   * campioni consecutivi dentro lo stesso plot.
+   */
   maxAccuracyM?: number;
 }
 
 export const GEOFENCE_DEFAULTS: Required<GeofenceOptions> = {
   dwellSeconds: 15,
   exitGraceSeconds: 30,
-  maxAccuracyM: 50,
+  maxAccuracyM: 100,
 };
 
 export function initialGeofenceState(): GeofenceState {
@@ -188,14 +201,19 @@ export function advanceGeofence(
   sample: GeoSample,
   plots: GeofencePlot[],
   options: GeofenceOptions = {},
-): { state: GeofenceState; event: GeofenceEvent } {
+): { state: GeofenceState; event: GeofenceEvent; accepted: boolean } {
   const dwellSeconds = options.dwellSeconds ?? GEOFENCE_DEFAULTS.dwellSeconds;
   const exitGraceSeconds =
     options.exitGraceSeconds ?? GEOFENCE_DEFAULTS.exitGraceSeconds;
   const maxAccuracyM = options.maxAccuracyM ?? GEOFENCE_DEFAULTS.maxAccuracyM;
 
   if (sample.accuracy_m != null && sample.accuracy_m > maxAccuracyM) {
-    return { state, event: null };
+    // `accepted: false` non è un dettaglio interno: un GPS che consegna solo
+    // fix imprecisi (localizzazione da WiFi, cielo coperto, fix non ancora
+    // agganciato) farebbe scartare OGNI campione e il rilevamento non
+    // scatterebbe mai — restando però apparentemente "attivo". Il chiamante
+    // deve poterlo dire all'operatore invece di lasciarlo aspettare a vuoto.
+    return { state, event: null, accepted: false };
   }
 
   const found = plotContainingPoint(sample, plots);
@@ -204,10 +222,11 @@ export function advanceGeofence(
   if (state.insidePlotId != null) {
     if (found?.id === state.insidePlotId) {
       // Ancora dentro: azzera un'eventuale isteresi d'uscita in corso.
-      if (state.outsideSince == null) return { state, event: null };
+      if (state.outsideSince == null) return { state, event: null, accepted: true };
       return {
         state: { ...state, outsideSince: null },
         event: null,
+        accepted: true,
       };
     }
 
@@ -216,11 +235,12 @@ export function advanceGeofence(
       return {
         state: { ...state, outsideSince: sample.timestamp },
         event: null,
+        accepted: true,
       };
     }
     const outsideElapsedMs = sample.timestamp - state.outsideSince;
     if (outsideElapsedMs < exitGraceSeconds * 1000) {
-      return { state, event: null };
+      return { state, event: null, accepted: true };
     }
 
     // Grazia superata: uscita confermata. Nello stesso passo si avvia già
@@ -235,22 +255,24 @@ export function advanceGeofence(
         outsideSince: null,
       },
       event: { kind: "exit", plotId: exitedPlotId, at: sample.timestamp },
+      accepted: true,
     };
   }
 
   // -- caso B: nessun appezzamento confermato — logica di candidato/dwell -----
   if (!found) {
-    if (state.candidatePlotId == null) return { state, event: null };
+    if (state.candidatePlotId == null) return { state, event: null, accepted: true };
     return {
       state: { ...state, candidatePlotId: null, candidateSince: null },
       event: null,
+      accepted: true,
     };
   }
 
   if (state.candidatePlotId === found.id && state.candidateSince != null) {
     const dwellElapsedMs = sample.timestamp - state.candidateSince;
     if (dwellElapsedMs < dwellSeconds * 1000) {
-      return { state, event: null };
+      return { state, event: null, accepted: true };
     }
     return {
       state: {
@@ -260,6 +282,7 @@ export function advanceGeofence(
         outsideSince: null,
       },
       event: { kind: "enter", plotId: found.id, at: sample.timestamp },
+      accepted: true,
     };
   }
 
@@ -271,6 +294,7 @@ export function advanceGeofence(
       candidateSince: sample.timestamp,
     },
     event: null,
+    accepted: true,
   };
 }
 

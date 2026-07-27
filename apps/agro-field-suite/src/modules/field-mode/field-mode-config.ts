@@ -23,7 +23,7 @@ export interface FieldModeConfig {
 export const DEFAULT_FIELD_MODE_CONFIG: FieldModeConfig = {
   dwellSeconds: 15,
   exitGraceSeconds: 30,
-  maxAccuracyM: 50,
+  maxAccuracyM: 100,
   defaultWorkingWidthM: 3,
 };
 

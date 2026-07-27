@@ -26,6 +26,7 @@ import { useTranslation } from "react-i18next";
 import { TaskForm, taskOperationLabel } from "./TaskForm";
 import { RecipeForm } from "./RecipeForm";
 import { TaskStatusBadge } from "./TaskStatusBadge";
+import { requestGeofenceRetry } from "../field-mode/geofence-control";
 import { TaskCompletenessPanel } from "./TaskCompletenessPanel";
 import {
   buildTaskCompletenessEntries,
@@ -67,6 +68,7 @@ export function TaskPlannerPanel({ onClose }: { onClose: () => void }) {
   // mai un secondo `watchPosition`. Cambia di rado, non a ogni campione.
   const geofenceWatchStatus = useAgroStore((s) => s.geofenceWatchStatus);
   const geofenceWatchErrorCode = useAgroStore((s) => s.geofenceWatchErrorCode);
+  const geofenceWatchAccuracyM = useAgroStore((s) => s.geofenceWatchAccuracyM);
 
   const [tab, setTab] = useState<Tab>("tasks");
   const [view, setView] = useState<View>({ kind: "list" });
@@ -195,13 +197,24 @@ export function TaskPlannerPanel({ onClose }: { onClose: () => void }) {
     (p) => p.deleted_at == null && geometryHasCoordinates(p.geometry),
   ).length;
   const geofenceOk =
-    watchablePlots > 0 && geofenceWatchStatus !== "error";
+    watchablePlots > 0 &&
+    geofenceWatchStatus !== "error" &&
+    geofenceWatchStatus !== "low_accuracy";
   const geofenceHint =
     watchablePlots === 0
       ? t("taskPlanner.geofenceStatus.noPlots")
       : geofenceWatchStatus === "error" && geofenceWatchErrorCode
         ? t(`fieldMode.error.${geofenceWatchErrorCode}` as never)
-        : t("taskPlanner.geofenceStatus.active");
+        : // Segnale troppo debole: i campioni arrivano ma vengono scartati, e
+          // nessun ingresso scatterà. Il valore misurato distingue a colpo
+          // d'occhio un GPS agganciato da una localizzazione via WiFi.
+          geofenceWatchStatus === "low_accuracy"
+          ? t("taskPlanner.geofenceStatus.lowAccuracy", {
+              accuracy: geofenceWatchAccuracyM ?? "?",
+            })
+          : geofenceWatchStatus === "inside"
+            ? t("taskPlanner.geofenceStatus.inside")
+            : t("taskPlanner.geofenceStatus.active");
 
   return (
     <div className="absolute inset-0 z-40 overflow-y-auto bg-[var(--bg,var(--panel-2))]">
@@ -217,9 +230,12 @@ export function TaskPlannerPanel({ onClose }: { onClose: () => void }) {
             </p>
           )}
         </div>
-        {/* Stato del rilevamento automatico: puramente informativo (niente
-            toggle) — è l'unico punto in cui l'operatore vede se il geofencing
-            è armato, ora che la mappa non ha più un pulsante dedicato. */}
+        {/* Stato del rilevamento automatico: è l'unico punto in cui l'operatore
+            vede se il geofencing è armato, ora che la mappa non ha più un
+            pulsante dedicato. Nessun toggle — ma in errore compare "Riprova":
+            il recupero è automatico quando il permesso cambia (Permissions
+            API), e questo è il ripiego per i browser che non la espongono, o
+            per gli errori che quell'evento non copre. */}
         {view.kind === "list" && (
           <span
             title={geofenceHint}
@@ -238,6 +254,17 @@ export function TaskPlannerPanel({ onClose }: { onClose: () => void }) {
               )}
             />
             {geofenceHint}
+            {/* Solo quando è l'errore GPS a essere MOSTRATO: senza appezzamenti
+                il messaggio parla d'altro e un "Riprova" accanto confonderebbe. */}
+            {watchablePlots > 0 && geofenceWatchStatus === "error" && (
+              <button
+                type="button"
+                onClick={requestGeofenceRetry}
+                className="ml-0.5 rounded-full px-1.5 font-semibold underline underline-offset-2 hover:opacity-80"
+              >
+                {t("taskPlanner.geofenceStatus.retry")}
+              </button>
+            )}
           </span>
         )}
         <button

@@ -661,14 +661,23 @@ export interface SessionCloseOutcome extends CompleteFieldSessionResult {
   warnings: SessionLogWarning[];
 }
 
-export type GeofenceWatchStatus = "idle" | "watching" | "inside" | "error";
+export type GeofenceWatchStatus =
+  | "idle"
+  | "watching"
+  | "low_accuracy"
+  | "inside"
+  | "error";
 
 /**
  * Codici di errore GPS stabili: mirror di `GeofenceErrorCode` in
  * `apps/agro-field-suite/src/services/geofencing/geofence-watcher.ts`
  * (stessa ragione di duplicazione di {@link GeofenceWatchStatus}).
  */
-export type GeofenceWatchErrorCode = "permission_denied" | "unavailable" | "timeout";
+export type GeofenceWatchErrorCode =
+  | "permission_denied"
+  | "insecure_context"
+  | "unavailable"
+  | "timeout";
 
 export interface UiSlice {
   theme: AgroTheme;
@@ -768,6 +777,15 @@ export interface UiSlice {
   /** Codice di errore GPS current quando `geofenceWatchStatus === "error"`, altrimenti null. */
   geofenceWatchErrorCode: GeofenceWatchErrorCode | null;
   /**
+   * Accuratezza dell'ultimo fix (m) quando lo stato è `low_accuracy`, altrimenti
+   * null. ARROTONDATA a decine di metri di proposito: l'accuratezza cambia a
+   * ogni campione (~1 Hz) e un valore esatto qui farebbe ri-renderizzare la
+   * mappa un secondo su due — la decina basta a distinguere un GPS agganciato
+   * (±10 m) da una localizzazione via WiFi (±1000 m), che è tutto ciò che serve
+   * sapere.
+   */
+  geofenceWatchAccuracyM: number | null;
+  /**
    * Esito della chiusura di una sessione a bordo campo, da mostrare nel
    * riepilogo post-operazione. Vive QUI e non nell'InFieldDashboard perché
    * quello schermo si smonta proprio nell'istante in cui la sessione diventa
@@ -838,6 +856,7 @@ export interface UiSlice {
   setGeofenceWatchStatus: (
     status: GeofenceWatchStatus,
     errorCode?: GeofenceWatchErrorCode | null,
+    accuracyM?: number | null,
   ) => void;
   /** Pubblica l'esito di una chiusura di sessione (apre il riepilogo). */
   setSessionCloseOutcome: (outcome: SessionCloseOutcome | null) => void;

@@ -27,6 +27,7 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
     geofenceDismissedAt: null,
     geofenceWatchStatus: "idle",
     geofenceWatchErrorCode: null,
+    geofenceWatchAccuracyM: null,
     sessionCloseOutcome: null,
 
     setTheme: (theme) => {
@@ -192,13 +193,19 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
 
     dismissSessionCloseOutcome: () => set({ sessionCloseOutcome: null }),
 
-    setGeofenceWatchStatus: (status, errorCode = null) =>
+    setGeofenceWatchStatus: (status, errorCode = null, accuracyM = null) =>
       set((s) => {
         const nextError = status === "error" ? errorCode : null;
+        const nextAccuracy = status === "low_accuracy" ? accuracyM : null;
         return s.geofenceWatchStatus === status &&
-          s.geofenceWatchErrorCode === nextError
+          s.geofenceWatchErrorCode === nextError &&
+          s.geofenceWatchAccuracyM === nextAccuracy
           ? s
-          : { geofenceWatchStatus: status, geofenceWatchErrorCode: nextError };
+          : {
+              geofenceWatchStatus: status,
+              geofenceWatchErrorCode: nextError,
+              geofenceWatchAccuracyM: nextAccuracy,
+            };
       }),
   };
 }

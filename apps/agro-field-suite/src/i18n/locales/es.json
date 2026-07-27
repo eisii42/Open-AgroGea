@@ -239,7 +239,10 @@
     },
     "geofenceStatus": {
       "active": "Detección de campo activa",
-      "noPlots": "Ninguna parcela que monitorizar"
+      "noPlots": "Ninguna parcela que monitorizar",
+      "retry": "Reintentar",
+      "lowAccuracy": "Señal GPS débil (±{{accuracy}} m): detección en espera",
+      "inside": "Estás dentro de una parcela"
     },
     "readOnlyNotice": "Solo lectura: en este rol no puedes crear ni modificar tareas ni recetas.",
     "newTask": "Nueva tarea",
@@ -2014,7 +2017,8 @@
       "timeout": "Tiempo de espera del GPS agotado. Inténtalo al aire libre.",
       "mic_unsupported": "La grabación de voz no es compatible con este dispositivo/navegador.",
       "mic_permission_denied": "Permiso de micrófono denegado. Activa el micrófono en los ajustes.",
-      "mic_recording_failed": "La grabación ha fallado. Inténtalo de nuevo."
+      "mic_recording_failed": "La grabación ha fallado. Inténtalo de nuevo.",
+      "insecure_context": "Geolocalización bloqueada: la página no está en una conexión segura (HTTPS). Abre la aplicación desde el escritorio o mediante HTTPS."
     },
     "detection": {
       "headerPrefix": "Estás en el campo:",

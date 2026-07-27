@@ -239,7 +239,10 @@
     },
     "geofenceStatus": {
       "active": "Field detection active",
-      "noPlots": "No plots to monitor"
+      "noPlots": "No plots to monitor",
+      "retry": "Retry",
+      "lowAccuracy": "Weak GPS signal (±{{accuracy}} m): detection on hold",
+      "inside": "You are inside a plot"
     },
     "readOnlyNotice": "Read-only: you cannot create or edit tasks and recipes in this role.",
     "newTask": "New Task",
@@ -2014,7 +2017,8 @@
       "timeout": "GPS timeout. Try again in the open.",
       "mic_unsupported": "Voice recording is not supported on this device/browser.",
       "mic_permission_denied": "Microphone permission denied. Enable the microphone in settings.",
-      "mic_recording_failed": "Recording failed. Try again."
+      "mic_recording_failed": "Recording failed. Try again.",
+      "insecure_context": "Geolocation blocked: the page is not on a secure connection (HTTPS). Open the app from the desktop or over HTTPS."
     },
     "detection": {
       "headerPrefix": "You're in the field:",
