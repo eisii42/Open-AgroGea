@@ -153,6 +153,8 @@ From here on the order is free: use the module you need. Many panels share the s
 
 The Logbook gathers the **traceability** of everything you do in the field, compliant with **PAN/SIAN** rules.
 
+> **Opened from the sidebar it always shows the whole farm.** That is a guarantee, not a coincidence: a compliance register must never silently show the subset of a single parcel left over from an earlier lookup. If you want one field's operations, use the **Parcel** filter inside, or tap the field on the map and open its sheet.
+
 1. Open the sidebar → **Logbook (QDC)** → **Operations**.
 2. Press **＋ Record operation** and choose the **type**:
    - **Crop-protection treatment** — product and registration number, active substance, target pest, dose and unit (kg/ha, l/ha, kg/hl…), operator and license, re-entry interval, **pre-harvest interval**.
@@ -327,21 +329,38 @@ The idea is simple: **decide at the desk, touch nothing in the tractor**. You pr
 #### Before: prepare the task (Sidebar → Task Planning → Tasks & Recipes)
 
 1. **＋ New Recipe** — a **reusable mix** ("Standard powdery-mildew spray", "NPK foliar feed"): give it a name, add the products with their **dose per hectare** and unit. Picking the product from the **Warehouse** copies across the registration number, active substance and — for fertilizers — type and N-P-K ratio by itself: these are exactly the fields the logbook will demand, and this is where you fill them in once and for all.
-2. **＋ New Task** — the **planned job card**: parcel, operation type, the recipe to use, the target pest or disease, the planned date and the operator. The **licence number** is set once and remembered on the device for every form.
+2. **＋ New Task** — the **planned job card**. Pick the **operation type first**: it decides which fields appear, exactly the ones the logbook would ask for that job.
+
+   | Type | What it additionally asks | 
+   |---|---|
+   | Crop-protection treatment | recipe, **target pest** (from the same list as the logbook, not free text), licence no. |
+   | Fertilization | recipe |
+   | Tillage | tillage type |
+   | Irrigation | amount in mm or hl |
+   | Sowing | seed from the Warehouse + rate |
+   | Harvest, Sampling | nothing: parcel, date and operator are enough |
+
+   The **recipe exists only** for treatments and fertilizations: the other jobs have no mix to preset, and their data is entered just as in the logbook. The **licence number** is set once and remembered on the device for every form.
 3. If something is missing, a warning tells you **precisely which fields would make the record non-compliant**. You can still save: planning stays fast, and incomplete tasks remain flagged.
 
 > **Why it insists on mandatory fields:** the entry at the end of the job is automatic, so there is no moment when someone re-reads and completes it. What is missing now would be missing in the register. That is why the sidebar shows a **⚠** counter on *Task Planning* and *Field Logbook*, with the list of records to complete.
 
 #### In the field: detection is automatic
 
-There is no button to press and no setting to enable. With the app open, once you have **stayed inside the parcel for 15 seconds** a full-screen prompt appears:
+There is no button to press and no setting to enable. With the app open, once you have **stayed inside the parcel for 15 seconds** a **card** appears in the centre of the screen — large, but not full-screen: the map stays visible around it, so you can see where you are while deciding.
 
-- **"You are in field: [name]"** with the **planned task** highlighted and a giant **START TASK** button. With several tasks, the most urgent one is promoted;
-- if you planned nothing, a giant-button selector — **Treatment**, **Fertilization**, **Tillage**, **Other** — and **START JOB**.
+The card says **"You are in field: [name]"** and shows:
+
+- the **planned tasks** for that field as selectable rows, with the most urgent one **already selected** (with only one task you need not touch anything);
+- or, if you planned nothing, a selector — **Treatment**, **Fertilization**, **Tillage**, **Other** — and the recipe choice.
+
+At the bottom, always in the same place, **two actions only**: **START** runs what is selected, **LATER** postpones.
 
 Those 15 seconds are not dead time: they stop a pass along a headland or a service track from being read as "I have started working here". By the same token, a signal wobble near the boundary does not make the app believe you have left.
 
-> ⚠️ **Re-entry interval.** If a treatment was applied to that field and its re-entry interval **has not yet elapsed**, the screen shows a warning with the product and the hours remaining, and the start button stays disabled until you tick the acknowledgement. It is not a hard block — whoever applied the treatment may re-enter with PPE — but it guarantees that **another operator does not walk in unaware**.
+> ⚠️ **Re-entry interval.** If a treatment was applied to that field and its re-entry interval **has not yet elapsed**, the card shows a warning with the product and the hours remaining, and **START** stays disabled until you tick the acknowledgement. It is not a hard block — whoever applied the treatment may re-enter with PPE — but it guarantees that **another operator does not walk in unaware**.
+
+**If you plan a task while already inside the field**, the card comes back by itself: no need to leave and re-enter.
 
 #### During: Field Mode
 
@@ -367,14 +386,33 @@ If the recipe used products held in the Warehouse, **stock is issued** from the 
 
 The planned task moves to **completed** and leaves the to-do list.
 
-> **About GPS:** detection uses the device position. If permission is denied, the *Task Planning* panel says so in its header and Field Mode simply does not engage — no nagging. The map still shows your position through its usual GPS control, top right.
+#### If GPS will not cooperate, or you dismissed by mistake
+
+Automatic detection is a convenience, not the only road. **Tap the parcel on the map** and its **sheet** opens: area, crop, the tasks planned for that field and the operations already recorded — all in one place. The **Start** button lives there.
+
+It is not a shortcut that skips the checks: it opens the very same card as automatic detection, so the re-entry warning and its acknowledgement are identical. Use it when GPS is missing or imprecise, when you tapped **LATER** and changed your mind, or simply when pointing at the field with a finger beats waiting.
+
+> **Detection status.** The header of the *Task Planning* panel always states what is happening — worth a look when no card arrives:
+>
+> | What you read | What it means |
+> |---|---|
+> | *Field detection active* | all good, it is listening |
+> | *You are inside a plot* | recognised; the dwell timer is running |
+> | *Weak GPS signal (±N m)* | fixes arrive but are too imprecise: **no entry will fire** until it improves |
+> | *GPS permission denied* | grant it in the device settings; detection **restarts by itself** as soon as you do |
+> | *Insecure connection* | the page is not on HTTPS and the browser blocks GPS: no setting can fix it, open the app from the desktop |
+> | *No plot to watch* | no parcels drawn |
+>
+> If you read **±800 m or more**, the device is not using GPS but network positioning: on iOS check *Precise Location*, on Android *Use precise location* in the browser permissions. Next to the error message a **Retry** restarts detection by hand.
+
+The map still shows your position through its usual GPS control, top right: that is independent of detection.
 
 ---
 
 ## 5. Shortcuts and productivity
 
 - **Command Palette** — from the **Help (`?`)** menu open the palette to jump to any action or panel by typing its name.
-- **Click on a field** — opens its card; from there you quickly reach the filtered Logbook, detail and edit.
+- **Click on a field** — opens its **sheet**: planned tasks (startable) and operations recorded on that parcel, with shortcuts to plan or open the logbook.
 - **Help menu** — Command Palette, list of shortcuts, diagnostics, feedback, updates and information.
 - **Automatic updates** — at startup the app checks for new versions and shows a banner with the release notes; no download starts without your consent.
 

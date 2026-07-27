@@ -268,11 +268,13 @@ Every GPS sample passes through a **pure reducer** (`advanceGeofence`): state + 
 
 | Parameter | Default | Why |
 |---|---|---|
-| `maxAccuracyM` | 50 m | An imprecise fix can land inside a neighbouring polygon: samples worse than the threshold are **discarded**, not averaged. |
+| `maxAccuracyM` | 100 m | An imprecise fix can land inside a neighbouring polygon: samples worse than the threshold are **discarded**, not averaged. The threshold must not be as tight as it seems sensible, though: a phone on first lock, under canopy or with overcast sky easily reports 50-80 m, and at 50 m *every* sample would be discarded — detection would never fire. A fix at 80 m well inside a field of a few hectares is usable; `dwellSeconds` still guards against false positives. |
 | `dwellSeconds` | 15 s | Crossing a headland or driving down a service track is not "entering the field". A **continuous dwell** is required: one sample in a different parcel resets the count. |
 | `exitGraceSeconds` | 30 s | The signal loses and reacquires its fix near the boundary. Without **hysteresis** a single oscillation would emit a spurious `exit` and a fresh task prompt seconds later. |
 
 Membership is an **exact point-in-polygon** test (`@turf/boolean-point-in-polygon`), preceded by a bounding-box prefilter so not every parcel is tested on every sample. The prefilter is only an optimisation: a point inside the bbox but outside the ring is never treated as inside.
+
+Discarding for accuracy is **not silent**: the reducer reports back whether the sample was accepted, and the UI distinguishes "listening" from "signal too weak (±N m)". Without that distinction a GPS delivering only poor fixes — WiFi positioning, overcast sky, lock not yet acquired — would have every sample discarded while still showing detection as apparently active, leaving the operator waiting in the middle of a field for an event that cannot come.
 
 ### Area worked
 

@@ -154,6 +154,8 @@ Da qui in poi l'ordine è libero: usa il modulo che ti serve. Molti pannelli con
 
 Il Quaderno raccoglie la **tracciabilità** di tutto ciò che fai in campo, conforme alle regole **PAN/SIAN**.
 
+> **Aperto dalla sidebar mostra sempre l'intera azienda.** È una garanzia, non una casualità: un registro di compliance non deve poter mostrare, senza dirlo, il sottoinsieme di un singolo appezzamento rimasto da una consultazione precedente. Se vuoi le operazioni di *un* campo, usa il filtro **Appezzamento** qui dentro, oppure tocca il campo sulla mappa e apri la sua scheda.
+
 1. Apri la sidebar → **Quaderno (QDC)** → **Operazioni**.
 2. Premi **＋ Registra operazione** e scegli il **tipo**:
    - **Trattamento fitosanitario** — prodotto e numero di registrazione, sostanza attiva, avversità, dose e unità (kg/ha, l/ha, kg/hl…), operatore e patentino, intervallo di rientro, **tempo di carenza**.
@@ -354,21 +356,41 @@ L'idea è semplice: **decidi in ufficio, in trattore non tocchi più nulla**. Pr
 #### Prima: preparare la task (Sidebar → Pianificazione Task → Task & Ricette)
 
 1. **＋ Nuova Ricetta** — una **miscela riutilizzabile** ("Anti-oidico standard", "Concimazione fogliare NPK"): dai un nome, aggiungi i prodotti con la **dose per ettaro** e l'unità. Scegliendo il prodotto dal **Magazzino** vengono ricopiati da soli numero di registrazione, sostanza attiva e — per i concimi — tipo e titolo N-P-K: sono i campi che il Quaderno pretenderà, ed è qui che si compilano una volta per sempre.
-2. **＋ Nuova Task** — la **scheda di lavorazione programmata**: appezzamento, tipo di operazione, la ricetta da usare, l'avversità bersaglio, la data prevista e l'operatore. Il **numero di patentino** si imposta una volta e resta memorizzato sul dispositivo per tutti i form.
+2. **＋ Nuova Task** — la **scheda di lavorazione programmata**. Scegli **per primo il tipo di operazione**: da quello dipendono i campi che compaiono, esattamente gli stessi che il Quaderno chiederebbe per quella lavorazione.
+
+   | Tipo | Cosa ti chiede in più |
+   |---|---|
+   | Trattamento fitosanitario | ricetta, **avversità** (dalla stessa lista del Quaderno, non testo libero), n. patentino |
+   | Fertilizzazione | ricetta |
+   | Lavorazione del terreno | tipo di lavorazione |
+   | Irrigazione | apporto in mm o hl |
+   | Semina | semente dal Magazzino + dose |
+   | Raccolta, Campionamento | nulla: bastano campo, data e operatore |
+
+   La **ricetta esiste solo** per trattamenti e fertilizzazioni: le altre lavorazioni non hanno una miscela da preimpostare, e i loro dati si inseriscono come nel Quaderno. Il **numero di patentino** si imposta una volta e resta memorizzato sul dispositivo per tutti i form.
+
 3. Se qualcosa manca, un avviso ti dice **esattamente quali campi renderebbero il record non conforme**. Puoi salvare comunque: la pianificazione resta veloce, e le task incomplete restano segnalate.
+
+> **Quello che scrivi qui non lo riscrivi in campo.** Il tipo di lavorazione, l'apporto irriguo, la semente e la dose finiscono da soli nella riga del Quaderno alla chiusura della sessione — l'apporto irriguo convertito in litri **sulla superficie realmente percorsa**. Scegliendo una ricetta che dichiara la propria avversità bersaglio, anche quella si compila da sé.
 
 > **Perché insiste sui campi obbligatori:** la registrazione a fine lavorazione è automatica, quindi non c'è un momento in cui qualcuno rilegge e completa. Ciò che manca ora mancherebbe nel registro. Per questo la sidebar mostra un contatore **⚠** su *Pianificazione Task* e *Quaderno di Campagna*, con l'elenco dei record da completare.
 
 #### In campo: il rilevamento è automatico
 
-Non c'è nessun pulsante da premere e nessuna impostazione da attivare. Tenendo l'app aperta, quando **rimani nell'appezzamento per 15 secondi** compare a tutto schermo:
+Non c'è nessun pulsante da premere e nessuna impostazione da attivare. Tenendo l'app aperta, quando **rimani nell'appezzamento per 15 secondi** compare una **scheda** al centro dello schermo — grande, ma non a tutto schermo: la mappa resta visibile intorno, così vedi dove sei mentre decidi.
 
-- **"Sei nel campo: [nome]"** con la **task pianificata** in evidenza e un pulsante gigante **AVVIA TASK**. Se ci sono più task, la più urgente è quella promossa;
-- se non hai pianificato nulla, un selettore a pulsanti giganti — **Trattamento**, **Concimazione**, **Lavorazione**, **Altro** — e **AVVIA LAVORAZIONE**.
+La scheda dice **"Sei nel campo: [nome]"** e mostra:
+
+- le **task programmate** su quel campo come righe selezionabili, con la più urgente **già selezionata** (se ce n'è una sola, non devi toccare nulla);
+- oppure, se non hai pianificato niente, un selettore a pulsanti — **Trattamento**, **Concimazione**, **Lavorazione**, **Altro** — e la scelta della ricetta.
+
+In fondo, sempre nello stesso posto, **due sole azioni**: **INIZIO** avvia ciò che è selezionato, **DOPO** rimanda.
 
 I 15 secondi non sono un ritardo inutile: evitano che passare su una capezzagna o su una strada di servizio venga interpretato come "sono entrato a lavorare". Allo stesso modo, un'oscillazione del segnale vicino al confine non fa credere all'app che tu sia uscito.
 
-> ⚠️ **Tempo di rientro.** Se sul campo è stato fatto un trattamento e l'intervallo di rientro **non è ancora scaduto**, la schermata mostra un avviso con il prodotto e le ore residue, e il pulsante di avvio resta disabilitato finché non spunti la presa visione. Non è un blocco — chi ha eseguito il trattamento può rientrare con i DPI — ma è la garanzia che **un altro operatore non entri senza saperlo**.
+> ⚠️ **Tempo di rientro.** Se sul campo è stato fatto un trattamento e l'intervallo di rientro **non è ancora scaduto**, la scheda mostra un avviso con il prodotto e le ore residue, e **INIZIO** resta disabilitato finché non spunti la presa visione. Non è un blocco — chi ha eseguito il trattamento può rientrare con i DPI — ma è la garanzia che **un altro operatore non entri senza saperlo**.
+
+**Se pianifichi una task mentre sei già nel campo**, la scheda ricompare da sola: non devi uscire e rientrare.
 
 #### Durante: la Modalità Campo
 
@@ -394,14 +416,33 @@ Se la ricetta usava prodotti presenti in Magazzino, le **giacenze vengono scaric
 
 La task programmata passa a **completata** e sparisce dall'elenco delle cose da fare.
 
-> **Sul GPS:** il rilevamento usa la posizione del dispositivo. Se il permesso è negato, il riquadro *Pianificazione Task* lo indica in alto a destra e la Modalità Campo semplicemente non si attiva — nessun avviso insistente. La mappa continua a mostrare la tua posizione col suo pulsante GPS abituale, in alto a destra.
+#### Se il GPS non collabora, o hai chiuso per sbaglio
+
+Il rilevamento automatico è una comodità, non l'unica strada. **Tocca l'appezzamento sulla mappa** e si apre la sua **scheda**: superficie, coltura, le task programmate su quel campo e le operazioni già registrate, tutto in un posto solo. Il pulsante **Inizia** parte da lì.
+
+Non è una scorciatoia che salta i controlli: apre la stessa scheda del rilevamento automatico, quindi l'avviso sul tempo di rientro e la presa visione restano identici. Serve quando il GPS è assente o impreciso, quando hai premuto **DOPO** e ci hai ripensato, o semplicemente quando preferisci indicare il campo con un dito invece di aspettare.
+
+> **Stato del rilevamento.** In alto a destra nel riquadro *Pianificazione Task* c'è sempre scritto cosa sta succedendo, e conviene guardarlo se il banner non arriva:
+>
+> | Cosa leggi | Cosa significa |
+> |---|---|
+> | *Rilevamento campo attivo* | tutto a posto, sta ascoltando |
+> | *Sei dentro un appezzamento* | ti ha riconosciuto, la permanenza sta scorrendo |
+> | *Segnale GPS debole (±N m)* | i fix arrivano ma sono troppo imprecisi: **nessun ingresso scatterà** finché non migliora |
+> | *Permesso GPS negato* | da concedere nelle impostazioni del dispositivo; appena lo fai il rilevamento **riparte da solo** |
+> | *Connessione non sicura* | la pagina non è su HTTPS e il browser blocca il GPS: nessuna impostazione può rimediare, apri l'app dal desktop |
+> | *Nessun appezzamento da monitorare* | non ci sono campi disegnati |
+>
+> Se leggi **±800 m o più**, il dispositivo non sta usando il GPS ma la posizione di rete: su iOS controlla *Posizione esatta*, su Android *Usa posizione precisa* nei permessi del browser. Accanto al messaggio d'errore c'è un **Riprova** per riavviare il rilevamento a mano.
+
+La mappa continua a mostrare la tua posizione col suo pulsante GPS abituale, in alto a destra: quello è indipendente dal rilevamento.
 
 ---
 
 ## 5. Scorciatoie e produttività
 
 - **Command Palette** — dal menu **Aiuto (`?`)** apri la palette per saltare a qualsiasi azione o pannello digitandone il nome.
-- **Clic su un campo** — apre la sua scheda; da lì raggiungi rapidamente Quaderno filtrato, dettaglio e modifica.
+- **Clic su un campo** — apre la sua **scheda**: task programmate (avviabili) e operazioni registrate su quell'appezzamento, con le scorciatoie per pianificare o aprire il Quaderno.
 - **Menu Aiuto** — Command Palette, elenco scorciatoie, diagnostica, feedback, aggiornamenti e informazioni.
 - **Aggiornamenti automatici** — all'avvio l'app verifica nuove versioni e mostra un banner con le note di rilascio; nessun download parte senza il tuo consenso.
 

@@ -268,11 +268,13 @@ Ogni campione GPS attraversa un **riduttore puro** (`advanceGeofence`): stato + 
 
 | Parametro | Default | Perché |
 |---|---|---|
-| `maxAccuracyM` | 50 m | Un fix impreciso può cadere dentro un poligono confinante: i campioni peggiori della soglia sono **scartati**, non mediati. |
+| `maxAccuracyM` | 100 m | Un fix impreciso può cadere dentro un poligono confinante: i campioni peggiori della soglia sono **scartati**, non mediati. La soglia non va però stretta come sembrerebbe sensato: un telefono al primo aggancio, sotto chioma o con cielo coperto riporta facilmente 50-80 m, e a 50 m *ogni* campione verrebbe scartato — il rilevamento non scatterebbe mai. Un fix a 80 m ben dentro un campo di qualche ettaro è utilizzabile; contro i falsi positivi protegge comunque `dwellSeconds`. |
 | `dwellSeconds` | 15 s | Attraversare una capezzagna o passare su una strada di servizio non è "entrare nel campo". Serve una **permanenza continuativa**: un campione in un appezzamento diverso azzera il conteggio. |
 | `exitGraceSeconds` | 30 s | Il segnale perde e riacquisisce il fix vicino al confine. Senza **isteresi**, una singola oscillazione produrrebbe un `exit` spurio e una nuova proposta di task pochi secondi dopo. |
 
 Il test di appartenenza è un **point-in-polygon esatto** (`@turf/boolean-point-in-polygon`), precedute da un prefiltro sul bounding box per non testare tutti gli appezzamenti a ogni campione. Il prefiltro è solo un'ottimizzazione: un punto dentro il bbox ma fuori dal perimetro non viene mai considerato interno.
+
+Lo scarto per accuratezza **non è silenzioso**: il riduttore riporta al chiamante se il campione è stato accettato, e la UI distingue "in ascolto" da "segnale troppo debole (±N m)". Senza quella distinzione un GPS che consegna solo fix scadenti — localizzazione via WiFi, cielo coperto, fix non ancora agganciato — farebbe scartare ogni campione mostrando comunque un rilevamento apparentemente attivo, e l'operatore aspetterebbe in mezzo al campo un evento che non può arrivare.
 
 ### Superficie lavorata
 

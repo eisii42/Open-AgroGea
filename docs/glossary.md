@@ -58,6 +58,7 @@ Scope and rules (see `CLAUDE.md` §2–§3):
 | ricetta / miscela | recipe | `recipes` (dose per hectare, a template) |
 | task programmata / scheda di lavorazione | planned task | `planned_tasks` |
 | sessione a bordo campo | field operation session | `field_operation_sessions` |
+| scheda appezzamento | plot sheet | `modules/plot-sheet` (task + operazioni del campo) |
 | tracciato (GPS) | path / track | `path` (GeoJSON `LineString` in jsonb) |
 | superficie lavorata | area worked | `area_worked_ha` (GPS-measured) |
 | nota vocale | voice note / audio note | `audio_notes`, `field_session_audio` |

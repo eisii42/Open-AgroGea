@@ -37,7 +37,8 @@ modules/      ONE folder per functional domain (the "features" layer):
                 weather, soil, compliance, crops, dss, vra, analytics, sian,
                 print, colorbar, command-palette, add-data, team,
                 tasks (task/recipe planning), field-mode (geofencing +
-                  low-touch in-field screens)
+                  low-touch in-field screens), plot-sheet (per-parcel dossier:
+                  planned tasks + recorded operations)
 components/    ONLY generic, reusable UI + map/field infrastructure
               (BottomSheet, AppHeader, MapControls, DataEntrySheet, …)
 hooks/        shared React hooks
@@ -127,6 +128,16 @@ Non-obvious constraints, each with a reason:
 - `InFieldDashboard` is the one component that deliberately **ignores the app
   theme** (fixed black/lime palette): it is a sunlight-readable driving
   instrument, not a themed panel.
+- **Detection must never fail silently.** A sample discarded for poor accuracy
+  is reported back (`advanceGeofence` returns `accepted`) so the UI can say
+  "signal too weak" instead of "listening"; a denied permission clears the
+  watch so it can actually restart, and the hook re-arms itself through the
+  Permissions API. Every dead end has a visible state and a way out.
+- **Two scopes, two panels, on purpose.** `plot-sheet` is the per-parcel view
+  (its tasks and its operations); the Logbook opened from the sidebar is the
+  whole-farm register and resets its filters via `logbookScopeToken`. A
+  compliance register must not be able to show a subset without saying so, and
+  keeping them as one panel with a mode flag made that a one-line mistake away.
 
 ## How to add …
 
