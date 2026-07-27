@@ -154,12 +154,12 @@ export class AgroDalRegistry extends AgroDalBase {
     const geometry = normalizeGeometry(input.geometry);
     // Area geodetica ricalcolata dalla geometria a ogni upsert: UNICO punto di
     // verità per la area (NUMERIC 10,4), indipendente dal client.
-    const area_ha = areaHectares(geometry);
+    const areaHa = areaHectares(geometry);
     const row: Plot = {
       created_at: ts,
       ...input,
       geometry,
-      area_ha,
+      area_ha: areaHa,
       tenant_id: this.tenantId,
       updated_at: ts,
       deleted_at: null,

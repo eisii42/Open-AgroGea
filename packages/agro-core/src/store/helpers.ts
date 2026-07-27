@@ -127,11 +127,15 @@ export async function persistGeometryToDal(
     const existing = get().assets.find((a) => a.id === id);
     if (!existing) return null;
     const before = existing.geometry;
-    const length_m =
+    const lengthM =
       geometry.type === "LineString" || geometry.type === "MultiLineString"
         ? lengthMeters(geometry as LineString | MultiLineString)
         : existing.length_m;
-    const record = await dal.upsertAsset({ ...existing, geometry, length_m });
+    const record = await dal.upsertAsset({
+      ...existing,
+      geometry,
+      length_m: lengthM,
+    });
     set((s) => ({
       assets: [...s.assets.filter((a) => a.id !== record.id), record],
     }));
