@@ -2089,5 +2089,19 @@
       "title": "Re-entry",
       "tooltip": "{{count}}h remaining before the re-entry restriction expires"
     }
+  },
+  "plotSheet": {
+    "plannedTasks_one": "Planned task ({{count}})",
+    "plannedTasks_other": "Planned tasks ({{count}})",
+    "planTask": "Plan",
+    "noTasks": "No planned task on this plot.",
+    "noDate": "no date",
+    "startTask": "Start the task",
+    "startOperation": "Start an operation",
+    "startBusy": "An operation is already in progress.",
+    "operations_one": "Recorded operation ({{count}})",
+    "operations_other": "Recorded operations ({{count}})",
+    "openLogbook": "In the logbook",
+    "noOperations": "No operation recorded on this plot."
   }
 }

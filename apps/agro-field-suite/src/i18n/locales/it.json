@@ -2089,5 +2089,19 @@
       "title": "Rientro",
       "tooltip": "Mancano ancora circa {{count}}h alla fine del tempo di rientro"
     }
+  },
+  "plotSheet": {
+    "plannedTasks_one": "Task programmata ({{count}})",
+    "plannedTasks_other": "Task programmate ({{count}})",
+    "planTask": "Pianifica",
+    "noTasks": "Nessuna task programmata su questo appezzamento.",
+    "noDate": "senza data",
+    "startTask": "Inizia la task",
+    "startOperation": "Inizia una lavorazione",
+    "startBusy": "Una lavorazione è già in corso.",
+    "operations_one": "Operazione registrata ({{count}})",
+    "operations_other": "Operazioni registrate ({{count}})",
+    "openLogbook": "Nel Quaderno",
+    "noOperations": "Nessuna operazione registrata su questo appezzamento."
   }
 }

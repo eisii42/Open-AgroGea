@@ -2089,5 +2089,19 @@
       "title": "Réentrée",
       "tooltip": "Encore environ {{count}}h avant la fin du délai de réentrée"
     }
+  },
+  "plotSheet": {
+    "plannedTasks_one": "Tâche planifiée ({{count}})",
+    "plannedTasks_other": "Tâches planifiées ({{count}})",
+    "planTask": "Planifier",
+    "noTasks": "Aucune tâche planifiée sur cette parcelle.",
+    "noDate": "sans date",
+    "startTask": "Commencer la tâche",
+    "startOperation": "Commencer une opération",
+    "startBusy": "Une opération est déjà en cours.",
+    "operations_one": "Opération enregistrée ({{count}})",
+    "operations_other": "Opérations enregistrées ({{count}})",
+    "openLogbook": "Dans le cahier",
+    "noOperations": "Aucune opération enregistrée sur cette parcelle."
   }
 }

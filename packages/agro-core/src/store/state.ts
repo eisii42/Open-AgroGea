@@ -697,6 +697,20 @@ export interface UiSlice {
    */
   logbookOpenPlotId: string | null;
   /**
+   * Contatore incrementato da {@link openLogbookAllOperations}: segnala al
+   * Quaderno di azzerare i propri filtri e mostrare il registro dell'INTERA
+   * azienda. Serve un token e non un booleano perché la richiesta va onorata
+   * ANCHE quando il pannello è già montato e filtrato (il valore cambia, quindi
+   * l'effect riparte); un flag resterebbe "già visto".
+   */
+  logbookScopeToken: number;
+  /**
+   * Appezzamento di cui è aperta la SCHEDA (task programmate + operazioni
+   * registrate). `null` = nessuna scheda aperta. È il pannello che si apre
+   * toccando il field in mappa.
+   */
+  plotSheetPlotId: string | null;
+  /**
    * Plot per cui aprire il Riquadro Pianificazione Task pre-mirato (click sul
    * field in mappa → "Pianifica task"). `null` = nessuna richiesta pendente.
    * Il TaskPlannerPanel lo consuma all'apertura preselezionando il plot nel
@@ -818,6 +832,21 @@ export interface UiSlice {
   openLogbookForPlot: (plotId: string | null) => void;
   /** Consuma la richiesta di apertura Quaderno (chiamata dal LogbookPanel). */
   consumeLogbookOpen: () => void;
+  /**
+   * Apre il Quaderno sul registro dell'INTERA azienda, azzerandone i filtri.
+   * È l'ingresso dal modulo in sidebar: un registro di compliance aperto "dal
+   * menù" non deve mai mostrare, senza dirlo, il sottoinsieme di un singolo
+   * appezzamento rimasto da una consultazione precedente.
+   */
+  openLogbookAllOperations: () => void;
+  /**
+   * Apre la SCHEDA di un appezzamento: task programmate (avviabili) e
+   * operazioni registrate su quel field, in un unico posto. È ciò che si apre
+   * toccando il field in mappa.
+   */
+  openPlotSheet: (plotId: string) => void;
+  /** Chiude la scheda appezzamento. */
+  closePlotSheet: () => void;
   /** Apre il Riquadro Pianificazione Task pre-mirato su un plot (click sul field). */
   openTasksForPlot: (plotId: string | null) => void;
   /** Consuma la richiesta di apertura pianificazione (chiamata dal TaskPlannerPanel). */

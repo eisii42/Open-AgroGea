@@ -46,6 +46,9 @@ import { useMapStyleEpoch } from "../hooks/useMapStyleEpoch";
 const LogbookPanel = lazy(() =>
   import("../modules/field-logbook/LogbookPanel").then((m) => ({ default: m.LogbookPanel })),
 );
+const PlotSheet = lazy(() =>
+  import("../modules/plot-sheet/PlotSheet").then((m) => ({ default: m.PlotSheet })),
+);
 const HarvestPanel = lazy(() =>
   import("../modules/field-logbook/HarvestPanel").then((m) => ({ default: m.HarvestPanel })),
 );
@@ -350,6 +353,10 @@ export function FieldDashboard() {
           {openPanels.includes("quaderno") && (
             <LogbookPanel onClose={() => togglePanel("quaderno")} />
           )}
+          {/* Scheda dell'appezzamento (tap sul field in mappa): task
+              programmate avviabili + operazioni registrate su QUEL field.
+              L'ambito aziendale completo resta nel Quaderno, pannello a sé. */}
+          {openPanels.includes("plot-sheet") && <PlotSheet />}
           {openPanels.includes("raccolta") && (
             <HarvestPanel onClose={() => togglePanel("raccolta")} />
           )}

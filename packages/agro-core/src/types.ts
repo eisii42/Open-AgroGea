@@ -1262,6 +1262,7 @@ export type WarehouseTab = "products" | "machines";
 
 export type FieldPanel =
   | "quaderno"
+  | "plot-sheet"
   | "raccolta"
   | "magazzino"
   | "refill"

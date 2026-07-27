@@ -14,6 +14,8 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
     selectedPlotId: null,
     lastOperation: null,
     logbookOpenPlotId: null,
+    logbookScopeToken: 0,
+    plotSheetPlotId: null,
     tasksOpenPlotId: null,
     scoutingOpenObservationId: null,
     cropOpenPlotId: null,
@@ -114,6 +116,44 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
       })),
 
     consumeLogbookOpen: () => set({ logbookOpenPlotId: null }),
+
+    // Quaderno aperto DAL MODULO: registro dell'INTERA azienda, sempre. Il
+    // token incrementale è ciò che rende la garanzia strutturale invece che
+    // accidentale — finora il filtro per appezzamento spariva solo perché il
+    // pannello si smontava alla chiusura, quindi bastava che restasse montato
+    // (o che qualcuno lo rendesse persistente) per mostrare un registro
+    // silenziosamente parziale, che in un registro di compliance è peggio di
+    // un errore visibile.
+    openLogbookAllOperations: () =>
+      set((s) => ({
+        logbookOpenPlotId: null,
+        logbookScopeToken: s.logbookScopeToken + 1,
+        selectedFeature: null,
+        openPanels:
+          s.panelMode === "docked"
+            ? ["quaderno"]
+            : s.openPanels.includes("quaderno")
+              ? s.openPanels
+              : [...s.openPanels, "quaderno"],
+      })),
+
+    openPlotSheet: (plotId) =>
+      set((s) => ({
+        plotSheetPlotId: plotId,
+        selectedFeature: null,
+        openPanels:
+          s.panelMode === "docked"
+            ? ["plot-sheet"]
+            : s.openPanels.includes("plot-sheet")
+              ? s.openPanels
+              : [...s.openPanels, "plot-sheet"],
+      })),
+
+    closePlotSheet: () =>
+      set((s) => ({
+        plotSheetPlotId: null,
+        openPanels: s.openPanels.filter((p) => p !== "plot-sheet"),
+      })),
 
     openTasksForPlot: (plotId) =>
       set((s) => ({

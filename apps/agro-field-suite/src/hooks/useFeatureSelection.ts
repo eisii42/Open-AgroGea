@@ -11,9 +11,10 @@ import { type RefObject, useEffect } from "react";
 /**
  * Click su un elemento esistente sui layer vettoriali agro. Il comportamento
  * dipende dal tipo:
- *   * plot → apre il Quaderno di Campagna filtrato sulle SUE lavorazioni
- *     (l'editing geometria/metadati e l'eliminazione restano nel "Modifica /
- *     Elimina" → Registro geometrie);
+ *   * plot → apre la SCHEDA dell'appezzamento: task programmate (avviabili) e
+ *     operazioni registrate su quel field, in un unico posto (l'editing
+ *     geometria/metadati e l'eliminazione restano nel "Modifica / Elimina" →
+ *     Registro geometrie);
  *   * infrastructure / POI → apre la scheda di dettaglio/editing.
  *
  * Si usa UN listener globale `click` + `queryRenderedFeatures` filtrato sui
@@ -65,9 +66,7 @@ export function useFeatureSelection(
   mapReady: boolean,
 ): void {
   const selectFeatureOnMap = useAgroStore((s) => s.selectFeatureOnMap);
-  const openLogbookForPlot = useAgroStore(
-    (s) => s.openLogbookForPlot,
-  );
+  const openPlotSheet = useAgroStore((s) => s.openPlotSheet);
   const openScoutingForObservation = useAgroStore(
     (s) => s.openScoutingForObservation,
   );
@@ -112,9 +111,10 @@ export function useFeatureSelection(
 
       const layerKind = LAYER_KINDS.find((l) => l.id === top.layer.id);
       if (!layerKind) return;
-      // Plot → Quaderno filtrato sulle sue lavorazioni; altri → dettaglio.
+      // Plot → SCHEDA dell'appezzamento (task programmate + operazioni
+      // registrate); altri → dettaglio.
       if (layerKind.kind === "appezzamento") {
-        openLogbookForPlot(id);
+        openPlotSheet(id);
       } else {
         void selectFeatureOnMap({ kind: layerKind.kind, id });
       }
@@ -128,7 +128,7 @@ export function useFeatureSelection(
     mapControllerRef,
     mapReady,
     selectFeatureOnMap,
-    openLogbookForPlot,
+    openPlotSheet,
     openScoutingForObservation,
   ]);
 }

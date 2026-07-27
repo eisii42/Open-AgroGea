@@ -89,6 +89,9 @@ export function ModuleSidebar({
   const openPanels = useAgroStore((s) => s.openPanels);
   const togglePanel = useAgroStore((s) => s.togglePanel);
   const openWarehouseTab = useAgroStore((s) => s.openWarehouseTab);
+  const openLogbookAllOperations = useAgroStore(
+    (s) => s.openLogbookAllOperations,
+  );
   const drawIntent = useAgroStore((s) => s.drawIntent);
   const setDrawIntent = useAgroStore((s) => s.setDrawIntent);
   const flags = useSettingsStore((s) => s.dashboardLayout);
@@ -253,7 +256,10 @@ export function ModuleSidebar({
           id: "quaderno",
           labelKey: "nav.toolOperations",
           Icon: NotebookPen,
-          action: { kind: "panel", panel: "quaderno" },
+          // Dal modulo il Quaderno mostra SEMPRE il registro dell'intera
+          // azienda: `openLogbookAllOperations` azzera i filtri anche se il
+          // pannello è già aperto e filtrato su un appezzamento.
+          action: { kind: "run", run: () => openLogbookAllOperations() },
           flag: "panelQuaderno",
         },
         {

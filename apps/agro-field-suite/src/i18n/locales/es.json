@@ -2089,5 +2089,19 @@
       "title": "Reentrada",
       "tooltip": "Quedan unas {{count}}h para que termine el plazo de reentrada"
     }
+  },
+  "plotSheet": {
+    "plannedTasks_one": "Tarea programada ({{count}})",
+    "plannedTasks_other": "Tareas programadas ({{count}})",
+    "planTask": "Planificar",
+    "noTasks": "Ninguna tarea programada en esta parcela.",
+    "noDate": "sin fecha",
+    "startTask": "Empezar la tarea",
+    "startOperation": "Empezar una operación",
+    "startBusy": "Ya hay una operación en curso.",
+    "operations_one": "Operación registrada ({{count}})",
+    "operations_other": "Operaciones registradas ({{count}})",
+    "openLogbook": "En el cuaderno",
+    "noOperations": "Ninguna operación registrada en esta parcela."
   }
 }
