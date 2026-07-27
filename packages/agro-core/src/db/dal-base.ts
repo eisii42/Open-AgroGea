@@ -5,6 +5,7 @@ import type {
   OutboxMutation,
   SyncTable,
 } from "../types";
+import { withRowNormalization } from "./row-mapping";
 import { type Row, upsertSql } from "./write";
 
 /**
@@ -13,11 +14,23 @@ import { type Row, upsertSql } from "./write";
  * incrementale. I domini applicativi vivono nelle sottoclassi (vedi dal.ts).
  */
 export class AgroDalBase {
+  /**
+   * Connessione locale con normalizzazione delle rows in USCITA (vedi
+   * {@link withRowNormalization}): `timestamptz`/`date` tornano come stringhe
+   * ISO e le `numeric` come numeri, cioè esattamente ciò che i tipi di dominio
+   * dichiarano. Il wrapping avviene QUI, una volta sola, così nessuna
+   * sottoclasse — né `rawQuery`, né una `tx.query` dentro una transazione —
+   * può leggere rows non normalizzate.
+   */
+  protected readonly db: PGlite;
+
   protected constructor(
-    protected readonly db: PGlite,
+    db: PGlite,
     readonly tenantId: string,
     readonly deviceId: string,
-  ) {}
+  ) {
+    this.db = withRowNormalization(db);
+  }
 
   /**
    * Esegue una query SQL arbitraria sul DB PGlite del tenant.

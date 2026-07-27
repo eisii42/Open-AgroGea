@@ -512,14 +512,15 @@ describe("chiusura sessione / idempotenza e outbox", () => {
   });
 
   // -------------------------------------------------------------------------
-  // Regressione: i timestamp RILETTI da PGlite sono oggetti `Date`, non
-  // stringhe ISO come dichiarano i tipi di dominio. I motori che li consumano
-  // devono tollerare entrambe le forme: `executed_at.slice(0, 10)` su una row
-  // riletta faceva cadere l'intera sidebar. I test che costruiscono le row in
-  // TS non lo intercettano — questo passa deliberatamente dal DB.
+  // Regressione: `executed_at.slice(0, 10)` su una row riletta dal DB faceva
+  // cadere l'intera sidebar, perché PGlite restituiva un `Date` dove i tipi
+  // dichiarano una stringa. Ora il DAL normalizza in uscita (vedi
+  // `db/row-mapping.ts`) e i tipi sono veri; questo test presidia il contratto
+  // end-to-end passando deliberatamente dal DB — una row costruita in
+  // TypeScript avrebbe già i tipi giusti e non proverebbe nulla.
   // -------------------------------------------------------------------------
 
-  it("i motori che consumano i timestamp reggono le row RILETTE dal DB (Date, non stringhe)", async () => {
+  it("i motori che consumano i timestamp reggono le row RILETTE dal DB", async () => {
     const dal = await TestDal.create();
     const companyId = await seedCompany(dal);
     const plotId = await seedPlot(dal, companyId);
@@ -536,12 +537,11 @@ describe("chiusura sessione / idempotenza e outbox", () => {
 
     const [log] = await dal.listTreatments(companyId);
     assert.ok(log, "la row deve esistere");
-    // Precondizione del test: il driver restituisce davvero un Date. Se un
-    // giorno PGlite cambiasse comportamento, questa asserzione lo direbbe.
-    assert.ok(
-      log.executed_at instanceof Date,
-      "PGlite deserializza timestamptz in Date: è la premessa di questa regressione",
-    );
+    // Il contratto normalizzato: stringa ISO, non `Date`. Se il wrapper del
+    // DAL smettesse di funzionare, questa asserzione cadrebbe qui invece che
+    // in una schermata dell'app.
+    assert.equal(typeof log.executed_at, "string");
+    assert.doesNotThrow(() => log.executed_at.slice(0, 10));
 
     // Nessuno di questi deve lanciare né produrre NaN sulla row riletta.
     const audit = evaluateLogCompleteness(log);

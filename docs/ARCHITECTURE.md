@@ -79,16 +79,18 @@ The PGlite schema ([`db/schema.ts`](../packages/agro-core/src/db/schema.ts)) is
 Migrations are **additive and idempotent** — never rename/drop persisted columns
 destructively (users have real data on device).
 
-> **Timestamps read back from PGlite are `Date` objects, not ISO strings**, even
-> though the domain types declare `string` (the types describe the
-> *serialization* contract — outbox, exports, sync payloads). A row freshly read
-> from the DB carries `Date`; the same row freshly built in TS carries `string`.
-> Any code touching a timestamp must tolerate both: use the helpers in
-> [`field/timestamps.ts`](../packages/agro-core/src/field/timestamps.ts)
-> (`toDate`/`toEpochMs`/`toIsoString`/`toIsoDay`), never `value.slice(0, 10)`
-> (throws on a `Date`) or `Date.parse(value)` (only works by `toString()`
-> coercion, silently losing milliseconds). Tests that build rows in TS will not
-> catch this — assert against a row actually read back from the DB.
+**Rows are normalized on the way out of the DAL**, so the domain types are true:
+what you read back is what the type declares. PGlite itself returns `Date` for
+`timestamptz`/`date` and `string` for `numeric` — the opposite of what
+`TreatmentLog.executed_at: string` and `total_quantity: number` say.
+[`db/row-mapping.ts`](../packages/agro-core/src/db/row-mapping.ts) converts by
+the driver-reported column OID (not a hand-maintained column list), and
+`AgroDalBase` wraps the connection **once** so every read path is covered —
+subclasses, `rawQuery`, and `tx.query` inside transactions alike.
+
+> Consequence for tests: a row built in TypeScript already has the right types
+> and proves nothing about this. Any test guarding the boundary must assert
+> against a row **actually read back from the database**.
 
 ## Field Mode (geofencing → logbook)
 

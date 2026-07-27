@@ -1,19 +1,17 @@
 /**
- * Normalizzazione dei timestamp che arrivano dal data plane locale.
+ * Helper di conversione dei timestamp, per i confini in cui la forma del value
+ * non è garantita.
  *
- * PGlite deserializza le colonne `timestamptz`/`date` in oggetti **`Date`**,
- * non nelle stringhe ISO che i tipi di dominio dichiarano (`TreatmentLog.
- * executed_at: string`, `FieldOperationSession.start_time: string`, …). I tipi
- * descrivono il contratto di SERIALIZZAZIONE (outbox, export, payload di sync),
- * non ciò che il driver restituisce in memoria: una row appena riletta dal DB
- * porta `Date`, la stessa row appena costruita in TS porta `string`.
+ * NON servono per le rows lette dal data plane locale: quelle sono già
+ * normalizzate in uscita dal DAL (vedi `db/row-mapping.ts`), quindi un
+ * `TreatmentLog.executed_at` è davvero la stringa ISO che il tipo dichiara.
+ * Restano utili dove il value arriva da FUORI quel confine — input di form,
+ * payload importati, parametri di funzioni pure che accettano più forme — e
+ * dove serve derivare un giorno o dei millisecondi senza ripetere lo stesso
+ * `new Date(...)` difensivo ovunque.
  *
- * Conseguenza pratica: qualunque codice che tocchi un timestamp letto dal DB
- * deve tollerare ENTRAMBE le forme. `value.slice(0, 10)` esplode su un `Date`
- * e `Date.parse(dateObject)` "funziona" solo per coercizione via `toString()`,
- * perdendo i millisecondi. Il resto della codebase se la cava passando sempre
- * da `new Date(value)` (vedi `LogbookPanel`, `expiryStatus`); questi helper
- * rendono quella convenzione esplicita, condivisa e testata.
+ * Nessuno lancia: un timestamp malformato ritorna `null`, non fa cadere un
+ * render.
  */
 
 /** Timestamp come può presentarsi a runtime: stringa ISO o `Date` del driver. */

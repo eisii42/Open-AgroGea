@@ -16,10 +16,9 @@
 
 /**
  * Riga di registro nella forma minima necessaria (strutturalmente compatibile
- * con TreatmentLog). `executed_at` accetta anche un `Date`: le row rilette dal
- * data plane locale (PGlite) portano oggetti `Date` anche dove i tipi di
- * dominio dichiarano una stringa ISO, e questo motore riceve righe non
- * normalizzate direttamente dallo store.
+ * con TreatmentLog). `executed_at` accetta anche un `Date`: questo è un motore
+ * puro, riusabile fuori dal percorso del DAL (che invece normalizza le sue
+ * rows in stringhe ISO), e tollerare entrambe le forme costa una riga.
  */
 export interface ReentryLogInput {
   plot_id: string | null;

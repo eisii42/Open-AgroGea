@@ -30,9 +30,10 @@ export function sessionElapsedMs(
   pausedSince: string | Date | null | undefined,
   nowMs: number,
 ): number {
-  // `new Date(...)` e non `Date.parse(...)`: `start_time` arriva come oggetto
-  // `Date` quando la sessione è stata riletta da PGlite, e `Date.parse` su un
-  // `Date` funziona solo per coercizione via `toString()` (millisecondi persi).
+  // `new Date(...)` e non `Date.parse(...)`: questo motore puro accetta anche
+  // un `Date` (è riusabile fuori dal percorso del DAL, che normalizza le sue
+  // rows in stringhe ISO), e `Date.parse` su un `Date` funzionerebbe solo per
+  // coercizione via `toString()`, perdendo i millisecondi.
   const start = new Date(startTime).getTime();
   if (!Number.isFinite(start)) return 0;
   let totalPausedMs = Number.isFinite(pausedMs) ? pausedMs : 0;
