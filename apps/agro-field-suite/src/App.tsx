@@ -2,6 +2,7 @@ import { isTauriRuntime, useAgroStore } from "@agrogea/core";
 import { lazy, Suspense, useEffect, useRef } from "react";
 import { UpdateNotice } from "./components/UpdateNotice";
 import { InFieldDashboard } from "./modules/field-mode/InFieldDashboard";
+import { PostOperationSummary } from "./modules/field-mode/PostOperationSummary";
 import { FieldDashboard } from "./screens/FieldDashboard";
 import { bootstrapStandalone } from "./standalone";
 
@@ -110,6 +111,11 @@ export function App() {
             ha una sessione active (IN_PROGRESS/PAUSED): nessun costo quando
             non c'è nulla in corso. */}
         <InFieldDashboard />
+        {/* Riepilogo post-operazione: NOTIFICA di ciò che è stato registrato
+            nel Quaderno (la scrittura è già avvenuta, a zero tocchi). Montato
+            qui accanto alla dashboard perché la sessione, appena COMPLETED,
+            non è più "attiva" e l'InFieldDashboard si smonta. */}
+        <PostOperationSummary />
       </div>
     </>
   );

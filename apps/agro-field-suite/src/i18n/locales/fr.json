@@ -2036,8 +2036,6 @@
     "dashboard": {
       "unknownPlot": "Parcelle",
       "pausedBadge": "EN PAUSE",
-      "concludedTitle": "Session terminée",
-      "concludedBody": "Le récapitulatif de fin de travaux apparaîtra bientôt ici. Vous pouvez encore reprendre si vous avez terminé par erreur.",
       "readOnly": "Lecture seule : les commandes sont désactivées avec ce rôle.",
       "speed": "Vitesse",
       "areaWorked": "Hectares travaillés",
@@ -2053,6 +2051,24 @@
         "title": "Notes vocales ({{count}})",
         "play": "Lire la note vocale",
         "pause": "Mettre la lecture en pause"
+      }
+    },
+    "summary": {
+      "title": "Opération terminée",
+      "registered_one": "Enregistrée dans le cahier de plaine ({{count}} ligne).",
+      "registered_other": "Enregistrée dans le cahier de plaine ({{count}} lignes).",
+      "areaWorked": "Surface travaillée",
+      "duration": "Durée active",
+      "quantitiesHeading": "Quantités appliquées",
+      "noProduct": "Sans produit",
+      "attentionHeading": "À corriger",
+      "openLogbook": "Ouvrir le cahier",
+      "done": "Terminer",
+      "warning": {
+        "gps_area_fallback": "Le GPS n''a pas fourni de surface utile : les quantités ont été calculées sur la surface cadastrale de la parcelle.",
+        "no_lot_available": "Aucun lot disponible pour {{product}} : le stock du magasin n''a pas été sorti.",
+        "stock_issue_failed": "La sortie de stock a échoué : l''opération est enregistrée, mais les stocks doivent être corrigés manuellement.",
+        "incompleteFields": "{{count}} champs obligatoires manquants sur les lignes enregistrées : complétez-les dans le cahier."
       }
     }
   },

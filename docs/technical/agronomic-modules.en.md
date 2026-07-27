@@ -18,8 +18,9 @@
 6. [Phytopathological DSS and degree-days](#6-phytopathological-dss-and-degree-days)
 7. [DSS risk map (green/yellow/red)](#7-dss-risk-map-greenyellowred)
 8. [Variable-rate application maps (VRA)](#8-variable-rate-application-maps-vra)
-9. [Field Calculator formulas](#9-field-calculator-formulas)
-10. [References](#10-references)
+9. [Geofencing and actual area worked](#9-geofencing-and-actual-area-worked)
+10. [Field Calculator formulas](#10-field-calculator-formulas)
+11. [References](#11-references)
 
 ---
 
@@ -257,7 +258,46 @@ An `intensity` parameter (0..1) controls the maximum deviation from the referenc
 
 ---
 
-## 9. Field Calculator formulas
+## 9. Geofencing and actual area worked
+
+Pure engine in `plugins/agro-tools/src/geofencing.ts` and `reentry.ts`. No DOM, no network, no GPS access: it takes samples and returns state — which is what makes it testable without a device.
+
+### Detecting entry into a parcel
+
+Every GPS sample passes through a **pure reducer** (`advanceGeofence`): state + sample ⇒ new state + an optional `enter`/`exit` event.
+
+| Parameter | Default | Why |
+|---|---|---|
+| `maxAccuracyM` | 50 m | An imprecise fix can land inside a neighbouring polygon: samples worse than the threshold are **discarded**, not averaged. |
+| `dwellSeconds` | 15 s | Crossing a headland or driving down a service track is not "entering the field". A **continuous dwell** is required: one sample in a different parcel resets the count. |
+| `exitGraceSeconds` | 30 s | The signal loses and reacquires its fix near the boundary. Without **hysteresis** a single oscillation would emit a spurious `exit` and a fresh task prompt seconds later. |
+
+Membership is an **exact point-in-polygon** test (`@turf/boolean-point-in-polygon`), preceded by a bounding-box prefilter so not every parcel is tested on every sample. The prefilter is only an optimisation: a point inside the bbox but outside the ring is never treated as inside.
+
+### Area worked
+
+The area is **measured, not declared**. The track is a polyline of accepted samples; length is geodetic (haversine on the ellipsoid, consistent with `@turf/area` used elsewhere):
+
+```text
+area_worked (ha) = track_length (m) × working_width (m) / 10 000
+```
+
+This is the standard FMIS convention: working width comes from the attached implement (`equipment.working_width_m`) or the configured default. Two limits worth knowing:
+
+- the result is **clamped to the parcel area** when known — passes overlap, and an overlap must not inflate the figure beyond the real field;
+- without a working width the area is not computable and is `0`; in that case closing the session falls back to the cadastral area and **flags it** in the summary, rather than writing a zero quantity into the register.
+
+Product quantities are therefore `dose_per_ha × area_worked`, never `dose_per_ha × cadastral_area`: declaring product over ground that was not worked is precisely the error the tracking exists to prevent.
+
+### Re-entry interval (PAN)
+
+A re-entry window is open while `executed_at + reentry_interval_h > now`. Per parcel the **most restrictive** window is kept (the furthest expiry) among still-open treatments; rows without an interval, without a parcel or with an unparseable date are ignored.
+
+The warning is deliberately **non-blocking**: whoever applied the treatment may legitimately re-enter with PPE. The regulatory requirement is to inform *other* operators, and the entry screen requires an explicit acknowledgement before enabling the start.
+
+---
+
+## 10. Field Calculator formulas
 
 The Field Calculator derives **new** fields from the attribute table without altering the original data. The ready formulas:
 
@@ -269,7 +309,7 @@ The Field Calculator derives **new** fields from the attribute table without alt
 
 ---
 
-## 10. References
+## 11. References
 
 - **Allen R.G., Pereira L.S., Raes D., Smith M. (1998).** *Crop Evapotranspiration — Guidelines for computing crop water requirements.* FAO Irrigation and Drainage Paper 56. — ET₀ Penman-Monteith, Kc, root-zone balance, stress coefficient Ks.
 - **Steduto P., Hsiao T.C., Fereres E., Raes D. (2012).** *Crop yield response to water.* FAO Irrigation and Drainage Paper 66; **Doorenbos J., Kassam A.H. (1979)**, Paper 33. — Response factor Ky and yield reduction.

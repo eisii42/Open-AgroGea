@@ -1,4 +1,8 @@
-import { type FieldOperationSession, useAgroStore } from "@agrogea/core";
+import {
+  type FieldOperationSession,
+  type SessionCloseOutcome,
+  useAgroStore,
+} from "@agrogea/core";
 import type { GeoSample } from "@agrogea/tools";
 import { pathLengthMeters, workedAreaHectares } from "@agrogea/tools";
 import type { Position } from "geojson";
@@ -54,17 +58,17 @@ export function useFieldSessionTracking(
   /** Riprende da una pausa: chiude l'intervallo di pausa + stato IN_PROGRESS. */
   resume: () => Promise<void>;
   /**
-   * CONCLUDI: ferma l'accumulo del tracciato. Se la sessione era IN_PROGRESS
-   * si comporta come {@link pause} (apre l'intervallo di pausa + stato
-   * PAUSED); se era GIÀ in pausa fa solo un flush del pending, SENZA
-   * sovrascrivere `pausedSince` di una pausa già aperta (altrimenti si
-   * perderebbe il conteggio della pausa in corso).
+   * CONCLUDI: flush finale del tracciato e REGISTRAZIONE AUTOMATICA nel
+   * Quaderno di Campagna (nessuna conferma dell'operatore: è la scelta di
+   * prodotto della Modalità Campo low-touch). Ritorna l'esito da mostrare nel
+   * riepilogo post-operazione, o null se non c'era una sessione da chiudere.
    */
-  conclude: () => Promise<void>;
+  conclude: () => Promise<SessionCloseOutcome | null>;
   /** Forza un flush immediato del pending (usato dallo smontaggio). */
   flushNow: () => Promise<void>;
 } {
   const updateFieldSession = useAgroStore((s) => s.updateFieldSession);
+  const completeFieldSession = useAgroStore((s) => s.completeFieldSession);
   const { sample, speedKmh } = useLiveGeoSample();
   const configRef = useRef(loadFieldModeConfig());
 
@@ -183,15 +187,30 @@ export function useFieldSessionTracking(
     );
   }, [flush]);
 
-  const conclude = useCallback(async () => {
+  const conclude = useCallback(async (): Promise<SessionCloseOutcome | null> => {
     const current = sessionRef.current;
-    if (!current) return;
-    if (current.status === "IN_PROGRESS") {
-      await pause();
-    } else {
-      await flush();
-    }
-  }, [pause, flush]);
+    if (!current) return null;
+    // 1) Chiude un eventuale intervallo di pausa APERTO, così il tempo attivo
+    //    mostrato dal riepilogo non conta come lavoro la pausa in corso.
+    const track = trackOf(current);
+    const since = track.pausedSince ? Date.parse(track.pausedSince) : null;
+    const closePause =
+      since != null && Number.isFinite(since)
+        ? {
+            pausedMs: (track.pausedMs ?? 0) + Math.max(0, Date.now() - since),
+            pausedSince: null,
+          }
+        : undefined;
+    // 2) Flush FINALE del pending: le metriche definitive del tracciato devono
+    //    essere persistite PRIMA di comporre le righe del Quaderno, perché le
+    //    quantità si calcolano sulla superficie realmente percorsa.
+    await flush(closePause);
+    // 3) Registrazione AUTOMATICA nel Quaderno + chiusura di sessione e task,
+    //    in un'unica transazione idempotente lato DAL.
+    return completeFieldSession(current.id, {
+      end_time: new Date().toISOString(),
+    });
+  }, [flush, completeFieldSession]);
 
   return {
     speedKmh,

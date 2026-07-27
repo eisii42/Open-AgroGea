@@ -35,7 +35,11 @@ export {
 } from "./db/tenant-db";
 export { AgroDal } from "./db/dal";
 export { WarehouseError } from "./db/dal-warehouse";
-export { AUDIO_URI_SCHEME, type AudioBlob } from "./db/dal-tasks";
+export {
+  AUDIO_URI_SCHEME,
+  type AudioBlob,
+  type CompleteFieldSessionResult,
+} from "./db/dal-tasks";
 export {
   EXPIRY_WARNING_DAYS_DEFAULT,
   categoryForOperation,
@@ -100,6 +104,7 @@ export {
   type PendingGeometry,
   type SelectableKind,
   type SelectedFeatureRef,
+  type SessionCloseOutcome,
   type GeomEditSession,
 } from "./store";
 export { bindGeoEditorCapture } from "./field/geo-editor-bridge";
@@ -181,6 +186,24 @@ export {
   persistOperatorMemory,
   type OperatorMemory,
 } from "./field/operator-memory";
+export {
+  toDate,
+  toEpochMs,
+  toIsoDay,
+  toIsoString,
+  type TimestampLike,
+} from "./field/timestamps";
+export {
+  SESSION_NOTE_PREFIX,
+  composeSessionLogs,
+  pickLotForProduct,
+  sessionIdFromNote,
+  type SessionLogComposition,
+  type SessionLogContext,
+  type SessionLogDraft,
+  type SessionLogWarning,
+  type SessionLogWarningKind,
+} from "./field/session-logbook";
 export {
   missingDeclarative,
   sianComplete,

@@ -18,8 +18,9 @@
 6. [DSS fitopatologico e gradi-giorno](#6-dss-fitopatologico-e-gradi-giorno)
 7. [Mappa del rischio DSS (verde/giallo/rosso)](#7-mappa-del-rischio-dss-verdegiallorosso)
 8. [Mappe a rateo variabile (VRA)](#8-mappe-a-rateo-variabile-vra)
-9. [Formule del Field Calculator](#9-formule-del-field-calculator)
-10. [Riferimenti bibliografici](#10-riferimenti-bibliografici)
+9. [Geofencing e superficie realmente lavorata](#9-geofencing-e-superficie-realmente-lavorata)
+10. [Formule del Field Calculator](#10-formule-del-field-calculator)
+11. [Riferimenti bibliografici](#11-riferimenti-bibliografici)
 
 ---
 
@@ -257,7 +258,46 @@ Un parametro `intensità` (0..1) regola lo scostamento massimo dalla dose di rif
 
 ---
 
-## 9. Formule del Field Calculator
+## 9. Geofencing e superficie realmente lavorata
+
+Motore puro in `plugins/agro-tools/src/geofencing.ts` e `reentry.ts`. Nessun accesso al DOM, alla rete o al GPS: riceve campioni e restituisce stato — è ciò che lo rende testabile senza un dispositivo.
+
+### Rilevamento dell'ingresso in un appezzamento
+
+Ogni campione GPS attraversa un **riduttore puro** (`advanceGeofence`): stato + campione ⇒ nuovo stato + eventuale evento `enter`/`exit`.
+
+| Parametro | Default | Perché |
+|---|---|---|
+| `maxAccuracyM` | 50 m | Un fix impreciso può cadere dentro un poligono confinante: i campioni peggiori della soglia sono **scartati**, non mediati. |
+| `dwellSeconds` | 15 s | Attraversare una capezzagna o passare su una strada di servizio non è "entrare nel campo". Serve una **permanenza continuativa**: un campione in un appezzamento diverso azzera il conteggio. |
+| `exitGraceSeconds` | 30 s | Il segnale perde e riacquisisce il fix vicino al confine. Senza **isteresi**, una singola oscillazione produrrebbe un `exit` spurio e una nuova proposta di task pochi secondi dopo. |
+
+Il test di appartenenza è un **point-in-polygon esatto** (`@turf/boolean-point-in-polygon`), precedute da un prefiltro sul bounding box per non testare tutti gli appezzamenti a ogni campione. Il prefiltro è solo un'ottimizzazione: un punto dentro il bbox ma fuori dal perimetro non viene mai considerato interno.
+
+### Superficie lavorata
+
+La superficie è **misurata, non dichiarata**. Il tracciato è una polilinea di campioni accettati; la lunghezza è geodetica (haversine sull'ellissoide, coerente con `@turf/area` usato altrove):
+
+```text
+area_lavorata (ha) = lunghezza_tracciato (m) × larghezza_di_lavoro (m) / 10 000
+```
+
+È la convenzione FMIS: la larghezza di lavoro viene dall'attrezzo agganciato (`equipment.working_width_m`) o dal default configurato. Due limiti da conoscere:
+
+- il risultato è **clampato alla superficie dell'appezzamento** quando nota — le passate si sovrappongono, e una sovrapposizione non può gonfiare il dato oltre il campo reale;
+- senza larghezza di lavoro la superficie non è calcolabile e vale `0`; in quel caso la chiusura della sessione ricade sulla superficie catastale e **lo segnala** nel riepilogo, invece di scrivere una quantità nulla nel registro.
+
+Le quantità di prodotto sono quindi `dose_per_ha × area_lavorata`, mai `dose_per_ha × area_catastale`: dichiarare prodotto su superficie non lavorata è precisamente l'errore che il tracciamento esiste per evitare.
+
+### Tempo di rientro (PAN)
+
+Una finestra di rientro è aperta quando `executed_at + reentry_interval_h > adesso`. Per appezzamento si tiene la **più restrittiva** (scadenza più lontana) fra i trattamenti ancora aperti; le righe senza intervallo, senza appezzamento o con data non interpretabile sono ignorate.
+
+L'avviso è deliberatamente **non bloccante**: chi ha eseguito il trattamento può legittimamente rientrare con i DPI. Il requisito normativo è informare *gli altri* operatori, e la schermata d'ingresso richiede una presa visione esplicita prima di abilitare l'avvio.
+
+---
+
+## 10. Formule del Field Calculator
 
 Il Field Calculator deriva **nuovi** campi dalla tabella attributi senza alterare i dati originali. Le formule pronte:
 
@@ -269,7 +309,7 @@ Il Field Calculator deriva **nuovi** campi dalla tabella attributi senza alterar
 
 ---
 
-## 10. Riferimenti bibliografici
+## 11. Riferimenti bibliografici
 
 - **Allen R.G., Pereira L.S., Raes D., Smith M. (1998).** *Crop Evapotranspiration — Guidelines for computing crop water requirements.* FAO Irrigation and Drainage Paper 56. — ET₀ Penman-Monteith, Kc, bilancio della zona radicale, coefficiente di stress Ks.
 - **Steduto P., Hsiao T.C., Fereres E., Raes D. (2012).** *Crop yield response to water.* FAO Irrigation and Drainage Paper 66; **Doorenbos J., Kassam A.H. (1979)**, Paper 33. — Fattore di risposta Ky e riduzione di resa.

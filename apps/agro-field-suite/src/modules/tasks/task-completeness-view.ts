@@ -5,6 +5,7 @@ import {
   type OperationType,
   type PlannedTask,
   type Recipe,
+  toIsoString,
   type TreatmentLog,
 } from "@agrogea/core";
 import type { TFunction } from "i18next";
@@ -89,7 +90,9 @@ export function buildTaskCompletenessEntries(
       refId: log.id,
       plotId: log.plot_id,
       operationType: log.operation_type,
-      date: log.executed_at,
+      // Normalizzata: le row rilette da PGlite portano un `Date` anche dove il
+      // tipo dichiara una stringa ISO, e questa voce viene formattata dalla UI.
+      date: toIsoString(log.executed_at),
       missing: blocking,
     });
   }

@@ -32,6 +32,7 @@
    - [4.12 Impostazioni: meteo, tema, profilo](#412-impostazioni-meteo-tema-profilo)
    - [4.13 Magazzino — prodotti, lotti e giacenze](#413-magazzino--prodotti-lotti-e-giacenze)
    - [4.14 Parco macchine — mezzi, manutenzione e carburante](#414-parco-macchine--mezzi-manutenzione-e-carburante)
+   - [4.15 Pianificazione Task e Modalità Campo — il flusso senza digitazioni](#415-pianificazione-task-e-modalità-campo--il-flusso-senza-digitazioni)
 5. [Scorciatoie e produttività](#5-scorciatoie-e-produttività)
 6. [Il flusso consigliato di una stagione](#6-il-flusso-consigliato-di-una-stagione)
 
@@ -343,6 +344,57 @@ Il Parco macchine gestisce i **mezzi** (unità motrici) e gli **attrezzi**, li c
 **Richiede attenzione:** in cima alla scheda Mezzi un cruscotto aggrega, senza click aggiuntivi, ciò che è **actionable** — manutenzioni in scadenza/scadute, documenti in scadenza/scaduti, consumi anomali e mezzi fermi. Ogni voce porta al dettaglio del mezzo.
 
 > **Attivazione:** le sezioni **Mezzi** e il pulsante **Refill** si mostrano/nascondono dalle **Impostazioni profilo → Moduli** (voci `Parco macchine` e `Refill carburante`). Il Refill è **staccato** dal resto del Magazzino: si raggiunge solo dal pulsante rapido in mappa.
+
+---
+
+### 4.15 Pianificazione Task e Modalità Campo — il flusso senza digitazioni
+
+L'idea è semplice: **decidi in ufficio, in trattore non tocchi più nulla**. Prepari la lavorazione la sera prima, e quando il giorno dopo entri nel campo il resto avviene da sé, fino alla registrazione nel Quaderno.
+
+#### Prima: preparare la task (Sidebar → Pianificazione Task → Task & Ricette)
+
+1. **＋ Nuova Ricetta** — una **miscela riutilizzabile** ("Anti-oidico standard", "Concimazione fogliare NPK"): dai un nome, aggiungi i prodotti con la **dose per ettaro** e l'unità. Scegliendo il prodotto dal **Magazzino** vengono ricopiati da soli numero di registrazione, sostanza attiva e — per i concimi — tipo e titolo N-P-K: sono i campi che il Quaderno pretenderà, ed è qui che si compilano una volta per sempre.
+2. **＋ Nuova Task** — la **scheda di lavorazione programmata**: appezzamento, tipo di operazione, la ricetta da usare, l'avversità bersaglio, la data prevista e l'operatore. Il **numero di patentino** si imposta una volta e resta memorizzato sul dispositivo per tutti i form.
+3. Se qualcosa manca, un avviso ti dice **esattamente quali campi renderebbero il record non conforme**. Puoi salvare comunque: la pianificazione resta veloce, e le task incomplete restano segnalate.
+
+> **Perché insiste sui campi obbligatori:** la registrazione a fine lavorazione è automatica, quindi non c'è un momento in cui qualcuno rilegge e completa. Ciò che manca ora mancherebbe nel registro. Per questo la sidebar mostra un contatore **⚠** su *Pianificazione Task* e *Quaderno di Campagna*, con l'elenco dei record da completare.
+
+#### In campo: il rilevamento è automatico
+
+Non c'è nessun pulsante da premere e nessuna impostazione da attivare. Tenendo l'app aperta, quando **rimani nell'appezzamento per 15 secondi** compare a tutto schermo:
+
+- **"Sei nel campo: [nome]"** con la **task pianificata** in evidenza e un pulsante gigante **AVVIA TASK**. Se ci sono più task, la più urgente è quella promossa;
+- se non hai pianificato nulla, un selettore a pulsanti giganti — **Trattamento**, **Concimazione**, **Lavorazione**, **Altro** — e **AVVIA LAVORAZIONE**.
+
+I 15 secondi non sono un ritardo inutile: evitano che passare su una capezzagna o su una strada di servizio venga interpretato come "sono entrato a lavorare". Allo stesso modo, un'oscillazione del segnale vicino al confine non fa credere all'app che tu sia uscito.
+
+> ⚠️ **Tempo di rientro.** Se sul campo è stato fatto un trattamento e l'intervallo di rientro **non è ancora scaduto**, la schermata mostra un avviso con il prodotto e le ore residue, e il pulsante di avvio resta disabilitato finché non spunti la presa visione. Non è un blocco — chi ha eseguito il trattamento può rientrare con i DPI — ma è la garanzia che **un altro operatore non entri senza saperlo**.
+
+#### Durante: la Modalità Campo
+
+Avviata la lavorazione, lo schermo diventa **nero con cifre giganti verde-lime**: è pensato per essere letto al sole diretto dal sedile, non per essere elegante. Ignora volutamente il tema dell'app.
+
+- **Velocità**, **ettari lavorati** e **tempo trascorso** aggiornati in tempo reale.
+- **PAUSA / RIPRENDI** e **CONCLUDI**, con aree di tocco oltre gli 88 px: si premono coi guanti. In pausa gli ettari non crescono e il tempo si congela.
+- **Nota vocale**: un tocco avvia, un tocco ferma. La registrazione viene **geotaggata** col punto in cui ti trovi e resta sul dispositivo; la riascolti dall'elenco.
+- Se hai avviato per errore, **Annulla sessione** (con conferma) annulla tutto e riporta la task fra quelle da fare.
+
+Il tracciato viene salvato a piccoli blocchi mentre lavori: se il telefono si spegne o l'app si chiude, perdi al massimo l'ultimo tratto, non la giornata. Riaprendo l'app la sessione riprende da dove era.
+
+#### Alla fine: si registra da sola
+
+Premuto **CONCLUDI**, la lavorazione **è già nel Quaderno di Campagna**. Non c'è nulla da confermare. La schermata che vedi ti dice cosa è stato salvato:
+
+- la **superficie realmente percorsa** dal GPS — non quella catastale;
+- la **durata attiva**, al netto delle pause;
+- per ogni prodotto della ricetta, la **quantità totale ricalcolata** su quella superficie (`dose × ettari lavorati`);
+- le note vocali registrate.
+
+Se la ricetta usava prodotti presenti in Magazzino, le **giacenze vengono scaricate** dal lotto con la scadenza più vicina, col costo imputato al campo. Se qualcosa richiede la tua attenzione — un lotto scaduto, una giacenza insufficiente, il GPS che non ha fornito una superficie utile, o campi obbligatori ancora mancanti — te lo dice, con una scorciatoia per aprire il Quaderno e sistemare. **La lavorazione viene registrata in ogni caso**: un magazzino da correggere è un problema minore di una lavorazione mai annotata.
+
+La task programmata passa a **completata** e sparisce dall'elenco delle cose da fare.
+
+> **Sul GPS:** il rilevamento usa la posizione del dispositivo. Se il permesso è negato, il riquadro *Pianificazione Task* lo indica in alto a destra e la Modalità Campo semplicemente non si attiva — nessun avviso insistente. La mappa continua a mostrare la tua posizione col suo pulsante GPS abituale, in alto a destra.
 
 ---
 

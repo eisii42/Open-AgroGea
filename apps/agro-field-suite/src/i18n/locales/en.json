@@ -2036,8 +2036,6 @@
     "dashboard": {
       "unknownPlot": "Plot",
       "pausedBadge": "PAUSED",
-      "concludedTitle": "Session concluded",
-      "concludedBody": "The end-of-work summary will appear here soon. You can still resume if you concluded by mistake.",
       "readOnly": "Read-only: controls are disabled with this role.",
       "speed": "Speed",
       "areaWorked": "Hectares worked",
@@ -2053,6 +2051,24 @@
         "title": "Voice notes ({{count}})",
         "play": "Play voice note",
         "pause": "Pause playback"
+      }
+    },
+    "summary": {
+      "title": "Operation completed",
+      "registered_one": "Recorded in the field logbook ({{count}} entry).",
+      "registered_other": "Recorded in the field logbook ({{count}} entries).",
+      "areaWorked": "Area worked",
+      "duration": "Active duration",
+      "quantitiesHeading": "Quantities applied",
+      "noProduct": "No product",
+      "attentionHeading": "Needs attention",
+      "openLogbook": "Open the logbook",
+      "done": "Done",
+      "warning": {
+        "gps_area_fallback": "GPS did not provide a usable area: quantities were computed on the plot cadastral area.",
+        "no_lot_available": "No lot available for {{product}}: warehouse stock was not issued.",
+        "stock_issue_failed": "Warehouse issue failed: the operation is recorded, but stock levels must be corrected manually.",
+        "incompleteFields": "{{count}} required fields missing on the recorded entries: complete them in the logbook."
       }
     }
   },

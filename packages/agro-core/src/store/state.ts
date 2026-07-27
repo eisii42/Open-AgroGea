@@ -1,7 +1,9 @@
 import type { Feature, Geometry } from "geojson";
 import type { StoreApi } from "zustand";
 import type { AgroDal } from "../db/dal";
+import type { CompleteFieldSessionResult } from "../db/dal-tasks";
 import type { AgroTheme } from "../field/theme";
+import type { SessionLogWarning } from "../field/session-logbook";
 import type { DrawnGeometry } from "../geo/area";
 import type { SyncRouter } from "../sync/router";
 import type {
@@ -572,6 +574,28 @@ export interface DomainSlice {
     > & { id?: string; start_time?: string },
   ) => Promise<FieldOperationSession | null>;
   /**
+   * CHIUDE la sessione registrandola AUTOMATICAMENTE nel Quaderno di Campagna
+   * (nessuna conferma dell'operatore: è la scelta di prodotto della Modalità
+   * Campo low-touch). Compone le righe con `composeSessionLogs` — una per
+   * product della miscela, quantità = dose × superficie GPS — e le persiste
+   * con sessione e task in un'unica transazione
+   * ({@link AgroDalTasks.completeFieldSession}, idempotente).
+   *
+   * Se lo scarico warehouse fallisce, ritenta SENZA scarico e lo segnala in
+   * {@link SessionCloseOutcome.warnings}: la lavorazione viene registrata
+   * comunque, le giacenze restano da correggere a mano. Il lavoro
+   * dell'operatore non va perso in nessuno scenario.
+   */
+  completeFieldSession: (
+    id: string,
+    patch?: Partial<
+      Pick<
+        FieldOperationSession,
+        "end_time" | "path" | "path_length_m" | "area_worked_ha" | "audio_notes"
+      >
+    >,
+  ) => Promise<SessionCloseOutcome | null>;
+  /**
    * Abbandona una sessione a bordo campo (avvio accidentale, geofencing sulla
    * task sbagliata): la porta ad ABORTED e, se agganciata a una task
    * programmata, la riporta a PLANNED — ATOMICO lato DAL (vedi
@@ -625,6 +649,18 @@ export interface DomainSlice {
  * type di `GeofenceWatchStatus` in
  * `apps/agro-field-suite/src/modules/field-mode/useGeofenceWatch.ts`.
  */
+/**
+ * Esito della chiusura di una sessione a bordo campo: la row della sessione e
+ * le righe di Quaderno scritte ({@link CompleteFieldSessionResult}), più ciò
+ * che il riepilogo post-operazione deve mostrare all'operatore — la superficie
+ * effettivamente usata per le quantità e gli eventuali punti da correggere.
+ */
+export interface SessionCloseOutcome extends CompleteFieldSessionResult {
+  /** Superficie (ha) usata per calcolare le quantità: GPS, o il fallback catastale. */
+  areaUsedHa: number;
+  warnings: SessionLogWarning[];
+}
+
 export type GeofenceWatchStatus = "idle" | "watching" | "inside" | "error";
 
 /**
@@ -731,6 +767,14 @@ export interface UiSlice {
   geofenceWatchStatus: GeofenceWatchStatus;
   /** Codice di errore GPS current quando `geofenceWatchStatus === "error"`, altrimenti null. */
   geofenceWatchErrorCode: GeofenceWatchErrorCode | null;
+  /**
+   * Esito della chiusura di una sessione a bordo campo, da mostrare nel
+   * riepilogo post-operazione. Vive QUI e non nell'InFieldDashboard perché
+   * quello schermo si smonta proprio nell'istante in cui la sessione diventa
+   * `COMPLETED` (non è più "attiva"): tenendo l'esito nello store il riepilogo
+   * sopravvive alla transizione. `null` = nessun riepilogo da mostrare.
+   */
+  sessionCloseOutcome: SessionCloseOutcome | null;
 
   // -- tema / layout --
   setTheme: (theme: AgroTheme) => void;
@@ -795,6 +839,14 @@ export interface UiSlice {
     status: GeofenceWatchStatus,
     errorCode?: GeofenceWatchErrorCode | null,
   ) => void;
+  /** Pubblica l'esito di una chiusura di sessione (apre il riepilogo). */
+  setSessionCloseOutcome: (outcome: SessionCloseOutcome | null) => void;
+  /**
+   * Chiude il riepilogo post-operazione. Puramente UI: la registrazione nel
+   * Quaderno è GIÀ avvenuta quando il riepilogo appare — questo non conferma
+   * né annulla nulla.
+   */
+  dismissSessionCloseOutcome: () => void;
 }
 
 // ---------------------------------------------------------------------------

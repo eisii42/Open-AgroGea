@@ -42,18 +42,13 @@ export function InFieldDashboard() {
   const readOnly = useReadOnly(activeCompanyId);
   const units = useSettingsStore((s) => s.units);
   const abortFieldSession = useAgroStore((s) => s.abortFieldSession);
+  const setSessionCloseOutcome = useAgroStore((s) => s.setSessionCloseOutcome);
 
   const tracking = useFieldSessionTracking(session, plot?.area_ha ?? null);
   const voice = useVoiceNoteRecorder(session, tracking.lastAcceptedSample);
 
-  const [concluded, setConcluded] = useState(false);
+  const [concluding, setConcluding] = useState(false);
   const [aborting, setAborting] = useState(false);
-
-  // Una sessione diversa (nuovo id, es. dopo un abort/riavvio ravvicinato) non
-  // deve ereditare lo stato locale "concluso" della precedente.
-  useEffect(() => {
-    setConcluded(false);
-  }, [session?.id]);
 
   // Orologio del tempo trascorso: tick indipendente dai campioni GPS (deve
   // avanzare anche senza un fix nuovo), un secondo alla volta.
@@ -88,7 +83,6 @@ export function InFieldDashboard() {
   async function handleTogglePause() {
     if (disabled) return;
     if (isPaused) {
-      setConcluded(false);
       await tracking.resume();
     } else {
       await tracking.pause();
@@ -96,9 +90,18 @@ export function InFieldDashboard() {
   }
 
   async function handleConclude() {
-    if (disabled || concluded) return;
-    await tracking.conclude();
-    setConcluded(true);
+    if (disabled || concluding) return;
+    setConcluding(true);
+    try {
+      // La chiusura REGISTRA da sé nel Quaderno (zero tocchi) e porta la
+      // sessione a COMPLETED: questo schermo si smonta subito dopo, e il
+      // riepilogo vive nello store (`sessionCloseOutcome`) proprio per
+      // sopravvivere a quello smontaggio.
+      const outcome = await tracking.conclude();
+      if (outcome) setSessionCloseOutcome(outcome);
+    } finally {
+      setConcluding(false);
+    }
   }
 
   async function handleAbort() {
@@ -135,20 +138,6 @@ export function InFieldDashboard() {
           </span>
         )}
       </header>
-
-      {concluded && (
-        <div className="mx-5 mt-4 rounded-xl border-2 border-yellow-300 bg-yellow-300/10 px-4 py-3">
-          <p className="text-sm font-semibold text-yellow-200">
-            {t("fieldMode.dashboard.concludedTitle")}
-          </p>
-          <p className="mt-1 text-xs text-yellow-200/80">
-            {t("fieldMode.dashboard.concludedBody")}
-          </p>
-          {/* TODO: qui monterà PostOperationSummary (chiusura verso il
-              Quaderno di Campagna, scrittura automatica zero-touch): per ora
-              la sessione resta PAUSED e RIPRENDI la riporta operativa. */}
-        </div>
-      )}
 
       {readOnly && (
         <p className="mx-5 mt-4 rounded-xl border border-lime-400/40 px-4 py-2 text-sm text-lime-400/80">
@@ -196,7 +185,7 @@ export function InFieldDashboard() {
           </button>
           <button
             type="button"
-            disabled={disabled || concluded}
+            disabled={disabled || concluding}
             onClick={() => void handleConclude()}
             className="flex min-h-[88px] items-center justify-center gap-2 rounded-2xl bg-lime-400 text-xl font-extrabold uppercase tracking-wide text-black disabled:cursor-not-allowed disabled:opacity-40"
           >

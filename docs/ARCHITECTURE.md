@@ -35,7 +35,9 @@ app entry     main.tsx, App.tsx, standalone.ts, edition.ts, index.css
 modules/      ONE folder per functional domain (the "features" layer):
                 water-balance, warehouse, field-logbook, registry, settings,
                 weather, soil, compliance, crops, dss, vra, analytics, sian,
-                print, colorbar, command-palette, add-data, team
+                print, colorbar, command-palette, add-data, team,
+                tasks (task/recipe planning), field-mode (geofencing +
+                  low-touch in-field screens)
 components/    ONLY generic, reusable UI + map/field infrastructure
               (BottomSheet, AppHeader, MapControls, DataEntrySheet, …)
 hooks/        shared React hooks
@@ -76,6 +78,53 @@ The PGlite schema ([`db/schema.ts`](../packages/agro-core/src/db/schema.ts)) is
 **English** (tables/columns) and versioned (`AGRO_LOCAL_SCHEMA_VERSION`).
 Migrations are **additive and idempotent** — never rename/drop persisted columns
 destructively (users have real data on device).
+
+> **Timestamps read back from PGlite are `Date` objects, not ISO strings**, even
+> though the domain types declare `string` (the types describe the
+> *serialization* contract — outbox, exports, sync payloads). A row freshly read
+> from the DB carries `Date`; the same row freshly built in TS carries `string`.
+> Any code touching a timestamp must tolerate both: use the helpers in
+> [`field/timestamps.ts`](../packages/agro-core/src/field/timestamps.ts)
+> (`toDate`/`toEpochMs`/`toIsoString`/`toIsoDay`), never `value.slice(0, 10)`
+> (throws on a `Date`) or `Date.parse(value)` (only works by `toString()`
+> coercion, silently losing milliseconds). Tests that build rows in TS will not
+> catch this — assert against a row actually read back from the DB.
+
+## Field Mode (geofencing → logbook)
+
+The low-touch operator flow spans several layers, so the seams matter:
+
+```text
+useGeofenceWatch (the ONLY navigator.geolocation watch in the app)
+  → advanceGeofence  (pure reducer: dwell debounce, exit hysteresis)
+    → store geofenceDetection → FieldDetectionModal (matches planned_tasks)
+      → startFieldSession      (atomic: session + task → IN_PROGRESS)
+        → InFieldDashboard + useFieldSessionTracking (batched path writes)
+          → completeFieldSession (atomic: treatment_logs + lot issues +
+                                  session/task → COMPLETED, idempotent)
+            → PostOperationSummary (notification of what was written)
+```
+
+Non-obvious constraints, each with a reason:
+
+- **Detection is automatic**: no toggle, no map button, no settings flag. The
+  operator entering a field must not have to remember to arm it.
+- There must remain **exactly one GPS watch**. Per-sample values stay in local
+  React state and reach the in-field screen through a module-level pub/sub
+  ([`live-sample-channel.ts`](../apps/agro-field-suite/src/modules/field-mode/live-sample-channel.ts)),
+  **never** the Zustand store — samples arrive at ~1 Hz and the store is shared
+  with the MapLibre canvas.
+- The map's native geolocate control cannot be reused as the sensor:
+  `MapController.geolocateControl` is private in vendored `@geolibre/map`.
+- Writing to the logbook is **automatic and unconfirmed**, so the closing
+  transaction is atomic *and* idempotent (status re-read inside the transaction):
+  a half-write or a double tap would corrupt a legally-relevant register with
+  nobody watching. Completeness is therefore enforced *upstream*, at planning
+  time ([`field/task-completeness.ts`](../packages/agro-core/src/field/task-completeness.ts)).
+- Quantities come from the **GPS-measured** area, never `plots_registry.area_ha`.
+- `InFieldDashboard` is the one component that deliberately **ignores the app
+  theme** (fixed black/lime palette): it is a sunlight-readable driving
+  instrument, not a themed panel.
 
 ## How to add …
 

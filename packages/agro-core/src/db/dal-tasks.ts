@@ -7,7 +7,9 @@ import type {
   PlannedTask,
   PlannedTaskStatus,
   Recipe,
+  TreatmentLog,
 } from "../types";
+import type { SessionLogDraft } from "../field/session-logbook";
 import { AgroDalMachinery } from "./dal-machinery";
 import { nowIso, type Row, upsertSql } from "./write";
 
@@ -25,6 +27,19 @@ export interface AudioBlob {
   mime_type: string;
   data_base64: string;
   duration_s: number | null;
+}
+
+/** Esito della chiusura di una sessione verso il Quaderno di Campagna. */
+export interface CompleteFieldSessionResult {
+  session: FieldOperationSession;
+  /** Righe del Quaderno create; vuoto se la sessione era già chiusa. */
+  treatments: TreatmentLog[];
+  /**
+   * true quando la sessione risultava GIÀ `COMPLETED` alla rilettura in
+   * transazione: nessuna scrittura è stata eseguita (guardia di idempotenza
+   * contro doppi tap e retry).
+   */
+  alreadyCompleted: boolean;
 }
 
 /**
@@ -335,6 +350,130 @@ export class AgroDalTasks extends AgroDalMachinery {
       row as unknown as Row & { id: string },
     );
     return row;
+  }
+
+  /**
+   * CHIUSURA della sessione a bordo campo: scrive le righe del Quaderno di
+   * Campagna e chiude tutto in UNA SOLA transazione — righe `treatment_logs`
+   * (una per product della miscela), eventuali scarichi warehouse dei lots
+   * con CUMP congelato, sessione ⇒ COMPLETED (con `end_time`, metriche finali
+   * del tracciato e `treatment_log_ids`), task programmata ⇒ COMPLETED.
+   *
+   * L'atomicità qui non è un vezzo: il Quaderno è un registro di rilevanza
+   * legale e la scrittura è AUTOMATICA (nessuna conferma dell'operatore). Una
+   * chiusura a metà significherebbe lavoro registrato due volte o perso, senza
+   * nessuno a notarlo. Se un lot è scaduto o la stock andrebbe sotto zero,
+   * il {@link WarehouseError} di {@link issueLotsTx} annulla l'INTERA chiusura
+   * (il chiamante decide se ritentare senza scarico: vedi lo store).
+   *
+   * IDEMPOTENTE per costruzione: lo status della sessione è riletto DENTRO la
+   * transazione e una sessione già COMPLETED esce senza scrivere nulla
+   * (`alreadyCompleted: true`). Un doppio tap su CONCLUDI, o un retry dopo un
+   * errore, non possono quindi duplicare le righe del registro.
+   */
+  async completeFieldSession(
+    sessionId: string,
+    drafts: SessionLogDraft[],
+    patch: Partial<
+      Pick<
+        FieldOperationSession,
+        "end_time" | "path" | "path_length_m" | "area_worked_ha" | "audio_notes"
+      >
+    > = {},
+  ): Promise<CompleteFieldSessionResult | null> {
+    const existing = await this.getFieldSession(sessionId);
+    if (!existing || existing.deleted_at) return null;
+
+    const ts = nowIso();
+    const treatments: TreatmentLog[] = [];
+    let alreadyCompleted = false;
+    let session = existing;
+
+    await this.db.transaction(async (tx: Transaction) => {
+      // Rilettura DENTRO la transazione: è questa, non il controllo a monte,
+      // la guardia contro la doppia registrazione.
+      const fresh = await tx.query<FieldOperationSession>(
+        `select * from field_operation_sessions
+         where id = $1 and deleted_at is null`,
+        [sessionId],
+      );
+      const current = fresh.rows[0];
+      if (!current) return;
+      if (current.status === "COMPLETED") {
+        alreadyCompleted = true;
+        session = current;
+        return;
+      }
+
+      for (const draft of drafts) {
+        const treatment: TreatmentLog = {
+          ...draft.input,
+          id: uuidv4(),
+          tenant_id: this.tenantId,
+          created_at: ts,
+          updated_at: ts,
+          deleted_at: null,
+        };
+        await this.insertTreatmentTx(tx, treatment);
+        if (draft.issues.length > 0) {
+          await this.issueLotsTx(tx, treatment.id, draft.issues, ts);
+        }
+        treatments.push(treatment);
+      }
+
+      const closed: FieldOperationSession = {
+        ...current,
+        ...patch,
+        end_time: patch.end_time ?? current.end_time ?? ts,
+        status: "COMPLETED",
+        treatment_log_ids: treatments.map((t) => t.id),
+        updated_at: ts,
+      };
+      const updSession = upsertSql(
+        "field_operation_sessions",
+        closed as unknown as Row,
+      );
+      await tx.query(updSession.sql, updSession.values);
+      await this.enqueueOutbox(
+        tx,
+        "field_operation_sessions",
+        "update",
+        closed as unknown as Row & { id: string },
+      );
+      session = closed;
+
+      if (closed.planned_task_id) {
+        const found = await tx.query<PlannedTask>(
+          `select * from planned_tasks where id = $1 and deleted_at is null`,
+          [closed.planned_task_id],
+        );
+        const task = found.rows[0];
+        if (task && task.status !== "COMPLETED") {
+          const updatedTask: PlannedTask = {
+            ...task,
+            status: "COMPLETED",
+            updated_at: ts,
+          };
+          const updTask = upsertSql(
+            "planned_tasks",
+            updatedTask as unknown as Row,
+          );
+          await tx.query(updTask.sql, updTask.values);
+          await this.enqueueOutbox(
+            tx,
+            "planned_tasks",
+            "update",
+            updatedTask as unknown as Row & { id: string },
+          );
+        }
+      }
+    });
+
+    return {
+      session,
+      treatments: alreadyCompleted ? [] : treatments,
+      alreadyCompleted,
+    };
   }
 
   /**

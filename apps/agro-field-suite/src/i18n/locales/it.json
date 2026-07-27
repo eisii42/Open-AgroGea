@@ -2036,8 +2036,6 @@
     "dashboard": {
       "unknownPlot": "Appezzamento",
       "pausedBadge": "IN PAUSA",
-      "concludedTitle": "Sessione conclusa",
-      "concludedBody": "Il riepilogo di fine lavorazione sarà disponibile qui a breve. Puoi ancora riprendere se hai concluso per errore.",
       "readOnly": "Sola lettura: i controlli sono disattivati con questo ruolo.",
       "speed": "Velocità",
       "areaWorked": "Ettari lavorati",
@@ -2053,6 +2051,24 @@
         "title": "Note vocali ({{count}})",
         "play": "Riproduci nota vocale",
         "pause": "Metti in pausa la riproduzione"
+      }
+    },
+    "summary": {
+      "title": "Lavorazione conclusa",
+      "registered_one": "Registrata nel Quaderno di Campagna ({{count}} riga).",
+      "registered_other": "Registrata nel Quaderno di Campagna ({{count}} righe).",
+      "areaWorked": "Superficie lavorata",
+      "duration": "Durata attiva",
+      "quantitiesHeading": "Quantità impiegate",
+      "noProduct": "Senza prodotto",
+      "attentionHeading": "Da sistemare",
+      "openLogbook": "Apri il Quaderno",
+      "done": "Fine",
+      "warning": {
+        "gps_area_fallback": "Il GPS non ha fornito una superficie utile: sono state usate le quantità sulla superficie catastale dell''appezzamento.",
+        "no_lot_available": "Nessun lotto disponibile per {{product}}: la giacenza di magazzino non è stata scaricata.",
+        "stock_issue_failed": "Scarico di magazzino non riuscito: la lavorazione è registrata, ma le giacenze vanno corrette a mano.",
+        "incompleteFields": "{{count}} campi obbligatori mancanti nelle righe registrate: completale nel Quaderno."
       }
     }
   },

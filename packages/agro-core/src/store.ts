@@ -35,6 +35,7 @@ export type {
   PendingGeometry,
   SelectableKind,
   SelectedFeatureRef,
+  SessionCloseOutcome,
 } from "./store/state";
 export { isViewerReadOnly } from "./store/helpers";
 export {

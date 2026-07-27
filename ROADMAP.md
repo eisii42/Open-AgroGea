@@ -29,7 +29,7 @@ Stabilizzazione della base attuale in vista del primo ciclo di feature.
 ## 🔭 Piano di rilascio (`0.2.0` → `1.0.0`)
 
 Ogni minor version è un incremento rilasciabile con valore d'uso concreto. Le
-versioni `0.2.0`–`0.4.0` (Magazzino, Parco macchine, Costo colturale) sono
+versioni `0.2.0`–`0.4.0` (Magazzino, Parco macchine, Modalità Campo) sono
 sequenziali perché condividono un prerequisito tecnico; le versioni `0.5.0`–`0.8.0`
 (DSS) sono un **binario parallelo indipendente** che può essere anticipato o
 interlacciato con le prime, senza vincoli di dipendenza.
@@ -72,15 +72,44 @@ testo come fallback finché non collegati.
 - **Rilascio quando:** l'uso di un mezzo in campo incrementa i suoi contatori e fa
   scattare gli alert di manutenzione a soglia. ✔️
 
-### `0.4.0` — Costo colturale integrato
+### `0.4.0` — Geofencing e Modalità Campo low-touch ✅ implementata (in attesa di rilascio)
 
-Convergenza delle due versioni precedenti.
+L'operatore in trattore non deve compilare moduli. Questa versione chiude il
+cerchio fra ciò che è stato *pianificato* in ufficio e ciò che viene *eseguito* in
+campo, riducendo la registrazione di una lavorazione a zero digitazioni.
 
-- Ammortamento del mezzo incluso nel costo dell'attività.
-- Calcolo automatico del bilancio del campo come somma di prodotti + manodopera +
-  ammortamento mezzi.
-- **Rilascio quando:** ogni campo espone un costo colturale completo derivato dalle
-  attività registrate.
+- Riquadro **Pianificazione Task e Ricette** a schermo intero: schede di lavorazione
+  programmate per appezzamento (`planned_tasks`) e miscele riutilizzabili
+  (`recipes`, prodotti con dose per ettaro) preparate prima di uscire in campo.
+- **Geofencing GPS automatico**: nessun pulsante da ricordare. All'ingresso in un
+  appezzamento — confermato da una permanenza continuativa di 15 s, con isteresi
+  d'uscita contro il jitter del segnale — il sistema cerca le task programmate su
+  quel campo e propone quella prioritaria a tutto schermo; senza task offre un
+  avvio rapido per tipo di lavorazione.
+- **Alert di sicurezza sul tempo di rientro**: se sul campo insiste un trattamento
+  il cui intervallo di rientro non è ancora scaduto, l'ingresso mostra un avviso
+  con prodotto e ore residue, da confermare esplicitamente prima di iniziare —
+  la tutela degli operatori diversi da chi ha trattato.
+- **Modalità Campo ad altissimo contrasto**: fondo nero e cifre giganti leggibili
+  al sole dal sedile del trattore, controlli tattili oltre 80 px per l'uso coi
+  guanti. Velocità, ettari lavorati e tempo attivo in tempo reale; pausa/ripresa;
+  note vocali geotaggate registrate e conservate sul dispositivo.
+- **Tracciato GPS** accumulato e persistito a lotti (`field_operation_sessions`):
+  la superficie realmente lavorata viene misurata, non dichiarata.
+- **Registrazione automatica nel Quaderno di Campagna**: alla conclusione la
+  lavorazione finisce nel registro senza conferme né digitazioni — una riga per
+  prodotto della miscela, quantità ricalcolate sulla superficie GPS effettiva,
+  scarico dei lotti di magazzino con costo CUMP congelato, task e sessione chiuse.
+  Tutto in un'unica transazione, idempotente: un doppio tocco non può duplicare
+  un registro di rilevanza legale.
+- **Completezza PAN a monte**: la task avvisa già in pianificazione se produrrebbe
+  un record non conforme (patentino, n. registrazione, dose, avversità), e un
+  sistema di notifica a contatore segnala le registrazioni incomplete da
+  completare — necessario, perché con la scrittura automatica non c'è un momento
+  di revisione manuale.
+- **Rilascio quando:** entrare in un campo con una task programmata, lavorare e
+  uscire produce una registrazione conforme nel Quaderno senza che l'operatore
+  abbia digitato nulla. ✔️
 
 ### `0.5.0` — DSS: difesa completa sulle colture esistenti
 

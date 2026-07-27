@@ -43,6 +43,7 @@ import {
   validateFertilizationLog,
   validateTreatmentLog,
 } from "./pan-validation";
+import { toIsoDay } from "./timestamps";
 
 /**
  * Urgenza di un campo mancante: `blocking` va segnalato SUBITO al chiamante
@@ -302,7 +303,7 @@ function evaluateLightFundamentalsLog(
 
 function evaluatePhytosanitaryLog(log: TreatmentLog): CompletenessField[] {
   const draft: TreatmentDraft = {
-    operation_date: log.executed_at.slice(0, 10),
+    operation_date: toIsoDay(log.executed_at),
     target_disease: log.target_disease,
     product_name: log.product_name,
     registration_number: log.registration_number,
@@ -329,7 +330,7 @@ function evaluatePhytosanitaryLog(log: TreatmentLog): CompletenessField[] {
 
 function evaluateFertilizationLog(log: TreatmentLog): CompletenessField[] {
   const draft: FertilizationDraft = {
-    operation_date: log.executed_at.slice(0, 10),
+    operation_date: toIsoDay(log.executed_at),
     fertilizer_type: log.fertilizer_type,
     commercial_name: log.product_name,
     total_amount_kg: log.total_quantity,

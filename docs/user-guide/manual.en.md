@@ -31,6 +31,7 @@
    - [4.11 Official exports and backup](#411-official-exports-and-backup)
    - [4.12 Settings: weather, theme, profile](#412-settings-weather-theme-profile)
    - [4.13 Warehouse — products, lots and stock](#413-warehouse--products-lots-and-stock)
+   - [4.14 Task planning and Field Mode — the no-typing flow](#414-task-planning-and-field-mode--the-no-typing-flow)
 5. [Shortcuts and productivity](#5-shortcuts-and-productivity)
 6. [The recommended flow of a season](#6-the-recommended-flow-of-a-season)
 
@@ -316,6 +317,57 @@ The Warehouse keeps the **product registry** and their **lots** with expiry, sto
 **Expiry:** **expired** lots are highlighted and their use in activities is **blocked** (not selectable); lots **expiring** within the configurable threshold (default 30 days) raise an alert in the panel.
 
 > **Compatibility:** existing records with free-text products/machinery remain valid; the warehouse withdrawal is optional and coexists with free text until you link a real lot. Deleting an operation with withdrawals **restores** the stock automatically.
+
+---
+
+### 4.14 Task planning and Field Mode — the no-typing flow
+
+The idea is simple: **decide at the desk, touch nothing in the tractor**. You prepare the job the evening before, and when you drive into the field the next day the rest happens by itself, all the way to the logbook entry.
+
+#### Before: prepare the task (Sidebar → Task Planning → Tasks & Recipes)
+
+1. **＋ New Recipe** — a **reusable mix** ("Standard powdery-mildew spray", "NPK foliar feed"): give it a name, add the products with their **dose per hectare** and unit. Picking the product from the **Warehouse** copies across the registration number, active substance and — for fertilizers — type and N-P-K ratio by itself: these are exactly the fields the logbook will demand, and this is where you fill them in once and for all.
+2. **＋ New Task** — the **planned job card**: parcel, operation type, the recipe to use, the target pest or disease, the planned date and the operator. The **licence number** is set once and remembered on the device for every form.
+3. If something is missing, a warning tells you **precisely which fields would make the record non-compliant**. You can still save: planning stays fast, and incomplete tasks remain flagged.
+
+> **Why it insists on mandatory fields:** the entry at the end of the job is automatic, so there is no moment when someone re-reads and completes it. What is missing now would be missing in the register. That is why the sidebar shows a **⚠** counter on *Task Planning* and *Field Logbook*, with the list of records to complete.
+
+#### In the field: detection is automatic
+
+There is no button to press and no setting to enable. With the app open, once you have **stayed inside the parcel for 15 seconds** a full-screen prompt appears:
+
+- **"You are in field: [name]"** with the **planned task** highlighted and a giant **START TASK** button. With several tasks, the most urgent one is promoted;
+- if you planned nothing, a giant-button selector — **Treatment**, **Fertilization**, **Tillage**, **Other** — and **START JOB**.
+
+Those 15 seconds are not dead time: they stop a pass along a headland or a service track from being read as "I have started working here". By the same token, a signal wobble near the boundary does not make the app believe you have left.
+
+> ⚠️ **Re-entry interval.** If a treatment was applied to that field and its re-entry interval **has not yet elapsed**, the screen shows a warning with the product and the hours remaining, and the start button stays disabled until you tick the acknowledgement. It is not a hard block — whoever applied the treatment may re-enter with PPE — but it guarantees that **another operator does not walk in unaware**.
+
+#### During: Field Mode
+
+Once the job starts the screen turns **black with giant lime-green figures**: it is built to be read in direct sunlight from the seat, not to look elegant. It deliberately ignores the app theme.
+
+- **Speed**, **hectares worked** and **elapsed time**, live.
+- **PAUSE / RESUME** and **FINISH**, with touch targets over 88 px: they work with gloves on. While paused the hectares do not grow and the clock freezes.
+- **Voice note**: one tap starts, one tap stops. The recording is **geotagged** with where you are and stays on the device; you can play it back from the list.
+- If you started by mistake, **Cancel session** (with confirmation) undoes everything and puts the task back among those to do.
+
+The track is saved in small blocks as you work: if the phone dies or the app closes you lose at most the last stretch, not the day. Reopening the app resumes the session where it was.
+
+#### At the end: it records itself
+
+Once you tap **FINISH**, the job **is already in the Field Logbook**. There is nothing to confirm. The screen you see tells you what was saved:
+
+- the **area actually covered** by GPS — not the cadastral one;
+- the **active duration**, excluding pauses;
+- for each product in the recipe, the **total quantity recomputed** over that area (`dose × hectares worked`);
+- the voice notes recorded.
+
+If the recipe used products held in the Warehouse, **stock is issued** from the lot with the nearest expiry, with the cost charged to the field. If anything needs your attention — an expired lot, insufficient stock, GPS that produced no usable area, or mandatory fields still missing — it says so, with a shortcut to open the logbook and fix it. **The job is recorded either way**: stock to correct is a smaller problem than a job never written down.
+
+The planned task moves to **completed** and leaves the to-do list.
+
+> **About GPS:** detection uses the device position. If permission is denied, the *Task Planning* panel says so in its header and Field Mode simply does not engage — no nagging. The map still shows your position through its usual GPS control, top right.
 
 ---
 

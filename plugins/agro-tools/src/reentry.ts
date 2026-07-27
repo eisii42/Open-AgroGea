@@ -14,10 +14,16 @@
  * i DPI; il requisito è avvisare gli ALTRI operatori.
  */
 
-/** Riga di registro nella forma minima necessaria (strutturalmente compatibile con TreatmentLog). */
+/**
+ * Riga di registro nella forma minima necessaria (strutturalmente compatibile
+ * con TreatmentLog). `executed_at` accetta anche un `Date`: le row rilette dal
+ * data plane locale (PGlite) portano oggetti `Date` anche dove i tipi di
+ * dominio dichiarano una stringa ISO, e questo motore riceve righe non
+ * normalizzate direttamente dallo store.
+ */
 export interface ReentryLogInput {
   plot_id: string | null;
-  executed_at: string;
+  executed_at: string | Date;
   reentry_interval_h: number | null;
   product_name?: string | null;
   operation_type?: string | null;
@@ -50,7 +56,9 @@ export function activeReentryWindows(
   for (const log of logs) {
     if (!log.plot_id) continue;
     if (log.reentry_interval_h == null || log.reentry_interval_h <= 0) continue;
-    const executedMs = Date.parse(log.executed_at);
+    // `new Date(...)` e non `Date.parse(...)`: il secondo su un oggetto `Date`
+    // funziona solo per coercizione via `toString()`, perdendo i millisecondi.
+    const executedMs = new Date(log.executed_at).getTime();
     if (!Number.isFinite(executedMs)) continue;
     const untilMs = executedMs + log.reentry_interval_h * MS_PER_HOUR;
     if (untilMs <= now) continue; // finestra già scaduta
@@ -65,7 +73,7 @@ export function activeReentryWindows(
         until: new Date(untilMs).toISOString(),
         hoursRemaining: Math.max(1, Math.ceil((untilMs - now) / MS_PER_HOUR)),
         productName: log.product_name ?? null,
-        executedAt: log.executed_at,
+        executedAt: new Date(executedMs).toISOString(),
       },
     });
   }

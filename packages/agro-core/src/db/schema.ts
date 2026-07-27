@@ -49,7 +49,7 @@
  *     transazione (nessuno issue parziale);
  *   * `activity_products` — giunzione attività (`treatment_logs`) ↔ lot, con
  *     quantità scaricata e costo imputato (CUMP congelato al momento dello
- *     issue): è la base del costo colturale per field (0.4.0).
+ *     issue): è la base del costo colturale per field (versione futura).
  *   I campi testo libero di `treatment_logs` (`product_name`,
  *   `machinery_equipment`, …) restano INTATTI come fallback per i record non
  *   collegati a un lot reale.
@@ -77,7 +77,7 @@
  * v18 — additiva: Parco macchine (0.3.0). Otto tabelle sincronizzate via outbox:
  *   * `machines` — unità motrici (trattori, mietitrebbie…) tracciate a ORE di
  *     lavoro (`hour_counter`, incrementale materializzato); `status`
- *     operational/maintenance/breakdown/decommissioned; campi 0.4.0 predisposti
+ *     operational/maintenance/breakdown/decommissioned; campi predisposti
  *     (valore/data d'acquisto, vita utile, valore residuo) ma NON calcolati qui;
  *   * `equipment` — attrezzi (aratri, botti…) tracciati per usura
  *     (`usage_counter`) e `working_width_m`; niente motore proprio;
@@ -639,7 +639,7 @@ create index if not exists product_lots_product_idx
 -- activity_products — giunzione attività ↔ lot: quantità scaricata e costo
 -- imputato, con unit_cost = CUMP del product CONGELATO al momento dello
 -- issue (il CUMP successivo non riscrive la storia). Il costo confluisce sul
--- field trattato via treatment_logs.plot_id (bilancio di field 0.4.0).
+-- field trattato via treatment_logs.plot_id (bilancio di field, versione futura).
 create table if not exists activity_products (
   id               uuid primary key,
   tenant_id        uuid not null,
@@ -664,7 +664,7 @@ create index if not exists activity_products_lot_idx
 -- hour_counter è il contatore materializzato, incrementato in transazione dalle
 -- attività (activity_machines) e SETtato dalle rettifiche (counter_adjustments).
 -- I campi purchase_*/useful_life_*/residual_value sono PREDISPOSTI per il costo
--- orario/ammortamento della 0.4.0 (solo struttura, non calcolati qui).
+-- orario/ammortamento (versione futura) (solo struttura, non calcolati qui).
 create table if not exists machines (
   id                uuid primary key,
   tenant_id         uuid not null,
@@ -697,7 +697,7 @@ create index if not exists machines_company_idx
 -- equipment — attrezzi (aratri, botti, seminatrici…). Niente motore proprio:
 -- tracciati per USURA (usage_counter, accumula le ore d'uso) e larghezza di
 -- lavoro (working_width_m, precompila superfici/VRA nel form attività). Stessi
--- campi 0.4.0 predisposti di machines.
+-- campi predisposti di machines.
 create table if not exists equipment (
   id                uuid primary key,
   tenant_id         uuid not null,

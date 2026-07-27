@@ -25,16 +25,19 @@
  * comportamento atteso dal readout "tempo trascorso" mentre è in PAUSA.
  */
 export function sessionElapsedMs(
-  startTime: string,
+  startTime: string | Date,
   pausedMs: number,
-  pausedSince: string | null | undefined,
+  pausedSince: string | Date | null | undefined,
   nowMs: number,
 ): number {
-  const start = Date.parse(startTime);
+  // `new Date(...)` e non `Date.parse(...)`: `start_time` arriva come oggetto
+  // `Date` quando la sessione è stata riletta da PGlite, e `Date.parse` su un
+  // `Date` funziona solo per coercizione via `toString()` (millisecondi persi).
+  const start = new Date(startTime).getTime();
   if (!Number.isFinite(start)) return 0;
   let totalPausedMs = Number.isFinite(pausedMs) ? pausedMs : 0;
   if (pausedSince) {
-    const since = Date.parse(pausedSince);
+    const since = new Date(pausedSince).getTime();
     if (Number.isFinite(since)) {
       totalPausedMs += Math.max(0, nowMs - since);
     }

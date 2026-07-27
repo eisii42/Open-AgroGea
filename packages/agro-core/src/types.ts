@@ -657,7 +657,7 @@ export interface IssueRequest {
   quantity: number;
 }
 
-/** Costo vivo dei products imputato a un field (aggregato per il bilancio 0.4.0). */
+/** Costo vivo dei products imputato a un field (aggregato per il bilancio di campo, versione futura). */
 export interface FieldProductCost {
   /** Plot trattato; null = operazioni "intera azienda". */
   plot_id: string | null;
@@ -709,7 +709,7 @@ export type CounterAdjustmentType = "initial_reading" | "manual" | "engine_reset
  * Tracciata a ORE di lavoro: {@link Machine.hour_counter} è materializzato,
  * incrementato in transazione dalle attività e SETtato dalle rettifiche manuali.
  * I campi `purchase_*`/`useful_life_*`/`residual_value` sono PREDISPOSTI per il
- * costo orario/ammortamento della 0.4.0 (solo struttura, non calcolati qui).
+ * costo orario/ammortamento (versione futura) (solo struttura, non calcolati qui).
  */
 export interface Machine {
   id: string;
@@ -729,12 +729,12 @@ export interface Machine {
   /** Contatore ore corrente (materializzato). */
   hour_counter: number;
   status: MachineStatus;
-  /** Valore d'acquisto (predisposto 0.4.0). */
+  /** Valore d'acquisto (predisposto per l'ammortamento, versione futura). */
   purchase_value: number | null;
   purchase_date: string | null;
-  /** Vita utile stimata in ore (predisposto 0.4.0). */
+  /** Vita utile stimata in ore (predisposto per l'ammortamento, versione futura). */
   useful_life_hours: number | null;
-  /** Vita utile stimata in anni (predisposto 0.4.0). */
+  /** Vita utile stimata in anni (predisposto per l'ammortamento, versione futura). */
   useful_life_years: number | null;
   residual_value: number | null;
   notes: string | null;

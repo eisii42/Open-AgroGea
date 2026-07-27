@@ -2036,8 +2036,6 @@
     "dashboard": {
       "unknownPlot": "Parcela",
       "pausedBadge": "EN PAUSA",
-      "concludedTitle": "Sesión concluida",
-      "concludedBody": "El resumen de fin de labor aparecerá aquí pronto. Todavía puedes reanudar si has concluido por error.",
       "readOnly": "Solo lectura: los controles están desactivados con este rol.",
       "speed": "Velocidad",
       "areaWorked": "Hectáreas trabajadas",
@@ -2053,6 +2051,24 @@
         "title": "Notas de voz ({{count}})",
         "play": "Reproducir nota de voz",
         "pause": "Pausar reproducción"
+      }
+    },
+    "summary": {
+      "title": "Operación concluida",
+      "registered_one": "Registrada en el cuaderno de campo ({{count}} línea).",
+      "registered_other": "Registrada en el cuaderno de campo ({{count}} líneas).",
+      "areaWorked": "Superficie trabajada",
+      "duration": "Duración activa",
+      "quantitiesHeading": "Cantidades aplicadas",
+      "noProduct": "Sin producto",
+      "attentionHeading": "Pendiente de corregir",
+      "openLogbook": "Abrir el cuaderno",
+      "done": "Fin",
+      "warning": {
+        "gps_area_fallback": "El GPS no proporcionó una superficie útil: las cantidades se calcularon sobre la superficie catastral de la parcela.",
+        "no_lot_available": "Ningún lote disponible para {{product}}: no se descontó la existencia del almacén.",
+        "stock_issue_failed": "El descuento de almacén falló: la operación está registrada, pero las existencias deben corregirse manualmente.",
+        "incompleteFields": "{{count}} campos obligatorios faltan en las líneas registradas: complétalos en el cuaderno."
       }
     }
   },

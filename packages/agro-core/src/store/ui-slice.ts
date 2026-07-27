@@ -27,6 +27,7 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
     geofenceDismissedAt: null,
     geofenceWatchStatus: "idle",
     geofenceWatchErrorCode: null,
+    sessionCloseOutcome: null,
 
     setTheme: (theme) => {
       persistTheme(theme);
@@ -187,6 +188,10 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
     // ingresso/uscita da un plot, errore GPS), mai a ogni campione. Il set è
     // comunque guardato sull'uguaglianza così una risincronizzazione ridondante
     // non sveglia i subscriber dello store (fra cui la mappa).
+    setSessionCloseOutcome: (outcome) => set({ sessionCloseOutcome: outcome }),
+
+    dismissSessionCloseOutcome: () => set({ sessionCloseOutcome: null }),
+
     setGeofenceWatchStatus: (status, errorCode = null) =>
       set((s) => {
         const nextError = status === "error" ? errorCode : null;
