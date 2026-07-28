@@ -141,9 +141,31 @@
  *   non li ridigita a bordo campo.
  *   Rollback logico v20: `alter table planned_tasks drop column metadata`
  *   (nessun'altra colonna è cambiata; le task pre-v20 leggono `{}`).
+ *
+ * v21 — additiva: cache degli indici vegetazionali (module Suolo). Due tabelle
+ * LOCAL-ONLY (interamente ricomputabili dalle scene STAC, come `dss_results` e
+ * `soil_water_indices`: nessuna voce di outbox):
+ *   * `vegetation_index_scenes` — una row per (plot, scena STAC elaborata):
+ *     medie per index in `index_means` JSONB, copertura nuvolosa, pixel validi.
+ *     L'unico `(plot_id, scene_id)` è la chiave di deduplica che evita di
+ *     riscaricare i COG di una scena già elaborata;
+ *   * `vegetation_index_rasters` — la griglia di pixel dell'index, per
+ *     ridisegnare le celle sulla mappa SENZA tornare in rete. Si persiste il
+ *     raster, non il GeoJSON delle celle: `rasterToIndexCells` (funzione pura)
+ *     le ricostruisce da `RasterWindow` + valori, e 2 byte/pixel invece di
+ *     ~300 significano ~10 KB per scena su 50 ha invece di ~1,5 MB. I valori
+ *     sono Int16 little-endian scalati (`value_scale`, default 10000, così
+ *     l'intervallo −1..1 degli indici normalizzati resta a 4 decimali) con
+ *     sentinella `nodata_value` per i pixel fuori poligono; il buffer è base64
+ *     in `text` — mai bytea — come `field_session_audio`, per non dipendere
+ *     dalla serializzazione binaria del driver.
+ *   Rollback logico v21 (solo-additivo, nessuna colonna esistente cambiata):
+ *   `drop table vegetation_index_rasters, vegetation_index_scenes` (in
+ *   quest'ordine per la FK). Nessun dato pre-v21 è toccato e la sola
+ *   conseguenza è che il module Suolo torna a ricalcolare ogni volta.
  */
 
-export const AGRO_LOCAL_SCHEMA_VERSION = 20;
+export const AGRO_LOCAL_SCHEMA_VERSION = 21;
 
 export const AGRO_LOCAL_SCHEMA_SQL = `
 create table if not exists agro_meta (
@@ -1020,4 +1042,43 @@ create table if not exists field_session_audio (
 );
 create index if not exists field_session_audio_session_idx
   on field_session_audio (session_id);
+
+-- vegetation_index_scenes — LOCAL-ONLY: una scena STAC già elaborata per un
+-- plot. scene_id è l'id dell'item STAC: l'indice unico con plot_id è ciò che
+-- rende la pipeline cache-first (una scena si elabora una volta sola).
+create table if not exists vegetation_index_scenes (
+  id            uuid primary key,
+  plot_id       uuid not null references plots_registry (id) on delete cascade,
+  scene_id      text not null,
+  collection    text not null default 'sentinel-2-l2a',
+  captured_at   timestamptz not null,
+  cloud_cover   numeric(5, 2),
+  valid_pixels  integer not null default 0,
+  index_means   jsonb not null default '{}',
+  calculated_at timestamptz not null default now()
+);
+create unique index if not exists vegetation_index_scenes_unq
+  on vegetation_index_scenes (plot_id, scene_id);
+create index if not exists vegetation_index_scenes_plot_idx
+  on vegetation_index_scenes (plot_id, captured_at desc);
+
+-- vegetation_index_rasters — LOCAL-ONLY: griglia di pixel di UN indice su UNA
+-- scena, nel sistema proiettato della scena stessa (UTM). I campi geometrici
+-- sono esattamente quelli di RasterWindow, così la ricostruzione delle celle è
+-- una funzione pura senza altri input.
+create table if not exists vegetation_index_rasters (
+  scene_row_id    uuid not null references vegetation_index_scenes (id) on delete cascade,
+  index_name      text not null,
+  epsg            integer not null,
+  origin_easting  double precision not null,
+  origin_northing double precision not null,
+  pixel_width     double precision not null,
+  pixel_height    double precision not null,
+  width           integer not null,
+  height          integer not null,
+  value_scale     integer not null default 10000,
+  nodata_value    integer not null default -32768,
+  values_base64   text not null,
+  primary key (scene_row_id, index_name)
+);
 `;

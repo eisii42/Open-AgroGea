@@ -119,7 +119,9 @@ export function useVraGenerator() {
           if (msg.type === "progress") return;
           worker.removeEventListener("message", onMessage);
           if (msg.type === "error") reject(new Error(msg.message));
-          else resolve(msg.vraCells);
+          // "cells" è la risposta al job di sola vettorializzazione da cache
+          // (module Suolo): questo worker non lo invia mai, ma il tipo è unico.
+          else resolve(msg.type === "done" ? msg.vraCells : null);
         };
         worker.addEventListener("message", onMessage);
         worker.postMessage(job);

@@ -844,6 +844,22 @@
     "relativeScale": "Scala relativa",
     "warning": "Allerta"
   },
+  "indexTimeSlider": {
+    "pickScene": "Scegli una scena",
+    "plotSelector": "Appezzamento della timeline",
+    "previous": "Scena precedente",
+    "next": "Scena successiva",
+    "play": "Riproduci la serie",
+    "pause": "Metti in pausa",
+    "collapse": "Riduci la timeline",
+    "expand": "Espandi la timeline",
+    "computed": "già calcolata",
+    "notComputed": "da calcolare",
+    "computedCount": "{{count}} in cache",
+    "notComputedCount": "{{count}} da calcolare",
+    "notComputable": "Scena non elaborabile: rilancia l’analisi per recuperarne gli asset.",
+    "noRaster": "Raster non disponibile per questa scena."
+  },
   "fieldDashboard": {
     "expandModules": "Espandi moduli",
     "fullScreenMap": "Mappa a schermo intero",

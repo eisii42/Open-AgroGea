@@ -428,6 +428,53 @@ export interface SoilWaterIndex {
   calculated_at: string;
 }
 
+/**
+ * Scena STAC già elaborata per un plot (`vegetation_index_scenes`).
+ * LOCAL-ONLY: ricomputabile riscaricando i COG. La coppia
+ * (`plot_id`, `scene_id`) è unica ed è la chiave di deduplica della pipeline
+ * cache-first del module Suolo.
+ */
+export interface VegetationIndexScene {
+  id: string;
+  plot_id: string;
+  /** Id dell'item STAC (`IndicesScene.itemId`). */
+  scene_id: string;
+  collection: string;
+  /** Istante di acquisizione della scena (ISO). */
+  captured_at: string;
+  cloud_cover: number | null;
+  valid_pixels: number;
+  /** Media per index sul poligono (chiave = id index, es. "ndvi"). */
+  index_means: Record<string, number>;
+  calculated_at: string;
+}
+
+/**
+ * Griglia di pixel di UN index su UNA scena (`vegetation_index_rasters`),
+ * nel sistema proiettato della scena. I campi geometrici ricalcano
+ * `RasterWindow` di `@agrogea/tools`: bastano loro e i valori per ricostruire
+ * le celle vettoriali con `rasterToIndexCells`, senza tornare in rete.
+ *
+ * `values_base64` è un Int16Array little-endian scalato di `value_scale`, con
+ * `nodata_value` sui pixel fuori dal poligono (vedi `encodeIndexRaster` /
+ * `decodeIndexRaster`).
+ */
+export interface VegetationIndexRaster {
+  scene_row_id: string;
+  /** Id dell'index (es. "ndvi"): stringa e non enum, il catalogo vive in @agrogea/tools. */
+  index_name: string;
+  epsg: number;
+  origin_easting: number;
+  origin_northing: number;
+  pixel_width: number;
+  pixel_height: number;
+  width: number;
+  height: number;
+  value_scale: number;
+  nodata_value: number;
+  values_base64: string;
+}
+
 /** Evento di harvest (`harvest_logs`, Modulo Harvest). */
 export interface Harvest {
   id: string;

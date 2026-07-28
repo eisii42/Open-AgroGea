@@ -1,44 +1,58 @@
 import { boundingBox, useAgroStore } from "@agrogea/core";
-import type { Plot } from "@agrogea/core";
+import type { AgroDal, Plot, VegetationIndexScene } from "@agrogea/core";
 import {
-  indexCellColorExpression,
   indexCellValues,
   relativeDomain,
-  relativeRamp,
   searchSceneSeries,
   filterWindowFromLatest,
+  type IndicesScene,
   type VegetationIndex,
 } from "@agrogea/tools";
+import { useCallback, useState } from "react";
 import {
-  DEFAULT_LAYER_STYLE,
-  type GeoLibreLayer,
-  type LayerStyle,
-  useAppStore,
-} from "@geolibre/core";
-import { useCallback, useEffect, useRef, useState } from "react";
-import type {
-  IndexCellsResult,
-  SeriesPoint,
-  SoilJob,
-  SoilProgress,
-} from "../workers/soil.worker";
+  CACHE_RETENTION_MONTHS,
+  cellsForScene,
+  processScenes,
+  sceneCoversIndices,
+  seriesPointFromPayload,
+  seriesPointFromScene,
+} from "../modules/soil/index-cache";
+import {
+  injectIndexCells,
+  removeIndexCells,
+  updateIndexCellsScale,
+} from "../modules/soil/index-cells-layer";
+import {
+  buildTimelineScenes,
+  publishTimeline,
+  resetIndexTimeline,
+  type TimelineScene,
+} from "../modules/soil/index-timeline-store";
+import type { SeriesPoint } from "../workers/soil.worker";
 
 /**
- * Pipeline indici del module Suolo (refactor STAC + rendering vettoriale).
- * Orchestrazione main-thread della ricerca STAC (multi-index, multi-plot,
- * filtro cloud cover, strategie temporali) e del worker di calcolo. Per ogni
- * plot:
+ * Pipeline indici del module Suolo (refactor STAC + rendering vettoriale),
+ * CACHE-FIRST: una scena satellitare si elabora UNA volta sola per plot, poi
+ * vive nel data plane locale (`vegetation_index_scenes` +
+ * `vegetation_index_rasters`, tabelle local-only). Per ogni plot:
  *
  *   1. bbox del poligono → `searchSceneSeries` (series storica filtrata);
- *   2. worker `soil.worker` → medie per index e per data + celle vettoriali
- *      (10×10 m, una per pixel raster) dell'index primario sulla scena più
- *      recente, con i value di tutti gli indici come properties;
- *   3. le celle vengono iniettate come layer `geojson` (fill-color = espressione
- *      `interpolate` sulla property `value`) nello store GeoLibre, sopra la
- *      basemap e persistenti al cambio basemap via syncLayers. La color scale
- *      è RELATIVA: pooled sui value di TUTTI i plots calcolati in questa run,
+ *   2. le scene già in cache che coprono TUTTI gli indici richiesti vengono
+ *      lette dal DAL; solo le mancanti vanno al worker, che scarica i COG,
+ *      compute medie e raster mascherati e li restituisce già compressi;
+ *   3. la scena a video viene vettorializzata dal worker partendo dai raster:
+ *      stesso identico percorso sia che vengano dal calcolo appena fatto sia
+ *      dalla cache;
+ *   4. le celle vengono iniettate come layer `geojson` nello store GeoLibre. La
+ *      color scale è RELATIVA: pooled sui value di TUTTI i plots della run,
  *      ricalcolata e riallineata su ogni layer a fine run;
- *   4. la media NDVI più recente è salvata nella cache offline (DAL).
+ *   5. la media NDVI più recente è salvata nella cache offline (DAL), le scene
+ *      oltre la finestra di ritenzione vengono potate e la timeline del time
+ *      slider viene pubblicata.
+ *
+ * Le operazioni condivise con il time slider e con il job in background stanno
+ * in `modules/soil/index-cache.ts`; il worker è quello condiviso a coda
+ * (`soil-worker-client`), non uno per hook.
  */
 
 export type StrategiaTemporale =
@@ -81,17 +95,6 @@ export type SoilStatus =
     }
   | { phase: "errore"; message: string };
 
-/** Prefisso id dei layer celle indice (uno per plot, sostituisce il vecchio overlay immagine). */
-export const INDEX_CELLS_PREFIX = "agrogea-index-cells-";
-
-/** Rimuove tutti i layer celle indice dallo store (prima di un nuovo calcolo). */
-function removeIndexCells(): void {
-  const store = useAppStore.getState();
-  for (const layer of store.layers) {
-    if (layer.id.startsWith(INDEX_CELLS_PREFIX)) store.removeLayer(layer.id);
-  }
-}
-
 /**
  * Normalizza l'intervallo personalizzato: ordina gli estremi e taglia la durata
  * a {@link MAX_CUSTOM_DAYS} giorni (difesa lato pipeline, oltre alla
@@ -113,132 +116,28 @@ function clampRange(
   return { inizio, fine };
 }
 
-/** Stile del layer celle: espressione `interpolate` sulla rampa relativa dell'index. */
-function cellStyle(
-  index: VegetationIndex,
-  domain: [number, number],
-): LayerStyle {
-  const ramp = relativeRamp(index, domain);
-  const middleColor = ramp[Math.floor(ramp.length / 2)]?.[1] ?? ramp[0]?.[1] ?? DEFAULT_LAYER_STYLE.fillColor;
-  return {
-    ...DEFAULT_LAYER_STYLE,
-    fillColor: middleColor,
-    fillOpacity: 0.85,
-    strokeWidth: 0,
-    vectorStyleMode: "expression",
-    vectorStyleExpression: JSON.stringify(indexCellColorExpression(ramp)),
-  };
-}
-
-/**
- * Inietta (o aggiorna) il layer `geojson` delle celle indice del plot, con la
- * color scale relativa al dominio corrente (pooled fin lì nella run).
- */
-function iniettaIndexCells(
-  plot: Plot,
-  result: IndexCellsResult,
-  domain: [number, number],
-): void {
-  const store = useAppStore.getState();
-  const id = `${INDEX_CELLS_PREFIX}${plot.id}`;
-  const style = cellStyle(result.index, domain);
-  const metadata = {
-    agrogea: true,
-    overlay: true,
-    indexCells: true,
-    index: result.index,
-    domain,
-    cellSizeM: result.cellSizeM,
-    datetime: result.datetime,
-  };
-  if (store.layers.some((l) => l.id === id)) {
-    store.updateLayer(id, { geojson: result.cells, style, metadata });
-    return;
-  }
-  const layer: GeoLibreLayer = {
-    id,
-    name: `Indice ${result.index.toUpperCase()} · ${plot.user_plot_name}`,
-    type: "geojson",
-    source: { type: "geojson" },
-    geojson: result.cells,
-    visible: true,
-    opacity: 1,
-    style,
-    metadata,
-    sourcePath: `agrogea://index-cells-${plot.id}`,
-  };
-  // Append (in cima): le celle indice restano visibili sopra il poligono.
-  store.addLayer(layer);
-}
-
-/** Riallinea SOLO lo stile/dominio del layer celle di un plot già iniettato. */
-function aggiornaScalaIndexCells(
-  plotId: string,
-  index: VegetationIndex,
-  domain: [number, number],
-): void {
-  const store = useAppStore.getState();
-  const id = `${INDEX_CELLS_PREFIX}${plotId}`;
-  const layer = store.layers.find((l) => l.id === id);
-  if (!layer) return;
-  store.updateLayer(id, {
-    style: cellStyle(index, domain),
-    metadata: { ...layer.metadata, domain },
-  });
-}
-
 export function useSoilPipeline() {
   const saveMeanNdvi = useAgroStore((s) => s.saveMeanNdvi);
   const [status, setStatus] = useState<SoilStatus>({ phase: "idle" });
-  const workerRef = useRef<Worker | null>(null);
-
-  useEffect(() => {
-    const worker = new Worker(
-      new URL("../workers/soil.worker.ts", import.meta.url),
-      { type: "module" },
-    );
-    workerRef.current = worker;
-    return () => {
-      worker.terminate();
-      workerRef.current = null;
-    };
-  }, []);
-
-  const runJob = useCallback(
-    (job: SoilJob, onProgress: (p: SoilProgress) => void) =>
-      new Promise<{ series: SeriesPoint[]; cells: IndexCellsResult | null }>(
-        (resolve, reject) => {
-          const worker = workerRef.current;
-          if (!worker) {
-            reject(new Error("Worker non inizializzato."));
-            return;
-          }
-          const onMessage = (e: MessageEvent<SoilProgress>) => {
-            const msg = e.data;
-            if (msg.type === "progress") {
-              onProgress(msg);
-              return;
-            }
-            worker.removeEventListener("message", onMessage);
-            if (msg.type === "error") reject(new Error(msg.message));
-            else resolve({ series: msg.series, cells: msg.cells });
-          };
-          worker.addEventListener("message", onMessage);
-          worker.postMessage(job);
-        },
-      ),
-    [],
-  );
 
   const compute = useCallback(
     async (plots: Plot[], options: SoilOptions) => {
       if (plots.length === 0 || options.indices.length === 0) return;
       removeIndexCells();
+      // Senza DAL (nessuna company aperta) la pipeline resta funzionante ma
+      // senza cache: ogni run torna in rete, come prima del refactor.
+      const dal: AgroDal | null = useAgroStore.getState().dal;
       const results: PlotResult[] = [];
       // Value pooled per plot (property `value` = index primario di ogni cella):
       // la color scale relativa si ricalcola man mano su TUTTI i plots già
       // calcolati, e viene riallineata su tutti i layer a fine run.
       const cellValuesByPlot = new Map<string, number[]>();
+      // Timeline del PRIMO plot con scene: è quello su cui si apre lo slider.
+      let timeline: {
+        plotId: string;
+        scenes: TimelineScene[];
+        activeSceneId: string | null;
+      } | null = null;
 
       try {
         const strategia = options.strategia;
@@ -266,8 +165,7 @@ export function useSoilPipeline() {
             appezzamentiTotali: plots.length,
           });
 
-          const bbox = boundingBox(plot.geometry);
-          let sceneSeries = await searchSceneSeries(bbox, {
+          let sceneSeries = await searchSceneSeries(boundingBox(plot.geometry), {
             indices: options.indices,
             cloudCoverMax: options.cloudCoverMax,
             ...(datetimeRange
@@ -278,12 +176,28 @@ export function useSoilPipeline() {
           if (strategia.type === "intervallo") {
             sceneSeries = filterWindowFromLatest(sceneSeries, strategia.days);
           }
+
+          // Cache locale: le scene già elaborate che coprono gli indici
+          // richiesti non tornano in rete. È il salto di prestazioni della
+          // pipeline — su una serie storica il secondo giro è quasi istantaneo.
+          const cached = dal ? await dal.listVegetationIndexScenes(plot.id) : [];
+          const cachedBySceneId = new Map(cached.map((s) => [s.scene_id, s]));
+
           if (sceneSeries.length === 0) {
             results.push({
               plotId: plot.id,
               name: plot.user_plot_name,
               series: [],
             });
+            // Anche senza passaggi nella finestra richiesta lo storico in cache
+            // resta navigabile dallo slider.
+            timeline ??= cached.length
+              ? {
+                  plotId: plot.id,
+                  scenes: buildTimelineScenes([], cached),
+                  activeSceneId: null,
+                }
+              : null;
             continue;
           }
 
@@ -292,23 +206,50 @@ export function useSoilPipeline() {
           const scene =
             strategia.type === "ultima" ? [sceneSeries[0]] : sceneSeries;
 
-          const job: SoilJob = {
-            type: "suolo",
-            scene,
+          const daElaborare = scene.filter((s) => {
+            const hit = cachedBySceneId.get(s.itemId);
+            return !hit || !sceneCoversIndices(hit, options.indices);
+          });
+
+          const fresh = await processScenes({
+            dal,
+            plot,
+            scenes: daElaborare,
             indices: options.indices,
             primaryIndex: options.primaryIndex,
-            geometria: plot.geometry,
-            bbox,
+            onProgress: (p) => {
+              if (p.type !== "progress") return;
+              setStatus({
+                phase: "lavorazione",
+                label: `Calcolo indices · ${plot.user_plot_name} (scena ${p.scenaCorrente}/${p.sceneTotali})`,
+                appezzamentoCorrente: i + 1,
+                appezzamentiTotali: plots.length,
+              });
+            },
+            onScenePersisted: (saved) =>
+              cachedBySceneId.set(saved.scene_id, saved),
+          });
+
+          // Serie storica = scene fresche + scene da cache, in ordine
+          // cronologico crescente (il grafico di trend legge da sinistra).
+          const series = scene
+            .map((s) => {
+              const payload = fresh.get(s.itemId);
+              if (payload) return seriesPointFromPayload(payload);
+              const hit = cachedBySceneId.get(s.itemId);
+              return hit ? seriesPointFromScene(hit) : null;
+            })
+            .filter((p): p is SeriesPoint => p !== null)
+            .sort((a, b) => a.datetime.localeCompare(b.datetime));
+
+          const cells = await cellsForScene({
+            dal,
             plotId: plot.id,
-          };
-          const { series, cells } = await runJob(job, (p) => {
-            if (p.type !== "progress") return;
-            setStatus({
-              phase: "lavorazione",
-              label: `Calcolo indices · ${plot.user_plot_name} (scena ${p.scenaCorrente}/${p.sceneTotali})`,
-              appezzamentoCorrente: i + 1,
-              appezzamentiTotali: plots.length,
-            });
+            datetime: scene[0].datetime,
+            primaryIndex: options.primaryIndex,
+            indices: options.indices,
+            fresh: fresh.get(scene[0].itemId) ?? null,
+            cachedScene: cachedBySceneId.get(scene[0].itemId) ?? null,
           });
 
           if (cells) {
@@ -319,8 +260,16 @@ export function useSoilPipeline() {
             const runningDomain = relativeDomain(
               [...cellValuesByPlot.values()].flat(),
             );
-            iniettaIndexCells(plot, cells, runningDomain);
+            injectIndexCells(plot, cells, runningDomain);
           }
+
+          timeline ??= {
+            plotId: plot.id,
+            scenes: buildTimelineScenes(sceneSeries, [
+              ...cachedBySceneId.values(),
+            ]),
+            activeSceneId: cells ? scene[0].itemId : null,
+          };
 
           // Cache offline della media NDVI più recente (series crescente: ultimo
           // = più recente), così la scheda plot la mostra offline.
@@ -342,8 +291,32 @@ export function useSoilPipeline() {
         if (cellValuesByPlot.size > 0) {
           domain = relativeDomain([...cellValuesByPlot.values()].flat());
           for (const plotId of cellValuesByPlot.keys()) {
-            aggiornaScalaIndexCells(plotId, options.primaryIndex, domain);
+            updateIndexCellsScale(plotId, options.primaryIndex, domain);
           }
+        }
+
+        // Potatura della cache fuori finestra: a fine run, quando il risultato
+        // è già in mano all'utente. Un fallimento qui non deve far fallire
+        // l'analisi — al massimo la cache resta più grande del previsto.
+        try {
+          await dal?.pruneVegetationIndexScenes({
+            retentionMonths: CACHE_RETENTION_MONTHS,
+          });
+        } catch (error) {
+          console.warn("Potatura della cache indici non riuscita.", error);
+        }
+
+        if (timeline) {
+          publishTimeline({
+            plots: plots.map((p) => ({ id: p.id, name: p.user_plot_name })),
+            focusPlotId: timeline.plotId,
+            scenes: timeline.scenes,
+            activeSceneId: timeline.activeSceneId,
+            indices: options.indices,
+            primaryIndex: options.primaryIndex,
+          });
+        } else {
+          resetIndexTimeline();
         }
 
         setStatus({
@@ -360,11 +333,12 @@ export function useSoilPipeline() {
         });
       }
     },
-    [runJob, saveMeanNdvi],
+    [saveMeanNdvi],
   );
 
   const reset = useCallback(() => {
     removeIndexCells();
+    resetIndexTimeline();
     setStatus({ phase: "idle" });
   }, []);
 

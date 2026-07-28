@@ -844,6 +844,22 @@
     "relativeScale": "Escala relativa",
     "warning": "Alerta"
   },
+  "indexTimeSlider": {
+    "pickScene": "Elige una escena",
+    "plotSelector": "Parcela de la línea temporal",
+    "previous": "Escena anterior",
+    "next": "Escena siguiente",
+    "play": "Reproducir la serie",
+    "pause": "Pausar",
+    "collapse": "Contraer la línea temporal",
+    "expand": "Expandir la línea temporal",
+    "computed": "ya calculada",
+    "notComputed": "por calcular",
+    "computedCount": "{{count}} en caché",
+    "notComputedCount": "{{count}} por calcular",
+    "notComputable": "Escena no procesable: vuelve a lanzar el análisis para recuperar sus recursos.",
+    "noRaster": "Ráster no disponible para esta escena."
+  },
   "fieldDashboard": {
     "expandModules": "Expandir módulos",
     "fullScreenMap": "Mapa a pantalla completa",

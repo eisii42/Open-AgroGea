@@ -844,6 +844,22 @@
     "relativeScale": "Relative scale",
     "warning": "Warning"
   },
+  "indexTimeSlider": {
+    "pickScene": "Pick a scene",
+    "plotSelector": "Timeline plot",
+    "previous": "Previous scene",
+    "next": "Next scene",
+    "play": "Play the series",
+    "pause": "Pause",
+    "collapse": "Collapse the timeline",
+    "expand": "Expand the timeline",
+    "computed": "already computed",
+    "notComputed": "to compute",
+    "computedCount": "{{count}} cached",
+    "notComputedCount": "{{count}} to compute",
+    "notComputable": "Scene not processable: run the analysis again to fetch its assets.",
+    "noRaster": "No raster available for this scene."
+  },
   "fieldDashboard": {
     "expandModules": "Expand modules",
     "fullScreenMap": "Full-screen map",

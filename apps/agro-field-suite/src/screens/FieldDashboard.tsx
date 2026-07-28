@@ -35,6 +35,7 @@ import { useFeatureSelection } from "../hooks/useFeatureSelection";
 import { useFieldLayers } from "../hooks/useFieldLayers";
 import { useFieldPlugins } from "../hooks/useFieldPlugins";
 import { useHoverTooltips } from "../hooks/useHoverTooltips";
+import { useIndexRefreshJob } from "../hooks/useIndexRefreshJob";
 import { useMapStyleEpoch } from "../hooks/useMapStyleEpoch";
 
 /**
@@ -146,6 +147,11 @@ const FieldDetectionModal = lazy(() =>
     default: m.FieldDetectionModal,
   })),
 );
+const IndexTimeSlider = lazy(() =>
+  import("../modules/soil/IndexTimeSlider").then((m) => ({
+    default: m.IndexTimeSlider,
+  })),
+);
 
 /**
  * Stadio 3 — Dashboard geocentrica. Layout: header in alto, sidebar moduli a
@@ -172,6 +178,10 @@ export function FieldDashboard() {
   // Nessun pulsante e nessun flag — il hook arma il watch da sé e alimenta la
   // modale di rilevamento; qui basta tenerlo montato.
   useGeofenceWatch();
+  // Controllo automatico di nuove immagini satellitari all'avvio (throttle 12h
+  // per azienda): popola la cache indici in sottofondo, così il time slider ha
+  // già una serie navigabile senza che l'utente debba lanciare un calcolo.
+  useIndexRefreshJob();
 
   const mapControllerRef = useRef<MapController | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -331,6 +341,12 @@ export function FieldDashboard() {
 
         {/* Legenda a gradiente degli indici: compare con gli overlay attivi. */}
         <Colorbar />
+
+        {/* Time slider degli indici: compare in basso dopo un calcolo e resta
+            navigabile anche a pannello Suolo chiuso. */}
+        <Suspense fallback={null}>
+          <IndexTimeSlider />
+        </Suspense>
 
         {/* Legenda crops: colore/icona per specie negli plots attivi. */}
         {!platform.isMobile && (

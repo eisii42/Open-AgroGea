@@ -8,15 +8,17 @@ import type {
   WeatherReading,
   SoilWaterIndex,
   CatalogType,
+  VegetationIndexScene,
+  VegetationIndexRaster,
 } from "../types";
 import { AgroDalTasks } from "./dal-tasks";
 import { nowIso, type Row, upsertSql } from "./write";
 
 /**
  * Strato "moduli locali" del DAL: readings e configurazione meteo, cache DSS,
- * bilancio idrico FAO 56/66, giornale trasferimenti e cataloghi di stato.
- * Tranne le readings meteo di stazione, sono tabelle LOCAL-ONLY: scritture
- * dirette, mai dall'outbox.
+ * bilancio idrico FAO 56/66, cache degli indici vegetazionali, giornale
+ * trasferimenti e cataloghi di stato. Tranne le readings meteo di stazione,
+ * sono tabelle LOCAL-ONLY: scritture dirette, mai dall'outbox.
  */
 export class AgroDalLocal extends AgroDalTasks {
   // -- readings meteo (Smart IoT / agrometeo) ---------------------------------
@@ -350,6 +352,191 @@ export class AgroDalLocal extends AgroDalTasks {
       [plotCampaignId, options.limit ?? 1000],
     );
     return result.rows;
+  }
+
+  // -- chiave/valore di servizio del device (agro_meta, local-only) ----------
+
+  /**
+   * Valore di una chiave di servizio, o null. `agro_meta` è già la sede dei
+   * watermark di sync: la si riusa per gli stati del device che non sono
+   * dominio (es. l'ultimo controllo di nuove immagini satellitari), così vivono
+   * nel DB del tenant e non in localStorage — seguono il backup del dataDir e
+   * non si mescolano fra companies diverse.
+   */
+  async getMeta(key: string): Promise<string | null> {
+    const result = await this.db.query<{ value: string }>(
+      `select value from agro_meta where key = $1`,
+      [key],
+    );
+    return result.rows[0]?.value ?? null;
+  }
+
+  async setMeta(key: string, value: string): Promise<void> {
+    await this.db.query(
+      `insert into agro_meta (key, value) values ($1, $2)
+       on conflict (key) do update set value = excluded.value`,
+      [key, value],
+    );
+  }
+
+  // -- cache indici vegetazionali (Modulo Suolo, local-only) -----------------
+
+  /**
+   * Scene già elaborate per un plot, dalla più recente. `since` restringe alle
+   * acquisizioni successive a un istante (usato dal controllo incrementale di
+   * nuove immagini, che non deve rileggere l'intero storico).
+   */
+  async listVegetationIndexScenes(
+    plotId: string,
+    options: { since?: string; limit?: number } = {},
+  ): Promise<VegetationIndexScene[]> {
+    const result = await this.db.query<VegetationIndexScene>(
+      `select * from vegetation_index_scenes
+       where plot_id = $1 and ($2::timestamptz is null or captured_at > $2::timestamptz)
+       order by captured_at desc
+       limit $3`,
+      [plotId, options.since ?? null, options.limit ?? 500],
+    );
+    return result.rows;
+  }
+
+  /**
+   * Raster degli indici di una scena già elaborata, per ridisegnare le celle
+   * senza tornare in rete. `indexNames` vuoto o assente = tutti quelli in cache.
+   */
+  async listVegetationIndexRasters(
+    sceneRowId: string,
+    indexNames?: string[],
+  ): Promise<VegetationIndexRaster[]> {
+    const filtered = indexNames?.length ? indexNames : null;
+    const result = await this.db.query<VegetationIndexRaster>(
+      `select * from vegetation_index_rasters
+       where scene_row_id = $1 and ($2::text[] is null or index_name = any ($2::text[]))
+       order by index_name`,
+      [sceneRowId, filtered],
+    );
+    return result.rows;
+  }
+
+  /**
+   * Registra (o riscrive) una scena elaborata e i suoi raster, in transazione:
+   * non può restare una scena in cache senza i raster che la rendono
+   * ridisegnabile. Local-only, nessuna voce di outbox.
+   *
+   * Il conflitto su `(plot_id, scene_id)` aggiorna la row esistente: rielaborare
+   * la stessa scena con un set di indici diverso arricchisce la cache invece di
+   * duplicarla. I raster sono sostituiti solo per gli indici passati, così un
+   * ricalcolo parziale non perde quelli già in cache.
+   */
+  async saveVegetationIndexScene(
+    scene: Omit<VegetationIndexScene, "id" | "calculated_at"> & {
+      id?: string;
+      calculated_at?: string;
+    },
+    rasters: Omit<VegetationIndexRaster, "scene_row_id">[],
+  ): Promise<VegetationIndexScene> {
+    const ts = nowIso();
+    const row: VegetationIndexScene = {
+      id: scene.id ?? uuidv4(),
+      plot_id: scene.plot_id,
+      scene_id: scene.scene_id,
+      collection: scene.collection,
+      captured_at: scene.captured_at,
+      cloud_cover: scene.cloud_cover,
+      valid_pixels: scene.valid_pixels,
+      index_means: scene.index_means,
+      calculated_at: scene.calculated_at ?? ts,
+    };
+
+    return this.db.transaction(async (tx: Transaction) => {
+      const upserted = await tx.query<{
+        id: string;
+        index_means: Record<string, number>;
+      }>(
+        `insert into vegetation_index_scenes
+           (id, plot_id, scene_id, collection, captured_at, cloud_cover,
+            valid_pixels, index_means, calculated_at)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         on conflict (plot_id, scene_id) do update set
+           collection    = excluded.collection,
+           captured_at   = excluded.captured_at,
+           cloud_cover   = excluded.cloud_cover,
+           valid_pixels  = excluded.valid_pixels,
+           index_means   = vegetation_index_scenes.index_means || excluded.index_means,
+           calculated_at = excluded.calculated_at
+         returning id, index_means`,
+        [
+          row.id,
+          row.plot_id,
+          row.scene_id,
+          row.collection,
+          row.captured_at,
+          row.cloud_cover,
+          row.valid_pixels,
+          JSON.stringify(row.index_means),
+          row.calculated_at,
+        ],
+      );
+      // Su conflitto vince l'id già in tabella: i raster vanno agganciati a
+      // quello, non all'id appena generato (che non esiste in tabella). Anche
+      // le medie tornano quelle FUSE, non quelle in ingresso.
+      const sceneRowId = upserted.rows[0]?.id ?? row.id;
+      const indexMeans = upserted.rows[0]?.index_means ?? row.index_means;
+
+      for (const raster of rasters) {
+        await tx.query(
+          `insert into vegetation_index_rasters
+             (scene_row_id, index_name, epsg, origin_easting, origin_northing,
+              pixel_width, pixel_height, width, height, value_scale,
+              nodata_value, values_base64)
+           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+           on conflict (scene_row_id, index_name) do update set
+             epsg            = excluded.epsg,
+             origin_easting  = excluded.origin_easting,
+             origin_northing = excluded.origin_northing,
+             pixel_width     = excluded.pixel_width,
+             pixel_height    = excluded.pixel_height,
+             width           = excluded.width,
+             height          = excluded.height,
+             value_scale     = excluded.value_scale,
+             nodata_value    = excluded.nodata_value,
+             values_base64   = excluded.values_base64`,
+          [
+            sceneRowId,
+            raster.index_name,
+            raster.epsg,
+            raster.origin_easting,
+            raster.origin_northing,
+            raster.pixel_width,
+            raster.pixel_height,
+            raster.width,
+            raster.height,
+            raster.value_scale,
+            raster.nodata_value,
+            raster.values_base64,
+          ],
+        );
+      }
+      return { ...row, id: sceneRowId, index_means: indexMeans };
+    });
+  }
+
+  /**
+   * Pota le scene più vecchie della finestra di ritenzione (default 24 mesi:
+   * copre due annate agrarie, quindi i confronti anno-su-anno). I raster
+   * seguono per FK `on delete cascade`. Ritorna quante scene sono state tolte.
+   */
+  async pruneVegetationIndexScenes(
+    options: { retentionMonths?: number; now?: Date } = {},
+  ): Promise<number> {
+    const retentionMonths = options.retentionMonths ?? 24;
+    const cutoff = new Date(options.now ?? new Date());
+    cutoff.setMonth(cutoff.getMonth() - retentionMonths);
+    const result = await this.db.query(
+      `delete from vegetation_index_scenes where captured_at < $1`,
+      [cutoff.toISOString()],
+    );
+    return result.affectedRows ?? 0;
   }
 
   // -- giornale trasferimenti (Modulo Tag I/O, local-only) -------------------

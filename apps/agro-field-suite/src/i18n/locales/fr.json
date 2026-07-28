@@ -844,6 +844,22 @@
     "relativeScale": "Échelle relative",
     "warning": "Alerte"
   },
+  "indexTimeSlider": {
+    "pickScene": "Choisir une scène",
+    "plotSelector": "Parcelle de la frise",
+    "previous": "Scène précédente",
+    "next": "Scène suivante",
+    "play": "Lire la série",
+    "pause": "Mettre en pause",
+    "collapse": "Réduire la frise",
+    "expand": "Développer la frise",
+    "computed": "déjà calculée",
+    "notComputed": "à calculer",
+    "computedCount": "{{count}} en cache",
+    "notComputedCount": "{{count}} à calculer",
+    "notComputable": "Scène non exploitable : relancez l’analyse pour récupérer ses ressources.",
+    "noRaster": "Raster indisponible pour cette scène."
+  },
   "fieldDashboard": {
     "expandModules": "Développer les modules",
     "fullScreenMap": "Carte plein écran",
