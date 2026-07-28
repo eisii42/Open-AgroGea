@@ -13,8 +13,8 @@ import { type RefObject, useEffect } from "react";
  * dipende dal tipo:
  *   * plot → apre la SCHEDA dell'appezzamento: task programmate (avviabili) e
  *     operazioni registrate su quel field, in un unico posto (l'editing
- *     geometria/metadati e l'eliminazione restano nel "Modifica / Elimina" →
- *     Registro geometrie);
+ *     geometria/metadati e l'eliminazione restano in Suolo → "Lista
+ *     appezzamenti" → Registro geometrie);
  *   * infrastructure / POI → apre la scheda di dettaglio/editing.
  *
  * Si usa UN listener globale `click` + `queryRenderedFeatures` filtrato sui

@@ -17,7 +17,7 @@
       "drawPlot": "Dessiner une parcelle",
       "drawInfrastructure": "Dessiner une infrastructure",
       "drawPoi": "Dessiner un POI",
-      "editGeometries": "Modifier / supprimer les géométries",
+      "editGeometries": "Liste des parcelles (fiche, sol, modification)",
       "printMap": "Imprimer la carte",
       "companySettings": "Paramètres de l'exploitation",
       "undoGeometry": "Annuler la modification de géométrie",
@@ -131,7 +131,7 @@
     "toolDrawPlot": "Parcelle (polygone)",
     "toolDrawInfra": "Infrastructure (ligne)",
     "toolDrawPoi": "POI (point)",
-    "toolManage": "Modifier / Supprimer",
+    "toolPlotList": "Liste des parcelles",
     "toolPrint": "Imprimer la carte (Print Composer)",
     "toolOperations": "Registre des opérations",
     "toolHarvest": "Enregistrer la récolte",
@@ -1545,8 +1545,8 @@
         "descr": "Produits, lots et stock"
       },
       "panelRegistro": {
-        "label": "Registre des géométries",
-        "descr": "Modifier / supprimer des éléments"
+        "label": "Liste des parcelles",
+        "descr": "Éléments tracés : fiche, sol, modification"
       },
       "panelSian": {
         "label": "Export SIAN",

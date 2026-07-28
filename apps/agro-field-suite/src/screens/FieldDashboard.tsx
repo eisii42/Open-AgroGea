@@ -282,7 +282,7 @@ export function FieldDashboard() {
             )}
           </button>
           <MapControls mapControllerRef={mapControllerRef} />
-          <BasemapSwitcher />
+          <BasemapSwitcher mapControllerRef={mapControllerRef} />
           {mapReady && (
             <button
               type="button"

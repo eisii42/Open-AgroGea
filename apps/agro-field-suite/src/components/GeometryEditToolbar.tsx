@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { EDIT_MODE_BY_KIND } from "../lib/geometry-edit-modes";
 
 /**
  * Barra degli strumenti di MODIFICA, mostrata solo durante una sessione di
@@ -31,13 +32,15 @@ export function GeometryEditToolbar() {
   const { t } = useTranslation();
   const geomEdit = useAgroStore((s) => s.geomEdit);
   const editId = geomEdit?.id ?? null;
+  const editKind = geomEdit?.kind ?? null;
   const [active, setActive] = useState<EditMode>("change");
 
-  // All'avvio di una nuova sessione il motore parte in modalità vertici/drag:
-  // si allinea l'evidenziazione al default.
+  // All'avvio di una nuova sessione `useFieldPlugins` arma sul motore la
+  // modalità di default del tipo di elemento: si allinea l'evidenziazione a
+  // quella, così il pulsante mostrato come selezionato è davvero quello attivo.
   useEffect(() => {
-    if (editId) setActive("change");
-  }, [editId]);
+    if (editId && editKind) setActive(EDIT_MODE_BY_KIND[editKind]);
+  }, [editId, editKind]);
 
   if (!geomEdit) return null;
 

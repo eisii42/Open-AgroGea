@@ -18,8 +18,9 @@ import type { TFunction } from "i18next";
  * Registro di tutte le geometrie dell'azienda attiva (Modulo 4 §gestione).
  * Elenca plots, infrastrutture e POI: il tap su una voce inquadra
  * l'elemento sulla mappa e apre la sua scheda di dettaglio/editing (da cui si
- * modifica la geometria/i metadati o si remove in sicurezza). È la area
- * di gestione dichiarata dalla voce "Modifica / Elimina" del menu disegno.
+ * leggono/modificano i parametri del suolo e i metadati, si modifica la
+ * geometria o si remove in sicurezza). È la area di gestione dichiarata dalla
+ * voce "Lista appezzamenti" del module Suolo.
  */
 
 /** Bounding box [minLon, minLat, maxLon, maxLat] dalle coordinate GeoJSON. */

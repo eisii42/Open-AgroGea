@@ -19,10 +19,10 @@ import {
   Languages,
   Layers,
   Leaf,
+  List,
   type LucideIcon,
   Map as MapIcon,
   Mountain,
-  MousePointerClick,
   NotebookPen,
   Plus,
   Printer,
@@ -98,7 +98,7 @@ const MODULE_GROUPS: ModuleGroup[] = [
       { id: "panelRefill", Icon: Fuel },
       { id: "panelSian", Icon: FileDown },
       { id: "panelStampa", Icon: Printer },
-      { id: "panelRegistro", Icon: MousePointerClick },
+      { id: "panelRegistro", Icon: List },
       { id: "panelAnagrafica", Icon: Building2 },
       { id: "panelMeteo", Icon: CloudSun },
       { id: "panelGeoCompliance", Icon: ShieldCheck },
@@ -267,9 +267,13 @@ function ToggleRow({ item }: { item: ModuleItem }) {
           disabled ? "cursor-not-allowed" : "cursor-pointer",
         )}
       >
+        {/* `left-0` è necessario: senza un'ancora esplicita la posizione statica
+            di un absolute dentro un <button> segue il `text-align: center` dello
+            user-agent, quindi il pallino parte dal CENTRO del binario e le due
+            translate lo portano fuori asse (e fuori bordo da acceso). */}
         <span
           className={cn(
-            "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-[var(--sh-1)] transition-transform",
+            "absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white shadow-[var(--sh-1)] transition-transform",
             on ? "translate-x-[22px]" : "translate-x-0.5",
           )}
         />

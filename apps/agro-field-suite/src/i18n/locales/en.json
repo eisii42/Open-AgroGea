@@ -17,7 +17,7 @@
       "drawPlot": "Draw plot",
       "drawInfrastructure": "Draw infrastructure",
       "drawPoi": "Draw POI",
-      "editGeometries": "Edit / delete geometries",
+      "editGeometries": "Plot list (details, soil, editing)",
       "printMap": "Print map",
       "companySettings": "Company settings",
       "undoGeometry": "Undo geometry edit",
@@ -133,7 +133,7 @@
     "toolDrawPlot": "Plot (polygon)",
     "toolDrawInfra": "Infrastructure (line)",
     "toolDrawPoi": "POI (point)",
-    "toolManage": "Edit / Delete",
+    "toolPlotList": "Plot list",
     "toolPrint": "Print map (Print Composer)",
     "toolOperations": "Operations register",
     "toolHarvest": "Record harvest",
@@ -1769,8 +1769,8 @@
         "descr": "Quick refuel button on the map"
       },
       "panelRegistro": {
-        "label": "Geometry register",
-        "descr": "Edit / delete elements"
+        "label": "Plot list",
+        "descr": "Drawn elements: details, soil, editing"
       },
       "panelSian": {
         "label": "SIAN export",

@@ -11,6 +11,7 @@ import type { GeoLibreAppAPI, GeoLibrePlugin } from "@geolibre/plugins";
 import {
   disableGeoEditorModes,
   enableGeoEditorDrawMode,
+  enableGeoEditorEditMode,
   endLayerGeometryEdit,
   maplibreComponentsPlugin,
   maplibreGeoEditorPlugin,
@@ -21,6 +22,7 @@ import {
 import type { Geometry } from "geojson";
 import { type RefObject, useEffect, useMemo, useRef } from "react";
 import { createFieldAppApi } from "../lib/fieldAppApi";
+import { EDIT_MODE_BY_KIND } from "../lib/geometry-edit-modes";
 
 /** Mappa l'intento di disegno agronomico alla modalità geometrica dell'engine. */
 const DRAW_MODE_BY_INTENT = {
@@ -246,7 +248,19 @@ export function useFieldPlugins(
       const bounds = geometryBounds(geometry);
       if (bounds) mapControllerRef.current?.fitBounds(bounds);
     }
-    void startLayerGeometryEdit(app, layerId);
+
+    const { id: editId, kind } = geomEdit;
+    void startLayerGeometryEdit(app, layerId).then((started) => {
+      // `startLayerGeometryEdit` carica la feature nell'editor ma NON arma
+      // nessuna modalità di modifica: senza questo i vertici non sono
+      // trascinabili finché non si clicca uno strumento della
+      // GeometryEditToolbar, che intanto ne mostra già uno selezionato.
+      // La guardia sull'id evita di armare una sessione già chiusa/sostituita
+      // mentre il caricamento (asincrono) era in corso.
+      if (started && loadedEditId.current === editId) {
+        enableGeoEditorEditMode(EDIT_MODE_BY_KIND[kind]);
+      }
+    });
   }, [mapReady, geoEditorOpen, geomEdit, mapControllerRef, app]);
 
   // Salvataggio / annullamento della sessione (richiesti dalla scheda dettaglio).

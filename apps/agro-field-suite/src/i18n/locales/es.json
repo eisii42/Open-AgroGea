@@ -17,7 +17,7 @@
       "drawPlot": "Dibujar parcela",
       "drawInfrastructure": "Dibujar infraestructura",
       "drawPoi": "Dibujar POI",
-      "editGeometries": "Editar / eliminar geometrías",
+      "editGeometries": "Lista de parcelas (ficha, suelo, edición)",
       "printMap": "Imprimir mapa",
       "companySettings": "Ajustes de la explotación",
       "undoGeometry": "Deshacer edición de geometría",
@@ -131,7 +131,7 @@
     "toolDrawPlot": "Parcela (polígono)",
     "toolDrawInfra": "Infraestructura (línea)",
     "toolDrawPoi": "POI (punto)",
-    "toolManage": "Editar / Eliminar",
+    "toolPlotList": "Lista de parcelas",
     "toolPrint": "Imprimir mapa (Print Composer)",
     "toolOperations": "Registro de operaciones",
     "toolHarvest": "Registrar cosecha",
@@ -1545,8 +1545,8 @@
         "descr": "Productos, lotes y existencias"
       },
       "panelRegistro": {
-        "label": "Registro de geometrías",
-        "descr": "Editar / eliminar elementos"
+        "label": "Lista de parcelas",
+        "descr": "Elementos dibujados: ficha, suelo, edición"
       },
       "panelSian": {
         "label": "Exportación SIAN",

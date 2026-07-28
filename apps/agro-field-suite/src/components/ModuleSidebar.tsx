@@ -18,10 +18,10 @@ import {
   FileDown,
   Grid3x3,
   Leaf,
+  List,
   ListChecks,
   type LucideIcon,
   MapPin,
-  MousePointerClick,
   NotebookPen,
   PencilRuler,
   Printer,
@@ -143,6 +143,18 @@ export function ModuleSidebar({
       labelKey: "nav.moduleSoil",
       Icon: Sprout,
       tools: [
+        // La lista degli elementi tracciati vive QUI e non nel module di
+        // disegno: da ogni voce si apre la scheda dell'appezzamento, che è dove
+        // si leggono/modificano i parametri del suolo (tessitura, composizione,
+        // pH…). Cercarla sotto "Disegna elemento" era controintuitivo. La
+        // scheda resta anche il punto di modifica geometria/eliminazione.
+        {
+          id: "manage",
+          labelKey: "nav.toolPlotList",
+          Icon: List,
+          action: { kind: "panel", panel: "registro" },
+          flag: "panelRegistro",
+        },
         {
           id: "ndvi",
           labelKey: "nav.toolNdvi",
@@ -216,13 +228,6 @@ export function ModuleSidebar({
           labelKey: "nav.toolDrawPoi",
           Icon: MapPin,
           action: { kind: "draw", intent: "point" },
-        },
-        {
-          id: "manage",
-          labelKey: "nav.toolManage",
-          Icon: MousePointerClick,
-          action: { kind: "panel", panel: "registro" },
-          flag: "panelRegistro",
         },
         {
           id: "stampa",

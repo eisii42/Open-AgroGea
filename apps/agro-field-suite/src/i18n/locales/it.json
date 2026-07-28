@@ -17,7 +17,7 @@
       "drawPlot": "Disegna appezzamento",
       "drawInfrastructure": "Disegna infrastruttura",
       "drawPoi": "Disegna POI",
-      "editGeometries": "Modifica / elimina geometrie",
+      "editGeometries": "Lista appezzamenti (scheda, suolo, modifica)",
       "printMap": "Stampa mappa",
       "companySettings": "Impostazioni azienda",
       "undoGeometry": "Annulla modifica geometria",
@@ -133,7 +133,7 @@
     "toolDrawPlot": "Appezzamento (poligono)",
     "toolDrawInfra": "Infrastruttura (linea)",
     "toolDrawPoi": "POI (punto)",
-    "toolManage": "Modifica / Elimina",
+    "toolPlotList": "Lista appezzamenti",
     "toolPrint": "Stampa mappa (Print Composer)",
     "toolOperations": "Registro operazioni",
     "toolHarvest": "Registra raccolta",
@@ -1769,8 +1769,8 @@
         "descr": "Pulsante rapido di rifornimento in mappa"
       },
       "panelRegistro": {
-        "label": "Registro geometrie",
-        "descr": "Modifica / elimina elementi"
+        "label": "Lista appezzamenti",
+        "descr": "Elenco elementi tracciati: scheda, suolo, modifica"
       },
       "panelSian": {
         "label": "Export SIAN",
