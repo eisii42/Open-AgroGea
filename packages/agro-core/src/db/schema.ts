@@ -49,7 +49,7 @@
  *     transazione (nessuno issue parziale);
  *   * `activity_products` — giunzione attività (`treatment_logs`) ↔ lot, con
  *     quantità scaricata e costo imputato (CUMP congelato al momento dello
- *     issue): è la base del costo colturale per field (0.4.0).
+ *     issue): è la base del costo colturale per field (versione futura).
  *   I campi testo libero di `treatment_logs` (`product_name`,
  *   `machinery_equipment`, …) restano INTATTI come fallback per i record non
  *   collegati a un lot reale.
@@ -77,7 +77,7 @@
  * v18 — additiva: Parco macchine (0.3.0). Otto tabelle sincronizzate via outbox:
  *   * `machines` — unità motrici (trattori, mietitrebbie…) tracciate a ORE di
  *     lavoro (`hour_counter`, incrementale materializzato); `status`
- *     operational/maintenance/breakdown/decommissioned; campi 0.4.0 predisposti
+ *     operational/maintenance/breakdown/decommissioned; campi predisposti
  *     (valore/data d'acquisto, vita utile, valore residuo) ma NON calcolati qui;
  *   * `equipment` — attrezzi (aratri, botti…) tracciati per usura
  *     (`usage_counter`) e `working_width_m`; niente motore proprio;
@@ -102,9 +102,70 @@
  *   2) `drop table` delle stesse in quest'ordine (FK child→parent). I contatori
  *   ore vivono nelle colonne additive `machines.hour_counter` /
  *   `equipment.usage_counter`: nessun dato pre-v18 è toccato.
+ *
+ * v19 — additiva: Pianificazione task & Modalità Campo low-touch. Quattro
+ * tabelle nate già complete, popolate progressivamente dal geofencing, dal
+ * tracking GPS e dalla chiusura di sessione:
+ *   * `recipes` — ricetta/miscela preimpostata riutilizzabile (MODELLO, non
+ *     movimento di magazzino): i products vivono in `products` JSONB, il
+ *     legame coi lots reali avviene solo alla chiusura della sessione.
+ *     Sincronizzata via outbox;
+ *   * `planned_tasks` — scheda di lavorazione PROGRAMMATA su un plot: è
+ *     l'oggetto che il geofencing cerca all'ingresso nel field
+ *     (`status = 'PLANNED'` sul `plot_id` rilevato). Sincronizzata via outbox;
+ *   * `field_operation_sessions` — sessione ESEGUITA a bordo campo (tracciato
+ *     GPS in `path` GeoJSON jsonb, superficie lavorata, note vocali, log
+ *     collegati), popolata dal tracking GPS e dalla chiusura.
+ *     Sincronizzata via outbox;
+ *   * `field_session_audio` — LOCAL-ONLY: contenuto delle note vocali (base64
+ *     in `text`, mai bytea: resta ispezionabile/testabile senza ambiguità di
+ *     serializzazione del driver). Non transita dall'outbox: pesante e non
+ *     necessaria al data plane; la sessione porta solo l'URI (`audio_uri`).
+ *   Rollback logico v19 (solo-additivo, nessuna colonna esistente cambiata):
+ *   1) `delete from sync_outbox where table_name in ('field_operation_sessions',
+ *   'planned_tasks','recipes')`; 2) `drop table field_session_audio,
+ *   field_operation_sessions, planned_tasks, recipes` (in quest'ordine per le
+ *   FK). Nessun dato pre-v19 è toccato.
+ *
+ * v20 — additiva: `planned_tasks.metadata` JSONB. La pianificazione di una task
+ * ricalca i campi del Quaderno pertinenti al suo tipo di operation (stessa
+ * struttura dati, vedi `modules/tasks/task-field-spec.ts`), ma i tipi che NON
+ * passano da una ricetta hanno bisogno di pochi valori sparsi e diversi fra
+ * loro: tipo di lavorazione (tillage), apporto irriguo + unità (irrigation),
+ * semente e dose (sowing). Una colonna JSONB invece di cinque columns sparse:
+ * l'aggiunta di un campo a un tipo futuro non richiederà un'altra migrazione.
+ *   Chiavi persistite (contratto, snake_case come le columns): `tillage_type`,
+ *   `irrigation_amount`, `irrigation_unit`, `seed_product_id`,
+ *   `seed_product_name`, `seed_dose`, `seed_dose_unit`. Sono i valori che la
+ *   chiusura della sessione riversa nella row del Quaderno, così l'operatore
+ *   non li ridigita a bordo campo.
+ *   Rollback logico v20: `alter table planned_tasks drop column metadata`
+ *   (nessun'altra colonna è cambiata; le task pre-v20 leggono `{}`).
+ *
+ * v21 — additiva: cache degli indici vegetazionali (module Suolo). Due tabelle
+ * LOCAL-ONLY (interamente ricomputabili dalle scene STAC, come `dss_results` e
+ * `soil_water_indices`: nessuna voce di outbox):
+ *   * `vegetation_index_scenes` — una row per (plot, scena STAC elaborata):
+ *     medie per index in `index_means` JSONB, copertura nuvolosa, pixel validi.
+ *     L'unico `(plot_id, scene_id)` è la chiave di deduplica che evita di
+ *     riscaricare i COG di una scena già elaborata;
+ *   * `vegetation_index_rasters` — la griglia di pixel dell'index, per
+ *     ridisegnare le celle sulla mappa SENZA tornare in rete. Si persiste il
+ *     raster, non il GeoJSON delle celle: `rasterToIndexCells` (funzione pura)
+ *     le ricostruisce da `RasterWindow` + valori, e 2 byte/pixel invece di
+ *     ~300 significano ~10 KB per scena su 50 ha invece di ~1,5 MB. I valori
+ *     sono Int16 little-endian scalati (`value_scale`, default 10000, così
+ *     l'intervallo −1..1 degli indici normalizzati resta a 4 decimali) con
+ *     sentinella `nodata_value` per i pixel fuori poligono; il buffer è base64
+ *     in `text` — mai bytea — come `field_session_audio`, per non dipendere
+ *     dalla serializzazione binaria del driver.
+ *   Rollback logico v21 (solo-additivo, nessuna colonna esistente cambiata):
+ *   `drop table vegetation_index_rasters, vegetation_index_scenes` (in
+ *   quest'ordine per la FK). Nessun dato pre-v21 è toccato e la sola
+ *   conseguenza è che il module Suolo torna a ricalcolare ogni volta.
  */
 
-export const AGRO_LOCAL_SCHEMA_VERSION = 18;
+export const AGRO_LOCAL_SCHEMA_VERSION = 21;
 
 export const AGRO_LOCAL_SCHEMA_SQL = `
 create table if not exists agro_meta (
@@ -615,7 +676,7 @@ create index if not exists product_lots_product_idx
 -- activity_products — giunzione attività ↔ lot: quantità scaricata e costo
 -- imputato, con unit_cost = CUMP del product CONGELATO al momento dello
 -- issue (il CUMP successivo non riscrive la storia). Il costo confluisce sul
--- field trattato via treatment_logs.plot_id (bilancio di field 0.4.0).
+-- field trattato via treatment_logs.plot_id (bilancio di field, versione futura).
 create table if not exists activity_products (
   id               uuid primary key,
   tenant_id        uuid not null,
@@ -640,7 +701,7 @@ create index if not exists activity_products_lot_idx
 -- hour_counter è il contatore materializzato, incrementato in transazione dalle
 -- attività (activity_machines) e SETtato dalle rettifiche (counter_adjustments).
 -- I campi purchase_*/useful_life_*/residual_value sono PREDISPOSTI per il costo
--- orario/ammortamento della 0.4.0 (solo struttura, non calcolati qui).
+-- orario/ammortamento (versione futura) (solo struttura, non calcolati qui).
 create table if not exists machines (
   id                uuid primary key,
   tenant_id         uuid not null,
@@ -673,7 +734,7 @@ create index if not exists machines_company_idx
 -- equipment — attrezzi (aratri, botti, seminatrici…). Niente motore proprio:
 -- tracciati per USURA (usage_counter, accumula le ore d'uso) e larghezza di
 -- lavoro (working_width_m, precompila superfici/VRA nel form attività). Stessi
--- campi 0.4.0 predisposti di machines.
+-- campi predisposti di machines.
 create table if not exists equipment (
   id                uuid primary key,
   tenant_id         uuid not null,
@@ -868,4 +929,156 @@ create index if not exists fuel_refills_machine_idx
   on fuel_refills (machine_id, refueled_at desc);
 create index if not exists fuel_refills_lot_idx
   on fuel_refills (product_lot_id);
+
+-- v19 — Pianificazione task & Modalità Campo low-touch -----------------------
+
+-- recipes — ricetta/miscela preimpostata riutilizzabile. I products vivono in
+-- "products" JSONB (array di {product_id, product_name, dose_per_ha, unit}):
+-- una ricetta è un MODELLO, non un movimento di magazzino (il legame con i lots
+-- reali avviene solo alla chiusura della sessione). Sincronizzata via outbox.
+create table if not exists recipes (
+  id             uuid primary key,
+  tenant_id      uuid not null,
+  company_id     uuid not null references companies (id),
+  name           text not null,
+  operation_type text,
+  products       jsonb not null default '[]',
+  target_disease text,
+  notes          text,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  deleted_at     timestamptz
+);
+create index if not exists recipes_company_idx on recipes (company_id, name);
+
+-- planned_tasks — scheda di lavorazione PROGRAMMATA su un plot. È l'oggetto
+-- che il geofencing cerca all'ingresso nel field: status 'PLANNED' sul
+-- plot_id rilevato ⇒ proposta prioritaria nella modale di rilevamento.
+create table if not exists planned_tasks (
+  id                     uuid primary key,
+  tenant_id              uuid not null,
+  company_id             uuid not null references companies (id),
+  plot_id                uuid not null references plots_registry (id),
+  operation_type         text not null check (
+    operation_type in (
+      'phytosanitary', 'fertilization', 'irrigation',
+      'tillage', 'sowing', 'harvest', 'sampling'
+    )
+  ),
+  recipe_id              uuid references recipes (id),
+  target_pest_or_disease text,
+  status                 text not null default 'PLANNED' check (
+    status in ('PLANNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED')
+  ),
+  planned_date           date,
+  operator_name          text,
+  notes                  text,
+  created_at             timestamptz not null default now(),
+  updated_at             timestamptz not null default now(),
+  deleted_at             timestamptz
+);
+create index if not exists planned_tasks_plot_idx on planned_tasks (plot_id, status);
+create index if not exists planned_tasks_company_idx
+  on planned_tasks (company_id, status, planned_date);
+
+-- v20: campi di pianificazione dei tipi che NON passano da una ricetta
+-- (lavorazione, irrigazione, semina). Additiva: le task pre-v20 leggono '{}'.
+alter table planned_tasks
+  add column if not exists metadata jsonb not null default '{}';
+
+-- field_operation_sessions — sessione ESEGUITA a bordo campo (tracciato GPS,
+-- superficie realmente lavorata, note vocali). "path" è una LineString GeoJSON
+-- in jsonb (niente PostGIS in PGlite, come tutte le geometrie locali).
+create table if not exists field_operation_sessions (
+  id                uuid primary key,
+  tenant_id         uuid not null,
+  company_id        uuid not null references companies (id),
+  planned_task_id   uuid references planned_tasks (id),
+  plot_id           uuid not null references plots_registry (id),
+  operation_type    text not null check (
+    operation_type in (
+      'phytosanitary', 'fertilization', 'irrigation',
+      'tillage', 'sowing', 'harvest', 'sampling'
+    )
+  ),
+  recipe_id         uuid references recipes (id),
+  machine_id        uuid references machines (id),
+  equipment_id      uuid references equipment (id),
+  working_width_m   numeric(8, 2),
+  start_time        timestamptz not null,
+  end_time          timestamptz,
+  path              jsonb not null default '{"type":"LineString","coordinates":[]}',
+  path_length_m     numeric(12, 2) not null default 0,
+  area_worked_ha    numeric(10, 4) not null default 0,
+  status            text not null default 'IN_PROGRESS' check (
+    status in ('IN_PROGRESS', 'PAUSED', 'COMPLETED', 'ABORTED')
+  ),
+  audio_notes       jsonb not null default '[]',
+  treatment_log_ids jsonb not null default '[]',
+  operator_name     text,
+  notes             text,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now(),
+  deleted_at        timestamptz
+);
+create index if not exists field_operation_sessions_plot_idx
+  on field_operation_sessions (plot_id, start_time desc);
+create index if not exists field_operation_sessions_company_idx
+  on field_operation_sessions (company_id, status, start_time desc);
+create index if not exists field_operation_sessions_task_idx
+  on field_operation_sessions (planned_task_id);
+
+-- field_session_audio — LOCAL-ONLY: i contenuti delle note vocali restano sul
+-- device (non transitano dall'outbox: sono pesanti e non servono al data plane).
+-- Il payload è base64 in "text": evita ogni ambiguità di serializzazione bytea
+-- del driver e resta ispezionabile/testabile. La sessione porta solo l'URI.
+create table if not exists field_session_audio (
+  id          uuid primary key,
+  session_id  uuid not null references field_operation_sessions (id) on delete cascade,
+  mime_type   text not null default 'audio/webm',
+  duration_s  numeric(8, 2),
+  data_base64 text not null,
+  created_at  timestamptz not null default now()
+);
+create index if not exists field_session_audio_session_idx
+  on field_session_audio (session_id);
+
+-- vegetation_index_scenes — LOCAL-ONLY: una scena STAC già elaborata per un
+-- plot. scene_id è l'id dell'item STAC: l'indice unico con plot_id è ciò che
+-- rende la pipeline cache-first (una scena si elabora una volta sola).
+create table if not exists vegetation_index_scenes (
+  id            uuid primary key,
+  plot_id       uuid not null references plots_registry (id) on delete cascade,
+  scene_id      text not null,
+  collection    text not null default 'sentinel-2-l2a',
+  captured_at   timestamptz not null,
+  cloud_cover   numeric(5, 2),
+  valid_pixels  integer not null default 0,
+  index_means   jsonb not null default '{}',
+  calculated_at timestamptz not null default now()
+);
+create unique index if not exists vegetation_index_scenes_unq
+  on vegetation_index_scenes (plot_id, scene_id);
+create index if not exists vegetation_index_scenes_plot_idx
+  on vegetation_index_scenes (plot_id, captured_at desc);
+
+-- vegetation_index_rasters — LOCAL-ONLY: griglia di pixel di UN indice su UNA
+-- scena, nel sistema proiettato della scena stessa (UTM). I campi geometrici
+-- sono esattamente quelli di RasterWindow, così la ricostruzione delle celle è
+-- una funzione pura senza altri input.
+create table if not exists vegetation_index_rasters (
+  scene_row_id    uuid not null references vegetation_index_scenes (id) on delete cascade,
+  index_name      text not null,
+  epsg            integer not null,
+  origin_easting  double precision not null,
+  origin_northing double precision not null,
+  pixel_width     double precision not null,
+  pixel_height    double precision not null,
+  width           integer not null,
+  height          integer not null,
+  value_scale     integer not null default 10000,
+  nodata_value    integer not null default -32768,
+  values_base64   text not null,
+  primary key (scene_row_id, index_name)
+);
 `;

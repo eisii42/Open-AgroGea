@@ -48,11 +48,23 @@ async function seedPlot(dal: TestDal, companyId: string): Promise<string> {
   return plot.rows[0].id;
 }
 
-/** Data ISO (YYYY-MM-DD) a `giorni` da oggi (negativo = passato). */
+/**
+ * Data ISO (YYYY-MM-DD) a `giorni` da oggi (negativo = passato), costruita dai
+ * componenti **LOCALI**.
+ *
+ * Non `toISOString()`: quello converte in UTC e in un fuso positivo, fra
+ * mezzanotte e l'offset, restituisce il GIORNO PRECEDENTE — `relativeDay(0)`
+ * diventava "ieri" e `expiryStatus` (che confronta in ora locale, per
+ * scelta documentata) lo classificava correttamente come `expired`, facendo
+ * fallire il test solo se eseguito in quella finestra notturna. Il bug era nel
+ * helper, non nella funzione sotto test.
+ */
 function relativeDay(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${month}-${day}`;
 }
 
 const BASE_TREATMENT = {

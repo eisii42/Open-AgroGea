@@ -14,6 +14,9 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
     selectedPlotId: null,
     lastOperation: null,
     logbookOpenPlotId: null,
+    logbookScopeToken: 0,
+    plotSheetPlotId: null,
+    tasksOpenPlotId: null,
     scoutingOpenObservationId: null,
     cropOpenPlotId: null,
     mapOperationIds: null,
@@ -21,6 +24,13 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
     scoutingPlacing: false,
     warehouseTab: "products",
     quickRefillPending: false,
+    geofenceDetection: null,
+    geofenceDismissedPlotId: null,
+    geofenceDismissedAt: null,
+    geofenceWatchStatus: "idle",
+    geofenceWatchErrorCode: null,
+    geofenceWatchAccuracyM: null,
+    sessionCloseOutcome: null,
 
     setTheme: (theme) => {
       persistTheme(theme);
@@ -107,6 +117,58 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
 
     consumeLogbookOpen: () => set({ logbookOpenPlotId: null }),
 
+    // Quaderno aperto DAL MODULO: registro dell'INTERA azienda, sempre. Il
+    // token incrementale è ciò che rende la garanzia strutturale invece che
+    // accidentale — finora il filtro per appezzamento spariva solo perché il
+    // pannello si smontava alla chiusura, quindi bastava che restasse montato
+    // (o che qualcuno lo rendesse persistente) per mostrare un registro
+    // silenziosamente parziale, che in un registro di compliance è peggio di
+    // un errore visibile.
+    openLogbookAllOperations: () =>
+      set((s) => ({
+        logbookOpenPlotId: null,
+        logbookScopeToken: s.logbookScopeToken + 1,
+        selectedFeature: null,
+        openPanels:
+          s.panelMode === "docked"
+            ? ["quaderno"]
+            : s.openPanels.includes("quaderno")
+              ? s.openPanels
+              : [...s.openPanels, "quaderno"],
+      })),
+
+    openPlotSheet: (plotId) =>
+      set((s) => ({
+        plotSheetPlotId: plotId,
+        selectedFeature: null,
+        openPanels:
+          s.panelMode === "docked"
+            ? ["plot-sheet"]
+            : s.openPanels.includes("plot-sheet")
+              ? s.openPanels
+              : [...s.openPanels, "plot-sheet"],
+      })),
+
+    closePlotSheet: () =>
+      set((s) => ({
+        plotSheetPlotId: null,
+        openPanels: s.openPanels.filter((p) => p !== "plot-sheet"),
+      })),
+
+    openTasksForPlot: (plotId) =>
+      set((s) => ({
+        tasksOpenPlotId: plotId,
+        selectedFeature: null,
+        openPanels:
+          s.panelMode === "docked"
+            ? ["tasks"]
+            : s.openPanels.includes("tasks")
+              ? s.openPanels
+              : [...s.openPanels, "tasks"],
+      })),
+
+    consumeTasksOpen: () => set({ tasksOpenPlotId: null }),
+
     openScoutingForObservation: (observationId) =>
       set((s) => ({
         scoutingOpenObservationId: observationId,
@@ -142,5 +204,48 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
     setMapHarvestIds: (ids) => set({ mapHarvestIds: ids }),
 
     setScoutingPlacing: (placing) => set({ scoutingPlacing: placing }),
+
+    setGeofenceDetection: (detection) => set({ geofenceDetection: detection }),
+
+    dismissGeofenceDetection: () =>
+      set((s) =>
+        s.geofenceDetection
+          ? {
+              geofenceDetection: null,
+              geofenceDismissedPlotId: s.geofenceDetection.plotId,
+              geofenceDismissedAt: Date.now(),
+            }
+          : s,
+      ),
+
+    clearGeofenceDismissal: (plotId) =>
+      set((s) =>
+        s.geofenceDismissedPlotId === plotId
+          ? { geofenceDismissedPlotId: null, geofenceDismissedAt: null }
+          : s,
+      ),
+
+    // Canale a BASSA frequenza: lo stato del watch cambia di rado (avvio,
+    // ingresso/uscita da un plot, errore GPS), mai a ogni campione. Il set è
+    // comunque guardato sull'uguaglianza così una risincronizzazione ridondante
+    // non sveglia i subscriber dello store (fra cui la mappa).
+    setSessionCloseOutcome: (outcome) => set({ sessionCloseOutcome: outcome }),
+
+    dismissSessionCloseOutcome: () => set({ sessionCloseOutcome: null }),
+
+    setGeofenceWatchStatus: (status, errorCode = null, accuracyM = null) =>
+      set((s) => {
+        const nextError = status === "error" ? errorCode : null;
+        const nextAccuracy = status === "low_accuracy" ? accuracyM : null;
+        return s.geofenceWatchStatus === status &&
+          s.geofenceWatchErrorCode === nextError &&
+          s.geofenceWatchAccuracyM === nextAccuracy
+          ? s
+          : {
+              geofenceWatchStatus: status,
+              geofenceWatchErrorCode: nextError,
+              geofenceWatchAccuracyM: nextAccuracy,
+            };
+      }),
   };
 }

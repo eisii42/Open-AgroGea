@@ -71,6 +71,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     (s) => s.logbookOpenPlotId,
   );
   const consumeLogbookOpen = useAgroStore((s) => s.consumeLogbookOpen);
+  const logbookScopeToken = useAgroStore((s) => s.logbookScopeToken);
   const mapOperationIds = useAgroStore((s) => s.mapOperationIds);
   const setMapOperationIds = useAgroStore((s) => s.setMapOperationIds);
 
@@ -177,6 +178,20 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
       consumeLogbookOpen();
     }
   }, [logbookOpenPlotId, consumeLogbookOpen]);
+
+  // Apertura DAL MODULO: registro dell'intera azienda. Azzera i filtri anche
+  // se il pannello era già montato e filtrato su un appezzamento — un registro
+  // di compliance non deve mai mostrare un sottoinsieme senza dirlo. Il token
+  // cambia a ogni richiesta, quindi l'effect riparte ogni volta (un booleano
+  // resterebbe "già consumato").
+  useEffect(() => {
+    if (logbookScopeToken === 0) return; // stato iniziale: nessuna richiesta
+    setFilterPlotId("");
+    setFilterFrom("");
+    setFilterTo("");
+    setFormType(null);
+    setChooser(false);
+  }, [logbookScopeToken]);
 
   // Con `scarichi` valorizzato l'attività download i lots di warehouse nella
   // stessa transazione: un errore (stock/lot scaduto) risale al form, che

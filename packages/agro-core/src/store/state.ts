@@ -1,7 +1,9 @@
 import type { Feature, Geometry } from "geojson";
 import type { StoreApi } from "zustand";
 import type { AgroDal } from "../db/dal";
+import type { CompleteFieldSessionResult } from "../db/dal-tasks";
 import type { AgroTheme } from "../field/theme";
+import type { SessionLogWarning } from "../field/session-logbook";
 import type { DrawnGeometry } from "../geo/area";
 import type { SyncRouter } from "../sync/router";
 import type {
@@ -36,6 +38,11 @@ import type {
   MachineDocument,
   CounterAdjustment,
   FuelRefill,
+  Recipe,
+  PlannedTask,
+  PlannedTaskStatus,
+  FieldOperationSession,
+  AudioNote,
 } from "../types";
 
 /**
@@ -227,6 +234,12 @@ export interface DomainSlice {
   machineDocuments: MachineDocument[];
   /** Rifornimenti carburante dell'azienda attiva. */
   fuelRefills: FuelRefill[];
+  /** Ricette riutilizzabili dell'azienda attiva (Riquadro Pianificazione). */
+  recipes: Recipe[];
+  /** Task programmate dell'azienda attiva (tutte, non filtrate: il pannello filtra a runtime). */
+  plannedTasks: PlannedTask[];
+  /** Sessioni a bordo campo dell'azienda attiva (Modalità Campo). */
+  fieldSessions: FieldOperationSession[];
 
   setActiveCompany: (companyId: string | null) => Promise<void>;
   /**
@@ -491,6 +504,41 @@ export interface DomainSlice {
   /** Storno di un rifornimento (reintegra la cisterna) e idratazione. */
   deleteFuelRefill: (id: string) => Promise<void>;
 
+  // -- Riquadro Pianificazione Task / Ricette ------------------------
+  /** Crea/aggiorna una ricetta riutilizzabile e idrata lo store. */
+  saveRecipe: (
+    input: Omit<
+      Recipe,
+      "id" | "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
+    > & { id?: string },
+  ) => Promise<Recipe | null>;
+  /** Soft-delete di una ricetta (le task già collegate mantengono il riferimento). */
+  deleteRecipe: (id: string) => Promise<void>;
+  /**
+   * Crea/aggiorna una task programmata su un plot e idrata lo store. Senza
+   * `status` esplicito resta/parte 'PLANNED': le transizioni successive
+   * passano da {@link setPlannedTaskStatus} o dall'avvio di una sessione.
+   */
+  savePlannedTask: (
+    input: Omit<
+      PlannedTask,
+      | "id"
+      | "tenant_id"
+      | "company_id"
+      | "status"
+      | "created_at"
+      | "updated_at"
+      | "deleted_at"
+    > & { id?: string; status?: PlannedTaskStatus },
+  ) => Promise<PlannedTask | null>;
+  /** Soft-delete di una task programmata. */
+  deletePlannedTask: (id: string) => Promise<void>;
+  /** Transizione di stato di una task programmata (es. annullamento → CANCELLED). */
+  setPlannedTaskStatus: (
+    id: string,
+    status: PlannedTaskStatus,
+  ) => Promise<PlannedTask | null>;
+
   /** Registra un soilSample di soil (`soil_samples`) e idrata lo store. */
   saveSoilSample: (
     input: Omit<
@@ -498,11 +546,138 @@ export interface DomainSlice {
       "id" | "tenant_id" | "company_id" | "created_at" | "updated_at" | "deleted_at"
     > & { id?: string },
   ) => Promise<SoilSample | null>;
+
+  // -- Modalità Campo: sessioni a bordo campo dal geofencing ---------
+  /**
+   * Avvia una sessione a bordo campo: insert via DAL (che, se agganciata a una
+   * task programmata, la porta ATOMICAMENTE a IN_PROGRESS — vedi
+   * {@link AgroDalTasks.startFieldSession}) e idrata `fieldSessions` E
+   * `plannedTasks` (la task cambiata). Ritorna la row o null senza DAL/company.
+   */
+  startFieldSession: (
+    input: Omit<
+      FieldOperationSession,
+      | "id"
+      | "tenant_id"
+      | "company_id"
+      | "start_time"
+      | "end_time"
+      | "path"
+      | "path_length_m"
+      | "area_worked_ha"
+      | "status"
+      | "audio_notes"
+      | "treatment_log_ids"
+      | "created_at"
+      | "updated_at"
+      | "deleted_at"
+    > & { id?: string; start_time?: string },
+  ) => Promise<FieldOperationSession | null>;
+  /**
+   * CHIUDE la sessione registrandola AUTOMATICAMENTE nel Quaderno di Campagna
+   * (nessuna conferma dell'operatore: è la scelta di prodotto della Modalità
+   * Campo low-touch). Compone le righe con `composeSessionLogs` — una per
+   * product della miscela, quantità = dose × superficie GPS — e le persiste
+   * con sessione e task in un'unica transazione
+   * ({@link AgroDalTasks.completeFieldSession}, idempotente).
+   *
+   * Se lo scarico warehouse fallisce, ritenta SENZA scarico e lo segnala in
+   * {@link SessionCloseOutcome.warnings}: la lavorazione viene registrata
+   * comunque, le giacenze restano da correggere a mano. Il lavoro
+   * dell'operatore non va perso in nessuno scenario.
+   */
+  completeFieldSession: (
+    id: string,
+    patch?: Partial<
+      Pick<
+        FieldOperationSession,
+        "end_time" | "path" | "path_length_m" | "area_worked_ha" | "audio_notes"
+      >
+    >,
+  ) => Promise<SessionCloseOutcome | null>;
+  /**
+   * Abbandona una sessione a bordo campo (avvio accidentale, geofencing sulla
+   * task sbagliata): la porta ad ABORTED e, se agganciata a una task
+   * programmata, la riporta a PLANNED — ATOMICO lato DAL (vedi
+   * {@link AgroDalTasks.abortFieldSession}). Idrata entrambe le collezioni.
+   */
+  abortFieldSession: (id: string) => Promise<FieldOperationSession | null>;
+  /**
+   * Aggiornamento parziale di una sessione a bordo campo (patch + merge lato
+   * DAL, vedi {@link AgroDalTasks.updateFieldSession}): usato dal tracking GPS
+   * dell'InFieldDashboard (`path`/`path_length_m`/`area_worked_ha`, pausa/
+   * ripresa) e dalla sua chiusura. Idrata `fieldSessions` con la row
+   * aggiornata. Ritorna null se la sessione non esiste/senza DAL active.
+   */
+  updateFieldSession: (
+    id: string,
+    patch: Partial<
+      Omit<
+        FieldOperationSession,
+        "id" | "tenant_id" | "company_id" | "created_at" | "deleted_at"
+      >
+    >,
+  ) => Promise<FieldOperationSession | null>;
+  /**
+   * Registra una nota vocale geotaggata della sessione (blob LOCAL-ONLY in
+   * `field_session_audio` + append in `audio_notes`, vedi
+   * {@link AgroDalTasks.saveAudioNote}) e idrata `fieldSessions` con la
+   * sessione aggiornata. Ritorna la nota creata o null senza DAL/sessione.
+   */
+  saveSessionAudioNote: (
+    sessionId: string,
+    input: {
+      mime_type: string;
+      duration_s: number | null;
+      data_base64: string;
+      lat: number;
+      lon: number;
+    },
+  ) => Promise<AudioNote | null>;
 }
 
 // ---------------------------------------------------------------------------
 // Slice: UI Modalità Campo
 // ---------------------------------------------------------------------------
+
+/**
+ * Stato del watch GPS del geofencing: "idle" prima dell'avvio/senza plots da
+ * osservare, "watching" mentre cerca un dwell, "inside" con un appezzamento
+ * confermato, "error" su un fallimento GPS bloccante (vedi
+ * {@link GeofenceWatchErrorCode}). Duplicato qui invece che importato
+ * dall'app — @agrogea/core non dipende dal layer app — ma è lo STESSO union
+ * type di `GeofenceWatchStatus` in
+ * `apps/agro-field-suite/src/modules/field-mode/useGeofenceWatch.ts`.
+ */
+/**
+ * Esito della chiusura di una sessione a bordo campo: la row della sessione e
+ * le righe di Quaderno scritte ({@link CompleteFieldSessionResult}), più ciò
+ * che il riepilogo post-operazione deve mostrare all'operatore — la superficie
+ * effettivamente usata per le quantità e gli eventuali punti da correggere.
+ */
+export interface SessionCloseOutcome extends CompleteFieldSessionResult {
+  /** Superficie (ha) usata per calcolare le quantità: GPS, o il fallback catastale. */
+  areaUsedHa: number;
+  warnings: SessionLogWarning[];
+}
+
+export type GeofenceWatchStatus =
+  | "idle"
+  | "watching"
+  | "low_accuracy"
+  | "inside"
+  | "error";
+
+/**
+ * Codici di errore GPS stabili: mirror di `GeofenceErrorCode` in
+ * `apps/agro-field-suite/src/services/geofencing/geofence-watcher.ts`
+ * (stessa ragione di duplicazione di {@link GeofenceWatchStatus}).
+ */
+export type GeofenceWatchErrorCode =
+  | "permission_denied"
+  | "insecure_context"
+  | "unavailable"
+  | "timeout";
 
 export interface UiSlice {
   theme: AgroTheme;
@@ -521,6 +696,27 @@ export interface UiSlice {
    * LogbookPanel lo consuma all'apertura impostando il filtro.
    */
   logbookOpenPlotId: string | null;
+  /**
+   * Contatore incrementato da {@link openLogbookAllOperations}: segnala al
+   * Quaderno di azzerare i propri filtri e mostrare il registro dell'INTERA
+   * azienda. Serve un token e non un booleano perché la richiesta va onorata
+   * ANCHE quando il pannello è già montato e filtrato (il valore cambia, quindi
+   * l'effect riparte); un flag resterebbe "già visto".
+   */
+  logbookScopeToken: number;
+  /**
+   * Appezzamento di cui è aperta la SCHEDA (task programmate + operazioni
+   * registrate). `null` = nessuna scheda aperta. È il pannello che si apre
+   * toccando il field in mappa.
+   */
+  plotSheetPlotId: string | null;
+  /**
+   * Plot per cui aprire il Riquadro Pianificazione Task pre-mirato (click sul
+   * field in mappa → "Pianifica task"). `null` = nessuna richiesta pendente.
+   * Il TaskPlannerPanel lo consuma all'apertura preselezionando il plot nel
+   * form di creazione (stesso pattern di {@link logbookOpenPlotId}).
+   */
+  tasksOpenPlotId: string | null;
   /**
    * Osservazione scouting da aprire in scheda dettaglio (click sul punto in
    * mappa). `null` = nessuna richiesta pendente. Il FieldCollectionTool lo
@@ -565,6 +761,52 @@ export interface UiSlice {
    * così il click serve a posizionare la nota e non apre il Quaderno/dettaglio.
    */
   scoutingPlacing: boolean;
+  /**
+   * Proposta PENDENTE di ingresso in field (geofencing): valorizzata
+   * dall'evento `enter` confermato dal watcher GPS (`useGeofenceWatch`), letta
+   * da `FieldDetectionModal` per proporre la task PLANNED del plot o l'avvio
+   * libero di una lavorazione. `null` = nessuna proposta pendente.
+   */
+  geofenceDetection: { plotId: string; at: number } | null;
+  /**
+   * Plot dell'ultima proposta di ingresso ignorata con "Non ora" (o null se
+   * nessuna soppressione attiva). Impedisce che lo stesso plot ripeta subito
+   * la modale a ogni campione GPS successivo: resta soppresso finché non
+   * arriva un evento `exit` per quel plot (o un timeout, vedi
+   * `useGeofenceWatch`), poi {@link clearGeofenceDismissal} lo libera.
+   */
+  geofenceDismissedPlotId: string | null;
+  /** Timestamp (epoch ms) della soppressione current, base del fallback a timeout. */
+  geofenceDismissedAt: number | null;
+  /**
+   * Stato CORRENTE del watch GPS del geofencing, aggiornato dall'UNICA
+   * istanza di `useGeofenceWatch` (montata sempre in `FieldDashboard`) solo
+   * sulle transizioni di stato — MAI per-campione GPS (~1 Hz): quei valori
+   * (ultimo campione, velocità, countdown dwell) restano locali all'hook e
+   * non toccano mai lo store, altrimenti ogni consumer (es. la mappa)
+   * ri-renderizzerebbe ogni secondo. Letto da `TaskPlannerPanel` per una riga
+   * di stato informativa, senza aprire un secondo `watchPosition`.
+   */
+  geofenceWatchStatus: GeofenceWatchStatus;
+  /** Codice di errore GPS current quando `geofenceWatchStatus === "error"`, altrimenti null. */
+  geofenceWatchErrorCode: GeofenceWatchErrorCode | null;
+  /**
+   * Accuratezza dell'ultimo fix (m) quando lo stato è `low_accuracy`, altrimenti
+   * null. ARROTONDATA a decine di metri di proposito: l'accuratezza cambia a
+   * ogni campione (~1 Hz) e un valore esatto qui farebbe ri-renderizzare la
+   * mappa un secondo su due — la decina basta a distinguere un GPS agganciato
+   * (±10 m) da una localizzazione via WiFi (±1000 m), che è tutto ciò che serve
+   * sapere.
+   */
+  geofenceWatchAccuracyM: number | null;
+  /**
+   * Esito della chiusura di una sessione a bordo campo, da mostrare nel
+   * riepilogo post-operazione. Vive QUI e non nell'InFieldDashboard perché
+   * quello schermo si smonta proprio nell'istante in cui la sessione diventa
+   * `COMPLETED` (non è più "attiva"): tenendo l'esito nello store il riepilogo
+   * sopravvive alla transizione. `null` = nessun riepilogo da mostrare.
+   */
+  sessionCloseOutcome: SessionCloseOutcome | null;
 
   // -- tema / layout --
   setTheme: (theme: AgroTheme) => void;
@@ -590,6 +832,25 @@ export interface UiSlice {
   openLogbookForPlot: (plotId: string | null) => void;
   /** Consuma la richiesta di apertura Quaderno (chiamata dal LogbookPanel). */
   consumeLogbookOpen: () => void;
+  /**
+   * Apre il Quaderno sul registro dell'INTERA azienda, azzerandone i filtri.
+   * È l'ingresso dal modulo in sidebar: un registro di compliance aperto "dal
+   * menù" non deve mai mostrare, senza dirlo, il sottoinsieme di un singolo
+   * appezzamento rimasto da una consultazione precedente.
+   */
+  openLogbookAllOperations: () => void;
+  /**
+   * Apre la SCHEDA di un appezzamento: task programmate (avviabili) e
+   * operazioni registrate su quel field, in un unico posto. È ciò che si apre
+   * toccando il field in mappa.
+   */
+  openPlotSheet: (plotId: string) => void;
+  /** Chiude la scheda appezzamento. */
+  closePlotSheet: () => void;
+  /** Apre il Riquadro Pianificazione Task pre-mirato su un plot (click sul field). */
+  openTasksForPlot: (plotId: string | null) => void;
+  /** Consuma la richiesta di apertura pianificazione (chiamata dal TaskPlannerPanel). */
+  consumeTasksOpen: () => void;
   /** Apre il pannello Scouting con la scheda della nota (click sul punto in mappa). */
   openScoutingForObservation: (observationId: string | null) => void;
   /** Consuma la richiesta di apertura Scouting (chiamata dal FieldCollectionTool). */
@@ -604,6 +865,36 @@ export interface UiSlice {
   setMapHarvestIds: (ids: string[] | null) => void;
   /** Attiva/disattiva l'attesa di un tap per posare la nota scouting. */
   setScoutingPlacing: (placing: boolean) => void;
+  /** Imposta (o azzera con `null`) la proposta pendente di ingresso in field. */
+  setGeofenceDetection: (
+    detection: { plotId: string; at: number } | null,
+  ) => void;
+  /**
+   * Ignora "Non ora" la proposta current: la chiude e ne sopprime la
+   * ripetizione immediata per lo stesso plot (vedi {@link geofenceDismissedPlotId}).
+   * No-op se non c'è alcuna proposta pendente.
+   */
+  dismissGeofenceDetection: () => void;
+  /** Libera la soppressione di un plot (chiamata dal watcher su evento `exit`). */
+  clearGeofenceDismissal: (plotId: string) => void;
+  /**
+   * Aggiorna stato/errore del watch geofencing (chiamata SOLO da
+   * `useGeofenceWatch` sulle transizioni di stato, mai per-campione).
+   * `errorCode` è ignorato quando `status !== "error"`.
+   */
+  setGeofenceWatchStatus: (
+    status: GeofenceWatchStatus,
+    errorCode?: GeofenceWatchErrorCode | null,
+    accuracyM?: number | null,
+  ) => void;
+  /** Pubblica l'esito di una chiusura di sessione (apre il riepilogo). */
+  setSessionCloseOutcome: (outcome: SessionCloseOutcome | null) => void;
+  /**
+   * Chiude il riepilogo post-operazione. Puramente UI: la registrazione nel
+   * Quaderno è GIÀ avvenuta quando il riepilogo appare — questo non conferma
+   * né annulla nulla.
+   */
+  dismissSessionCloseOutcome: () => void;
 }
 
 // ---------------------------------------------------------------------------

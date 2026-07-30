@@ -41,6 +41,15 @@ export {
   type IndexGridOptions,
 } from "./index-grid";
 
+// -- Codec compatto del raster d'index (cache locale del modulo Suolo) --
+export {
+  encodeIndexRaster,
+  decodeIndexRaster,
+  DEFAULT_INDEX_VALUE_SCALE,
+  DEFAULT_INDEX_NODATA,
+  type EncodedIndexRaster,
+} from "./index-raster-codec";
+
 // -- Matrici di calibrazione fenologica (Modulo 1) --
 export {
   getPhaseCalibration,
@@ -120,6 +129,31 @@ export {
   type MaintenanceEvaluation,
   type MaintenanceThresholds,
 } from "./machinery";
+
+// -- Geofencing GPS + tempo di rientro PAN --
+export {
+  GEOFENCE_DEFAULTS,
+  advanceGeofence,
+  dwellRemainingSeconds,
+  haversineMeters,
+  initialGeofenceState,
+  pathLengthMeters,
+  plotContainingPoint,
+  speedKmh,
+  workedAreaHectares,
+  type GeoSample,
+  type GeofenceEvent,
+  type GeofenceOptions,
+  type GeofencePlot,
+  type GeofenceState,
+} from "./geofencing";
+export {
+  activeReentryWindows,
+  reentryWindowForPlot,
+  type ReentryLogInput,
+  type ReentryWindow,
+} from "./reentry";
+export { sessionElapsedMs, formatElapsedClock } from "./field-session-clock";
 
 // -- Clip raster sul poligono + proiezione UTM (Modulo 1) --
 export {

@@ -1,10 +1,20 @@
 import { useAgroStore, useSettingsStore } from "@agrogea/core";
 import { MapCanvas, type MapController } from "@geolibre/map";
 import { cn } from "@geolibre/ui";
-import { Fuel, Lock, MapPin, Menu, NotebookPen, PanelLeftClose, PanelLeftOpen, Wifi } from "lucide-react";
+import {
+  Fuel,
+  Lock,
+  MapPin,
+  Menu,
+  NotebookPen,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Wifi,
+} from "lucide-react";
 import { type ReactNode, lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet } from "../components/BottomSheet";
+import { useGeofenceWatch } from "../modules/field-mode/useGeofenceWatch";
 import { usePlatform } from "../hooks/usePlatform";
 import { AppHeader } from "../components/AppHeader";
 import { BasemapSwitcher } from "../components/BasemapSwitcher";
@@ -25,6 +35,7 @@ import { useFeatureSelection } from "../hooks/useFeatureSelection";
 import { useFieldLayers } from "../hooks/useFieldLayers";
 import { useFieldPlugins } from "../hooks/useFieldPlugins";
 import { useHoverTooltips } from "../hooks/useHoverTooltips";
+import { useIndexRefreshJob } from "../hooks/useIndexRefreshJob";
 import { useMapStyleEpoch } from "../hooks/useMapStyleEpoch";
 
 /**
@@ -35,6 +46,9 @@ import { useMapStyleEpoch } from "../hooks/useMapStyleEpoch";
  */
 const LogbookPanel = lazy(() =>
   import("../modules/field-logbook/LogbookPanel").then((m) => ({ default: m.LogbookPanel })),
+);
+const PlotSheet = lazy(() =>
+  import("../modules/plot-sheet/PlotSheet").then((m) => ({ default: m.PlotSheet })),
 );
 const HarvestPanel = lazy(() =>
   import("../modules/field-logbook/HarvestPanel").then((m) => ({ default: m.HarvestPanel })),
@@ -113,6 +127,11 @@ const UserProfileSettingsPage = lazy(() =>
     default: m.UserProfileSettingsPage,
   })),
 );
+const TaskPlannerPanel = lazy(() =>
+  import("../modules/tasks/TaskPlannerPanel").then((m) => ({
+    default: m.TaskPlannerPanel,
+  })),
+);
 const FieldCollectionTool = lazy(() =>
   import("../components/FieldCollectionTool").then((m) => ({
     default: m.FieldCollectionTool,
@@ -121,6 +140,16 @@ const FieldCollectionTool = lazy(() =>
 const OfflineAreaDialog = lazy(() =>
   import("../components/OfflineAreaDialog").then((m) => ({
     default: m.OfflineAreaDialog,
+  })),
+);
+const FieldDetectionModal = lazy(() =>
+  import("../modules/field-mode/FieldDetectionModal").then((m) => ({
+    default: m.FieldDetectionModal,
+  })),
+);
+const IndexTimeSlider = lazy(() =>
+  import("../modules/soil/IndexTimeSlider").then((m) => ({
+    default: m.IndexTimeSlider,
   })),
 );
 
@@ -145,6 +174,14 @@ export function FieldDashboard() {
   const refillEnabled = useSettingsStore((s) => s.dashboardLayout.panelRefill);
   const pendingGeometry = useAgroStore((s) => s.pendingGeometry);
   const selectedFeature = useAgroStore((s) => s.selectedFeature);
+  // Geofencing GPS: rilevamento AUTOMATICO dell'ingresso in un appezzamento.
+  // Nessun pulsante e nessun flag — il hook arma il watch da sé e alimenta la
+  // modale di rilevamento; qui basta tenerlo montato.
+  useGeofenceWatch();
+  // Controllo automatico di nuove immagini satellitari all'avvio (throttle 12h
+  // per azienda): popola la cache indici in sottofondo, così il time slider ha
+  // già una serie navigabile senza che l'utente debba lanciare un calcolo.
+  useIndexRefreshJob();
 
   const mapControllerRef = useRef<MapController | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -255,7 +292,7 @@ export function FieldDashboard() {
             )}
           </button>
           <MapControls mapControllerRef={mapControllerRef} />
-          <BasemapSwitcher />
+          <BasemapSwitcher mapControllerRef={mapControllerRef} />
           {mapReady && (
             <button
               type="button"
@@ -284,6 +321,10 @@ export function FieldDashboard() {
               <Fuel size={18} />
             </button>
           )}
+          {/* Nessun pulsante per il geofencing: il rilevamento è automatico e
+              il GPS "mostrami sulla mappa" è già il controllo nativo in alto a
+              destra. Lo stato del watch è consultabile nel Riquadro
+              Pianificazione Task, non come chrome di mappa. */}
           {/* Strumenti di MODIFICA: compaiono a lato dei moduli solo durante
               l'editing geometrico, con i soli tool di modifica (non di disegno). */}
           <GeometryEditToolbar />
@@ -300,6 +341,12 @@ export function FieldDashboard() {
 
         {/* Legenda a gradiente degli indici: compare con gli overlay attivi. */}
         <Colorbar />
+
+        {/* Time slider degli indici: compare in basso dopo un calcolo e resta
+            navigabile anche a pannello Suolo chiuso. */}
+        <Suspense fallback={null}>
+          <IndexTimeSlider />
+        </Suspense>
 
         {/* Legenda crops: colore/icona per specie negli plots attivi. */}
         {!platform.isMobile && (
@@ -322,6 +369,10 @@ export function FieldDashboard() {
           {openPanels.includes("quaderno") && (
             <LogbookPanel onClose={() => togglePanel("quaderno")} />
           )}
+          {/* Scheda dell'appezzamento (tap sul field in mappa): task
+              programmate avviabili + operazioni registrate su QUEL field.
+              L'ambito aziendale completo resta nel Quaderno, pannello a sé. */}
+          {openPanels.includes("plot-sheet") && <PlotSheet />}
           {openPanels.includes("raccolta") && (
             <HarvestPanel onClose={() => togglePanel("raccolta")} />
           )}
@@ -371,6 +422,11 @@ export function FieldDashboard() {
           {openPanels.includes("profile") && (
             <UserProfileSettingsPage onClose={() => togglePanel("profile")} />
           )}
+          {/* Riquadro Pianificazione Task / Ricette: pagina a tutto schermo
+              come le Impostazioni Profilo (non un drawer). */}
+          {openPanels.includes("tasks") && (
+            <TaskPlannerPanel onClose={() => togglePanel("tasks")} />
+          )}
           {/* Registro: drawer destro come la scheda dettaglio. Quando un
               elemento è selezionato lascia il posto alla scheda e riappare alla
               sua chiusura, così si possono gestire più elementi di fila. */}
@@ -416,6 +472,13 @@ export function FieldDashboard() {
               mapControllerRef={mapControllerRef}
             />
           )}
+        </Suspense>
+
+        {/* Modalità Campo: modale di rilevamento ingresso in field, sopra ogni
+            altro overlay (z-index massimo). Compare da sé quando il geofencing
+            conferma l'ingresso in un appezzamento. */}
+        <Suspense fallback={null}>
+          <FieldDetectionModal />
         </Suspense>
 
         {/* Tab bar mobile: navigazione principale su smartphone (sostituisce la

@@ -17,7 +17,7 @@
       "drawPlot": "Draw plot",
       "drawInfrastructure": "Draw infrastructure",
       "drawPoi": "Draw POI",
-      "editGeometries": "Edit / delete geometries",
+      "editGeometries": "Plot list (details, soil, editing)",
       "printMap": "Print map",
       "companySettings": "Company settings",
       "undoGeometry": "Undo geometry edit",
@@ -40,7 +40,8 @@
     "positiveNumber": "Enter a value greater than zero.",
     "invalidUnit": "Allowed units: {{allowed}}.",
     "invalidFertilizerType": "Type must be organic or mineral.",
-    "npkFormat": "Use the N-P-K format (e.g. 15-15-15)."
+    "npkFormat": "Use the N-P-K format (e.g. 15-15-15).",
+    "resolvedAtExecution": "Determined automatically when the field operation is completed."
   },
   "logbook": {
     "common": {
@@ -117,6 +118,8 @@
     "moduleCrop": "Crop",
     "moduleWater": "Water",
     "moduleDraw": "Draw element",
+    "moduleTasks": "Task Planning",
+    "toolTaskPlanner": "Tasks & Recipes",
     "moduleLogbook": "Field logbook",
     "moduleWarehouse": "Warehouse",
     "toolWarehouse": "Products and lots",
@@ -130,7 +133,7 @@
     "toolDrawPlot": "Plot (polygon)",
     "toolDrawInfra": "Infrastructure (line)",
     "toolDrawPoi": "POI (point)",
-    "toolManage": "Edit / Delete",
+    "toolPlotList": "Plot list",
     "toolPrint": "Print map (Print Composer)",
     "toolOperations": "Operations register",
     "toolHarvest": "Record harvest",
@@ -226,6 +229,116 @@
       "deleteOperation": "Delete operation",
       "repeatOperation": "Repeat operation (prefilled form, today's date)",
       "deleteAriaLabel": "Delete {{label}}"
+    }
+  },
+  "taskPlanner": {
+    "header": {
+      "title": "Task Planning / Recipes",
+      "subtitle": "Schedule field operations on your plots and manage reusable recipes.",
+      "closeAria": "Close planning"
+    },
+    "geofenceStatus": {
+      "active": "Field detection active",
+      "noPlots": "No plots to monitor",
+      "retry": "Retry",
+      "lowAccuracy": "Weak GPS signal (±{{accuracy}} m): detection on hold",
+      "inside": "You are inside a plot"
+    },
+    "readOnlyNotice": "Read-only: you cannot create or edit tasks and recipes in this role.",
+    "newTask": "New Task",
+    "newRecipe": "New Recipe",
+    "tab": {
+      "tasks": "Planned tasks",
+      "recipes": "Recipes"
+    },
+    "title": {
+      "taskForm": "Planned task",
+      "recipeForm": "Recipe"
+    },
+    "emptyTasks": "No planned tasks: schedule your next operation.",
+    "emptyRecipes": "No recipes saved: create your first reusable recipe.",
+    "noDate": "No date",
+    "unknownPlot": "Unknown plot",
+    "productCount": "{{count}} products",
+    "action": {
+      "edit": "Edit",
+      "cancel": "Cancel task",
+      "delete": "Delete"
+    },
+    "history": {
+      "title": "History",
+      "empty": "No in-progress, completed, or cancelled tasks."
+    },
+    "status": {
+      "PLANNED": "Planned",
+      "IN_PROGRESS": "In progress",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    }
+  },
+  "taskForm": {
+    "plot": "Plot",
+    "plotPlaceholder": "— select plot —",
+    "plotRequired": "Select a plot.",
+    "operationTypeLabel": "Operation type",
+    "operationTypePlaceholder": "— select type —",
+    "operationTypeRequired": "Select the operation type.",
+    "operationType": {
+      "phytosanitary": "Phytosanitary treatment",
+      "fertilization": "Fertilization",
+      "irrigation": "Irrigation",
+      "tillage": "Tillage",
+      "sowing": "Sowing",
+      "harvest": "Harvest",
+      "sampling": "Sampling"
+    },
+    "recipe": "Suggested recipe",
+    "noRecipe": "— no recipe —",
+    "plannedDate": "Planned date",
+    "operatorName": "Operator",
+    "operatorLicenseNumber": "Operator licence no.",
+    "operatorLicenseNumberHint": "Shared across every form on this device — set it once.",
+    "notes": "Notes",
+    "completenessWarning": {
+      "title": "This task will produce an incomplete record"
+    },
+    "save": "Save task",
+    "recipeProductCount_one": "{{count}} product",
+    "recipeProductCount_other": "{{count}} products",
+    "noRecipeYet": "No recipe for this type yet: you can save the task and attach one later, or create one in the Recipes tab.",
+    "seedProduct": "Seed",
+    "seedProductPlaceholder": "Seed name"
+  },
+  "recipeForm": {
+    "name": "Recipe name",
+    "nameRequired": "The recipe name is required.",
+    "operationTypeLabel": "Operation type",
+    "operationTypePlaceholder": "— select type —",
+    "targetDisease": "Target pest / disease",
+    "targetDiseasePlaceholder": "e.g. downy mildew, aphids",
+    "products": "Products",
+    "addProduct": "Add product",
+    "product": "Product",
+    "freeTextProduct": "— free text —",
+    "productNamePlaceholder": "Product name",
+    "dosePerHa": "Dose/ha",
+    "unit": "Unit",
+    "removeProduct": "Remove product",
+    "productRowRequired": "Add at least one product with a dose greater than zero.",
+    "notes": "Notes",
+    "save": "Save recipe"
+  },
+  "taskCompleteness": {
+    "panel": {
+      "title": "Incomplete records",
+      "missing": "Missing: {{fields}}",
+      "kindPlannedTask": "Planned task",
+      "kindTreatmentLog": "Logbook entry",
+      "productField": "{{field}} (product {{index}})"
+    },
+    "rowBadge": {
+      "title": "Incomplete",
+      "tooltip": "{{count}} fields still missing for a compliant record"
     }
   },
   "syncPanel": {
@@ -562,6 +675,8 @@
     "readOnly": "read-only",
     "readOnlyUnavailable": "Not available in read-only mode (Viewer role)",
     "warehouseAlerts": "{{count}} lots to check (expired or expiring)",
+    "taskCompletenessAlerts": "{{count}} tasks with an incomplete record",
+    "logCompletenessAlerts": "{{count}} logbook entries with an incomplete record",
     "cropData": "Crop data",
     "dssModels": "DSS · forecast models",
     "exportSian": "Export SIAN (CSV)…"
@@ -728,6 +843,22 @@
     "optimal": "Optimal",
     "relativeScale": "Relative scale",
     "warning": "Warning"
+  },
+  "indexTimeSlider": {
+    "pickScene": "Pick a scene",
+    "plotSelector": "Timeline plot",
+    "previous": "Previous scene",
+    "next": "Next scene",
+    "play": "Play the series",
+    "pause": "Pause",
+    "collapse": "Collapse the timeline",
+    "expand": "Expand the timeline",
+    "computed": "already computed",
+    "notComputed": "to compute",
+    "computedCount": "{{count}} cached",
+    "notComputedCount": "{{count}} to compute",
+    "notComputable": "Scene not processable: run the analysis again to fetch its assets.",
+    "noRaster": "No raster available for this scene."
   },
   "fieldDashboard": {
     "expandModules": "Expand modules",
@@ -1383,7 +1514,11 @@
       "trend": "Trend",
       "trendIndices": "indices"
     },
-    "title": "Soil · Index analysis"
+    "title": "Soil · Index analysis",
+    "timeSlider": {
+      "show": "Show time slider",
+      "hide": "Hide time slider"
+    }
   },
   "vraPanel": {
     "baseIndex": "Base index",
@@ -1654,8 +1789,8 @@
         "descr": "Quick refuel button on the map"
       },
       "panelRegistro": {
-        "label": "Geometry register",
-        "descr": "Edit / delete elements"
+        "label": "Plot list",
+        "descr": "Drawn elements: details, soil, editing"
       },
       "panelSian": {
         "label": "SIAN export",
@@ -1664,6 +1799,10 @@
       "panelStampa": {
         "label": "Print map",
         "descr": "Print Composer (CAP/RDP)"
+      },
+      "panelTasks": {
+        "label": "Task Planning",
+        "descr": "Planned tasks and recipes"
       },
       "panelVra": {
         "label": "Variable-rate application (VRA)",
@@ -1890,5 +2029,99 @@
         "serra": "Greenhouse"
       }
     }
+  },
+  "fieldMode": {
+    "error": {
+      "permission_denied": "GPS permission denied. Enable geolocation in settings.",
+      "unavailable": "GPS unavailable. Check signal.",
+      "timeout": "GPS timeout. Try again in the open.",
+      "mic_unsupported": "Voice recording is not supported on this device/browser.",
+      "mic_permission_denied": "Microphone permission denied. Enable the microphone in settings.",
+      "mic_recording_failed": "Recording failed. Try again.",
+      "insecure_context": "Geolocation blocked: the page is not on a secure connection (HTTPS). Open the app from the desktop or over HTTPS."
+    },
+    "detection": {
+      "headerPrefix": "You're in the field:",
+      "readOnly": "Read-only: you cannot start field operations in this role.",
+      "taskSectionTitle": "Planned task",
+      "taskRecommended": "Next up",
+      "noDate": "No date",
+      "noTaskTitle": "No planned task for this field",
+      "chooseOperation": "What are you doing?",
+      "quickOperation": {
+        "phytosanitary": "Treatment",
+        "fertilization": "Fertilization",
+        "tillage": "Tillage",
+        "other": "Other"
+      },
+      "recipeLabel": "Recipe (optional)",
+      "recipeNone": "— no recipe —",
+      "start": "Start",
+      "later": "Later"
+    },
+    "dashboard": {
+      "unknownPlot": "Plot",
+      "pausedBadge": "PAUSED",
+      "readOnly": "Read-only: controls are disabled with this role.",
+      "speed": "Speed",
+      "areaWorked": "Hectares worked",
+      "elapsed": "Elapsed time",
+      "pause": "Pause",
+      "resume": "Resume",
+      "conclude": "Finish",
+      "recordStart": "Record voice note",
+      "recordingStop": "Stop recording ({{seconds}}s)",
+      "abort": "Abort session",
+      "abortConfirm": "Abort this session? The tracking done so far will be lost and the task will go back to planned.",
+      "audioNotes": {
+        "title": "Voice notes ({{count}})",
+        "play": "Play voice note",
+        "pause": "Pause playback"
+      }
+    },
+    "summary": {
+      "title": "Operation completed",
+      "registered_one": "Recorded in the field logbook ({{count}} entry).",
+      "registered_other": "Recorded in the field logbook ({{count}} entries).",
+      "areaWorked": "Area worked",
+      "duration": "Active duration",
+      "quantitiesHeading": "Quantities applied",
+      "noProduct": "No product",
+      "attentionHeading": "Needs attention",
+      "openLogbook": "Open the logbook",
+      "done": "Done",
+      "warning": {
+        "gps_area_fallback": "GPS did not provide a usable area: quantities were computed on the plot cadastral area.",
+        "no_lot_available": "No lot available for {{product}}: warehouse stock was not issued.",
+        "stock_issue_failed": "Warehouse issue failed: the operation is recorded, but stock levels must be corrected manually.",
+        "incompleteFields": "{{count}} required fields missing on the recorded entries: complete them in the logbook."
+      }
+    }
+  },
+  "reentryAlert": {
+    "banner": {
+      "title": "Re-entry restriction",
+      "message": "{{product}} was applied on this field: re-entry is restricted for other operators for about {{hours}}h. The operator who applied it may re-enter with PPE.",
+      "genericProduct": "A phytosanitary product",
+      "ack": "I acknowledge the restriction (I applied it and I'm wearing PPE, or I accept the risk)."
+    },
+    "badge": {
+      "title": "Re-entry",
+      "tooltip": "{{count}}h remaining before the re-entry restriction expires"
+    }
+  },
+  "plotSheet": {
+    "plannedTasks_one": "Planned task ({{count}})",
+    "plannedTasks_other": "Planned tasks ({{count}})",
+    "planTask": "Plan",
+    "noTasks": "No planned task on this plot.",
+    "noDate": "no date",
+    "startTask": "Start the task",
+    "startOperation": "Start an operation",
+    "startBusy": "An operation is already in progress.",
+    "operations_one": "Recorded operation ({{count}})",
+    "operations_other": "Recorded operations ({{count}})",
+    "openLogbook": "In the logbook",
+    "noOperations": "No operation recorded on this plot."
   }
 }

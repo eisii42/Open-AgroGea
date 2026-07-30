@@ -9,6 +9,7 @@ import {
 import { Button, Label, Select, cn } from "@geolibre/ui";
 import {
   Building2,
+  ClipboardList,
   CloudSun,
   Database,
   Droplets,
@@ -18,10 +19,10 @@ import {
   Languages,
   Layers,
   Leaf,
+  List,
   type LucideIcon,
   Map as MapIcon,
   Mountain,
-  MousePointerClick,
   NotebookPen,
   Plus,
   Printer,
@@ -89,6 +90,7 @@ const MODULE_GROUPS: ModuleGroup[] = [
       { id: "panelVra", Icon: Grid3x3 },
       { id: "panelColtura", Icon: Leaf },
       { id: "panelAcqua", Icon: Droplets },
+      { id: "panelTasks", Icon: ClipboardList },
       { id: "panelQuaderno", Icon: NotebookPen },
       { id: "panelRaccolta", Icon: Wheat },
       { id: "panelMagazzino", Icon: Warehouse },
@@ -96,7 +98,7 @@ const MODULE_GROUPS: ModuleGroup[] = [
       { id: "panelRefill", Icon: Fuel },
       { id: "panelSian", Icon: FileDown },
       { id: "panelStampa", Icon: Printer },
-      { id: "panelRegistro", Icon: MousePointerClick },
+      { id: "panelRegistro", Icon: List },
       { id: "panelAnagrafica", Icon: Building2 },
       { id: "panelMeteo", Icon: CloudSun },
       { id: "panelGeoCompliance", Icon: ShieldCheck },
@@ -144,6 +146,7 @@ function moduleItemText(t: TFunction, id: DashboardModuleId): { label: string; d
     panelVra: { label: t("userProfileSettingsPage.module.panelVra.label"), descr: t("userProfileSettingsPage.module.panelVra.descr") },
     panelColtura: { label: t("userProfileSettingsPage.module.panelColtura.label"), descr: t("userProfileSettingsPage.module.panelColtura.descr") },
     panelAcqua: { label: t("userProfileSettingsPage.module.panelAcqua.label"), descr: t("userProfileSettingsPage.module.panelAcqua.descr") },
+    panelTasks: { label: t("userProfileSettingsPage.module.panelTasks.label"), descr: t("userProfileSettingsPage.module.panelTasks.descr") },
     panelQuaderno: { label: t("userProfileSettingsPage.module.panelQuaderno.label"), descr: t("userProfileSettingsPage.module.panelQuaderno.descr") },
     panelRaccolta: { label: t("userProfileSettingsPage.module.panelRaccolta.label"), descr: t("userProfileSettingsPage.module.panelRaccolta.descr") },
     panelMagazzino: { label: t("userProfileSettingsPage.module.panelMagazzino.label"), descr: t("userProfileSettingsPage.module.panelMagazzino.descr") },
@@ -264,9 +267,13 @@ function ToggleRow({ item }: { item: ModuleItem }) {
           disabled ? "cursor-not-allowed" : "cursor-pointer",
         )}
       >
+        {/* `left-0` è necessario: senza un'ancora esplicita la posizione statica
+            di un absolute dentro un <button> segue il `text-align: center` dello
+            user-agent, quindi il pallino parte dal CENTRO del binario e le due
+            translate lo portano fuori asse (e fuori bordo da acceso). */}
         <span
           className={cn(
-            "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-[var(--sh-1)] transition-transform",
+            "absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white shadow-[var(--sh-1)] transition-transform",
             on ? "translate-x-[22px]" : "translate-x-0.5",
           )}
         />

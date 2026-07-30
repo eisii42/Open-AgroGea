@@ -55,6 +55,17 @@ Scope and rules (see `CLAUDE.md` §2–§3):
 | rifornimento / refill | refill | `fuel_refills` |
 | cisterna (aziendale) | tank / cistern | fuel `product_lots` lot |
 | consumo (l/h) | consumption | `fuelConsumption` (full-to-full) |
+| ricetta / miscela | recipe | `recipes` (dose per hectare, a template) |
+| task programmata / scheda di lavorazione | planned task | `planned_tasks` |
+| sessione a bordo campo | field operation session | `field_operation_sessions` |
+| scheda appezzamento | plot sheet | `modules/plot-sheet` (task + operazioni del campo) |
+| tracciato (GPS) | path / track | `path` (GeoJSON `LineString` in jsonb) |
+| superficie lavorata | area worked | `area_worked_ha` (GPS-measured) |
+| nota vocale | voice note / audio note | `audio_notes`, `field_session_audio` |
+| tempo di rientro | re-entry interval | `reentry_interval_h` (PAN) |
+| permanenza (geofencing) | dwell | `dwellSeconds` (entry debounce) |
+| isteresi (d'uscita) | exit hysteresis | `exitGraceSeconds` |
+| completezza (del record) | completeness | `task-completeness.ts` |
 | bilancio (idrico) | (water) balance | |
 | suolo | soil | merge `modules/suolo` → `modules/soil` |
 | geometria | geometry | |

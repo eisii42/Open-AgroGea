@@ -35,7 +35,10 @@ app entry     main.tsx, App.tsx, standalone.ts, edition.ts, index.css
 modules/      ONE folder per functional domain (the "features" layer):
                 water-balance, warehouse, field-logbook, registry, settings,
                 weather, soil, compliance, crops, dss, vra, analytics, sian,
-                print, colorbar, command-palette, add-data, team
+                print, colorbar, command-palette, add-data, team,
+                tasks (task/recipe planning), field-mode (geofencing +
+                  low-touch in-field screens), plot-sheet (per-parcel dossier:
+                  planned tasks + recorded operations)
 components/    ONLY generic, reusable UI + map/field infrastructure
               (BottomSheet, AppHeader, MapControls, DataEntrySheet, …)
 hooks/        shared React hooks
@@ -76,6 +79,65 @@ The PGlite schema ([`db/schema.ts`](../packages/agro-core/src/db/schema.ts)) is
 **English** (tables/columns) and versioned (`AGRO_LOCAL_SCHEMA_VERSION`).
 Migrations are **additive and idempotent** — never rename/drop persisted columns
 destructively (users have real data on device).
+
+**Rows are normalized on the way out of the DAL**, so the domain types are true:
+what you read back is what the type declares. PGlite itself returns `Date` for
+`timestamptz`/`date` and `string` for `numeric` — the opposite of what
+`TreatmentLog.executed_at: string` and `total_quantity: number` say.
+[`db/row-mapping.ts`](../packages/agro-core/src/db/row-mapping.ts) converts by
+the driver-reported column OID (not a hand-maintained column list), and
+`AgroDalBase` wraps the connection **once** so every read path is covered —
+subclasses, `rawQuery`, and `tx.query` inside transactions alike.
+
+> Consequence for tests: a row built in TypeScript already has the right types
+> and proves nothing about this. Any test guarding the boundary must assert
+> against a row **actually read back from the database**.
+
+## Field Mode (geofencing → logbook)
+
+The low-touch operator flow spans several layers, so the seams matter:
+
+```text
+useGeofenceWatch (the ONLY navigator.geolocation watch in the app)
+  → advanceGeofence  (pure reducer: dwell debounce, exit hysteresis)
+    → store geofenceDetection → FieldDetectionModal (matches planned_tasks)
+      → startFieldSession      (atomic: session + task → IN_PROGRESS)
+        → InFieldDashboard + useFieldSessionTracking (batched path writes)
+          → completeFieldSession (atomic: treatment_logs + lot issues +
+                                  session/task → COMPLETED, idempotent)
+            → PostOperationSummary (notification of what was written)
+```
+
+Non-obvious constraints, each with a reason:
+
+- **Detection is automatic**: no toggle, no map button, no settings flag. The
+  operator entering a field must not have to remember to arm it.
+- There must remain **exactly one GPS watch**. Per-sample values stay in local
+  React state and reach the in-field screen through a module-level pub/sub
+  ([`live-sample-channel.ts`](../apps/agro-field-suite/src/modules/field-mode/live-sample-channel.ts)),
+  **never** the Zustand store — samples arrive at ~1 Hz and the store is shared
+  with the MapLibre canvas.
+- The map's native geolocate control cannot be reused as the sensor:
+  `MapController.geolocateControl` is private in vendored `@geolibre/map`.
+- Writing to the logbook is **automatic and unconfirmed**, so the closing
+  transaction is atomic *and* idempotent (status re-read inside the transaction):
+  a half-write or a double tap would corrupt a legally-relevant register with
+  nobody watching. Completeness is therefore enforced *upstream*, at planning
+  time ([`field/task-completeness.ts`](../packages/agro-core/src/field/task-completeness.ts)).
+- Quantities come from the **GPS-measured** area, never `plots_registry.area_ha`.
+- `InFieldDashboard` is the one component that deliberately **ignores the app
+  theme** (fixed black/lime palette): it is a sunlight-readable driving
+  instrument, not a themed panel.
+- **Detection must never fail silently.** A sample discarded for poor accuracy
+  is reported back (`advanceGeofence` returns `accepted`) so the UI can say
+  "signal too weak" instead of "listening"; a denied permission clears the
+  watch so it can actually restart, and the hook re-arms itself through the
+  Permissions API. Every dead end has a visible state and a way out.
+- **Two scopes, two panels, on purpose.** `plot-sheet` is the per-parcel view
+  (its tasks and its operations); the Logbook opened from the sidebar is the
+  whole-farm register and resets its filters via `logbookScopeToken`. A
+  compliance register must not be able to show a subset without saying so, and
+  keeping them as one panel with a mode flag made that a one-line mistake away.
 
 ## How to add …
 

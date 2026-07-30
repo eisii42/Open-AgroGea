@@ -1,4 +1,12 @@
-import type { FeatureCollection, MultiPolygon, Point, Polygon } from "geojson";
+import type {
+  FeatureCollection,
+  LineString,
+  MultiPolygon,
+  Point,
+  Polygon,
+} from "geojson";
+// `field/settings` non importa nulla: import di solo tipo, nessun ciclo.
+import type { WaterUnit } from "./field/settings";
 
 // ---------------------------------------------------------------------------
 // Claims di licenza
@@ -420,6 +428,53 @@ export interface SoilWaterIndex {
   calculated_at: string;
 }
 
+/**
+ * Scena STAC già elaborata per un plot (`vegetation_index_scenes`).
+ * LOCAL-ONLY: ricomputabile riscaricando i COG. La coppia
+ * (`plot_id`, `scene_id`) è unica ed è la chiave di deduplica della pipeline
+ * cache-first del module Suolo.
+ */
+export interface VegetationIndexScene {
+  id: string;
+  plot_id: string;
+  /** Id dell'item STAC (`IndicesScene.itemId`). */
+  scene_id: string;
+  collection: string;
+  /** Istante di acquisizione della scena (ISO). */
+  captured_at: string;
+  cloud_cover: number | null;
+  valid_pixels: number;
+  /** Media per index sul poligono (chiave = id index, es. "ndvi"). */
+  index_means: Record<string, number>;
+  calculated_at: string;
+}
+
+/**
+ * Griglia di pixel di UN index su UNA scena (`vegetation_index_rasters`),
+ * nel sistema proiettato della scena. I campi geometrici ricalcano
+ * `RasterWindow` di `@agrogea/tools`: bastano loro e i valori per ricostruire
+ * le celle vettoriali con `rasterToIndexCells`, senza tornare in rete.
+ *
+ * `values_base64` è un Int16Array little-endian scalato di `value_scale`, con
+ * `nodata_value` sui pixel fuori dal poligono (vedi `encodeIndexRaster` /
+ * `decodeIndexRaster`).
+ */
+export interface VegetationIndexRaster {
+  scene_row_id: string;
+  /** Id dell'index (es. "ndvi"): stringa e non enum, il catalogo vive in @agrogea/tools. */
+  index_name: string;
+  epsg: number;
+  origin_easting: number;
+  origin_northing: number;
+  pixel_width: number;
+  pixel_height: number;
+  width: number;
+  height: number;
+  value_scale: number;
+  nodata_value: number;
+  values_base64: string;
+}
+
 /** Evento di harvest (`harvest_logs`, Modulo Harvest). */
 export interface Harvest {
   id: string;
@@ -651,7 +706,7 @@ export interface IssueRequest {
   quantity: number;
 }
 
-/** Costo vivo dei products imputato a un field (aggregato per il bilancio 0.4.0). */
+/** Costo vivo dei products imputato a un field (aggregato per il bilancio di campo, versione futura). */
 export interface FieldProductCost {
   /** Plot trattato; null = operazioni "intera azienda". */
   plot_id: string | null;
@@ -703,7 +758,7 @@ export type CounterAdjustmentType = "initial_reading" | "manual" | "engine_reset
  * Tracciata a ORE di lavoro: {@link Machine.hour_counter} è materializzato,
  * incrementato in transazione dalle attività e SETtato dalle rettifiche manuali.
  * I campi `purchase_*`/`useful_life_*`/`residual_value` sono PREDISPOSTI per il
- * costo orario/ammortamento della 0.4.0 (solo struttura, non calcolati qui).
+ * costo orario/ammortamento (versione futura) (solo struttura, non calcolati qui).
  */
 export interface Machine {
   id: string;
@@ -723,12 +778,12 @@ export interface Machine {
   /** Contatore ore corrente (materializzato). */
   hour_counter: number;
   status: MachineStatus;
-  /** Valore d'acquisto (predisposto 0.4.0). */
+  /** Valore d'acquisto (predisposto per l'ammortamento, versione futura). */
   purchase_value: number | null;
   purchase_date: string | null;
-  /** Vita utile stimata in ore (predisposto 0.4.0). */
+  /** Vita utile stimata in ore (predisposto per l'ammortamento, versione futura). */
   useful_life_hours: number | null;
-  /** Vita utile stimata in anni (predisposto 0.4.0). */
+  /** Vita utile stimata in anni (predisposto per l'ammortamento, versione futura). */
   useful_life_years: number | null;
   residual_value: number | null;
   notes: string | null;
@@ -950,6 +1005,193 @@ export interface MachineAttentionItem {
 }
 
 // ---------------------------------------------------------------------------
+// Pianificazione task & Modalità Campo low-touch: ricette, task
+// programmate, sessioni a bordo campo
+// ---------------------------------------------------------------------------
+
+/** Unità di dose di una riga di ricetta: sottoinsieme per-ettaro di {@link DoseUnit}. */
+export type RecipeDoseUnit = Extract<DoseUnit, "kg/ha" | "l/ha">;
+
+/**
+ * Riga di una ricetta (`recipes.products` JSONB): product + dose per ettaro.
+ * Non è un movimento di magazzino — il legame coi lots reali (issue) avviene
+ * solo alla chiusura della sessione a bordo campo (step futuro).
+ */
+export interface RecipeProduct {
+  /** FK `products` se scelto dal Magazzino; null se inserito a testo libero. */
+  product_id: string | null;
+  product_name: string;
+  dose_per_ha: number;
+  unit: RecipeDoseUnit;
+  /** Copia denormalizzata dall'anagrafica: precompila il Quaderno a fine sessione. */
+  active_substance?: string | null;
+  /** Copia denormalizzata dall'anagrafica: precompila il Quaderno a fine sessione. */
+  registration_number?: string | null;
+  /**
+   * Tipo di concime ("organico"/"minerale"/…), copiato dall'anagrafica del
+   * product quando scelto dal Magazzino o inserito a mano in "testo libero".
+   * Rilevante solo per le ricette di fertilizzazione. Campo additivo del
+   * jsonb `recipes.products`: nessuna migrazione di schema, le ricette
+   * salvate prima della sua introduzione lo leggono semplicemente come assente.
+   */
+  fertilizer_type?: string | null;
+  /** Titolo N-P-K ("n-p-k"), idem sopra: copiato dall'anagrafica o inserito a mano. Rilevante solo per le ricette di fertilizzazione. */
+  npk_ratio?: string | null;
+}
+
+/**
+ * Ricetta/miscela preimpostata riutilizzabile (`recipes`). È un MODELLO
+ * (dosi per ettaro), non un movimento di magazzino: il Riquadro Pianificazione
+ * la propone come base di una {@link PlannedTask}, la Modalità Campo la
+ * traduce in issue reali solo alla chiusura della sessione (step futuro).
+ */
+export interface Recipe {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  name: string;
+  operation_type: OperationType | null;
+  products: RecipeProduct[];
+  /** Avversità/patogeno bersaglio della ricetta (ex avversita_target). */
+  target_disease: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/**
+ * Stato di avanzamento di una {@link PlannedTask}: `PLANNED` è l'unico stato
+ * che il geofencing propone all'ingresso nel field; `IN_PROGRESS`
+ * viene impostato atomicamente da {@link FieldOperationSession} all'avvio
+ * della sessione a bordo campo; `COMPLETED`/`CANCELLED` sono terminali.
+ */
+export type PlannedTaskStatus =
+  | "PLANNED"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "CANCELLED";
+
+/**
+ * Scheda di lavorazione PROGRAMMATA su un plot (`planned_tasks`). È l'oggetto
+ * che il geofencing cerca all'ingresso nel field: una task con
+ * `status = "PLANNED"` sul `plot_id` rilevato diventa la proposta prioritaria
+ * nella modale di rilevamento.
+ */
+export interface PlannedTask {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  plot_id: string;
+  operation_type: OperationType;
+  /** Ricetta suggerita (opz.): precompila prodotti/dosi in Modalità Campo. */
+  recipe_id: string | null;
+  target_pest_or_disease: string | null;
+  status: PlannedTaskStatus;
+  /** Data programmata (ISO "YYYY-MM-DD"), null = senza data (in coda). */
+  planned_date: string | null;
+  operator_name: string | null;
+  notes: string | null;
+  /**
+   * Campi di pianificazione pertinenti ai tipi che NON passano da una ricetta
+   * (lavorazione, irrigazione, semina). Vedi {@link PlannedTaskMetadata} per le
+   * chiavi previste: sono un CONTRATTO persistito (jsonb `planned_tasks.
+   * metadata`, schema v20), quindi restano snake_case come le columns.
+   */
+  metadata: PlannedTaskMetadata;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/**
+ * Chiavi note di {@link PlannedTask.metadata}. Sono i valori che la chiusura
+ * della sessione riversa nella row del Quaderno, così l'operatore non li
+ * ridigita a bordo campo: `tillage_type` diventa `treatment_logs.product_name`,
+ * l'apporto irriguo diventa `water_volume_l`, la semente diventa
+ * product + dose. Tutte opzionali: una task porta solo ciò che il suo tipo
+ * di operation prevede (vedi `modules/tasks/task-field-spec.ts`).
+ */
+export interface PlannedTaskMetadata {
+  /** Tipo di lavorazione del terreno (es. "Aratura", "Erpicatura"). */
+  tillage_type?: string | null;
+  /** Apporto irriguo pianificato, nell'unità di {@link irrigation_unit}. */
+  irrigation_amount?: number | null;
+  /** Unità dell'apporto irriguo: lama d'acqua (mm) o volume (hl). */
+  irrigation_unit?: WaterUnit;
+  /** Semente scelta dal Magazzino (FK `products`), null se a testo libero. */
+  seed_product_id?: string | null;
+  seed_product_name?: string | null;
+  /** Dose di semina per ettaro. */
+  seed_dose?: number | null;
+  seed_dose_unit?: RecipeDoseUnit;
+}
+
+/**
+ * Stato di una sessione a bordo campo (`field_operation_sessions.status`):
+ * `IN_PROGRESS`/`PAUSED` sono gli stati attivi (il tracking GPS scrive
+ * `path`), `COMPLETED` chiude la sessione (e scrive il Quaderno),
+ * `ABORTED` è l'uscita senza registrazione.
+ */
+export type FieldSessionStatus =
+  | "IN_PROGRESS"
+  | "PAUSED"
+  | "COMPLETED"
+  | "ABORTED";
+
+/**
+ * Nota vocale geotaggata di una sessione (`field_operation_sessions.audio_notes`
+ * JSONB). Il contenuto audio vero vive in `field_session_audio` (LOCAL-ONLY,
+ * mai nell'outbox): `audio_uri` referenzia il blob con lo schema
+ * {@link AUDIO_URI_SCHEME}.
+ */
+export interface AudioNote {
+  id: string;
+  recorded_at: string;
+  lat: number;
+  lon: number;
+  duration_s: number | null;
+  mime_type: string;
+  /** URI nel formato `agro-audio://<blob_id>` (vedi {@link AUDIO_URI_SCHEME}). */
+  audio_uri: string;
+}
+
+/**
+ * Sessione ESEGUITA a bordo campo (`field_operation_sessions`): tracciato GPS,
+ * superficie realmente lavorata, note vocali, log del Quaderno collegati alla
+ * chiusura. Creata dal geofencing o manualmente, aggiornata dal
+ * tracking GPS e chiusa dal riepilogo post-operazione.
+ */
+export interface FieldOperationSession {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  /** Task programmata da cui è nata la sessione (opz.: può partire anche libera). */
+  planned_task_id: string | null;
+  plot_id: string;
+  operation_type: OperationType;
+  recipe_id: string | null;
+  machine_id: string | null;
+  equipment_id: string | null;
+  working_width_m: number | null;
+  start_time: string;
+  end_time: string | null;
+  /** Tracciato GPS della sessione (GeoJSON LineString, jsonb: niente PostGIS in locale). */
+  path: LineString;
+  path_length_m: number;
+  area_worked_ha: number;
+  status: FieldSessionStatus;
+  audio_notes: AudioNote[];
+  /** `treatment_logs.id` scritti al Quaderno alla chiusura. */
+  treatment_log_ids: string[];
+  operator_name: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // Multiutente — posti collaboratore per company (`tenant_memberships`)
 // ---------------------------------------------------------------------------
 
@@ -1006,7 +1248,10 @@ export type SyncTable =
   | "maintenance_logs"
   | "machine_documents"
   | "counter_adjustments"
-  | "fuel_refills";
+  | "fuel_refills"
+  | "recipes"
+  | "planned_tasks"
+  | "field_operation_sessions";
 
 export type MutationOperation = "insert" | "update" | "delete";
 
@@ -1064,6 +1309,7 @@ export type WarehouseTab = "products" | "machines";
 
 export type FieldPanel =
   | "quaderno"
+  | "plot-sheet"
   | "raccolta"
   | "magazzino"
   | "refill"
@@ -1083,7 +1329,8 @@ export type FieldPanel =
   | "impostazioni"
   | "geocompliance"
   | "profile"
-  | "scouting";
+  | "scouting"
+  | "tasks";
 
 /** Rilievo GPS in field, sincronizzato via outbox come le altre tabelle. */
 export interface ScoutingObservation {

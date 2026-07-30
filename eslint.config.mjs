@@ -25,6 +25,16 @@ export default [
       "**/static/**",
       "**/*.min.js",
       "**/*.d.ts",
+      // Motore GIS GeoLibre VENDORIZZATO (@geolibre/*, MIT © Qiusheng Wu):
+      // codice upstream che non seguiamo e che CLAUDE.md vieta di modificare.
+      // Segnalarlo produrrebbe solo avvisi su cui non possiamo intervenire,
+      // nascondendo quelli veri nel nostro codice. I pacchetti AgroGea
+      // (`agro-core`, `agro-ui`) restano ovviamente sotto lint.
+      "packages/core/**",
+      "packages/map/**",
+      "packages/ui/**",
+      "packages/plugins/**",
+      "packages/attribute-table/**",
     ],
   },
   {

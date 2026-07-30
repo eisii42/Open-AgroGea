@@ -3,6 +3,7 @@ import {
   type FieldPanel,
   type DrawnGeometry,
   expiryStatus,
+  loadOperatorMemory,
   useAgroStore,
   useSettingsStore,
 } from "@agrogea/core";
@@ -11,14 +12,16 @@ import { cn } from "@geolibre/ui";
 import {
   Building2,
   ChevronRight,
+  ClipboardList,
   CloudSun,
   Droplets,
   FileDown,
   Grid3x3,
   Leaf,
+  List,
+  ListChecks,
   type LucideIcon,
   MapPin,
-  MousePointerClick,
   NotebookPen,
   PencilRuler,
   Printer,
@@ -32,11 +35,12 @@ import {
   Warehouse,
   Wheat,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useReadOnly } from "@agrogea/core";
 import { STANDALONE } from "../standalone";
 import { SianExportDialog } from "../modules/sian/SianExportDialog";
+import { buildTaskCompletenessEntries } from "../modules/tasks/task-completeness-view";
 
 /**
  * Sidebar moduli a scomparsa (Modulo UI §5 + §6). Raccoglie gli strumenti
@@ -85,6 +89,9 @@ export function ModuleSidebar({
   const openPanels = useAgroStore((s) => s.openPanels);
   const togglePanel = useAgroStore((s) => s.togglePanel);
   const openWarehouseTab = useAgroStore((s) => s.openWarehouseTab);
+  const openLogbookAllOperations = useAgroStore(
+    (s) => s.openLogbookAllOperations,
+  );
   const drawIntent = useAgroStore((s) => s.drawIntent);
   const setDrawIntent = useAgroStore((s) => s.setDrawIntent);
   const flags = useSettingsStore((s) => s.dashboardLayout);
@@ -105,12 +112,49 @@ export function ModuleSidebar({
       expiryStatus(l.expires_at) !== "valid",
   ).length;
 
+  // Badge "Record incompleti" (completezza PAN): task PROGRAMMATE e righe del
+  // Quaderno che, così come sono, produrrebbero/sono un record non conforme.
+  // Stesso motore riusato dal Riquadro Pianificazione (§TaskCompletenessPanel).
+  const plannedTasks = useAgroStore((s) => s.plannedTasks);
+  const recipes = useAgroStore((s) => s.recipes);
+  const treatments = useAgroStore((s) => s.treatments);
+  const operatorMemory = useMemo(loadOperatorMemory, []);
+  const completenessEntries = useMemo(
+    () =>
+      buildTaskCompletenessEntries({
+        plannedTasks,
+        recipes,
+        treatments,
+        operatorName: operatorMemory.name ?? null,
+        operatorLicenseNumber: operatorMemory.license ?? null,
+      }),
+    [plannedTasks, recipes, treatments, operatorMemory],
+  );
+  const taskCompletenessAlerts = completenessEntries.filter(
+    (e) => e.kind === "plannedTask",
+  ).length;
+  const logCompletenessAlerts = completenessEntries.filter(
+    (e) => e.kind === "treatmentLog",
+  ).length;
+
   const moduli: ModuleDef[] = [
     {
       id: "suolo",
       labelKey: "nav.moduleSoil",
       Icon: Sprout,
       tools: [
+        // La lista degli elementi tracciati vive QUI e non nel module di
+        // disegno: da ogni voce si apre la scheda dell'appezzamento, che è dove
+        // si leggono/modificano i parametri del suolo (tessitura, composizione,
+        // pH…). Cercarla sotto "Disegna elemento" era controintuitivo. La
+        // scheda resta anche il punto di modifica geometria/eliminazione.
+        {
+          id: "manage",
+          labelKey: "nav.toolPlotList",
+          Icon: List,
+          action: { kind: "panel", panel: "registro" },
+          flag: "panelRegistro",
+        },
         {
           id: "ndvi",
           labelKey: "nav.toolNdvi",
@@ -186,18 +230,25 @@ export function ModuleSidebar({
           action: { kind: "draw", intent: "point" },
         },
         {
-          id: "manage",
-          labelKey: "nav.toolManage",
-          Icon: MousePointerClick,
-          action: { kind: "panel", panel: "registro" },
-          flag: "panelRegistro",
-        },
-        {
           id: "stampa",
           labelKey: "nav.toolPrint",
           Icon: Printer,
           action: { kind: "panel", panel: "stampa" },
           flag: "panelStampa",
+        },
+      ],
+    },
+    {
+      id: "tasks",
+      labelKey: "nav.moduleTasks",
+      Icon: ClipboardList,
+      tools: [
+        {
+          id: "task-planner",
+          labelKey: "nav.toolTaskPlanner",
+          Icon: ListChecks,
+          action: { kind: "panel", panel: "tasks" },
+          flag: "panelTasks",
         },
       ],
     },
@@ -210,7 +261,10 @@ export function ModuleSidebar({
           id: "quaderno",
           labelKey: "nav.toolOperations",
           Icon: NotebookPen,
-          action: { kind: "panel", panel: "quaderno" },
+          // Dal modulo il Quaderno mostra SEMPRE il registro dell'intera
+          // azienda: `openLogbookAllOperations` azzera i filtri anche se il
+          // pannello è già aperto e filtrato su un appezzamento.
+          action: { kind: "run", run: () => openLogbookAllOperations() },
           flag: "panelQuaderno",
         },
         {
@@ -328,6 +382,26 @@ export function ModuleSidebar({
                   className="rounded-full bg-[var(--warn-l)] px-1.5 text-[10px] font-semibold text-[var(--warn)]"
                 >
                   {warehouseAlerts} ⚠
+                </span>
+              )}
+              {mod.id === "tasks" && taskCompletenessAlerts > 0 && (
+                <span
+                  title={t("moduleSidebar.taskCompletenessAlerts", {
+                    count: taskCompletenessAlerts,
+                  })}
+                  className="rounded-full bg-[var(--warn-l)] px-1.5 text-[10px] font-semibold text-[var(--warn)]"
+                >
+                  {taskCompletenessAlerts} ⚠
+                </span>
+              )}
+              {mod.id === "qdc" && logCompletenessAlerts > 0 && (
+                <span
+                  title={t("moduleSidebar.logCompletenessAlerts", {
+                    count: logCompletenessAlerts,
+                  })}
+                  className="rounded-full bg-[var(--warn-l)] px-1.5 text-[10px] font-semibold text-[var(--warn)]"
+                >
+                  {logCompletenessAlerts} ⚠
                 </span>
               )}
               <ChevronRight

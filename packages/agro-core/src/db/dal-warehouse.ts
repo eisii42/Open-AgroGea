@@ -508,7 +508,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
 
   /**
    * Costo vivo dei products scaricati, aggregato per field trattato (§5.4):
-   * base del bilancio di field (0.4.0). `plot_id` null = operazioni "intera
+   * base del bilancio di field (versione futura). `plot_id` null = operazioni "intera
    * azienda".
    */
   async productCostsPerField(

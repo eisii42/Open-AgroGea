@@ -1,5 +1,8 @@
 import { v4 as uuidv4 } from "uuid";
 import { controlPlane } from "../control-plane";
+import { WarehouseError } from "../db/dal-warehouse";
+import { loadOperatorMemory } from "../field/operator-memory";
+import { composeSessionLogs } from "../field/session-logbook";
 import type { MemberRole } from "../types";
 import { assertWritable } from "./helpers";
 import type { DomainSlice, StoreGet, StoreSet } from "./state";
@@ -27,6 +30,9 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
     maintenanceSchedules: [],
     machineDocuments: [],
     fuelRefills: [],
+    recipes: [],
+    plannedTasks: [],
+    fieldSessions: [],
 
     setActiveCompany: async (companyId) => {
       set({
@@ -49,6 +55,9 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         maintenanceSchedules: [],
         machineDocuments: [],
         fuelRefills: [],
+        recipes: [],
+        plannedTasks: [],
+        fieldSessions: [],
         activeView: "map",
         selectedFeature: null,
         geomEdit: null,
@@ -58,6 +67,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         pendingGeometry: null,
         drawIntent: null,
         logbookOpenPlotId: null,
+        tasksOpenPlotId: null,
         cropOpenPlotId: null,
         mapOperationIds: null,
         mapHarvestIds: null,
@@ -241,6 +251,9 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         maintenanceSchedules,
         machineDocuments,
         fuelRefills,
+        recipes,
+        plannedTasks,
+        fieldSessions,
       ] = await Promise.all([
         dal.listPlots(activeCompanyId),
         dal.listCrops(),
@@ -259,6 +272,9 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         dal.listMaintenanceSchedules(activeCompanyId),
         dal.listMachineDocuments(activeCompanyId),
         dal.listFuelRefills(activeCompanyId),
+        dal.listRecipes(activeCompanyId),
+        dal.listPlannedTasks(activeCompanyId),
+        dal.listFieldSessions(activeCompanyId),
       ]);
       set({
         companies,
@@ -279,6 +295,9 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         maintenanceSchedules,
         machineDocuments,
         fuelRefills,
+        recipes,
+        plannedTasks,
+        fieldSessions,
       });
     },
 
@@ -756,6 +775,221 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         set({ fuelRefills, lots });
       }
       syncRouter?.notifyLocalWrite();
+    },
+
+    // -- Riquadro Pianificazione Task / Ricette -----------------------
+
+    saveRecipe: async (input) => {
+      assertWritable(get);
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return null;
+      const record = await dal.saveRecipe({
+        ...input,
+        company_id: activeCompanyId,
+      });
+      set((s) => ({
+        recipes: [...s.recipes.filter((r) => r.id !== record.id), record].sort(
+          (a, b) => a.name.localeCompare(b.name),
+        ),
+      }));
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    deleteRecipe: async (id) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return;
+      await dal.deleteRecipe(id);
+      set((s) => ({ recipes: s.recipes.filter((r) => r.id !== id) }));
+      syncRouter?.notifyLocalWrite();
+    },
+
+    savePlannedTask: async (input) => {
+      assertWritable(get);
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return null;
+      const record = await dal.savePlannedTask({
+        ...input,
+        company_id: activeCompanyId,
+      });
+      set((s) => ({
+        plannedTasks: [
+          ...s.plannedTasks.filter((t) => t.id !== record.id),
+          record,
+        ],
+      }));
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    deletePlannedTask: async (id) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return;
+      await dal.deletePlannedTask(id);
+      set((s) => ({ plannedTasks: s.plannedTasks.filter((t) => t.id !== id) }));
+      syncRouter?.notifyLocalWrite();
+    },
+
+    setPlannedTaskStatus: async (id, status) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return null;
+      const record = await dal.setPlannedTaskStatus(id, status);
+      if (!record) return null;
+      set((s) => ({
+        plannedTasks: s.plannedTasks.map((t) => (t.id === record.id ? record : t)),
+      }));
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    // -- Modalità Campo: sessioni a bordo campo dal geofencing -------
+
+    startFieldSession: async (input) => {
+      assertWritable(get);
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return null;
+      const record = await dal.startFieldSession({
+        ...input,
+        company_id: activeCompanyId,
+      });
+      // L'avvio può aver flippato una task PLANNED a IN_PROGRESS (atomico lato
+      // DAL): si riidratano entrambe le collezioni.
+      const [fieldSessions, plannedTasks] = await Promise.all([
+        dal.listFieldSessions(activeCompanyId),
+        dal.listPlannedTasks(activeCompanyId),
+      ]);
+      set({ fieldSessions, plannedTasks });
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    completeFieldSession: async (id, patch) => {
+      assertWritable(get);
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return null;
+      const state = get();
+      const session = state.fieldSessions.find((f) => f.id === id) ?? null;
+      if (!session) return null;
+
+      // Composizione PURA delle righe (una per product della miscela,
+      // quantità dalla superficie GPS): la regola vive in `session-logbook`,
+      // qui si raccoglie solo il contesto dallo store.
+      const merged = { ...session, ...patch };
+      const composition = composeSessionLogs({
+        session: merged,
+        plot: state.plots.find((p) => p.id === merged.plot_id) ?? null,
+        recipe: merged.recipe_id
+          ? (state.recipes.find((r) => r.id === merged.recipe_id) ?? null)
+          : null,
+        task: merged.planned_task_id
+          ? (state.plannedTasks.find((t) => t.id === merged.planned_task_id) ?? null)
+          : null,
+        // Campi già pianificati (lavorazione/irrigazione/semina): riversati nel
+        // Quaderno invece di essere richiesti di nuovo a bordo campo.
+        taskMetadata: merged.planned_task_id
+          ? (state.plannedTasks.find((t) => t.id === merged.planned_task_id)
+              ?.metadata ?? null)
+          : null,
+        plotCampaignId:
+          state.campaignFields.find(
+            (c) =>
+              c.plot_id === merged.plot_id &&
+              c.closed_at == null &&
+              c.deleted_at == null,
+          )?.id ?? null,
+        operator: loadOperatorMemory(),
+        products: state.products,
+        lots: state.lots,
+      });
+
+      // Il lavoro dell'operatore non si perde MAI. Se lo scarico warehouse
+      // fallisce (lot scaduto, giacenza insufficiente, concorrenza) la
+      // transazione si annulla per intero: si ritenta subito SENZA scarico, così
+      // il Quaderno registra comunque la lavorazione con i campi testo
+      // (fallback previsto dallo schema) e il riepilogo segnala che le giacenze
+      // non sono state aggiornate — un magazzino da correggere è un problema
+      // molto minore di una lavorazione mai registrata.
+      let result: Awaited<ReturnType<typeof dal.completeFieldSession>> = null;
+      let stockIssueFailed = false;
+      try {
+        result = await dal.completeFieldSession(id, composition.drafts, patch);
+      } catch (error) {
+        if (!(error instanceof WarehouseError)) throw error;
+        stockIssueFailed = true;
+        result = await dal.completeFieldSession(
+          id,
+          composition.drafts.map((d) => ({ ...d, issues: [] })),
+          patch,
+        );
+      }
+      if (!result) return null;
+
+      const [fieldSessions, plannedTasks, treatments, lots] = await Promise.all([
+        dal.listFieldSessions(activeCompanyId),
+        dal.listPlannedTasks(activeCompanyId),
+        dal.listTreatments(activeCompanyId),
+        dal.listLotti(activeCompanyId),
+      ]);
+      set({ fieldSessions, plannedTasks, treatments, lots });
+      syncRouter?.notifyLocalWrite();
+      return {
+        ...result,
+        areaUsedHa: composition.areaUsedHa,
+        warnings: stockIssueFailed
+          ? [...composition.warnings, { kind: "stock_issue_failed" as const }]
+          : composition.warnings,
+      };
+    },
+
+    abortFieldSession: async (id) => {
+      assertWritable(get);
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal) return null;
+      const record = await dal.abortFieldSession(id);
+      if (!record) return null;
+      if (activeCompanyId) {
+        const [fieldSessions, plannedTasks] = await Promise.all([
+          dal.listFieldSessions(activeCompanyId),
+          dal.listPlannedTasks(activeCompanyId),
+        ]);
+        set({ fieldSessions, plannedTasks });
+      }
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    updateFieldSession: async (id, patch) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return null;
+      const record = await dal.updateFieldSession(id, patch);
+      if (!record) return null;
+      set((s) => ({
+        fieldSessions: s.fieldSessions.map((f) => (f.id === record.id ? record : f)),
+      }));
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    saveSessionAudioNote: async (sessionId, input) => {
+      assertWritable(get);
+      const { dal, syncRouter } = get();
+      if (!dal) return null;
+      const note = await dal.saveAudioNote(sessionId, input);
+      if (!note) return null;
+      // Rilettura puntuale della sola sessione toccata (il blob non entra
+      // nello store: resta LOCAL-ONLY, la UI lo legge on-demand da `dal`).
+      const record = await dal.getFieldSession(sessionId);
+      if (record) {
+        set((s) => ({
+          fieldSessions: s.fieldSessions.map((f) => (f.id === record.id ? record : f)),
+        }));
+      }
+      syncRouter?.notifyLocalWrite();
+      return note;
     },
   };
 }

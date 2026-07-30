@@ -17,7 +17,7 @@
       "drawPlot": "Disegna appezzamento",
       "drawInfrastructure": "Disegna infrastruttura",
       "drawPoi": "Disegna POI",
-      "editGeometries": "Modifica / elimina geometrie",
+      "editGeometries": "Lista appezzamenti (scheda, suolo, modifica)",
       "printMap": "Stampa mappa",
       "companySettings": "Impostazioni azienda",
       "undoGeometry": "Annulla modifica geometria",
@@ -40,7 +40,8 @@
     "positiveNumber": "Inserisci un valore maggiore di zero.",
     "invalidUnit": "Unità ammesse: {{allowed}}.",
     "invalidFertilizerType": "Il tipo dev'essere organico o minerale.",
-    "npkFormat": "Usa il formato N-P-K (es. 15-15-15)."
+    "npkFormat": "Usa il formato N-P-K (es. 15-15-15).",
+    "resolvedAtExecution": "Si determina automaticamente alla chiusura della lavorazione a bordo campo."
   },
   "logbook": {
     "common": {
@@ -117,6 +118,8 @@
     "moduleCrop": "Coltura",
     "moduleWater": "Acqua",
     "moduleDraw": "Disegna elemento",
+    "moduleTasks": "Pianificazione Task",
+    "toolTaskPlanner": "Task & Ricette",
     "moduleLogbook": "Quaderno di Campagna",
     "moduleWarehouse": "Magazzino",
     "toolWarehouse": "Prodotti e lotti",
@@ -130,7 +133,7 @@
     "toolDrawPlot": "Appezzamento (poligono)",
     "toolDrawInfra": "Infrastruttura (linea)",
     "toolDrawPoi": "POI (punto)",
-    "toolManage": "Modifica / Elimina",
+    "toolPlotList": "Lista appezzamenti",
     "toolPrint": "Stampa mappa (Print Composer)",
     "toolOperations": "Registro operazioni",
     "toolHarvest": "Registra raccolta",
@@ -226,6 +229,116 @@
       "deleteOperation": "Elimina operazione",
       "repeatOperation": "Ripeti operazione (form precompilato, data di oggi)",
       "deleteAriaLabel": "Elimina {{label}}"
+    }
+  },
+  "taskPlanner": {
+    "header": {
+      "title": "Pianificazione Task / Ricette",
+      "subtitle": "Programma le lavorazioni sugli appezzamenti e gestisci le ricette riutilizzabili.",
+      "closeAria": "Chiudi pianificazione"
+    },
+    "geofenceStatus": {
+      "active": "Rilevamento field attivo",
+      "noPlots": "Nessun appezzamento da monitorare",
+      "retry": "Riprova",
+      "lowAccuracy": "Segnale GPS debole (±{{accuracy}} m): rilevamento in attesa",
+      "inside": "Sei dentro un appezzamento"
+    },
+    "readOnlyNotice": "Sola lettura: in questo ruolo non puoi creare o modificare task e ricette.",
+    "newTask": "Nuova Task",
+    "newRecipe": "Nuova Ricetta",
+    "tab": {
+      "tasks": "Task in programmazione",
+      "recipes": "Ricette"
+    },
+    "title": {
+      "taskForm": "Task programmata",
+      "recipeForm": "Ricetta"
+    },
+    "emptyTasks": "Nessuna task in programmazione: pianifica la prossima lavorazione.",
+    "emptyRecipes": "Nessuna ricetta salvata: crea la prima ricetta riutilizzabile.",
+    "noDate": "Senza data",
+    "unknownPlot": "Appezzamento sconosciuto",
+    "productCount": "{{count}} prodotti",
+    "action": {
+      "edit": "Modifica",
+      "cancel": "Annulla task",
+      "delete": "Elimina"
+    },
+    "history": {
+      "title": "Storico",
+      "empty": "Nessuna task in corso, completata o annullata."
+    },
+    "status": {
+      "PLANNED": "Programmata",
+      "IN_PROGRESS": "In corso",
+      "COMPLETED": "Completata",
+      "CANCELLED": "Annullata"
+    }
+  },
+  "taskForm": {
+    "plot": "Appezzamento",
+    "plotPlaceholder": "— seleziona appezzamento —",
+    "plotRequired": "Seleziona un appezzamento.",
+    "operationTypeLabel": "Tipo operazione",
+    "operationTypePlaceholder": "— seleziona tipo —",
+    "operationTypeRequired": "Seleziona il tipo di operazione.",
+    "operationType": {
+      "phytosanitary": "Trattamento fitosanitario",
+      "fertilization": "Fertilizzazione",
+      "irrigation": "Irrigazione",
+      "tillage": "Lavorazione del terreno",
+      "sowing": "Semina",
+      "harvest": "Raccolta",
+      "sampling": "Campionamento"
+    },
+    "recipe": "Ricetta suggerita",
+    "noRecipe": "— nessuna ricetta —",
+    "plannedDate": "Data programmata",
+    "operatorName": "Operatore",
+    "operatorLicenseNumber": "N. patentino operatore",
+    "operatorLicenseNumberHint": "Condiviso con tutti i form di questo dispositivo — va impostato una sola volta.",
+    "notes": "Note",
+    "completenessWarning": {
+      "title": "Questa task produrrà un record incompleto"
+    },
+    "save": "Salva task",
+    "recipeProductCount_one": "{{count}} prodotto",
+    "recipeProductCount_other": "{{count}} prodotti",
+    "noRecipeYet": "Nessuna ricetta per questo tipo: puoi salvare la task e agganciarla dopo, oppure crearne una nella scheda Ricette.",
+    "seedProduct": "Semente",
+    "seedProductPlaceholder": "Nome della semente"
+  },
+  "recipeForm": {
+    "name": "Nome ricetta",
+    "nameRequired": "Il nome della ricetta è obbligatorio.",
+    "operationTypeLabel": "Tipo operazione",
+    "operationTypePlaceholder": "— seleziona tipo —",
+    "targetDisease": "Avversità / patogeno bersaglio",
+    "targetDiseasePlaceholder": "es. peronospora, afidi",
+    "products": "Prodotti",
+    "addProduct": "Aggiungi prodotto",
+    "product": "Prodotto",
+    "freeTextProduct": "— testo libero —",
+    "productNamePlaceholder": "Nome prodotto",
+    "dosePerHa": "Dose/ha",
+    "unit": "Unità",
+    "removeProduct": "Rimuovi prodotto",
+    "productRowRequired": "Aggiungi almeno un prodotto con dose maggiore di zero.",
+    "notes": "Note",
+    "save": "Salva ricetta"
+  },
+  "taskCompleteness": {
+    "panel": {
+      "title": "Record incompleti",
+      "missing": "Mancano: {{fields}}",
+      "kindPlannedTask": "Task programmata",
+      "kindTreatmentLog": "Operazione del Quaderno",
+      "productField": "{{field}} (prodotto {{index}})"
+    },
+    "rowBadge": {
+      "title": "Incompleta",
+      "tooltip": "{{count}} campi ancora mancanti per un record conforme"
     }
   },
   "syncPanel": {
@@ -562,6 +675,8 @@
     "readOnly": "sola lettura",
     "readOnlyUnavailable": "Non disponibile in sola lettura (ruolo Viewer)",
     "warehouseAlerts": "{{count}} lotti da controllare (scaduti o in scadenza)",
+    "taskCompletenessAlerts": "{{count}} task con record incompleto",
+    "logCompletenessAlerts": "{{count}} operazioni del Quaderno con record incompleto",
     "cropData": "Dati coltura",
     "dssModels": "DSS · modelli previsionali",
     "exportSian": "Esporta SIAN (CSV)…"
@@ -728,6 +843,22 @@
     "optimal": "Ottimale",
     "relativeScale": "Scala relativa",
     "warning": "Allerta"
+  },
+  "indexTimeSlider": {
+    "pickScene": "Scegli una scena",
+    "plotSelector": "Appezzamento della timeline",
+    "previous": "Scena precedente",
+    "next": "Scena successiva",
+    "play": "Riproduci la serie",
+    "pause": "Metti in pausa",
+    "collapse": "Riduci la timeline",
+    "expand": "Espandi la timeline",
+    "computed": "già calcolata",
+    "notComputed": "da calcolare",
+    "computedCount": "{{count}} in cache",
+    "notComputedCount": "{{count}} da calcolare",
+    "notComputable": "Scena non elaborabile: rilancia l’analisi per recuperarne gli asset.",
+    "noRaster": "Raster non disponibile per questa scena."
   },
   "fieldDashboard": {
     "expandModules": "Espandi moduli",
@@ -1383,7 +1514,11 @@
       "trend": "Trend",
       "trendIndices": "indici"
     },
-    "title": "Suolo · Analisi indici"
+    "title": "Suolo · Analisi indici",
+    "timeSlider": {
+      "show": "Mostra time slider",
+      "hide": "Nascondi time slider"
+    }
   },
   "vraPanel": {
     "baseIndex": "Indice base",
@@ -1654,8 +1789,8 @@
         "descr": "Pulsante rapido di rifornimento in mappa"
       },
       "panelRegistro": {
-        "label": "Registro geometrie",
-        "descr": "Modifica / elimina elementi"
+        "label": "Lista appezzamenti",
+        "descr": "Elenco elementi tracciati: scheda, suolo, modifica"
       },
       "panelSian": {
         "label": "Export SIAN",
@@ -1664,6 +1799,10 @@
       "panelStampa": {
         "label": "Stampa mappa",
         "descr": "Print Composer (PAC/PSR)"
+      },
+      "panelTasks": {
+        "label": "Pianificazione Task",
+        "descr": "Task programmate e ricette"
       },
       "panelVra": {
         "label": "Rateo variabile (VRA)",
@@ -1890,5 +2029,99 @@
         "serra": "Serra"
       }
     }
+  },
+  "fieldMode": {
+    "error": {
+      "permission_denied": "Permesso GPS negato. Abilita la geolocalizzazione nelle impostazioni.",
+      "unavailable": "GPS non disponibile. Controlla il segnale.",
+      "timeout": "Timeout GPS. Riprova all'aperto.",
+      "mic_unsupported": "Registrazione audio non supportata su questo dispositivo/browser.",
+      "mic_permission_denied": "Permesso microfono negato. Abilita il microfono nelle impostazioni.",
+      "mic_recording_failed": "Registrazione non riuscita. Riprova.",
+      "insecure_context": "Geolocalizzazione bloccata: la pagina non è su una connessione sicura (HTTPS). Apri l''app dal desktop o via HTTPS."
+    },
+    "detection": {
+      "headerPrefix": "Sei nel campo:",
+      "readOnly": "Sola lettura: non puoi avviare lavorazioni a bordo campo con questo ruolo.",
+      "taskSectionTitle": "Task pianificata",
+      "taskRecommended": "Prossima",
+      "noDate": "Senza data",
+      "noTaskTitle": "Nessuna task pianificata per questo field",
+      "chooseOperation": "Cosa stai facendo?",
+      "quickOperation": {
+        "phytosanitary": "Trattamento",
+        "fertilization": "Concimazione",
+        "tillage": "Lavorazione",
+        "other": "Altro"
+      },
+      "recipeLabel": "Ricetta (opzionale)",
+      "recipeNone": "— nessuna ricetta —",
+      "start": "Inizio",
+      "later": "Dopo"
+    },
+    "dashboard": {
+      "unknownPlot": "Appezzamento",
+      "pausedBadge": "IN PAUSA",
+      "readOnly": "Sola lettura: i controlli sono disattivati con questo ruolo.",
+      "speed": "Velocità",
+      "areaWorked": "Ettari lavorati",
+      "elapsed": "Tempo trascorso",
+      "pause": "Pausa",
+      "resume": "Riprendi",
+      "conclude": "Concludi",
+      "recordStart": "Registra nota vocale",
+      "recordingStop": "Ferma registrazione ({{seconds}}s)",
+      "abort": "Annulla sessione",
+      "abortConfirm": "Annullare questa sessione? Il tracciamento svolto finora andrà perso e la task tornerà pianificata.",
+      "audioNotes": {
+        "title": "Note vocali ({{count}})",
+        "play": "Riproduci nota vocale",
+        "pause": "Metti in pausa la riproduzione"
+      }
+    },
+    "summary": {
+      "title": "Lavorazione conclusa",
+      "registered_one": "Registrata nel Quaderno di Campagna ({{count}} riga).",
+      "registered_other": "Registrata nel Quaderno di Campagna ({{count}} righe).",
+      "areaWorked": "Superficie lavorata",
+      "duration": "Durata attiva",
+      "quantitiesHeading": "Quantità impiegate",
+      "noProduct": "Senza prodotto",
+      "attentionHeading": "Da sistemare",
+      "openLogbook": "Apri il Quaderno",
+      "done": "Fine",
+      "warning": {
+        "gps_area_fallback": "Il GPS non ha fornito una superficie utile: sono state usate le quantità sulla superficie catastale dell''appezzamento.",
+        "no_lot_available": "Nessun lotto disponibile per {{product}}: la giacenza di magazzino non è stata scaricata.",
+        "stock_issue_failed": "Scarico di magazzino non riuscito: la lavorazione è registrata, ma le giacenze vanno corrette a mano.",
+        "incompleteFields": "{{count}} campi obbligatori mancanti nelle righe registrate: completale nel Quaderno."
+      }
+    }
+  },
+  "reentryAlert": {
+    "banner": {
+      "title": "Tempo di rientro",
+      "message": "Su questo field è stato applicato {{product}}: il rientro è sconsigliato per altri operatori per ancora circa {{hours}}h. Chi lo ha applicato può rientrare coi DPI.",
+      "genericProduct": "un prodotto fitosanitario",
+      "ack": "Confermo di aver letto l'avviso (sono l'operatore che ha trattato e indosso i DPI, oppure accetto il rischio)."
+    },
+    "badge": {
+      "title": "Rientro",
+      "tooltip": "Mancano ancora circa {{count}}h alla fine del tempo di rientro"
+    }
+  },
+  "plotSheet": {
+    "plannedTasks_one": "Task programmata ({{count}})",
+    "plannedTasks_other": "Task programmate ({{count}})",
+    "planTask": "Pianifica",
+    "noTasks": "Nessuna task programmata su questo appezzamento.",
+    "noDate": "senza data",
+    "startTask": "Inizia la task",
+    "startOperation": "Inizia una lavorazione",
+    "startBusy": "Una lavorazione è già in corso.",
+    "operations_one": "Operazione registrata ({{count}})",
+    "operations_other": "Operazioni registrate ({{count}})",
+    "openLogbook": "Nel Quaderno",
+    "noOperations": "Nessuna operazione registrata su questo appezzamento."
   }
 }

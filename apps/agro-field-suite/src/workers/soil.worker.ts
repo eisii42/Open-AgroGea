@@ -3,6 +3,9 @@ import {
   applySasToken,
   computeIndex,
   clipRasterToPolygon,
+  decodeIndexRaster,
+  encodeIndexRaster,
+  type EncodedIndexRaster,
   rasterToIndexCells,
   type IndexLayerRaster,
   type IndexCellProperties,
@@ -34,6 +37,44 @@ import { rasterToGridCells } from "../modules/vra/raster-cells";
  * riferimento — la banda letta a risoluzione più fine — così l'algebra fra
  * bande lavora su array allineati.
  */
+
+/** Raster di un index su una scena, già compresso per la cache locale. */
+export interface EncodedSceneIndexRaster {
+  index: VegetationIndex;
+  encoded: EncodedIndexRaster;
+}
+
+/**
+ * Esito "cacheabile" di una scena: la finestra raster comune agli indici della
+ * scena e i loro raster mascherati compressi. Il chiamante li persiste così
+ * come sono (vegetation_index_scenes + vegetation_index_rasters) e da lì può
+ * ridisegnare le celle senza tornare in rete.
+ */
+export interface SceneRasterPayload {
+  /** Id dell'item STAC: chiave di deduplica della cache. */
+  itemId: string;
+  datetime: string;
+  cloudCover: number | null;
+  validPixels: number;
+  medie: Partial<Record<VegetationIndex, number>>;
+  window: RasterWindow;
+  indices: EncodedSceneIndexRaster[];
+}
+
+/**
+ * Vettorizzazione di una scena GIÀ in cache: stessa uscita del percorso a
+ * freddo (`IndexCellsResult`) ma partendo dai raster compressi invece che dai
+ * COG. Tenuta nel worker perché su appezzamenti grandi la griglia è di decine
+ * di migliaia di celle e bloccherebbe il main thread.
+ */
+export interface IndexCellsJob {
+  type: "index-cells";
+  plotId: string;
+  primaryIndex: VegetationIndex;
+  datetime: string;
+  window: RasterWindow;
+  indices: EncodedSceneIndexRaster[];
+}
 
 export interface SoilJob {
   type: "suolo";
@@ -92,11 +133,17 @@ export type SoilProgress =
   | {
       type: "done";
       series: SeriesPoint[];
-      /** Celle vettoriali dell'index primario, assenti quando `job.vra` è impostato. */
-      cells: IndexCellsResult | null;
       /** Celle VRA dell'index primario, solo se `job.vra` è impostato. */
       vraCells: VraCells | null;
+      /**
+       * Raster compressi di OGNI scena elaborata, per la cache locale. Vuoto
+       * per i job VRA, che non producono raster riutilizzabili. Le celle da
+       * disegnare si ottengono da questi con un job `index-cells`: percorso
+       * unico, identico per una scena appena calcolata e per una da cache.
+       */
+      sceneRasters: SceneRasterPayload[];
     }
+  | { type: "cells"; cells: IndexCellsResult }
   | { type: "error"; message: string };
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
@@ -256,11 +303,12 @@ function scegliRiferimento(bande: BandaLetta[]): RasterWindow {
 async function elaboraScena(
   scena: IndicesScene,
   job: SoilJob,
-  conOverlay: boolean,
+  /** true per la scena più recente del job: l'unica che produce celle VRA. */
+  scenaPrincipale: boolean,
 ): Promise<{
   punto: SeriesPoint;
-  cells: IndexCellsResult | null;
   vraCells: VraCells | null;
+  rasters: SceneRasterPayload | null;
 }> {
   const bandNames = Object.keys(scena.bandHrefs);
   const lette = await Promise.all(
@@ -279,8 +327,9 @@ async function elaboraScena(
   let validPixels = 0;
   let vraCells: VraCells | null = null;
   // Masked di TUTTI gli indici della scena corrente: input di rasterToIndexCells
-  // (celle vettoriali multi-indice). Popolato solo quando serve davvero
-  // (scena più recente, e non per il job VRA che non ne ha bisogno).
+  // (celle vettoriali multi-indice) e della cache locale. Il clip gira comunque
+  // per ogni index — servono le medie — quindi tenerne i raster costa solo
+  // memoria, non lavoro in più.
   const layers: IndexLayerRaster[] = [];
 
   for (const index of job.indices) {
@@ -290,83 +339,124 @@ async function elaboraScena(
     medie[index] = stats.media;
     validPixels = Math.max(validPixels, stats.validPixels);
 
-    if (conOverlay) {
-      if (job.vra) {
-        // Vettorizzazione VRA solo se richiesta (module Mappe VRA, non analisi).
-        if (index === job.primaryIndex) {
-          vraCells = rasterToGridCells(masked, ref, job.vra.step);
-        }
-      } else {
-        layers.push({ index, values: masked });
+    if (job.vra) {
+      // Vettorizzazione VRA solo se richiesta (module Mappe VRA, non analisi).
+      if (scenaPrincipale && index === job.primaryIndex) {
+        vraCells = rasterToGridCells(masked, ref, job.vra.step);
       }
+    } else {
+      layers.push({ index, values: masked });
     }
   }
 
-  let cells: IndexCellsResult | null = null;
-  if (conOverlay && !job.vra && layers.length > 0) {
-    cells = {
-      index: job.primaryIndex,
-      datetime: scena.datetime,
-      cellSizeM: ref.pixelWidth,
-      cells: rasterToIndexCells(layers, ref, {
-        primaryIndex: job.primaryIndex,
-        plotId: job.plotId,
-      }),
-    };
-  }
+  const punto: SeriesPoint = {
+    datetime: scena.datetime,
+    cloudCover: scena.cloudCover,
+    medie,
+    validPixels,
+  };
 
+  // Payload di cache: i raster di ogni scena, non solo di quella a video, così
+  // una rielaborazione successiva (o lo scorrimento temporale) li ritrova.
+  const rasters: SceneRasterPayload | null = job.vra
+    ? null
+    : {
+        itemId: scena.itemId,
+        datetime: scena.datetime,
+        cloudCover: scena.cloudCover,
+        validPixels,
+        medie,
+        window: ref,
+        indices: layers.map((layer) => ({
+          index: layer.index,
+          encoded: encodeIndexRaster(layer.values),
+        })),
+      };
+
+  return { punto, vraCells, rasters };
+}
+
+/** Ricostruisce le celle vettoriali dai raster compressi di una scena in cache. */
+function cellsFromEncoded(job: IndexCellsJob): IndexCellsResult {
+  const layers: IndexLayerRaster[] = job.indices.map((entry) => ({
+    index: entry.index,
+    values: decodeIndexRaster(entry.encoded),
+  }));
   return {
-    punto: {
-      datetime: scena.datetime,
-      cloudCover: scena.cloudCover,
-      medie,
-      validPixels,
-    },
-    cells,
-    vraCells,
+    index: job.primaryIndex,
+    datetime: job.datetime,
+    cellSizeM: job.window.pixelWidth,
+    cells: rasterToIndexCells(layers, job.window, {
+      primaryIndex: job.primaryIndex,
+      plotId: job.plotId,
+    }),
   };
 }
 
-ctx.addEventListener("message", async (event: MessageEvent<SoilJob>) => {
-  const job = event.data;
-  if (job?.type !== "suolo") return;
-  try {
-    if (job.scene.length === 0) {
-      throw new Error("Nessuna scena available per i filters scelti.");
-    }
-    const series: SeriesPoint[] = [];
-    let cells: IndexCellsResult | null = null;
-    let vraCells: VraCells | null = null;
+ctx.addEventListener(
+  "message",
+  async (event: MessageEvent<SoilJob | IndexCellsJob>) => {
+    const job = event.data;
 
-    for (let i = 0; i < job.scene.length; i++) {
+    if (job?.type === "index-cells") {
+      try {
+        ctx.postMessage({
+          type: "cells",
+          cells: cellsFromEncoded(job),
+        } satisfies SoilProgress);
+      } catch (error) {
+        ctx.postMessage({
+          type: "error",
+          message: error instanceof Error ? error.message : String(error),
+        } satisfies SoilProgress);
+      }
+      return;
+    }
+
+    if (job?.type !== "suolo") return;
+    try {
+      if (job.scene.length === 0) {
+        throw new Error("Nessuna scena available per i filters scelti.");
+      }
+      const series: SeriesPoint[] = [];
+      const sceneRasters: SceneRasterPayload[] = [];
+      let vraCells: VraCells | null = null;
+
+      for (let i = 0; i < job.scene.length; i++) {
+        ctx.postMessage({
+          type: "progress",
+          phase: "download",
+          scenaCorrente: i + 1,
+          sceneTotali: job.scene.length,
+        } satisfies SoilProgress);
+
+        // La scena più recente (i === 0) è quella che produce le celle VRA.
+        const { punto, vraCells: c, rasters } = await elaboraScena(
+          job.scene[i],
+          job,
+          i === 0,
+        );
+        series.push(punto);
+        if (c) vraCells = c;
+        if (rasters) sceneRasters.push(rasters);
+      }
+
+      // Serie cronologica crescente per il grafico di trend.
+      series.reverse();
+
+      // I raster di cache viaggiano già compressi in base64, quindi come
+      // stringhe: nessun buffer da trasferire.
       ctx.postMessage({
-        type: "progress",
-        phase: "download",
-        scenaCorrente: i + 1,
-        sceneTotali: job.scene.length,
+        type: "done",
+        series,
+        vraCells,
+        sceneRasters,
       } satisfies SoilProgress);
-
-      // La scena più recente (i === 0) produce le celle indice (e quelle VRA).
-      const { punto, cells: cellsResult, vraCells: c } = await elaboraScena(
-        job.scene[i],
-        job,
-        i === 0,
-      );
-      series.push(punto);
-      if (cellsResult) cells = cellsResult;
-      if (c) vraCells = c;
+    } catch (error) {
+      ctx.postMessage({
+        type: "error",
+        message: error instanceof Error ? error.message : String(error),
+      } satisfies SoilProgress);
     }
-
-    // Serie cronologica crescente per il grafico di trend.
-    series.reverse();
-
-    // GeoJSON è strutturato via structured clone: nessun buffer da trasferire
-    // (a differenza del vecchio RGBA raster).
-    ctx.postMessage({ type: "done", series, cells, vraCells } satisfies SoilProgress);
-  } catch (error) {
-    ctx.postMessage({
-      type: "error",
-      message: error instanceof Error ? error.message : String(error),
-    } satisfies SoilProgress);
-  }
-});
+  },
+);

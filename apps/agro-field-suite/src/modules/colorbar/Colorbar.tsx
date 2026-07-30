@@ -5,9 +5,12 @@ import {
   type VegetationIndex,
 } from "@agrogea/tools";
 import { useAppStore } from "@geolibre/core";
+import { cn } from "@geolibre/ui";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { usePlatform } from "../../hooks/usePlatform";
 import { dssRiskRamp } from "../dss/dss-overlay";
+import { useIndexTimeline } from "../soil/index-timeline-store";
 import { buildColorbar, type ColorbarModel } from "./colorbar-model";
 
 /**
@@ -20,6 +23,12 @@ import { buildColorbar, type ColorbarModel } from "./colorbar-model";
  */
 export function Colorbar() {
   const layers = useAppStore((s) => s.layers);
+  const platform = usePlatform();
+  // Su smartphone il time slider occupa la fascia bassa sopra la tab bar: la
+  // legenda sale sopra di esso invece di finirci sotto. Su desktop lo slider è
+  // centrato e lascia libera la colonna di destra, quindi nulla cambia.
+  const timeline = useIndexTimeline();
+  const timelineOpen = timeline.scenes.length > 0 && !timeline.hidden;
 
   // Una sola legenda per TIPO di indice, anche con più mappe/plots dello
   // stesso indice attivi nella stessa run: condividono lo stesso dominio
@@ -63,7 +72,12 @@ export function Colorbar() {
   if (indices.length === 0 && crops.length === 0) return null;
 
   return (
-    <div className="pointer-events-none absolute bottom-10 right-3 z-30 flex flex-col gap-2">
+    <div
+      className={cn(
+        "pointer-events-none absolute right-3 z-30 flex flex-col gap-2",
+        platform.isMobile && timelineOpen ? "bottom-[12rem]" : "bottom-10",
+      )}
+    >
       {crops.map((crop) => (
         <DssLegendCard key={crop} crop={crop} />
       ))}

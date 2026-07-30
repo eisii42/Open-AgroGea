@@ -22,6 +22,10 @@ import { openTenantDb } from "./tenant-db";
  *                               issue atomico agganciato alle attività);
  *   - {@link AgroDalMachinery} — Parco macchine (mezzi/attrezzi, contatori ore
  *                               automatici, manutenzione, documenti, refill);
+ *   - {@link AgroDalTasks}    — Pianificazione task & Modalità Campo
+ *                               low-touch (ricette, task programmate su plot,
+ *                               sessioni a bordo campo — avvio atomico dalla
+ *                               task programmata);
  *   - {@link AgroDalLocal}    — moduli local-only (meteo, DSS, bilancio
  *                               idrico, trasferimenti, cataloghi).
  */

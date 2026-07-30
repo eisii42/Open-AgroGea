@@ -208,6 +208,27 @@ export const PULL_TABLES: { tabella: SyncTable; columns: string }[] = [
       "id,tenant_id,machine_id,product_lot_id,liters,refueled_at,counter_hours," +
       "operator_name,uma_code,full_tank,notes,created_at,updated_at,deleted_at",
   },
+  {
+    tabella: "recipes",
+    columns:
+      "id,tenant_id,company_id,name,operation_type,products,target_disease," +
+      "notes,created_at,updated_at,deleted_at",
+  },
+  {
+    tabella: "planned_tasks",
+    columns:
+      "id,tenant_id,company_id,plot_id,operation_type,recipe_id," +
+      "target_pest_or_disease,status,planned_date,operator_name,notes," +
+      "created_at,updated_at,deleted_at",
+  },
+  {
+    tabella: "field_operation_sessions",
+    columns:
+      "id,tenant_id,company_id,planned_task_id,plot_id,operation_type," +
+      "recipe_id,machine_id,equipment_id,working_width_m,start_time,end_time," +
+      "path,path_length_m,area_worked_ha,status,audio_notes,treatment_log_ids," +
+      "operator_name,notes,created_at,updated_at,deleted_at",
+  },
 ];
 
 /**

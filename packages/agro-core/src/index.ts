@@ -36,11 +36,18 @@ export {
 export { AgroDal } from "./db/dal";
 export { WarehouseError } from "./db/dal-warehouse";
 export {
+  AUDIO_URI_SCHEME,
+  type AudioBlob,
+  type CompleteFieldSessionResult,
+} from "./db/dal-tasks";
+export {
   EXPIRY_WARNING_DAYS_DEFAULT,
   categoryForOperation,
   cumpAfterInbound,
+  fertilizerTypeFromProduct,
   lotExpired,
   expiryStatus,
+  npkRatioFromProduct,
   validateProduct,
   type ProductDraft,
   type ProductValidationError,
@@ -91,10 +98,13 @@ export {
   type AppView,
   type PlotDrawAttrs,
   type AssetDrawAttrs,
+  type GeofenceWatchErrorCode,
+  type GeofenceWatchStatus,
   type NewCompanyInput,
   type PendingGeometry,
   type SelectableKind,
   type SelectedFeatureRef,
+  type SessionCloseOutcome,
   type GeomEditSession,
 } from "./store";
 export { bindGeoEditorCapture } from "./field/geo-editor-bridge";
@@ -161,6 +171,39 @@ export {
   type TreatmentDraft,
   type ValidationError,
 } from "./field/pan-validation";
+export {
+  evaluateLogCompleteness,
+  evaluateTaskCompleteness,
+  type CompletenessField,
+  type CompletenessResult,
+  type CompletenessSeverity,
+  type RecipeCompletenessInput,
+  type TaskCompletenessContext,
+  type TaskCompletenessInput,
+} from "./field/task-completeness";
+export {
+  loadOperatorMemory,
+  persistOperatorMemory,
+  type OperatorMemory,
+} from "./field/operator-memory";
+export {
+  toDate,
+  toEpochMs,
+  toIsoDay,
+  toIsoString,
+  type TimestampLike,
+} from "./field/timestamps";
+export {
+  SESSION_NOTE_PREFIX,
+  composeSessionLogs,
+  pickLotForProduct,
+  sessionIdFromNote,
+  type SessionLogComposition,
+  type SessionLogContext,
+  type SessionLogDraft,
+  type SessionLogWarning,
+  type SessionLogWarningKind,
+} from "./field/session-logbook";
 export {
   missingDeclarative,
   sianComplete,

@@ -3,6 +3,7 @@ import {
   type GeoLibreLayer,
   useAppStore,
 } from "@geolibre/core";
+import type maplibregl from "maplibre-gl";
 import { proxiedWmsTileUrl } from "./mapTileProxy";
 
 /**
@@ -28,6 +29,16 @@ export const AGRO_BASEMAP_IDS = [SATELLITE_LAYER_ID, CADASTRE_LAYER_ID];
 const ESRI_WORLD_IMAGERY =
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 
+/**
+ * Ultimo livello di dettaglio con copertura globale garantita su Esri World
+ * Imagery. Oltre a questo il servizio risponde con tile vuote/errore su buona
+ * parte del territorio, e la vista satellitare "si buca": finché il satellite è
+ * active la mappa viene quindi limitata a questo zoom (vedi l'effetto di
+ * clamp in `BasemapSwitcher`). Al valore massimo della mappa (24) il limite è
+ * di fatto disattivato.
+ */
+export const SATELLITE_MAX_ZOOM = 18;
+
 // Catasto: WMS pubblico dell'Agenzia delle Entrate (INSPIRE Cadastral Parcels).
 // Il template è in EPSG:3857 col token {bbox-epsg-3857} di MapLibre, MA il server
 // NON supporta 3857 (solo ETRS89): il proxy `agrogeawms://` riproietta il bbox in
@@ -48,7 +59,7 @@ export function satelliteLayer(): GeoLibreLayer {
       type: "raster",
       tiles: [ESRI_WORLD_IMAGERY],
       tileSize: 256,
-      maxzoom: 19,
+      maxzoom: SATELLITE_MAX_ZOOM,
       attribution:
         "Imagery © Esri, Maxar, Earthstar Geographics, and the GIS User Community",
     },
@@ -92,16 +103,72 @@ export function clearAgroBasemaps(): void {
 }
 
 /**
+ * Prefissi degli id dei layer di stile APPLICATIVI: layer dello store GeoLibre
+ * (`layer-<id>-*`), editor Geoman del GeoEditor (`gm_`/`gm-`), evidenziazione
+ * della selezione e righello nativi (`geolibre-*`, `measure-*`). Tutto ciò che
+ * non li matcha appartiene allo stile della basemap di base (stradario OSM).
+ */
+const APP_STYLE_LAYER_PREFIXES = [
+  "layer-",
+  "gm_",
+  "gm-",
+  "geolibre-",
+  "measure-",
+];
+
+/** Id del layer di stile raster generato dal layer-sync per un basemap AgroGea. */
+function basemapStyleLayerId(basemapId: string): string {
+  return `layer-${basemapId}-raster`;
+}
+
+/**
+ * Primo layer di stile applicativo presente sulla mappa: è la soglia sotto cui
+ * devono restare i basemap. `exclude` toglie dal conteggio i basemap AgroGea già
+ * montati, così il catasto si posiziona SOPRA il satellite e non sotto.
+ */
+function firstAppStyleLayerId(
+  map: maplibregl.Map,
+  exclude: readonly string[],
+): string | null {
+  for (const styleLayer of map.getStyle()?.layers ?? []) {
+    if (exclude.includes(styleLayer.id)) continue;
+    if (APP_STYLE_LAYER_PREFIXES.some((p) => styleLayer.id.startsWith(p))) {
+      return styleLayer.id;
+    }
+  }
+  return null;
+}
+
+/**
  * Inserisce un layer di sfondo nello store. Il satellite va in fondo (sopra lo
  * stradario, sotto tutto il resto); il catasto è un overlay e va sopra i basemap
- * ma sotto i vettori agronomici. In entrambi i casi resta sotto i layer
- * applicativi grazie al `beforeId` calcolato.
+ * ma sotto i vettori agronomici.
+ *
+ * Oltre alla posizione nello store si passa un'ANCORA DI STILE (`beforeId`): il
+ * layer-sync ricava il `beforeId` MapLibre dai layer dello store successivi, ma
+ * se nessuno di questi ha ancora un layer di stile — es. azienda senza
+ * appezzamenti, mentre si disegna il primo — ripiega su `undefined` e MapLibre
+ * appende il raster IN CIMA, coprendo i disegni di Geoman (la geometria in
+ * costruzione sparisce sotto l'ortofoto). L'ancora è il primo layer di stile
+ * applicativo e viene usata proprio in quel caso di ripiego.
  */
-export function addBasemap(layer: GeoLibreLayer, asOverlay = false): void {
+export function addBasemap(
+  layer: GeoLibreLayer,
+  {
+    map,
+    asOverlay = false,
+  }: { map?: maplibregl.Map | null; asOverlay?: boolean } = {},
+): void {
   const store = useAppStore.getState();
   if (store.layers.some((l) => l.id === layer.id)) return;
   const beforeId = asOverlay
     ? store.layers.find((l) => !AGRO_BASEMAP_IDS.includes(l.id))?.id ?? null
     : store.layers[0]?.id ?? null;
-  store.addLayer(layer, beforeId);
+  const styleAnchor = map
+    ? firstAppStyleLayerId(
+        map,
+        asOverlay ? AGRO_BASEMAP_IDS.map(basemapStyleLayerId) : [],
+      )
+    : null;
+  store.addLayer({ ...layer, beforeId: styleAnchor ?? undefined }, beforeId);
 }

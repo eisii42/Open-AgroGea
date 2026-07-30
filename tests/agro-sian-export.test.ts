@@ -37,16 +37,16 @@ function app(id: string, name: string): Plot {
 
 function tratt(
   id: string,
-  plot_id: string | null,
-  executed_at: string,
+  plotId: string | null,
+  executedAt: string,
   type: TreatmentLog["operation_type"] = "phytosanitary",
 ): TreatmentLog {
   return {
     id,
     tenant_id: "t",
     company_id: "az",
-    plot_id,
-    plot_campaign_id: plot_id ? `cc-${plot_id}` : null,
+    plot_id: plotId,
+    plot_campaign_id: plotId ? `cc-${plotId}` : null,
     operation_type: type,
     product_name: "Rame",
     registration_number: null,
@@ -62,27 +62,27 @@ function tratt(
     license_number: null,
     fertilizer_type: null,
     npk_ratio: null,
-    executed_at,
+    executed_at: executedAt,
     reentry_interval_h: null,
     safety_period_days: null,
     weather_conditions: null,
     note: null,
-    created_at: executed_at,
-    updated_at: executed_at,
+    created_at: executedAt,
+    updated_at: executedAt,
     deleted_at: null,
   };
 }
 
 function field(
-  plot_id: string,
+  plotId: string,
   year: number,
   over: Partial<PlotCampaign> = {},
 ): PlotCampaign {
   return {
-    id: `cc-${plot_id}`,
+    id: `cc-${plotId}`,
     tenant_id: "t",
-    plot_id,
-    crop_id: `crop-${plot_id}`,
+    plot_id: plotId,
+    crop_id: `crop-${plotId}`,
     campaign_year: year,
     reference_parcel_external_id: "IS-1",
     agricultural_parcel_external_id: "AP-9",
@@ -99,25 +99,25 @@ function field(
 
 function harvest(
   id: string,
-  plot_id: string | null,
-  harvested_at: string,
+  plotId: string | null,
+  harvestedAt: string,
   over: Partial<Harvest> = {},
 ): Harvest {
   return {
     id,
     tenant_id: "t",
     company_id: "az",
-    plot_id,
+    plot_id: plotId,
     plot_campaign_id: null,
     cultivar: "Sangiovese",
     destination_logistics: "Cantina Sociale",
     quantity_kg: 3200,
-    harvested_at,
+    harvested_at: harvestedAt,
     geometry: null,
     notes: null,
     metadata: {},
-    created_at: harvested_at,
-    updated_at: harvested_at,
+    created_at: harvestedAt,
+    updated_at: harvestedAt,
     deleted_at: null,
     ...over,
   };

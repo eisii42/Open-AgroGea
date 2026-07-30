@@ -155,13 +155,13 @@ export function serializeCompanySnapshot(
     soilSamples,
     harvests,
   } of snapshot.plots) {
-    const { geometry, ...plot_no_geom } = plot;
+    const { geometry, ...plotNoGeom } = plot;
     features.push({
       type: "Feature",
       geometry,
       properties: {
         kind: "plot",
-        plot: plot_no_geom,
+        plot: plotNoGeom,
         campaigns,
         treatments,
         soilSamples,
@@ -171,11 +171,11 @@ export function serializeCompanySnapshot(
   }
 
   for (const asset of snapshot.assets) {
-    const { geometry, ...asset_no_geom } = asset;
+    const { geometry, ...assetNoGeom } = asset;
     features.push({
       type: "Feature",
       geometry,
-      properties: { kind: "asset", asset: asset_no_geom },
+      properties: { kind: "asset", asset: assetNoGeom },
     });
   }
 

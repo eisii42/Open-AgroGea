@@ -24,7 +24,7 @@ const numInt = (s: string) => (s.trim() === "" ? null : Math.round(Number(s)));
  * Form unico di anagrafica del Parco macchine (0.3.0), per MEZZI e ATTREZZI:
  * i campi specifici (targa/telaio/marca/modello/anno per i mezzi, larghezza
  * di lavoro per gli attrezzi) si alternano in base a `kind`, i campi comuni
- * (nome, stato, note, sezione Ammortamento 0.4.0) restano invariati. In
+ * (nome, stato, note, sezione Ammortamento) restano invariati. In
  * creazione offre una lettura iniziale del contatore: dopo il salvataggio,
  * se > 0, registra una rettifica `initial_reading` (il contatore NON è
  * impostabile da `saveMachine`/`saveEquipment`, solo da `adjustCounter`).

@@ -242,7 +242,7 @@ export function CompanyOverview({ campaignYear }: { campaignYear: number }) {
         </div>
       </section>
 
-      {/* Costo products imputato per field (base del bilancio di field 0.4.0) */}
+      {/* Costo products imputato per field (base del bilancio di field, versione futura) */}
       <section className="rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] p-3">
         <h3 className="mb-2 text-sm font-semibold text-[var(--ink)]">
           {t("companyOverview.costsByField", { year: campaignYear })}

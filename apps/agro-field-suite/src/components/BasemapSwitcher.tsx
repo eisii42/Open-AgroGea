@@ -1,12 +1,14 @@
 import { useSettingsStore } from "@agrogea/core";
 import { useAppStore } from "@geolibre/core";
+import type { MapController } from "@geolibre/map";
 import { cn } from "@geolibre/ui";
 import { Check, Layers, Map as MapIcon, Satellite } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   CADASTRE_LAYER_ID,
   SATELLITE_LAYER_ID,
+  SATELLITE_MAX_ZOOM,
   addBasemap,
   cadastreLayer,
   satelliteLayer,
@@ -30,7 +32,11 @@ import {
 
 type BaseChoice = "stradario" | "satellite";
 
-export function BasemapSwitcher() {
+export function BasemapSwitcher({
+  mapControllerRef,
+}: {
+  mapControllerRef: RefObject<MapController | null>;
+}) {
   const { t } = useTranslation();
   const layers = useAppStore((s) => s.layers);
   const removeLayer = useAppStore((s) => s.removeLayer);
@@ -39,6 +45,31 @@ export function BasemapSwitcher() {
   const satelliteOn = layers.some((l) => l.id === SATELLITE_LAYER_ID);
   const cadastreOn = layers.some((l) => l.id === CADASTRE_LAYER_ID);
   const current: BaseChoice = satelliteOn ? "satellite" : "stradario";
+
+  // Tetto di zoom dell'ortofoto: oltre SATELLITE_MAX_ZOOM Esri non ha copertura
+  // e la vista satellitare si "buca" (tile vuote). Finché il satellite è active
+  // la mappa viene limitata; tornando allo stradario (vettoriale, che a zoom
+  // alti sovracampiona senza artefatti) si ripristina il tetto precedente —
+  // solo se è stato questo effetto ad abbassarlo.
+  const restoreMaxZoomRef = useRef<number | null>(null);
+  useEffect(() => {
+    const state = useAppStore.getState();
+    const applyMaxZoom = (maxZoom: number) =>
+      state.setPreferences({
+        ...state.preferences,
+        map: { ...state.preferences.map, maxZoom },
+      });
+    const currentMaxZoom = state.preferences.map.maxZoom;
+    if (satelliteOn) {
+      if (currentMaxZoom <= SATELLITE_MAX_ZOOM) return;
+      restoreMaxZoomRef.current = currentMaxZoom;
+      applyMaxZoom(SATELLITE_MAX_ZOOM);
+      return;
+    }
+    const restore = restoreMaxZoomRef.current;
+    restoreMaxZoomRef.current = null;
+    if (restore != null && restore !== currentMaxZoom) applyMaxZoom(restore);
+  }, [satelliteOn]);
 
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -67,12 +98,19 @@ export function BasemapSwitcher() {
   const selectBase = (choice: BaseChoice) => {
     // Basemap mutuamente esclusivi: rimuovi gli altri raster di sfondo.
     if (satelliteOn) removeLayer(SATELLITE_LAYER_ID);
-    if (choice === "satellite") addBasemap(satelliteLayer());
+    if (choice === "satellite") {
+      addBasemap(satelliteLayer(), { map: mapControllerRef.current?.getMap() });
+    }
   };
 
   const toggleCadastre = () => {
     if (cadastreOn) removeLayer(CADASTRE_LAYER_ID);
-    else addBasemap(cadastreLayer(), true);
+    else {
+      addBasemap(cadastreLayer(), {
+        map: mapControllerRef.current?.getMap(),
+        asOverlay: true,
+      });
+    }
   };
 
   const baseOptions: { id: BaseChoice; labelKey: string; show: boolean }[] = [

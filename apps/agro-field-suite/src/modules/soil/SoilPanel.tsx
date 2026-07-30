@@ -5,6 +5,7 @@ import {
 } from "@agrogea/tools";
 import { FieldSheet } from "@agrogea/ui";
 import { Button, cn } from "@geolibre/ui";
+import { Eye, EyeOff } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -28,6 +29,10 @@ import {
   type StrategiaTemporale,
   useSoilPipeline,
 } from "../../hooks/useSoilPipeline";
+import {
+  toggleTimelineHidden,
+  useIndexTimeline,
+} from "./index-timeline-store";
 import {
   buildNdviScatter,
   correlazionePearson,
@@ -163,6 +168,10 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
   const campaignFields = useAgroStore((s) => s.campaignFields);
   const selectedId = useAgroStore((s) => s.selectedPlotId);
   const { status, compute, reset } = useSoilPipeline();
+  // Time slider: il comando compare solo quando c'è una timeline da mostrare,
+  // altrimenti sarebbe un pulsante che non fa nulla.
+  const timeline = useIndexTimeline();
+  const hasTimeline = timeline.scenes.length > 0;
 
   // Pannello Charts: scatter NDVI (Y) ↔ variabile chimica del soil (X).
   const [varX, setVarX] = useState<SoilVariable>("ph");
@@ -256,15 +265,33 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
       title={t("soilPanel.title")}
       onClose={onClose}
       footer={
-        <Button
-          className="min-h-[var(--touch-min)] w-full"
-          disabled={!canCompute}
-          onClick={avvia}
-        >
-          {inCorso
-            ? t("soilPanel.calculating")
-            : t("soilPanel.calculateButton")}
-        </Button>
+        <div className="flex flex-col gap-2">
+          {hasTimeline && (
+            <Button
+              variant="ghost"
+              className="min-h-[var(--touch-min)] w-full justify-center"
+              onClick={toggleTimelineHidden}
+            >
+              {timeline.hidden ? (
+                <Eye size={15} className="mr-2" />
+              ) : (
+                <EyeOff size={15} className="mr-2" />
+              )}
+              {timeline.hidden
+                ? t("soilPanel.timeSlider.show")
+                : t("soilPanel.timeSlider.hide")}
+            </Button>
+          )}
+          <Button
+            className="min-h-[var(--touch-min)] w-full"
+            disabled={!canCompute}
+            onClick={avvia}
+          >
+            {inCorso
+              ? t("soilPanel.calculating")
+              : t("soilPanel.calculateButton")}
+          </Button>
+        </div>
       }
     >
       <div className="flex flex-col gap-4">

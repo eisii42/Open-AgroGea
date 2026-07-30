@@ -144,6 +144,32 @@ export function validateProduct(
 }
 
 /**
+ * Titolo N-P-K ("n-p-k") derivato dai campi anagrafici di un product di
+ * warehouse; null se il product non porta alcun titolo (nessuno dei tre
+ * valorizzato). Riuso comune fra `OperationForm` (Quaderno) e `RecipeForm`
+ * (Pianificazione task): entrambi precompilano il campo NPK da qui invece di
+ * richiederlo a mano quando il product di fertilizzante è già censito.
+ */
+export function npkRatioFromProduct(
+  p: Pick<Product, "npk_n" | "npk_p" | "npk_k">,
+): string | null {
+  if (p.npk_n == null && p.npk_p == null && p.npk_k == null) return null;
+  return [p.npk_n ?? 0, p.npk_p ?? 0, p.npk_k ?? 0].join("-");
+}
+
+/**
+ * Tipo di concime dalla chiave convenzionale `fertilizer_type` del jsonb
+ * `Product.metadata` (vedi la docstring di {@link Product.metadata}); null se
+ * assente o non testuale. Stesso riuso di {@link npkRatioFromProduct}.
+ */
+export function fertilizerTypeFromProduct(
+  p: Pick<Product, "metadata">,
+): string | null {
+  const value = (p.metadata as Record<string, unknown> | null)?.["fertilizer_type"];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+/**
  * Mappa tipo operation del Quaderno → categoria di warehouse pertinente per
  * lo issue (i tipi senza consumo di product non hanno categoria).
  */
