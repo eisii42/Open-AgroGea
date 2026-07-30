@@ -23,7 +23,8 @@
       "undoGeometry": "Deshacer edición de geometría",
       "redoGeometry": "Rehacer edición de geometría",
       "profileSettings": "Ajustes de perfil",
-      "openCommandCenter": "Abrir Command Center"
+      "openCommandCenter": "Abrir Command Center",
+      "openCalendar": "Abrir Calendario"
     }
   },
   "compliance": {
@@ -1428,46 +1429,6 @@
     "title": "Panel personalizado",
     "wholeHistory": "Todo el historial"
   },
-  "operationsCalendar": {
-    "delete": "Eliminar",
-    "dssCalculatedOn": "Calculado el",
-    "executionDate": "Fecha de ejecución",
-    "harvest": "Cosecha",
-    "harvestDate": "Fecha de cosecha",
-    "highRisk": "Riesgo elevado · {{model}}",
-    "month": {
-      "april": "Abril",
-      "august": "Agosto",
-      "december": "Diciembre",
-      "february": "Febrero",
-      "january": "Enero",
-      "july": "Julio",
-      "june": "Junio",
-      "march": "Marzo",
-      "may": "Mayo",
-      "november": "Noviembre",
-      "october": "Octubre",
-      "september": "Septiembre"
-    },
-    "noEventsForDay": "No hay eventos registrados para este día.",
-    "planned": "planificado",
-    "product": "Producto",
-    "save": "Guardar",
-    "weekday": {
-      "fri": "Vie",
-      "sat": "Sáb",
-      "sun": "Dom",
-      "thu": "Jue",
-      "wed": "Mié",
-      "mon": "Lun",
-      "tue": "Mar"
-    },
-    "dssHigh": "elevado",
-    "dssIndex": "índice",
-    "dssModel": "Modelo",
-    "dssRisk": "riesgo",
-    "title": "Calendario de operaciones"
-  },
   "userProfileSettingsPage": {
     "comingSoon": "próximamente",
     "moduleGroup": {
@@ -1704,7 +1665,8 @@
   "appHeader": {
     "commandCenter": "Centro de mando",
     "map": "Mapa",
-    "mapView": "Vista de mapa"
+    "mapView": "Vista de mapa",
+    "calendar": "Calendario"
   },
   "mapControls": {
     "measure": "Medir distancias y superficies (regla nativa)",
@@ -2064,7 +2026,6 @@
       "pausedBadge": "EN PAUSA",
       "readOnly": "Solo lectura: los controles están desactivados con este rol.",
       "speed": "Velocidad",
-      "areaWorked": "Hectáreas trabajadas",
       "elapsed": "Tiempo transcurrido",
       "pause": "Pausa",
       "resume": "Reanudar",
@@ -2077,7 +2038,9 @@
         "title": "Notas de voz ({{count}})",
         "play": "Reproducir nota de voz",
         "pause": "Pausar reproducción"
-      }
+      },
+      "plotArea": "Superficie de la parcela",
+      "previousProgress": "Ya realizado: {{percent}}%"
     },
     "summary": {
       "title": "Operación concluida",
@@ -2091,11 +2054,28 @@
       "openLogbook": "Abrir el cuaderno",
       "done": "Fin",
       "warning": {
-        "gps_area_fallback": "El GPS no proporcionó una superficie útil: las cantidades se calcularon sobre la superficie catastral de la parcela.",
+        "gps_area_fallback": "No se declaró superficie trabajada: las cantidades se calcularon sobre la superficie catastral de la parcela.",
         "no_lot_available": "Ningún lote disponible para {{product}}: no se descontó la existencia del almacén.",
         "stock_issue_failed": "El descuento de almacén falló: la operación está registrada, pero las existencias deben corregirse manualmente.",
-        "incompleteFields": "{{count}} campos obligatorios faltan en las líneas registradas: complétalos en el cuaderno."
-      }
+        "incompleteFields": "{{count}} campos obligatorios faltan en las líneas registradas: complétalos en el cuaderno.",
+        "product_not_in_warehouse": "{{product}} no está vinculado al registro de almacén: las existencias no se actualizaron."
+      },
+      "taskStillOpen": "Tarea al {{percent}}%: sigue planificada, retómala en la próxima entrada al campo.",
+      "taskCompleted": "Tarea completada ({{percent}}%).",
+      "cropAssigned": "Cultivo «{{crop}}» asignado a la parcela para esta campaña."
+    },
+    "completion": {
+      "title": "¿Cuánto has trabajado?",
+      "question": "Declara la parte de la parcela completada: sobre ella se calculan las cantidades y el descuento de almacén.",
+      "percentLabel": "Finalización",
+      "previousProgress": "Ya registrado en esta tarea: {{percent}}%",
+      "plotArea": "Superficie de la parcela",
+      "workedArea": "Superficie trabajada hoy",
+      "taskStaysOpen": "La tarea sigue planificada: mañana continúas desde aquí.",
+      "taskCloses": "La tarea se cerrará como completada.",
+      "noProgress": "Sin avance respecto a lo ya registrado: sube el porcentaje para registrar esta sesión.",
+      "confirm": "Registrar",
+      "back": "Atrás"
     }
   },
   "reentryAlert": {
@@ -2123,5 +2103,70 @@
     "operations_other": "Operaciones registradas ({{count}})",
     "openLogbook": "En el cuaderno",
     "noOperations": "Ninguna operación registrada en esta parcela."
+  },
+  "calendar": {
+    "delete": "Eliminar",
+    "dssCalculatedOn": "Calculado el",
+    "executionDate": "Fecha de ejecución",
+    "harvest": "Cosecha",
+    "harvestDate": "Fecha de cosecha",
+    "highRisk": "Riesgo elevado · {{model}}",
+    "month": {
+      "april": "Abril",
+      "august": "Agosto",
+      "december": "Diciembre",
+      "february": "Febrero",
+      "january": "Enero",
+      "july": "Julio",
+      "june": "Junio",
+      "march": "Marzo",
+      "may": "Mayo",
+      "november": "Noviembre",
+      "october": "Octubre",
+      "september": "Septiembre"
+    },
+    "noEventsForDay": "No hay eventos registrados para este día.",
+    "planned": "planificado",
+    "product": "Producto",
+    "save": "Guardar",
+    "weekday": {
+      "fri": "Vie",
+      "sat": "Sáb",
+      "sun": "Dom",
+      "thu": "Jue",
+      "wed": "Mié",
+      "mon": "Lun",
+      "tue": "Mar"
+    },
+    "dssHigh": "elevado",
+    "dssIndex": "índice",
+    "dssModel": "Modelo",
+    "dssRisk": "riesgo",
+    "title": "Calendario",
+    "taskPrefix": "Por hacer",
+    "addTask": "Planificar tarea",
+    "addOperation": "Registrar operación",
+    "addTaskTitle": "Planificar una tarea",
+    "editTaskTitle": "Editar tarea",
+    "addOperationTitle": "Registrar una operación",
+    "editTask": "Editar",
+    "cancelTask": "Anular tarea",
+    "taskProgress": "Ya realizado: {{percent}}%",
+    "waterStress": "Estrés hídrico · {{mm}} mm",
+    "waterStressDetail": "Balance hídrico: agotamiento de {{depletion}} mm sobre una reserva fácilmente utilizable de {{raw}} mm (ETc {{etc}} mm). Toca regar.",
+    "previousMonth": "Mes anterior",
+    "nextMonth": "Mes siguiente",
+    "today": "Hoy",
+    "plotScope": "Parcela",
+    "allPlots": "Todas las parcelas",
+    "refreshTitle": "Recargar DSS y balance hídrico",
+    "legend": {
+      "task": "Tareas planificadas",
+      "operation": "Operaciones",
+      "harvest": "Cosechas",
+      "dss": "Riesgo DSS",
+      "water": "Estrés hídrico"
+    },
+    "showAll": "Mostrar todo"
   }
 }

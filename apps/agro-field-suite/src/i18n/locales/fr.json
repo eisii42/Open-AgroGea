@@ -23,7 +23,8 @@
       "undoGeometry": "Annuler la modification de géométrie",
       "redoGeometry": "Rétablir la modification de géométrie",
       "profileSettings": "Paramètres du profil",
-      "openCommandCenter": "Ouvrir le Command Center"
+      "openCommandCenter": "Ouvrir le Command Center",
+      "openCalendar": "Ouvrir le Calendrier"
     }
   },
   "compliance": {
@@ -1428,46 +1429,6 @@
     "title": "Tableau de bord personnalisé",
     "wholeHistory": "Tout l'historique"
   },
-  "operationsCalendar": {
-    "delete": "Supprimer",
-    "dssCalculatedOn": "Calculé le",
-    "executionDate": "Date d'exécution",
-    "harvest": "Récolte",
-    "harvestDate": "Date de récolte",
-    "highRisk": "Risque élevé · {{model}}",
-    "month": {
-      "april": "Avril",
-      "august": "Août",
-      "december": "Décembre",
-      "february": "Février",
-      "january": "Janvier",
-      "july": "Juillet",
-      "june": "Juin",
-      "march": "Mars",
-      "may": "Mai",
-      "november": "Novembre",
-      "october": "Octobre",
-      "september": "Septembre"
-    },
-    "noEventsForDay": "Aucun événement enregistré pour ce jour.",
-    "planned": "planifié",
-    "product": "Produit",
-    "save": "Enregistrer",
-    "weekday": {
-      "fri": "Ven",
-      "sat": "Sam",
-      "sun": "Dim",
-      "thu": "Jeu",
-      "wed": "Mer",
-      "mon": "Lun",
-      "tue": "Mar"
-    },
-    "dssHigh": "élevé",
-    "dssIndex": "indice",
-    "dssModel": "Modèle",
-    "dssRisk": "risque",
-    "title": "Calendrier des opérations"
-  },
   "userProfileSettingsPage": {
     "comingSoon": "bientôt disponible",
     "moduleGroup": {
@@ -1704,7 +1665,8 @@
   "appHeader": {
     "commandCenter": "Centre de contrôle",
     "map": "Carte",
-    "mapView": "Vue carte"
+    "mapView": "Vue carte",
+    "calendar": "Calendrier"
   },
   "mapControls": {
     "measure": "Mesurer distances et surfaces (règle native)",
@@ -2064,7 +2026,6 @@
       "pausedBadge": "EN PAUSE",
       "readOnly": "Lecture seule : les commandes sont désactivées avec ce rôle.",
       "speed": "Vitesse",
-      "areaWorked": "Hectares travaillés",
       "elapsed": "Temps écoulé",
       "pause": "Pause",
       "resume": "Reprendre",
@@ -2077,7 +2038,9 @@
         "title": "Notes vocales ({{count}})",
         "play": "Lire la note vocale",
         "pause": "Mettre la lecture en pause"
-      }
+      },
+      "plotArea": "Surface de la parcelle",
+      "previousProgress": "Déjà réalisé : {{percent}} %"
     },
     "summary": {
       "title": "Opération terminée",
@@ -2091,11 +2054,28 @@
       "openLogbook": "Ouvrir le cahier",
       "done": "Terminer",
       "warning": {
-        "gps_area_fallback": "Le GPS n''a pas fourni de surface utile : les quantités ont été calculées sur la surface cadastrale de la parcelle.",
+        "gps_area_fallback": "Aucune surface travaillée déclarée : les quantités ont été calculées sur la surface cadastrale de la parcelle.",
         "no_lot_available": "Aucun lot disponible pour {{product}} : le stock du magasin n''a pas été sorti.",
         "stock_issue_failed": "La sortie de stock a échoué : l''opération est enregistrée, mais les stocks doivent être corrigés manuellement.",
-        "incompleteFields": "{{count}} champs obligatoires manquants sur les lignes enregistrées : complétez-les dans le cahier."
-      }
+        "incompleteFields": "{{count}} champs obligatoires manquants sur les lignes enregistrées : complétez-les dans le cahier.",
+        "product_not_in_warehouse": "{{product}} n'est pas rattaché au registre du magasin : les stocks n'ont pas été mis à jour."
+      },
+      "taskStillOpen": "Tâche à {{percent}} % : toujours planifiée, reprenez-la lors du prochain passage au champ.",
+      "taskCompleted": "Tâche terminée ({{percent}} %).",
+      "cropAssigned": "Culture « {{crop}} » affectée à la parcelle pour cette campagne."
+    },
+    "completion": {
+      "title": "Quelle part avez-vous travaillée ?",
+      "question": "Déclarez la part de parcelle terminée : c'est elle qui détermine les quantités et la sortie de stock.",
+      "percentLabel": "Avancement",
+      "previousProgress": "Déjà enregistré sur cette tâche : {{percent}} %",
+      "plotArea": "Surface de la parcelle",
+      "workedArea": "Surface travaillée aujourd'hui",
+      "taskStaysOpen": "La tâche reste planifiée : demain vous reprenez ici.",
+      "taskCloses": "La tâche sera clôturée comme terminée.",
+      "noProgress": "Aucun avancement au-delà de ce qui est déjà enregistré : augmentez le pourcentage pour enregistrer cette session.",
+      "confirm": "Enregistrer",
+      "back": "Retour"
     }
   },
   "reentryAlert": {
@@ -2123,5 +2103,70 @@
     "operations_other": "Opérations enregistrées ({{count}})",
     "openLogbook": "Dans le cahier",
     "noOperations": "Aucune opération enregistrée sur cette parcelle."
+  },
+  "calendar": {
+    "delete": "Supprimer",
+    "dssCalculatedOn": "Calculé le",
+    "executionDate": "Date d'exécution",
+    "harvest": "Récolte",
+    "harvestDate": "Date de récolte",
+    "highRisk": "Risque élevé · {{model}}",
+    "month": {
+      "april": "Avril",
+      "august": "Août",
+      "december": "Décembre",
+      "february": "Février",
+      "january": "Janvier",
+      "july": "Juillet",
+      "june": "Juin",
+      "march": "Mars",
+      "may": "Mai",
+      "november": "Novembre",
+      "october": "Octobre",
+      "september": "Septembre"
+    },
+    "noEventsForDay": "Aucun événement enregistré pour ce jour.",
+    "planned": "planifié",
+    "product": "Produit",
+    "save": "Enregistrer",
+    "weekday": {
+      "fri": "Ven",
+      "sat": "Sam",
+      "sun": "Dim",
+      "thu": "Jeu",
+      "wed": "Mer",
+      "mon": "Lun",
+      "tue": "Mar"
+    },
+    "dssHigh": "élevé",
+    "dssIndex": "indice",
+    "dssModel": "Modèle",
+    "dssRisk": "risque",
+    "title": "Calendrier",
+    "taskPrefix": "À faire",
+    "addTask": "Planifier une tâche",
+    "addOperation": "Enregistrer une opération",
+    "addTaskTitle": "Planifier une tâche",
+    "editTaskTitle": "Modifier la tâche",
+    "addOperationTitle": "Enregistrer une opération",
+    "editTask": "Modifier",
+    "cancelTask": "Annuler la tâche",
+    "taskProgress": "Déjà réalisé : {{percent}} %",
+    "waterStress": "Stress hydrique · {{mm}} mm",
+    "waterStressDetail": "Bilan hydrique : déficit de {{depletion}} mm pour une réserve facilement utilisable de {{raw}} mm (ETc {{etc}} mm). C'est le moment d'irriguer.",
+    "previousMonth": "Mois précédent",
+    "nextMonth": "Mois suivant",
+    "today": "Aujourd'hui",
+    "plotScope": "Parcelle",
+    "allPlots": "Toutes les parcelles",
+    "refreshTitle": "Recharger DSS et bilan hydrique",
+    "legend": {
+      "task": "Tâches planifiées",
+      "operation": "Opérations",
+      "harvest": "Récoltes",
+      "dss": "Risque DSS",
+      "water": "Stress hydrique"
+    },
+    "showAll": "Tout afficher"
   }
 }

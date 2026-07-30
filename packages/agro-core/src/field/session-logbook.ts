@@ -30,13 +30,23 @@ import { toIsoString } from "./timestamps";
  *     `field_operation_sessions.treatment_log_ids` le raccoglie tutte. Senza
  *     ricetta si scrive una singola row dal solo tipo di operation.
  *
- *   * QUANTITÀ DALLA SUPERFICIE GPS, non da quella catastale: il totale è
- *     `dose_per_ha × area_worked_ha`. È la ragione d'essere del tracciamento —
- *     usare `plots_registry.area_ha` significherebbe dichiarare prodotto su
- *     superficie non lavorata. Se il GPS non ha prodotto un tracciato
- *     utilizzabile si ricade sulla superficie dell'appezzamento e lo si
- *     SEGNALA ({@link SessionLogComposition.warnings}): meglio un record
- *     completo e marcato che una quantità nulla in un registro di compliance.
+ *   * QUANTITÀ DALLA SUPERFICIE LAVORATA DICHIARATA: il totale è
+ *     `dose_per_ha × area_worked_ha`, dove `area_worked_ha` è la quota di
+ *     appezzamento che l'operatore dichiara di aver lavorato alla chiusura
+ *     (percentuale di completamento × superficie totale del field). Il GPS
+ *     traccia il percorso ma NON stima più la superficie: una stima
+ *     `lunghezza × larghezza di lavoro` su un registro di compliance vale meno
+ *     della dichiarazione di chi era sul trattore. Se non risulta alcuna
+ *     superficie utilizzabile si ricade su quella catastale dell'appezzamento
+ *     e lo si SEGNALA ({@link SessionLogComposition.warnings}): meglio un
+ *     record completo e marcato che una quantità nulla in un registro.
+ *
+ *   * SCARICO DI MAGAZZINO SULLA QUANTITÀ DEL QUADERNO: ogni riga che porta un
+ *     product agganciato all'anagrafica scarica ESATTAMENTE il suo
+ *     `total_quantity` (mai un valore ricalcolato per altra via) — vale sia per
+ *     i prodotti della ricetta sia per la semente pianificata sulla task. Se il
+ *     product non è agganciato al Magazzino o non ha lots utilizzabili, la
+ *     riga resta comunque scritta e il riepilogo lo segnala.
  *
  *   * OPERATORE DAL CONTESTO: name e patentino risalgono dalla task
  *     programmata o dalla memoria di dispositivo
@@ -47,10 +57,16 @@ import { toIsoString } from "./timestamps";
 
 /** Motivo per cui una chiusura merita l'attenzione dell'operatore nel riepilogo. */
 export type SessionLogWarningKind =
-  /** Il GPS non ha prodotto una superficie utile: si è usata quella dell'appezzamento. */
+  /** Nessuna superficie lavorata dichiarata: si è usata quella dell'appezzamento. */
   | "gps_area_fallback"
   /** Nessun lot di warehouse utilizzabile per un product della ricetta. */
   | "no_lot_available"
+  /**
+   * Il product della riga non è agganciato all'anagrafica di Magazzino
+   * (inserito a testo libero nella ricetta o nella task): il Quaderno lo
+   * registra, ma NESSUNA giacenza può essere scaricata per esso.
+   */
+  | "product_not_in_warehouse"
   /**
    * Lo scarico warehouse è fallito (lot scaduto, giacenza insufficiente) e la
    * chiusura è stata ripetuta senza scarico: la lavorazione È registrata nel
@@ -169,13 +185,39 @@ export function composeSessionLogs(
   const { session, plot, recipe, task, operator } = context;
   const warnings: SessionLogWarning[] = [];
 
-  // Superficie: quella percorsa dal GPS è la verità; il fallback catastale è
-  // l'ultima risorsa e viene segnalato.
-  const gpsArea = Number(session.area_worked_ha);
-  let areaUsedHa = Number.isFinite(gpsArea) && gpsArea > 0 ? gpsArea : 0;
+  // Superficie: quella DICHIARATA a fine lavoro (percentuale di completamento
+  // × superficie del field, già persistita in `area_worked_ha`) è la verità;
+  // il fallback catastale è l'ultima risorsa e viene segnalato.
+  const declaredArea = Number(session.area_worked_ha);
+  let areaUsedHa =
+    Number.isFinite(declaredArea) && declaredArea > 0 ? declaredArea : 0;
   if (areaUsedHa === 0) {
     areaUsedHa = plot ? Number(plot.area_ha) || 0 : 0;
     warnings.push({ kind: "gps_area_fallback" });
+  }
+
+  /**
+   * Scarico di Magazzino per una riga del Quaderno: la quantità è SEMPRE il
+   * `total_quantity` scritto sulla riga — è la regola che tiene allineati
+   * registro e giacenze. Senza product agganciato all'anagrafica, o senza un
+   * lot utilizzabile, non si scarica nulla e lo si segnala.
+   */
+  function dischargeFor(
+    productId: string | null | undefined,
+    productName: string,
+    totalQuantity: number | null,
+  ): IssueRequest[] {
+    if (totalQuantity == null || totalQuantity <= 0) return [];
+    if (!productId) {
+      warnings.push({ kind: "product_not_in_warehouse", productName });
+      return [];
+    }
+    const lot = pickLotForProduct(productId, context.lots);
+    if (!lot) {
+      warnings.push({ kind: "no_lot_available", productName });
+      return [];
+    }
+    return [{ product_lot_id: lot.id, quantity: totalQuantity }];
   }
 
   // `end_time` può arrivare come `Date` (row riletta da PGlite) o come stringa
@@ -227,20 +269,22 @@ export function composeSessionLogs(
             areaUsedHa,
           )
         : null;
+    const productName =
+      planned.seed_product_name ?? planned.tillage_type ?? null;
+    const totalQuantity =
+      seedDose != null ? round3(seedDose * areaUsedHa) : null;
 
     return {
       drafts: [
         {
           input: {
             ...base,
-            product_name:
-              planned.seed_product_name ?? planned.tillage_type ?? null,
+            product_name: productName,
             registration_number: null,
             active_substance: null,
             dose_value: seedDose,
             dose_unit: seedDose != null ? (planned.seed_dose_unit ?? "kg/ha") : null,
-            total_quantity:
-              seedDose != null ? round3(seedDose * areaUsedHa) : null,
+            total_quantity: totalQuantity,
             water_volume_l: irrigationLitres,
             target_disease: targetDisease,
             fertilizer_type: null,
@@ -248,7 +292,16 @@ export function composeSessionLogs(
             reentry_interval_h: null,
             safety_period_days: null,
           },
-          issues: [],
+          // La semente pianificata sulla task esce dal Magazzino esattamente
+          // come un product di ricetta: senza questo, una semina chiusa a
+          // bordo campo lasciava le giacenze intatte.
+          issues: seedDose != null
+            ? dischargeFor(
+                planned.seed_product_id,
+                productName ?? "",
+                totalQuantity,
+              )
+            : [],
         },
       ],
       areaUsedHa,
@@ -263,21 +316,14 @@ export function composeSessionLogs(
     const { reentry, safety } = safetyFromProduct(product);
     const totalQuantity = round3(Number(line.dose_per_ha) * areaUsedHa);
 
-    // Scarico reale dal Magazzino solo se il product della ricetta è
-    // agganciato all'anagrafica E ha un lot utilizzabile; altrimenti restano i
-    // campi testo del Quaderno (fallback previsto dallo schema).
-    const issues: IssueRequest[] = [];
-    if (line.product_id && totalQuantity > 0) {
-      const lot = pickLotForProduct(line.product_id, context.lots);
-      if (lot) {
-        issues.push({ product_lot_id: lot.id, quantity: totalQuantity });
-      } else {
-        warnings.push({
-          kind: "no_lot_available",
-          productName: line.product_name,
-        });
-      }
-    }
+    // Scarico reale dal Magazzino sulla stessa quantità scritta nel Quaderno;
+    // senza aggancio all'anagrafica o senza lots utilizzabili restano i campi
+    // testo del Quaderno (fallback previsto dallo schema), con warning.
+    const issues = dischargeFor(
+      line.product_id,
+      line.product_name,
+      totalQuantity,
+    );
 
     return {
       input: {

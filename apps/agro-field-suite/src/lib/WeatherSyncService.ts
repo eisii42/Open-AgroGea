@@ -150,6 +150,9 @@ interface OpenMeteoForecastResp {
 /** Giorni di previsione mostrati nella scheda: oggi + 4. */
 const DASHBOARD_FORECAST_DAYS = 5;
 
+/** Millisecondi in un giorno (conversioni di finestra temporale). */
+const DAY_MS = 24 * 3600 * 1000;
+
 /**
  * Cache in-memory (per company) della previsione da cruscotto. È volutamente
  * separata dal lucchetto `last_weather_pull_at` dei DSS: quella scheda NON
@@ -161,6 +164,80 @@ const cachePrevisione = new Map<
   string,
   { at: number; data: PrevisioneDashboard }
 >();
+
+/**
+ * Cache in-memory delle finestre giornaliere del Calendario, per
+ * `company:from:to` (un mese visualizzato = una voce). Stesso lucchetto orario
+ * della scheda meteo: navigare avanti e indietro fra i mesi non consuma quota.
+ */
+const cacheGiorniCalendario = new Map<
+  string,
+  { at: number; data: ForecastDay[] }
+>();
+
+/** Variabili giornaliere richieste per il Calendario (icona + min/max + pioggia). */
+const CALENDAR_DAILY_VARS =
+  "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max";
+
+/**
+ * Finestra giornaliera dall'endpoint /forecast (passato recente + previsione),
+ * ritagliata su [from, to]. `past_days`/`forecast_days` sono clampati ai limiti
+ * del free tier: fuori da lì risponde l'Archive API.
+ */
+function buildCalendarForecastUrl(
+  lon: number,
+  lat: number,
+  pastDays: number,
+  forecastDays: number,
+): string {
+  const params = new URLSearchParams({
+    latitude: lat.toFixed(4),
+    longitude: lon.toFixed(4),
+    daily: CALENDAR_DAILY_VARS,
+    past_days: String(pastDays),
+    forecast_days: String(forecastDays),
+    timezone: "auto",
+  });
+  return `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
+}
+
+/** Finestra giornaliera storica (Archive API), per i mesi passati. */
+function buildCalendarArchiveUrl(
+  lon: number,
+  lat: number,
+  from: string,
+  to: string,
+): string {
+  const params = new URLSearchParams({
+    latitude: lat.toFixed(4),
+    longitude: lon.toFixed(4),
+    start_date: from,
+    end_date: to,
+    daily: CALENDAR_DAILY_VARS,
+    timezone: "auto",
+  });
+  return `https://archive-api.open-meteo.com/v1/archive?${params.toString()}`;
+}
+
+/** Righe {@link ForecastDay} da una risposta `daily` di Open-Meteo. */
+async function fetchDailyRows(url: string): Promise<ForecastDay[]> {
+  const resp = await fetch(url);
+  if (!resp.ok) {
+    throw new Error(
+      i18n.t("weatherSyncService.openMeteoHttpError", { status: resp.status }),
+    );
+  }
+  const json = (await resp.json()) as OpenMeteoForecastResp;
+  const d = json.daily ?? {};
+  return (d.time ?? []).map((day, i) => ({
+    data: day,
+    tMin: d.temperature_2m_min?.[i] ?? null,
+    tMax: d.temperature_2m_max?.[i] ?? null,
+    pioggiaMm: d.precipitation_sum?.[i] ?? null,
+    ventoMax: d.wind_speed_10m_max?.[i] ?? null,
+    weatherCode: d.weather_code?.[i] ?? null,
+  }));
+}
 
 function buildForecastDashboardUrl(lon: number, lat: number): string {
   const params = new URLSearchParams({
@@ -549,6 +626,92 @@ export const WeatherSyncService = {
     };
 
     cachePrevisione.set(companyId, { at: Date.now(), data });
+    return data;
+  },
+
+  /**
+   * Serie GIORNALIERA su un intervallo arbitrario (icona WMO, min/max, pioggia)
+   * per il Calendario aziendale: un mese di celle, una voce per giorno.
+   *
+   * Sceglie da sé la sorgente gratuita giusta e, per i mesi a cavallo, le
+   * combina: l'endpoint /forecast copre gli ultimi {@link FORECAST_HISTORY_DAYS}
+   * giorni più la previsione a +{@link FORECAST_DAYS}, l'Archive API tutto ciò
+   * che sta più indietro (con la sua latenza tipica). Cache in-memory per
+   * intervallo con lo stesso lucchetto orario del resto del meteo: sfogliare
+   * avanti e indietro i mesi non consuma quota.
+   *
+   * Non scrive nulla in PGlite: è un dato di CONTORNO del calendario, non una
+   * serie autorevole per i DSS (quella resta di `assicuraDatiMeteo`).
+   */
+  async dailyRange(options: {
+    companyId: string;
+    lon: number;
+    lat: number;
+    /** Primo giorno "YYYY-MM-DD" (incluso). */
+    from: string;
+    /** Ultimo giorno "YYYY-MM-DD" (incluso). */
+    to: string;
+    force?: boolean;
+  }): Promise<ForecastDay[]> {
+    const { companyId, lon, lat, from, to, force } = options;
+    const cacheKey = `${companyId}:${from}:${to}`;
+    const cached = cacheGiorniCalendario.get(cacheKey);
+    if (
+      cached &&
+      !force &&
+      (Date.now() - cached.at) / 60_000 < WEATHER_LOCK_MINUTES
+    ) {
+      return cached.data;
+    }
+
+    const todayMs = Date.now();
+    // Confine fra le due sorgenti: da qui in avanti risponde /forecast.
+    const forecastFloorMs = todayMs - FORECAST_HISTORY_DAYS * DAY_MS;
+    const fromMs = Date.parse(`${from}T12:00:00`);
+    const toMs = Date.parse(`${to}T12:00:00`);
+    if (!Number.isFinite(fromMs) || !Number.isFinite(toMs) || fromMs > toMs) {
+      return [];
+    }
+
+    const requests: Promise<ForecastDay[]>[] = [];
+
+    // Parte storica profonda (oltre la finestra del /forecast) → Archive API.
+    if (fromMs < forecastFloorMs) {
+      const archiveEndMs = Math.min(toMs, forecastFloorMs - DAY_MS);
+      requests.push(
+        fetchDailyRows(
+          buildCalendarArchiveUrl(lon, lat, from, isoDay(archiveEndMs)),
+        ),
+      );
+    }
+    // Parte recente/futura → endpoint /forecast, con le finestre clampate ai
+    // limiti del free tier (oltre i quali l'API risponderebbe errore).
+    if (toMs >= forecastFloorMs) {
+      const pastDays = Math.min(
+        FORECAST_HISTORY_DAYS,
+        Math.max(0, Math.ceil((todayMs - Math.max(fromMs, forecastFloorMs)) / DAY_MS)),
+      );
+      const forecastDays = Math.min(
+        FORECAST_DAYS,
+        Math.max(1, Math.ceil((toMs - todayMs) / DAY_MS) + 1),
+      );
+      requests.push(
+        fetchDailyRows(buildCalendarForecastUrl(lon, lat, pastDays, forecastDays)),
+      );
+    }
+
+    const rows = (await Promise.all(requests)).flat();
+    // Deduplica per giorno (le due finestre possono sovrapporsi di un giorno)
+    // e ritaglia all'intervallo richiesto: l'ultima riga vista vince, cioè
+    // quella del /forecast, la più aggiornata.
+    const byDay = new Map<string, ForecastDay>();
+    for (const row of rows) {
+      if (row.data < from || row.data > to) continue;
+      byDay.set(row.data, row);
+    }
+    const data = [...byDay.values()].sort((a, b) => a.data.localeCompare(b.data));
+
+    cacheGiorniCalendario.set(cacheKey, { at: Date.now(), data });
     return data;
   },
 };

@@ -38,6 +38,7 @@ export { WarehouseError } from "./db/dal-warehouse";
 export {
   AUDIO_URI_SCHEME,
   type AudioBlob,
+  type CompleteFieldSessionOptions,
   type CompleteFieldSessionResult,
 } from "./db/dal-tasks";
 export {
@@ -204,6 +205,11 @@ export {
   type SessionLogWarning,
   type SessionLogWarningKind,
 } from "./field/session-logbook";
+export {
+  sowingCropAssignment,
+  type SowingCropAssignment,
+  type SowingCropContext,
+} from "./field/session-crop";
 export {
   missingDeclarative,
   sianComplete,

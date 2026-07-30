@@ -161,14 +161,25 @@ export function CommandPalette({
         esegui: openPanel("profile"),
       },
       // Switch di vista: la freccia → è la scorciatoia globale registrata in
-      // App.tsx (← riporta alla mappa). La palette vive nella vista mappa,
-      // quindi qui serve solo la direzione verso il Command Center.
+      // App.tsx (← torna indietro nell'ordine Mappa → Calendario → Command
+      // Center). La palette vive nella vista mappa, quindi qui servono solo le
+      // direzioni in avanti.
+      {
+        id: "act-calendar",
+        title: t("commandPalette.actions.openCalendar"),
+        category: "azione",
+        paroleChiave: ["calendario", "agenda", "task", "pianificazione", "meteo"],
+        scorciatoia: "→",
+        esegui: () => {
+          setActiveView("calendar");
+          onClose();
+        },
+      },
       {
         id: "act-command-center",
         title: t("commandPalette.actions.openCommandCenter"),
         category: "azione",
         paroleChiave: ["dashboard", "dati", "kpi", "analisi", "report", "vista"],
-        scorciatoia: "→",
         esegui: () => {
           setActiveView("command-center");
           onClose();

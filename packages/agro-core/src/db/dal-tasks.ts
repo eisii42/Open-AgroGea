@@ -40,6 +40,24 @@ export interface CompleteFieldSessionResult {
    * contro doppi tap e retry).
    */
   alreadyCompleted: boolean;
+  /**
+   * Task programmata riportata a `PLANNED` invece che chiusa, perché la
+   * sessione ha dichiarato un completamento parziale: il lavoro riprende il
+   * giorno dopo dalla stessa task (vedi {@link CompleteFieldSessionOptions}).
+   */
+  taskStillOpen: boolean;
+}
+
+/** Opzioni di chiusura che riguardano la TASK, non la riga del Quaderno. */
+export interface CompleteFieldSessionOptions {
+  /**
+   * Avanzamento complessivo DICHIARATO dall'operatore (0..100). Sotto 100 la
+   * task NON si chiude: torna `PLANNED` con la percentuale in
+   * `metadata.completion_percent`, così il geofencing la ripropone il giorno
+   * dopo e la sessione successiva lavora la quota restante. `null`/assente =
+   * comportamento storico (task `COMPLETED`).
+   */
+  taskCompletionPercent?: number | null;
 }
 
 /**
@@ -371,6 +389,12 @@ export class AgroDalTasks extends AgroDalMachinery {
    * transazione e una sessione già COMPLETED esce senza scrivere nulla
    * (`alreadyCompleted: true`). Un doppio tap su CONCLUDI, o un retry dopo un
    * errore, non possono quindi duplicare le righe del registro.
+   *
+   * La SESSIONE si chiude sempre; la TASK no. Con un completamento parziale
+   * (`options.taskCompletionPercent < 100`) la task torna `PLANNED` con
+   * l'avanzamento in `metadata.completion_percent`: il lavoro registrato oggi
+   * resta nel Quaderno e domani si riprende dalla stessa task — una lavorazione
+   * su due giorni non deve costringere a ricreare la pianificazione.
    */
   async completeFieldSession(
     sessionId: string,
@@ -381,13 +405,18 @@ export class AgroDalTasks extends AgroDalMachinery {
         "end_time" | "path" | "path_length_m" | "area_worked_ha" | "audio_notes"
       >
     > = {},
+    options: CompleteFieldSessionOptions = {},
   ): Promise<CompleteFieldSessionResult | null> {
     const existing = await this.getFieldSession(sessionId);
     if (!existing || existing.deleted_at) return null;
 
+    const percent = options.taskCompletionPercent;
+    const partialCompletion = percent != null && percent < 100;
+
     const ts = nowIso();
     const treatments: TreatmentLog[] = [];
     let alreadyCompleted = false;
+    let taskStillOpen = false;
     let session = existing;
 
     await this.db.transaction(async (tx: Transaction) => {
@@ -452,7 +481,11 @@ export class AgroDalTasks extends AgroDalMachinery {
         if (task && task.status !== "COMPLETED") {
           const updatedTask: PlannedTask = {
             ...task,
-            status: "COMPLETED",
+            status: partialCompletion ? "PLANNED" : "COMPLETED",
+            metadata:
+              percent != null
+                ? { ...task.metadata, completion_percent: percent }
+                : task.metadata,
             updated_at: ts,
           };
           const updTask = upsertSql(
@@ -466,6 +499,7 @@ export class AgroDalTasks extends AgroDalMachinery {
             "update",
             updatedTask as unknown as Row & { id: string },
           );
+          taskStillOpen = partialCompletion;
         }
       }
     });
@@ -474,6 +508,7 @@ export class AgroDalTasks extends AgroDalMachinery {
       session,
       treatments: alreadyCompleted ? [] : treatments,
       alreadyCompleted,
+      taskStillOpen,
     };
   }
 

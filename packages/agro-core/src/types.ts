@@ -1125,6 +1125,13 @@ export interface PlannedTaskMetadata {
   /** Dose di semina per ettaro. */
   seed_dose?: number | null;
   seed_dose_unit?: RecipeDoseUnit;
+  /**
+   * Avanzamento DICHIARATO dall'operatore alla chiusura di una sessione a
+   * bordo campo (0..100). Sotto il 100 la task NON si chiude: torna `PLANNED`
+   * con questa percentuale, così il giorno dopo il geofencing la ripropone e
+   * la sessione successiva lavora solo la quota restante.
+   */
+  completion_percent?: number | null;
 }
 
 /**

@@ -207,7 +207,7 @@ export function FieldDashboard() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
-        if (useAgroStore.getState().activeView === "command-center") return;
+        if (useAgroStore.getState().activeView !== "map") return;
         e.preventDefault();
         setPaletteOpen((v) => !v);
       }

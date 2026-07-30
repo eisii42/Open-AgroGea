@@ -59,6 +59,7 @@ const numStr = (v: number | null | undefined) => (v == null ? "" : String(v));
 export function TaskForm({
   existing,
   defaultPlotId,
+  defaultPlannedDate,
   onCancel,
   onSaved,
 }: {
@@ -66,6 +67,8 @@ export function TaskForm({
   existing?: PlannedTask | null;
   /** Plot pre-selezionato in creazione (click "Pianifica task" sul field in mappa). */
   defaultPlotId?: string;
+  /** Data programmata iniziale "YYYY-MM-DD" (click su un giorno del Calendario). */
+  defaultPlannedDate?: string;
   onCancel: () => void;
   onSaved: (id: string) => void;
 }) {
@@ -94,7 +97,9 @@ export function TaskForm({
     existing?.target_pest_or_disease ?? "",
   );
   const [plannedDate, setPlannedDate] = useState(
-    existing?.planned_date ? existing.planned_date.slice(0, 10) : "",
+    existing?.planned_date
+      ? existing.planned_date.slice(0, 10)
+      : (defaultPlannedDate ?? ""),
   );
   const [operatorName, setOperatorName] = useState(
     existing?.operator_name ?? opMemory.name ?? "",

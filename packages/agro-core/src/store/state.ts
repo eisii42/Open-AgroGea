@@ -1,7 +1,10 @@
 import type { Feature, Geometry } from "geojson";
 import type { StoreApi } from "zustand";
 import type { AgroDal } from "../db/dal";
-import type { CompleteFieldSessionResult } from "../db/dal-tasks";
+import type {
+  CompleteFieldSessionOptions,
+  CompleteFieldSessionResult,
+} from "../db/dal-tasks";
 import type { AgroTheme } from "../field/theme";
 import type { SessionLogWarning } from "../field/session-logbook";
 import type { DrawnGeometry } from "../geo/area";
@@ -110,11 +113,13 @@ export type GeomEditRequest = "save" | "cancel" | null;
 /**
  * Vista di primo livello dell'app di field. `map` è la Dashboard geocentrica
  * (mappa + moduli); `command-center` è il Data Command Center analitico, dove la
- * mappa MaplLibre viene smontata per liberare risorse. Il contesto aziendale
+ * mappa MaplLibre viene smontata per liberare risorse; `calendar` è il
+ * calendario aziendale completo (pianificazione, registro, meteo, DSS e
+ * bilancio idrico su un'unica griglia temporale). Il contesto aziendale
  * (company attiva, DAL, dati di dominio) vive nello store e SOPRAVVIVE allo
  * switch: cambiare vista non perde il workspace.
  */
-export type AppView = "map" | "command-center";
+export type AppView = "map" | "command-center" | "calendar";
 
 export interface AssetDrawAttrs {
   id?: string;
@@ -577,9 +582,17 @@ export interface DomainSlice {
    * CHIUDE la sessione registrandola AUTOMATICAMENTE nel Quaderno di Campagna
    * (nessuna conferma dell'operatore: è la scelta di prodotto della Modalità
    * Campo low-touch). Compone le righe con `composeSessionLogs` — una per
-   * product della miscela, quantità = dose × superficie GPS — e le persiste
-   * con sessione e task in un'unica transazione
+   * product della miscela, quantità = dose × superficie lavorata dichiarata —
+   * e le persiste con sessione e task in un'unica transazione
    * ({@link AgroDalTasks.completeFieldSession}, idempotente).
+   *
+   * Con `options.taskCompletionPercent < 100` la task resta APERTA (torna
+   * `PLANNED` con l'avanzamento): il lavoro di oggi è registrato, quello di
+   * domani riparte dalla stessa pianificazione.
+   *
+   * Una SEMINA su field senza campagna aperta assegna anche la coltura
+   * dell'annata (`crops` + `plots_campaign`), come fa il Quaderno per le
+   * semine registrate a mano.
    *
    * Se lo scarico warehouse fallisce, ritenta SENZA scarico e lo segnala in
    * {@link SessionCloseOutcome.warnings}: la lavorazione viene registrata
@@ -594,6 +607,7 @@ export interface DomainSlice {
         "end_time" | "path" | "path_length_m" | "area_worked_ha" | "audio_notes"
       >
     >,
+    options?: CompleteFieldSessionOptions,
   ) => Promise<SessionCloseOutcome | null>;
   /**
    * Abbandona una sessione a bordo campo (avvio accidentale, geofencing sulla
@@ -656,8 +670,15 @@ export interface DomainSlice {
  * effettivamente usata per le quantità e gli eventuali punti da correggere.
  */
 export interface SessionCloseOutcome extends CompleteFieldSessionResult {
-  /** Superficie (ha) usata per calcolare le quantità: GPS, o il fallback catastale. */
+  /**
+   * Superficie (ha) usata per calcolare le quantità: quella dichiarata a fine
+   * lavoro, o il fallback catastale.
+   */
   areaUsedHa: number;
+  /** Avanzamento complessivo dichiarato (0..100), o null se non richiesto. */
+  completionPercent: number | null;
+  /** Coltura assegnata al field da una semina (v20), o null. */
+  assignedCropName: string | null;
   warnings: SessionLogWarning[];
 }
 

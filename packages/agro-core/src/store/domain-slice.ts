@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import { controlPlane } from "../control-plane";
 import { WarehouseError } from "../db/dal-warehouse";
 import { loadOperatorMemory } from "../field/operator-memory";
+import { sowingCropAssignment } from "../field/session-crop";
 import { composeSessionLogs } from "../field/session-logbook";
 import type { MemberRole } from "../types";
 import { assertWritable } from "./helpers";
@@ -866,7 +867,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       return record;
     },
 
-    completeFieldSession: async (id, patch) => {
+    completeFieldSession: async (id, patch, options) => {
       assertWritable(get);
       const { dal, activeCompanyId, syncRouter } = get();
       if (!dal || !activeCompanyId) return null;
@@ -915,7 +916,12 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       let result: Awaited<ReturnType<typeof dal.completeFieldSession>> = null;
       let stockIssueFailed = false;
       try {
-        result = await dal.completeFieldSession(id, composition.drafts, patch);
+        result = await dal.completeFieldSession(
+          id,
+          composition.drafts,
+          patch,
+          options,
+        );
       } catch (error) {
         if (!(error instanceof WarehouseError)) throw error;
         stockIssueFailed = true;
@@ -923,9 +929,54 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
           id,
           composition.drafts.map((d) => ({ ...d, issues: [] })),
           patch,
+          options,
         );
       }
       if (!result) return null;
+
+      // Semina su field libero: assegna la coltura dell'annata come fa il
+      // Quaderno per le semine registrate a mano (crops + plots_campaign).
+      // Solo su una chiusura EFFETTIVA: un retry idempotente non deve creare
+      // una seconda scheda coltura.
+      let assignedCropName: string | null = null;
+      if (!result.alreadyCompleted) {
+        const assignment = sowingCropAssignment({
+          operationType: merged.operation_type,
+          plot: state.plots.find((p) => p.id === merged.plot_id) ?? null,
+          campaignFields: state.campaignFields,
+          taskMetadata: merged.planned_task_id
+            ? (state.plannedTasks.find((t) => t.id === merged.planned_task_id)
+                ?.metadata ?? null)
+            : null,
+          products: state.products,
+        });
+        if (assignment) {
+          const crop = await get().saveCrop({
+            common_name: assignment.species,
+            scientific_name: assignment.scientificName,
+            variety_name: assignment.varietyName,
+            crop_metadata: {
+              category: assignment.cropCategory,
+              ...(assignment.seedingDensity != null
+                ? { densita_semina: assignment.seedingDensity }
+                : {}),
+            },
+          });
+          if (crop) {
+            await get().savePlotCampaign({
+              plot_id: assignment.plotId,
+              crop_id: crop.id,
+              campaign_year: state.activeCampaign,
+              declared_area_ha: assignment.declaredAreaHa,
+              reference_parcel_external_id: null,
+              agricultural_parcel_external_id: null,
+              crop_external_code: null,
+              variety_external_code: null,
+            });
+            assignedCropName = crop.common_name;
+          }
+        }
+      }
 
       const [fieldSessions, plannedTasks, treatments, lots] = await Promise.all([
         dal.listFieldSessions(activeCompanyId),
@@ -938,6 +989,8 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       return {
         ...result,
         areaUsedHa: composition.areaUsedHa,
+        completionPercent: options?.taskCompletionPercent ?? null,
+        assignedCropName,
         warnings: stockIssueFailed
           ? [...composition.warnings, { kind: "stock_issue_failed" as const }]
           : composition.warnings,

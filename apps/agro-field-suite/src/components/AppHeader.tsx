@@ -2,6 +2,7 @@ import { type AgroTheme, useAgroStore, useSettingsStore } from "@agrogea/core";
 import { cn } from "@geolibre/ui";
 import {
   Building2,
+  CalendarDays,
   LayoutDashboard,
   Map as MapIcon,
   Moon,
@@ -127,8 +128,9 @@ export function AppHeader({
         </div>
       )}
 
-      {/* Switcher di vista (Modulo 1): Mappa ↔ Data Command Center. Cambiare
-          vista smonta/rimonta la mappa ma conserva il contesto aziendale. */}
+      {/* Switcher di vista (Modulo 1): Mappa ↔ Calendario ↔ Data Command
+          Center. Cambiare vista nasconde la mappa (keep-alive) ma conserva il
+          contesto aziendale. */}
       <div className="ml-0 flex shrink-0 items-center gap-0.5 rounded-[var(--r-2)] bg-[var(--panel-2)] p-0.5 sm:ml-2">
         <button
           type="button"
@@ -143,6 +145,20 @@ export function AppHeader({
         >
           <MapIcon size={14} />
           <span className="hidden md:inline">{t("appHeader.map")}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveView("calendar")}
+          title={t("appHeader.calendar")}
+          className={cn(
+            "flex h-8 items-center gap-1.5 rounded-[var(--r-1)] px-2.5 text-xs font-medium",
+            activeView === "calendar"
+              ? "bg-[var(--panel)] text-[var(--accent)] shadow-[var(--sh-1)]"
+              : "text-[var(--ink-3)]",
+          )}
+        >
+          <CalendarDays size={14} />
+          <span className="hidden md:inline">{t("appHeader.calendar")}</span>
         </button>
         <button
           type="button"

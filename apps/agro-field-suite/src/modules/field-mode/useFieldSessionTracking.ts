@@ -4,7 +4,7 @@ import {
   useAgroStore,
 } from "@agrogea/core";
 import type { GeoSample } from "@agrogea/tools";
-import { pathLengthMeters, workedAreaHectares } from "@agrogea/tools";
+import { pathLengthMeters } from "@agrogea/tools";
 import type { Position } from "geojson";
 import { useCallback, useEffect, useRef } from "react";
 import { loadFieldModeConfig } from "./field-mode-config";
@@ -23,10 +23,16 @@ const FLUSH_TIMER_MS = 5_000;
  * canale live di `useGeofenceWatch` (`useLiveGeoSample`, vedi
  * `live-sample-channel.ts`): nessun secondo `watchPosition`. I campioni
  * grezzi restano in una ref locale (mai nello store) e solo il risultato
- * BATCHED (path/path_length_m/area_worked_ha) raggiunge il DAL via
- * `updateFieldSession` — scrivere a ogni campione (~1 Hz) vorrebbe dire una
- * riga di `sync_outbox` al secondo, che è esattamente ciò che l'outbox non
- * deve fare.
+ * BATCHED (path/path_length_m) raggiunge il DAL via `updateFieldSession` —
+ * scrivere a ogni campione (~1 Hz) vorrebbe dire una riga di `sync_outbox`
+ * al secondo, che è esattamente ciò che l'outbox non deve fare.
+ *
+ * Il tracciato NON stima più gli ettari lavorati durante la lavorazione: una
+ * moltiplicazione `lunghezza percorsa × larghezza di lavoro` conta due volte le
+ * sovrapposizioni e le manovre a capezzagna, e finiva in un registro di
+ * compliance come se fosse un dato misurato. La superficie lavorata è ora
+ * DICHIARATA dall'operatore alla chiusura (percentuale di completamento sulla
+ * superficie totale dell'appezzamento, vedi {@link conclude}).
  *
  * Politica di persistenza (batch): flush ogni {@link FLUSH_EVERY_SAMPLES}
  * campioni accettati O ogni {@link FLUSH_EVERY_MS} ms dall'ultimo flush (il
@@ -47,7 +53,6 @@ const FLUSH_TIMER_MS = 5_000;
  */
 export function useFieldSessionTracking(
   session: FieldOperationSession | null,
-  plotAreaHa: number | null,
 ): {
   /** Velocità istantanea (km/h) dell'ultimo campione GPS live, o null. */
   speedKmh: number | null;
@@ -59,11 +64,17 @@ export function useFieldSessionTracking(
   resume: () => Promise<void>;
   /**
    * CONCLUDI: flush finale del tracciato e REGISTRAZIONE AUTOMATICA nel
-   * Quaderno di Campagna (nessuna conferma dell'operatore: è la scelta di
-   * prodotto della Modalità Campo low-touch). Ritorna l'esito da mostrare nel
-   * riepilogo post-operazione, o null se non c'era una sessione da chiudere.
+   * Quaderno di Campagna. Le quantità nascono dalla superficie DICHIARATA in
+   * `input`: `workedAreaHa` è la quota lavorata in QUESTA sessione (la
+   * differenza fra l'avanzamento appena dichiarato e quello già registrato),
+   * `completionPercent` è l'avanzamento complessivo della task — sotto il 100%
+   * la task resta aperta e riprende il giorno dopo. Ritorna l'esito da mostrare
+   * nel riepilogo post-operazione, o null se non c'era una sessione da chiudere.
    */
-  conclude: () => Promise<SessionCloseOutcome | null>;
+  conclude: (input: {
+    workedAreaHa: number;
+    completionPercent: number;
+  }) => Promise<SessionCloseOutcome | null>;
   /** Forza un flush immediato del pending (usato dallo smontaggio). */
   flushNow: () => Promise<void>;
 } {
@@ -79,8 +90,6 @@ export function useFieldSessionTracking(
   // memoizzati e non devono chiudere su una versione stantia della sessione.
   const sessionRef = useRef(session);
   sessionRef.current = session;
-  const plotAreaHaRef = useRef(plotAreaHa);
-  plotAreaHaRef.current = plotAreaHa;
 
   // Filtro accuratezza applicato SUBITO in fase di render (non in un effect):
   // il geotag di una nota vocale interrotta a scatto deve vedere l'ultimo
@@ -110,16 +119,10 @@ export function useFieldSessionTracking(
       lastFlushAtRef.current = Date.now();
 
       const pathLengthM = pathLengthMeters(coordinates);
-      const areaWorkedHa = workedAreaHectares(
-        coordinates,
-        current.working_width_m,
-        plotAreaHaRef.current,
-      );
       try {
         await updateFieldSession(current.id, {
           path: nextTrack,
           path_length_m: pathLengthM,
-          area_worked_ha: areaWorkedHa,
           ...(statusPatch ? { status: statusPatch } : {}),
         });
       } catch {
@@ -187,7 +190,11 @@ export function useFieldSessionTracking(
     );
   }, [flush]);
 
-  const conclude = useCallback(async (): Promise<SessionCloseOutcome | null> => {
+  const conclude = useCallback(
+    async (input: {
+      workedAreaHa: number;
+      completionPercent: number;
+    }): Promise<SessionCloseOutcome | null> => {
     const current = sessionRef.current;
     if (!current) return null;
     // 1) Chiude un eventuale intervallo di pausa APERTO, così il tempo attivo
@@ -201,16 +208,24 @@ export function useFieldSessionTracking(
             pausedSince: null,
           }
         : undefined;
-    // 2) Flush FINALE del pending: le metriche definitive del tracciato devono
-    //    essere persistite PRIMA di comporre le righe del Quaderno, perché le
-    //    quantità si calcolano sulla superficie realmente percorsa.
+    // 2) Flush FINALE del pending: il tracciato definitivo va persistito PRIMA
+    //    di comporre le righe del Quaderno (resta la prova di dove si è
+    //    passati, anche se non è più lui a dettare la superficie).
     await flush(closePause);
     // 3) Registrazione AUTOMATICA nel Quaderno + chiusura di sessione e task,
-    //    in un'unica transazione idempotente lato DAL.
-    return completeFieldSession(current.id, {
-      end_time: new Date().toISOString(),
-    });
-  }, [flush, completeFieldSession]);
+    //    in un'unica transazione idempotente lato DAL. `area_worked_ha` porta
+    //    la superficie DICHIARATA: è la base delle quantità del registro.
+    return completeFieldSession(
+      current.id,
+      {
+        end_time: new Date().toISOString(),
+        area_worked_ha: input.workedAreaHa,
+      },
+      { taskCompletionPercent: input.completionPercent },
+    );
+    },
+    [flush, completeFieldSession],
+  );
 
   return {
     speedKmh,

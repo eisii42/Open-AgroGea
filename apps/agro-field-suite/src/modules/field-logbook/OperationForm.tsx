@@ -305,6 +305,11 @@ export interface OperationFormProps {
    * esistente (la data resta oggi, gli issues si riscelgono sui lots attuali).
    */
   defaults?: Partial<TreatmentFormValues>;
+  /**
+   * Data iniziale "YYYY-MM-DD" (default: oggi). La usa il Calendario per
+   * registrare un'operazione sul giorno cliccato invece che su oggi.
+   */
+  defaultDate?: string;
 }
 
 export function OperationForm({
@@ -323,6 +328,7 @@ export function OperationForm({
   onSubmitSoil,
   onCancel,
   defaults,
+  defaultDate,
 }: OperationFormProps) {
   const { t } = useTranslation();
   const spec = operationSpec(operationType);
@@ -358,7 +364,9 @@ export function OperationForm({
         ?.fieldCampaignId ?? ""
     );
   });
-  const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
+  const [data, setData] = useState(
+    () => defaultDate || new Date().toISOString().slice(0, 10),
+  );
   const [product, setProduct] = useState(
     f.tillageType ? "" : defaults?.product_name ?? "",
   );

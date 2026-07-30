@@ -27,7 +27,6 @@ import {
   executiveReportFilename,
 } from "../modules/analytics/executive-report";
 import { KpiGrid } from "../modules/analytics/KpiGrid";
-import { OperationsCalendar } from "../modules/analytics/OperationsCalendar";
 import { RawDataInspector } from "../modules/analytics/RawDataInspector";
 import { useCommandCenterData } from "../modules/analytics/useCommandCenterData";
 import { useFullRecalc } from "../modules/analytics/useFullRecalc";
@@ -47,7 +46,8 @@ type CommandCenterPage = "crops" | "company";
  * questa vista è attiva, liberando risorse hardware). Diviso in DUE pagine:
  *   * «Colture e plots» — l'analisi agronomica: filters gerarchici
  *     (annata → crop → plots), griglia KPI configurabile, dashboard
- *     editabile, calendario operativo e Raw Data Inspector con cross-filtering;
+ *     editabile e Raw Data Inspector con cross-filtering (il calendario
+ *     operativo è una vista di primo livello a sé, vedi `modules/calendar`);
  *   * «Company» — l'andamento generale: area/operazioni/raccolto
  *     dell'annata, stato del Magazzino (value giacenze a CUMP, lots scaduti e
  *     in scadenza), costo products imputato per field e backup/ripristino.
@@ -450,21 +450,15 @@ export function CommandCenter() {
               />
             )}
 
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-              <OperationsCalendar
-                campaignYear={campaignYear}
-                plotIds={effectivePlotIds}
-                treatments={treatments}
-                harvests={harvests}
-                dssResults={data.dssResults}
-              />
-              <RawDataInspector
-                plotIds={scopePlotIds}
-                campaignYear={campaignYear}
-                focusedPlotId={focusedPlotId}
-                onFocusPlot={onFocusPlot}
-              />
-            </div>
+            {/* Il calendario operativo NON vive più qui: è la vista di primo
+                livello «Calendario» (modules/calendar), completa di
+                pianificazione, meteo e bilancio idrico. */}
+            <RawDataInspector
+              plotIds={scopePlotIds}
+              campaignYear={campaignYear}
+              focusedPlotId={focusedPlotId}
+              onFocusPlot={onFocusPlot}
+            />
           </div>
         )}
           </>

@@ -23,7 +23,8 @@
       "undoGeometry": "Undo geometry edit",
       "redoGeometry": "Redo geometry edit",
       "profileSettings": "Profile Settings",
-      "openCommandCenter": "Open Command Center"
+      "openCommandCenter": "Open Command Center",
+      "openCalendar": "Open Calendar"
     }
   },
   "compliance": {
@@ -1644,46 +1645,6 @@
     "title": "Custom dashboard",
     "wholeHistory": "Whole history"
   },
-  "operationsCalendar": {
-    "delete": "Delete",
-    "dssCalculatedOn": "Calculated on",
-    "executionDate": "Execution date",
-    "harvest": "Harvest",
-    "harvestDate": "Harvest date",
-    "highRisk": "High risk · {{model}}",
-    "month": {
-      "april": "April",
-      "august": "August",
-      "december": "December",
-      "february": "February",
-      "january": "January",
-      "july": "July",
-      "june": "June",
-      "march": "March",
-      "may": "May",
-      "november": "November",
-      "october": "October",
-      "september": "September"
-    },
-    "noEventsForDay": "No events recorded for this day.",
-    "planned": "planned",
-    "product": "Product",
-    "save": "Save",
-    "weekday": {
-      "fri": "Fri",
-      "sat": "Sat",
-      "sun": "Sun",
-      "thu": "Thu",
-      "wed": "Wed",
-      "mon": "Mon",
-      "tue": "Tue"
-    },
-    "dssHigh": "high",
-    "dssIndex": "index",
-    "dssModel": "Model",
-    "dssRisk": "risk",
-    "title": "Operations calendar"
-  },
   "userProfileSettingsPage": {
     "comingSoon": "coming soon",
     "moduleGroup": {
@@ -1920,7 +1881,8 @@
   "appHeader": {
     "commandCenter": "Command Center",
     "map": "Map",
-    "mapView": "Map view"
+    "mapView": "Map view",
+    "calendar": "Calendar"
   },
   "mapControls": {
     "measure": "Measure distances and areas (native ruler)",
@@ -2064,7 +2026,6 @@
       "pausedBadge": "PAUSED",
       "readOnly": "Read-only: controls are disabled with this role.",
       "speed": "Speed",
-      "areaWorked": "Hectares worked",
       "elapsed": "Elapsed time",
       "pause": "Pause",
       "resume": "Resume",
@@ -2077,7 +2038,9 @@
         "title": "Voice notes ({{count}})",
         "play": "Play voice note",
         "pause": "Pause playback"
-      }
+      },
+      "plotArea": "Plot area",
+      "previousProgress": "Already done: {{percent}}%"
     },
     "summary": {
       "title": "Operation completed",
@@ -2091,11 +2054,28 @@
       "openLogbook": "Open the logbook",
       "done": "Done",
       "warning": {
-        "gps_area_fallback": "GPS did not provide a usable area: quantities were computed on the plot cadastral area.",
+        "gps_area_fallback": "No worked area declared: quantities were computed on the plot cadastral area.",
         "no_lot_available": "No lot available for {{product}}: warehouse stock was not issued.",
         "stock_issue_failed": "Warehouse issue failed: the operation is recorded, but stock levels must be corrected manually.",
-        "incompleteFields": "{{count}} required fields missing on the recorded entries: complete them in the logbook."
-      }
+        "incompleteFields": "{{count}} required fields missing on the recorded entries: complete them in the logbook.",
+        "product_not_in_warehouse": "{{product}} is not linked to the warehouse register: stock levels were not updated."
+      },
+      "taskStillOpen": "Task at {{percent}}%: still planned, resume it when you go back to the field.",
+      "taskCompleted": "Task completed ({{percent}}%).",
+      "cropAssigned": "Crop «{{crop}}» assigned to the plot for this campaign."
+    },
+    "completion": {
+      "title": "How much did you work?",
+      "question": "Declare the share of the plot completed: quantities and warehouse issues are computed on it.",
+      "percentLabel": "Completion",
+      "previousProgress": "Already recorded on this task: {{percent}}%",
+      "plotArea": "Plot area",
+      "workedArea": "Area worked today",
+      "taskStaysOpen": "The task stays planned: tomorrow you resume from here.",
+      "taskCloses": "The task will be closed as completed.",
+      "noProgress": "No progress beyond what is already recorded: raise the percentage to record this session.",
+      "confirm": "Record",
+      "back": "Back"
     }
   },
   "reentryAlert": {
@@ -2123,5 +2103,70 @@
     "operations_other": "Recorded operations ({{count}})",
     "openLogbook": "In the logbook",
     "noOperations": "No operation recorded on this plot."
+  },
+  "calendar": {
+    "delete": "Delete",
+    "dssCalculatedOn": "Calculated on",
+    "executionDate": "Execution date",
+    "harvest": "Harvest",
+    "harvestDate": "Harvest date",
+    "highRisk": "High risk · {{model}}",
+    "month": {
+      "april": "April",
+      "august": "August",
+      "december": "December",
+      "february": "February",
+      "january": "January",
+      "july": "July",
+      "june": "June",
+      "march": "March",
+      "may": "May",
+      "november": "November",
+      "october": "October",
+      "september": "September"
+    },
+    "noEventsForDay": "No events recorded for this day.",
+    "planned": "planned",
+    "product": "Product",
+    "save": "Save",
+    "weekday": {
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun",
+      "thu": "Thu",
+      "wed": "Wed",
+      "mon": "Mon",
+      "tue": "Tue"
+    },
+    "dssHigh": "high",
+    "dssIndex": "index",
+    "dssModel": "Model",
+    "dssRisk": "risk",
+    "title": "Calendar",
+    "taskPrefix": "Planned",
+    "addTask": "Plan task",
+    "addOperation": "Record operation",
+    "addTaskTitle": "Plan a task",
+    "editTaskTitle": "Edit task",
+    "addOperationTitle": "Record an operation",
+    "editTask": "Edit",
+    "cancelTask": "Cancel task",
+    "taskProgress": "Already done: {{percent}}%",
+    "waterStress": "Water stress · {{mm}} mm",
+    "waterStressDetail": "Water balance: depletion {{depletion}} mm over a readily available water of {{raw}} mm (ETc {{etc}} mm). Irrigation is due.",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "today": "Today",
+    "plotScope": "Plot",
+    "allPlots": "All plots",
+    "refreshTitle": "Reload DSS and water balance",
+    "legend": {
+      "task": "Planned tasks",
+      "operation": "Operations",
+      "harvest": "Harvests",
+      "dss": "DSS risk",
+      "water": "Water stress"
+    },
+    "showAll": "Show all"
   }
 }

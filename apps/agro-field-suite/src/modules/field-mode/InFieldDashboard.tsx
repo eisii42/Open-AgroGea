@@ -1,5 +1,6 @@
 import {
   formatArea,
+  waterUnitLabel,
   useAgroStore,
   useReadOnly,
   useSettingsStore,
@@ -11,6 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { taskOperationLabel } from "../tasks/TaskForm";
 import { AudioNotesList } from "./AudioNotesList";
+import { SessionCompletionSheet } from "./SessionCompletionSheet";
 import { pausedMsOf, pausedSinceOf } from "./session-track";
 import { useActiveFieldSession } from "./useActiveFieldSession";
 import { useFieldSessionTracking } from "./useFieldSessionTracking";
@@ -41,14 +43,69 @@ export function InFieldDashboard() {
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const readOnly = useReadOnly(activeCompanyId);
   const units = useSettingsStore((s) => s.units);
+  const recipes = useAgroStore((s) => s.recipes);
+  const plannedTasks = useAgroStore((s) => s.plannedTasks);
   const abortFieldSession = useAgroStore((s) => s.abortFieldSession);
   const setSessionCloseOutcome = useAgroStore((s) => s.setSessionCloseOutcome);
 
-  const tracking = useFieldSessionTracking(session, plot?.area_ha ?? null);
+  const tracking = useFieldSessionTracking(session);
   const voice = useVoiceNoteRecorder(session, tracking.lastAcceptedSample);
 
   const [concluding, setConcluding] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [aborting, setAborting] = useState(false);
+
+  // Task programmata da cui nasce la sessione: porta i dettagli pianificati
+  // (lavorazione, semente, apporto irriguo) e l'avanzamento già dichiarato.
+  const task = useMemo(
+    () =>
+      session?.planned_task_id
+        ? (plannedTasks.find((x) => x.id === session.planned_task_id) ?? null)
+        : null,
+    [plannedTasks, session],
+  );
+
+  // Descrizione di COSA si sta facendo, dai dati già pianificati: sostituisce
+  // la stima automatica degli ettari, che prometteva una precisione che il
+  // GPS non aveva.
+  const activityDetail = useMemo(() => {
+    if (!session) return null;
+    const parts: string[] = [];
+    const recipe = session.recipe_id
+      ? recipes.find((r) => r.id === session.recipe_id)
+      : null;
+    if (recipe) {
+      parts.push(recipe.name);
+      for (const line of recipe.products) {
+        parts.push(`${line.product_name} ${line.dose_per_ha} ${line.unit}`);
+      }
+    }
+    const meta = task?.metadata ?? {};
+    if (meta.tillage_type) parts.push(meta.tillage_type);
+    if (meta.seed_product_name) {
+      parts.push(
+        meta.seed_dose != null
+          ? `${meta.seed_product_name} · ${meta.seed_dose} ${meta.seed_dose_unit ?? "kg/ha"}`
+          : meta.seed_product_name,
+      );
+    }
+    if (meta.irrigation_amount != null) {
+      parts.push(
+        `${meta.irrigation_amount} ${waterUnitLabel(meta.irrigation_unit ?? "mm")}`,
+      );
+    }
+    const target = task?.target_pest_or_disease ?? recipe?.target_disease ?? null;
+    if (target) parts.push(target);
+    if (task?.notes) parts.push(task.notes);
+    return parts.length > 0 ? parts.join(" · ") : null;
+  }, [session, recipes, task]);
+
+  const previousPercent = useMemo(() => {
+    const value = task?.metadata.completion_percent;
+    return typeof value === "number" && Number.isFinite(value)
+      ? Math.min(100, Math.max(0, value))
+      : 0;
+  }, [task]);
 
   // Orologio del tempo trascorso: tick indipendente dai campioni GPS (deve
   // avanzare anche senza un fix nuovo), un secondo alla volta.
@@ -89,16 +146,23 @@ export function InFieldDashboard() {
     }
   }
 
-  async function handleConclude() {
+  async function handleConclude(input: {
+    workedAreaHa: number;
+    completionPercent: number;
+  }) {
     if (disabled || concluding) return;
     setConcluding(true);
     try {
       // La chiusura REGISTRA da sé nel Quaderno (zero tocchi) e porta la
       // sessione a COMPLETED: questo schermo si smonta subito dopo, e il
       // riepilogo vive nello store (`sessionCloseOutcome`) proprio per
-      // sopravvivere a quello smontaggio.
-      const outcome = await tracking.conclude();
-      if (outcome) setSessionCloseOutcome(outcome);
+      // sopravvivere a quello smontaggio. La TASK invece resta aperta se
+      // l'avanzamento dichiarato è parziale.
+      const outcome = await tracking.conclude(input);
+      if (outcome) {
+        setCompleting(false);
+        setSessionCloseOutcome(outcome);
+      }
     } finally {
       setConcluding(false);
     }
@@ -151,9 +215,21 @@ export function InFieldDashboard() {
             label={t("fieldMode.dashboard.speed")}
             value={`${tracking.speedKmh != null ? tracking.speedKmh.toFixed(1) : "—"} km/h`}
           />
-          <Readout
-            label={t("fieldMode.dashboard.areaWorked")}
-            value={formatArea(session.area_worked_ha, units.area, 2)}
+          {/* Al posto degli ettari stimati: cosa si sta facendo e su quale
+              superficie totale. Gli ettari lavorati si dichiarano alla fine
+              (vedi SessionCompletionSheet), non si indovinano dal tracciato. */}
+          <ActivityBrief
+            title={taskOperationLabel(t, session.operation_type)}
+            detail={activityDetail}
+            areaLabel={t("fieldMode.dashboard.plotArea")}
+            areaValue={formatArea(plot?.area_ha ?? null, units.area, 2)}
+            progressLabel={
+              previousPercent > 0
+                ? t("fieldMode.dashboard.previousProgress", {
+                    percent: previousPercent,
+                  })
+                : null
+            }
           />
         </div>
         <Readout
@@ -186,7 +262,7 @@ export function InFieldDashboard() {
           <button
             type="button"
             disabled={disabled || concluding}
-            onClick={() => void handleConclude()}
+            onClick={() => setCompleting(true)}
             className="flex min-h-[88px] items-center justify-center gap-2 rounded-2xl bg-lime-400 text-xl font-extrabold uppercase tracking-wide text-black disabled:cursor-not-allowed disabled:opacity-40"
           >
             {t("fieldMode.dashboard.conclude")}
@@ -222,6 +298,61 @@ export function InFieldDashboard() {
           {t("fieldMode.dashboard.abort")}
         </button>
       </footer>
+
+      {/* CONCLUDI non chiude più da solo: prima si dichiara quanto si è
+          lavorato (ed è quella dichiarazione a fare da superficie nel
+          Quaderno e da avanzamento della task). */}
+      {completing && (
+        <SessionCompletionSheet
+          plotName={plot?.user_plot_name ?? t("fieldMode.dashboard.unknownPlot")}
+          plotAreaHa={plot?.area_ha ?? null}
+          previousPercent={previousPercent}
+          saving={concluding}
+          onCancel={() => setCompleting(false)}
+          onConfirm={(input) => void handleConclude(input)}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Riquadro "attività in corso": il tipo di lavorazione con i dettagli già
+ * pianificati e la superficie TOTALE dell'appezzamento, che è il riferimento
+ * rispetto a cui l'operatore giudica il proprio avanzamento.
+ */
+function ActivityBrief({
+  title,
+  detail,
+  areaLabel,
+  areaValue,
+  progressLabel,
+}: {
+  title: string;
+  detail: string | null;
+  areaLabel: string;
+  areaValue: string;
+  progressLabel: string | null;
+}) {
+  return (
+    <div className="flex flex-col justify-center gap-1 rounded-2xl border border-lime-400/30 bg-lime-400/5 px-4 py-4">
+      <span className="text-xs font-semibold uppercase tracking-widest text-lime-400/70">
+        {areaLabel}
+      </span>
+      <span className="text-3xl font-black tabular-nums text-yellow-300">
+        {areaValue}
+      </span>
+      <span className="mt-1 text-base font-bold leading-tight text-lime-300">
+        {title}
+      </span>
+      {detail && (
+        <span className="text-sm leading-tight text-lime-400/80">{detail}</span>
+      )}
+      {progressLabel && (
+        <span className="mt-1 text-sm font-semibold text-yellow-300">
+          {progressLabel}
+        </span>
+      )}
     </div>
   );
 }
