@@ -1298,7 +1298,11 @@
       "trend": "Tendance",
       "trendIndices": "indices"
     },
-    "title": "Sol · Analyse des indices"
+    "title": "Sol · Analyse des indices",
+    "timeSlider": {
+      "show": "Afficher la frise",
+      "hide": "Masquer la frise"
+    }
   },
   "vraPanel": {
     "baseIndex": "Indice de base",

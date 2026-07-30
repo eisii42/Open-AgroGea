@@ -259,7 +259,7 @@ export function IndexTimeSlider() {
     });
   }, []);
 
-  if (scenes.length === 0 || !focusPlotId) return null;
+  if (scenes.length === 0 || !focusPlotId || timeline.hidden) return null;
 
   const active = activeIndex >= 0 ? scenes[activeIndex] : null;
   const cachedCount = scenes.filter((s) => s.cached).length;

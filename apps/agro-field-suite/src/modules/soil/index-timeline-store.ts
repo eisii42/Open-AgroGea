@@ -89,6 +89,12 @@ export interface IndexTimelineState {
   /** Indici richiesti dall'ultima run: servono a calcolare al volo una scena. */
   indices: VegetationIndex[];
   primaryIndex: VegetationIndex;
+  /**
+   * true quando l'utente ha nascosto lo slider dal pannello Suolo. La timeline
+   * resta in memoria: rimostrarla non richiede di ricalcolare nulla. Un nuovo
+   * calcolo la riapre (vedi `publishTimeline`).
+   */
+  hidden: boolean;
   /** Scena in elaborazione al volo dal cursore (id), o null. */
   loadingSceneId: string | null;
   /** Messaggio d'errore dell'ultimo calcolo al volo, o null. */
@@ -106,6 +112,7 @@ const EMPTY: IndexTimelineState = {
   activeSceneId: null,
   indices: ["ndvi"],
   primaryIndex: "ndvi",
+  hidden: false,
   loadingSceneId: null,
   error: null,
   backgroundNewScenes: 0,
@@ -153,7 +160,14 @@ export function publishTimeline(input: {
   indices: VegetationIndex[];
   primaryIndex: VegetationIndex;
 }): void {
-  publish({ ...input, loadingSceneId: null, error: null });
+  // Un nuovo calcolo riapre lo slider anche se era stato nascosto: il risultato
+  // appena prodotto è proprio ciò che l'utente ha chiesto di vedere.
+  publish({ ...input, hidden: false, loadingSceneId: null, error: null });
+}
+
+/** Mostra/nasconde lo slider (comando del pannello Suolo). */
+export function toggleTimelineHidden(): void {
+  publish({ hidden: !state.hidden });
 }
 
 /** Cambia l'appezzamento a fuoco e le sue scene (selettore interno allo slider). */

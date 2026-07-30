@@ -1298,7 +1298,11 @@
       "trend": "Tendencia",
       "trendIndices": "índices"
     },
-    "title": "Suelo · Análisis de índices"
+    "title": "Suelo · Análisis de índices",
+    "timeSlider": {
+      "show": "Mostrar la línea temporal",
+      "hide": "Ocultar la línea temporal"
+    }
   },
   "vraPanel": {
     "baseIndex": "Índice base",

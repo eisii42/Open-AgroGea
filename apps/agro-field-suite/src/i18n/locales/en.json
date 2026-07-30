@@ -1514,7 +1514,11 @@
       "trend": "Trend",
       "trendIndices": "indices"
     },
-    "title": "Soil · Index analysis"
+    "title": "Soil · Index analysis",
+    "timeSlider": {
+      "show": "Show time slider",
+      "hide": "Hide time slider"
+    }
   },
   "vraPanel": {
     "baseIndex": "Base index",

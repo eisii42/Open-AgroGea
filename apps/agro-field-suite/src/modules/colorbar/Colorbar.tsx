@@ -27,7 +27,8 @@ export function Colorbar() {
   // Su smartphone il time slider occupa la fascia bassa sopra la tab bar: la
   // legenda sale sopra di esso invece di finirci sotto. Su desktop lo slider è
   // centrato e lascia libera la colonna di destra, quindi nulla cambia.
-  const timelineOpen = useIndexTimeline().scenes.length > 0;
+  const timeline = useIndexTimeline();
+  const timelineOpen = timeline.scenes.length > 0 && !timeline.hidden;
 
   // Una sola legenda per TIPO di indice, anche con più mappe/plots dello
   // stesso indice attivi nella stessa run: condividono lo stesso dominio

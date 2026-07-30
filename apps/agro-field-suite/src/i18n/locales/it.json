@@ -1514,7 +1514,11 @@
       "trend": "Trend",
       "trendIndices": "indici"
     },
-    "title": "Suolo · Analisi indici"
+    "title": "Suolo · Analisi indici",
+    "timeSlider": {
+      "show": "Mostra time slider",
+      "hide": "Nascondi time slider"
+    }
   },
   "vraPanel": {
     "baseIndex": "Indice base",
