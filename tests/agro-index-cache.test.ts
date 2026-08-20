@@ -93,10 +93,14 @@ describe("Modulo Suolo / codec del raster d'indice", () => {
 });
 
 describe("Modulo Suolo / timeline del time slider", () => {
-  const stacScene = (itemId: string, datetime: string): IndicesScene => ({
+  const stacScene = (
+    itemId: string,
+    datetime: string,
+    cloudCover = 8,
+  ): IndicesScene => ({
     itemId,
     datetime,
-    cloudCover: 8,
+    cloudCover,
     bandHrefs: { B04: "https://esempio/B04.tif", B08: "https://esempio/B08.tif" },
   });
   const cachedScene = (
@@ -149,6 +153,38 @@ describe("Modulo Suolo / timeline del time slider", () => {
         ["giugno", true],
         ["luglio", false],
       ],
+    );
+  });
+
+  it("marca come doppioni le scene dello stesso giorno più nuvolose", () => {
+    const timeline = buildTimelineScenes(
+      [
+        stacScene("mattina", "2026-06-12T10:05:00.000Z", 22),
+        stacScene("poco-dopo", "2026-06-12T10:07:00.000Z", 4),
+        stacScene("altro-giorno", "2026-06-14T10:05:00.000Z", 30),
+      ],
+      [],
+    );
+    assert.deepEqual(
+      timeline.map((s) => [s.sceneId, s.bestOfDay]),
+      [
+        ["mattina", false],
+        ["poco-dopo", true],
+        ["altro-giorno", true],
+      ],
+      "un giorno senza doppioni resta sempre 'migliore del giorno'",
+    );
+  });
+
+  it("a parità di nuvolosità nel giorno vince la scena già in cache", () => {
+    const timeline = buildTimelineScenes(
+      [stacScene("solo-stac", "2026-06-12T10:07:00.000Z", 3)],
+      [cachedScene("in-cache", "2026-06-12T10:05:00.000Z")],
+    );
+    // `cachedScene` ha cloud_cover 3 come la scena STAC: decide la cache.
+    assert.deepEqual(
+      timeline.filter((s) => s.bestOfDay).map((s) => s.sceneId),
+      ["in-cache"],
     );
   });
 
