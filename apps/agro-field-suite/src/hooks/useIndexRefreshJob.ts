@@ -1,6 +1,10 @@
 import { boundingBox, useAgroStore, useSettingsStore } from "@agrogea/core";
 import type { AgroDal, Plot } from "@agrogea/core";
-import { searchSceneSeries, type VegetationIndex } from "@agrogea/tools";
+import {
+  bestScenePerDay,
+  searchSceneSeries,
+  type VegetationIndex,
+} from "@agrogea/tools";
 import { useEffect, useRef } from "react";
 import {
   CACHE_RETENTION_MONTHS,
@@ -97,7 +101,9 @@ async function runRefresh(input: {
         giorniIndietro: searchDaysSince(known[0]?.captured_at),
       });
 
-      const missing = found
+      // Una sola scena per giorno (la meno nuvolosa): i doppioni giornalieri
+      // brucerebbero il budget del job senza aggiungere informazione.
+      const missing = bestScenePerDay(found)
         .filter((scene) => !knownIds.has(scene.itemId))
         .slice(0, budget);
 

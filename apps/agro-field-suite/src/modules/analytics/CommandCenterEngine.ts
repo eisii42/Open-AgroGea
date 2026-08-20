@@ -51,7 +51,7 @@ const CATEGORY_LABEL: Record<CropCategory, string> = {
   olivicoltura: "Olivicoltura",
   frutticoltura: "Frutticoltura",
   orticoltura: "Orticoltura",
-  generic: "CropType",
+  generic: "Colture miste",
 };
 
 /** Risolve la categoria DSS di una crop da metadata o name comune. */

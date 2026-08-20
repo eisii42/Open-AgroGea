@@ -1,6 +1,7 @@
 import { boundingBox, useAgroStore } from "@agrogea/core";
 import type { AgroDal, Plot, VegetationIndexScene } from "@agrogea/core";
 import {
+  bestScenePerDay,
   indexCellValues,
   relativeDomain,
   searchSceneSeries,
@@ -201,10 +202,18 @@ export function useSoilPipeline() {
             continue;
           }
 
+          // Una scena per GIORNO, la meno nuvolosa: nello stesso giorno il
+          // catalogo espone spesso più item sotto soglia (tile adiacenti,
+          // riprocessamenti). Elaborarli tutti costa download inutili e
+          // raddoppia i punti del grafico di trend senza aggiungere
+          // informazione. I doppioni restano nella timeline dello slider,
+          // marcati come tali e nascosti di default.
+          const dailySeries = bestScenePerDay(sceneSeries);
+
           // "ultima": solo la scena più recente; intervallo/personalizzato:
           // tutta la series (per il grafico di trend).
           const scene =
-            strategia.type === "ultima" ? [sceneSeries[0]] : sceneSeries;
+            strategia.type === "ultima" ? [dailySeries[0]] : dailySeries;
 
           const daElaborare = scene.filter((s) => {
             const hit = cachedBySceneId.get(s.itemId);

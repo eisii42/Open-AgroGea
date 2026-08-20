@@ -52,7 +52,15 @@ export function PostOperationSummary() {
 
   if (!outcome) return null;
 
-  const { session, treatments, warnings, areaUsedHa } = outcome;
+  const {
+    session,
+    treatments,
+    warnings,
+    areaUsedHa,
+    completionPercent,
+    taskStillOpen,
+    assignedCropName,
+  } = outcome;
   const plot = plots.find((p) => p.id === session.plot_id) ?? null;
   // `end_time`/`start_time` possono essere `Date` (row riletta da PGlite):
   // `toEpochMs` copre entrambe le forme senza perdere i millisecondi.
@@ -94,6 +102,35 @@ export function PostOperationSummary() {
             value={formatElapsedClock(elapsedMs)}
           />
         </div>
+
+        {/* Sorte della TASK: chiusa, oppure ancora programmata perché il
+            lavoro riprende domani. È l'informazione che decide se domani il
+            geofencing la riproporrà. */}
+        {completionPercent != null && (
+          <p
+            className={
+              taskStillOpen
+                ? "rounded-xl border-2 border-yellow-300 bg-yellow-300/10 px-4 py-3 text-base font-semibold text-yellow-200"
+                : "rounded-xl border border-lime-400/40 px-4 py-3 text-base text-lime-300"
+            }
+          >
+            {taskStillOpen
+              ? t("fieldMode.summary.taskStillOpen", {
+                  percent: completionPercent,
+                })
+              : t("fieldMode.summary.taskCompleted", {
+                  percent: completionPercent,
+                })}
+          </p>
+        )}
+
+        {/* Semina su field libero: la coltura dell'annata è stata creata da
+            sé, come per una semina registrata a mano nel Quaderno. */}
+        {assignedCropName && (
+          <p className="rounded-xl border border-lime-400/40 px-4 py-3 text-base text-lime-300">
+            {t("fieldMode.summary.cropAssigned", { crop: assignedCropName })}
+          </p>
+        )}
 
         {/* Quantità ricalcolate: dose × superficie GPS, una riga per product. */}
         {treatments.length > 0 && (

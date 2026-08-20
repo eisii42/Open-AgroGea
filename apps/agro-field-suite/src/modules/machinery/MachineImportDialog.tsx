@@ -2,6 +2,7 @@ import { useAgroStore } from "@agrogea/core";
 import { Button, Input, cn } from "@geolibre/ui";
 import { type ChangeEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { csvCell, csvHeaderIndex, parseCsv } from "../../lib/csv";
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const EXPECTED_COLUMNS = [
@@ -13,69 +14,6 @@ const EXPECTED_COLUMNS = [
   "year",
   "hour_counter",
 ] as const;
-
-/**
- * Parser CSV minimale (RFC4180-ish), scritto ad-hoc per restare 100% offline
- * (nessuna dipendenza npm): gestisce campi tra virgolette (con virgole/a-capo
- * incorporati e `""` come escape della virgoletta) e CRLF/LF. Ritorna le righe
- * come array di celle grezze (stringhe), intestazione inclusa.
- */
-function parseCsv(text: string): string[][] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let field = "";
-  let inQuotes = false;
-  let i = 0;
-  const n = text.length;
-  while (i < n) {
-    const c = text[i];
-    if (inQuotes) {
-      if (c === '"') {
-        if (text[i + 1] === '"') {
-          field += '"';
-          i += 2;
-          continue;
-        }
-        inQuotes = false;
-        i += 1;
-        continue;
-      }
-      field += c;
-      i += 1;
-      continue;
-    }
-    if (c === '"') {
-      inQuotes = true;
-      i += 1;
-      continue;
-    }
-    if (c === ",") {
-      row.push(field);
-      field = "";
-      i += 1;
-      continue;
-    }
-    if (c === "\r") {
-      i += 1;
-      continue;
-    }
-    if (c === "\n") {
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = "";
-      i += 1;
-      continue;
-    }
-    field += c;
-    i += 1;
-  }
-  if (field.length > 0 || row.length > 0) {
-    row.push(field);
-    rows.push(row);
-  }
-  return rows.filter((r) => !(r.length === 1 && r[0].trim() === ""));
-}
 
 interface ImportRow {
   index: number;
@@ -91,22 +29,14 @@ interface ImportRow {
 }
 
 function parseAndValidate(text: string): { rows: ImportRow[]; headerError: boolean } {
-  const raw = parseCsv(text);
+  const { rows: raw } = parseCsv(text);
   if (raw.length === 0) return { rows: [], headerError: false };
-  const header = raw[0].map((h) => h.trim().toLowerCase());
-  const nameCol = header.indexOf("name");
-  if (nameCol === -1) return { rows: [], headerError: true };
-  const colIndex: Record<(typeof EXPECTED_COLUMNS)[number], number> = {
-    name: nameCol,
-    machine_type: header.indexOf("machine_type"),
-    license_plate: header.indexOf("license_plate"),
-    brand: header.indexOf("brand"),
-    model: header.indexOf("model"),
-    year: header.indexOf("year"),
-    hour_counter: header.indexOf("hour_counter"),
-  };
-  const get = (cells: string[], col: number) =>
-    col >= 0 && col < cells.length ? cells[col].trim() : "";
+  const header = csvHeaderIndex(raw[0]);
+  if (!header.has("name")) return { rows: [], headerError: true };
+  const colIndex = Object.fromEntries(
+    EXPECTED_COLUMNS.map((c) => [c, header.get(c)]),
+  ) as Record<(typeof EXPECTED_COLUMNS)[number], number | undefined>;
+  const get = csvCell;
 
   const rows: ImportRow[] = raw.slice(1).map((cells, i) => {
     const name = get(cells, colIndex.name);

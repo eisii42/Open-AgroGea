@@ -111,11 +111,11 @@ export const ENTITIES: EntityDef[] = [
     id: "plots",
     label: "Appezzamenti",
     fields: [
-      { key: "nome", label: "Nome", kind: "dimension" },
-      { key: "coltura", label: "CropType", kind: "dimension" },
-      { key: "irrigazione", label: "Tipo irrigazione", kind: "dimension" },
-      { key: "anno", label: "Anno impianto", kind: "dimension" },
-      { key: "area_ha", label: "Superficie (ha)", kind: "measure" },
+      { key: "name", label: "Nome", kind: "dimension" },
+      { key: "crop", label: "Coltura", kind: "dimension" },
+      { key: "irrigation", label: "Tipo irrigazione", kind: "dimension" },
+      { key: "plantingYear", label: "Anno impianto", kind: "dimension" },
+      { key: "areaHa", label: "Superficie (ha)", kind: "measure" },
       { key: "ndvi", label: "NDVI medio", kind: "measure" },
     ],
     rows: (d) => {
@@ -126,8 +126,8 @@ export const ENTITIES: EntityDef[] = [
         name: a.user_plot_name,
         crop: plotCrop.get(a.id) ?? "—",
         irrigation: a.irrigation_type ?? "—",
-        year: a.planting_year ?? "—",
-        area_ha: a.area_ha,
+        plantingYear: a.planting_year ?? "—",
+        areaHa: a.area_ha,
         ndvi: a.last_ndvi_mean,
       }));
     },
@@ -136,15 +136,15 @@ export const ENTITIES: EntityDef[] = [
     id: "treatments",
     label: "Operazioni (Quaderno)",
     fields: [
-      { key: "tipo", label: "Tipo operazione", kind: "dimension" },
-      { key: "prodotto", label: "Product", kind: "dimension" },
-      { key: "avversita", label: "Avversità", kind: "dimension" },
-      { key: "mese", label: "Mese", kind: "dimension", temporal: true },
-      { key: "appezzamento", label: "Plot", kind: "dimension" },
+      { key: "operationType", label: "Tipo operazione", kind: "dimension" },
+      { key: "product", label: "Prodotto", kind: "dimension" },
+      { key: "target", label: "Avversità", kind: "dimension" },
+      { key: "month", label: "Mese", kind: "dimension", temporal: true },
+      { key: "plot", label: "Appezzamento", kind: "dimension" },
       { key: "dose", label: "Dose", kind: "measure" },
-      { key: "quantita", label: "Quantità totale", kind: "measure" },
-      { key: "acqua_l", label: "Acqua (l)", kind: "measure" },
-      { key: "area_ha", label: "Superficie (ha)", kind: "measure" },
+      { key: "quantity", label: "Quantità totale", kind: "measure" },
+      { key: "waterL", label: "Acqua (l)", kind: "measure" },
+      { key: "areaHa", label: "Superficie (ha)", kind: "measure" },
     ],
     rows: (d) => {
       const names = plotNames(d);
@@ -152,15 +152,15 @@ export const ENTITIES: EntityDef[] = [
       return d.treatments
         .filter((t) => t.deleted_at == null)
         .map((t) => ({
-          type: OP_LABEL[t.operation_type] ?? t.operation_type,
+          operationType: OP_LABEL[t.operation_type] ?? t.operation_type,
           product: t.product_name ?? "—",
-          avversita: t.target_disease ?? "—",
-          mese: monthKey(t.executed_at),
+          target: t.target_disease ?? "—",
+          month: monthKey(t.executed_at),
           plot: t.plot_id ? names.get(t.plot_id) ?? "—" : "Intera azienda",
           dose: t.dose_value,
           quantity: t.total_quantity,
-          acqua_l: t.water_volume_l,
-          area_ha: t.plot_id ? areas.get(t.plot_id) ?? null : null,
+          waterL: t.water_volume_l,
+          areaHa: t.plot_id ? areas.get(t.plot_id) ?? null : null,
         }));
     },
   },
@@ -169,11 +169,11 @@ export const ENTITIES: EntityDef[] = [
     label: "Raccolte",
     fields: [
       { key: "cultivar", label: "Cultivar", kind: "dimension" },
-      { key: "destinazione", label: "Destinazione", kind: "dimension" },
-      { key: "mese", label: "Mese", kind: "dimension", temporal: true },
-      { key: "appezzamento", label: "Plot", kind: "dimension" },
+      { key: "destination", label: "Destinazione", kind: "dimension" },
+      { key: "month", label: "Mese", kind: "dimension", temporal: true },
+      { key: "plot", label: "Appezzamento", kind: "dimension" },
       { key: "kg", label: "Quantità (kg)", kind: "measure" },
-      { key: "area_ha", label: "Superficie (ha)", kind: "measure" },
+      { key: "areaHa", label: "Superficie (ha)", kind: "measure" },
     ],
     rows: (d) => {
       const names = plotNames(d);
@@ -182,11 +182,11 @@ export const ENTITIES: EntityDef[] = [
         .filter((r) => r.deleted_at == null)
         .map((r) => ({
           cultivar: r.cultivar ?? "—",
-          destinazione: r.destination_logistics ?? "—",
-          mese: monthKey(r.harvested_at),
+          destination: r.destination_logistics ?? "—",
+          month: monthKey(r.harvested_at),
           plot: r.plot_id ? names.get(r.plot_id) ?? "—" : "—",
           kg: r.quantity_kg,
-          area_ha: r.plot_id ? areas.get(r.plot_id) ?? null : null,
+          areaHa: r.plot_id ? areas.get(r.plot_id) ?? null : null,
         }));
     },
   },
@@ -194,28 +194,28 @@ export const ENTITIES: EntityDef[] = [
     id: "water",
     label: "Bilancio idrico (giornaliero)",
     fields: [
-      { key: "data", label: "Data", kind: "dimension", temporal: true },
-      { key: "appezzamento", label: "Plot", kind: "dimension" },
-      { key: "et0", label: "ET0", kind: "measure" },
-      { key: "etc", label: "ETc", kind: "measure" },
-      { key: "dr", label: "Deplezione Dr", kind: "measure" },
-      { key: "raw", label: "RAW", kind: "measure" },
-      { key: "irrigazione", label: "Irrigazione", kind: "measure" },
-      { key: "pioggia", label: "Pioggia", kind: "measure" },
-      { key: "percolazione", label: "Percolazione", kind: "measure" },
+      { key: "date", label: "Data", kind: "dimension", temporal: true },
+      { key: "plot", label: "Appezzamento", kind: "dimension" },
+      { key: "et0", label: "ET0 (mm)", kind: "measure" },
+      { key: "etc", label: "ETc (mm)", kind: "measure" },
+      { key: "depletion", label: "Deplezione Dr (mm)", kind: "measure" },
+      { key: "raw", label: "RAW (mm)", kind: "measure" },
+      { key: "irrigation", label: "Irrigazione (mm)", kind: "measure" },
+      { key: "rain", label: "Pioggia (mm)", kind: "measure" },
+      { key: "percolation", label: "Percolazione (mm)", kind: "measure" },
     ],
     rows: (d) => {
       const names = campaignPlotNames(d);
       return d.soilIndices.map((s) => ({
-        data: dayKey(s.date),
+        date: dayKey(s.date),
         plot: s.plot_campaign_id ? names.get(s.plot_campaign_id) ?? "—" : "—",
         et0: s.et0,
         etc: s.etc,
-        dr: s.depletion_mm,
+        depletion: s.depletion_mm,
         raw: s.raw_mm,
         irrigation: s.irrigation_mm,
         rain: s.rain_mm,
-        percolazione: s.deep_percolation_mm,
+        percolation: s.deep_percolation_mm,
       }));
     },
   },
@@ -223,34 +223,36 @@ export const ENTITIES: EntityDef[] = [
     id: "weather",
     label: "Meteo (orario)",
     fields: [
-      { key: "data", label: "Giorno", kind: "dimension", temporal: true },
-      { key: "temperatura", label: "Temperatura", kind: "measure" },
-      { key: "pioggia", label: "Pioggia", kind: "measure" },
-      { key: "umidita", label: "Umidità", kind: "measure" },
-      { key: "vento", label: "Vento", kind: "measure" },
+      { key: "date", label: "Giorno", kind: "dimension", temporal: true },
+      { key: "temperature", label: "Temperatura (°C)", kind: "measure" },
+      { key: "rain", label: "Pioggia (mm)", kind: "measure" },
+      { key: "humidity", label: "Umidità (%)", kind: "measure" },
+      { key: "wind", label: "Vento (m/s)", kind: "measure" },
     ],
     rows: (d) =>
       d.weather.map((w) => ({
-        data: dayKey(w.measured_at),
-        temperatura: w.air_temperature,
+        date: dayKey(w.measured_at),
+        temperature: w.air_temperature,
         rain: w.rain_mm,
-        umidita: w.relative_humidity,
-        vento: w.wind_speed,
+        humidity: w.relative_humidity,
+        wind: w.wind_speed,
       })),
   },
   {
     id: "dss",
     label: "DSS (rischio modelli)",
     fields: [
-      { key: "modello", label: "Modello", kind: "dimension" },
-      { key: "appezzamento", label: "Plot", kind: "dimension" },
-      { key: "valore", label: "Indice di rischio", kind: "measure" },
+      { key: "model", label: "Modello", kind: "dimension" },
+      { key: "plot", label: "Appezzamento", kind: "dimension" },
+      { key: "date", label: "Giorno", kind: "dimension", temporal: true },
+      { key: "value", label: "Indice di rischio", kind: "measure" },
     ],
     rows: (d) => {
       const names = plotNames(d);
       return d.dssResults.map((r) => ({
-        modello: prettyModel(r.model_name),
+        model: prettyModel(r.model_name),
         plot: r.plot_id ? names.get(r.plot_id) ?? "—" : "—",
+        date: dayKey(r.calculated_at),
         value: r.output_value,
       }));
     },
@@ -259,6 +261,68 @@ export const ENTITIES: EntityDef[] = [
 
 export function entityById(id: string): EntityDef | undefined {
   return ENTITIES.find((e) => e.id === id);
+}
+
+/**
+ * Rinomine delle chiavi dei campi (per entità), per non buttare via le config
+ * salvate prima dell'allineamento chiavi-righe. Vecchia chiave → nuova.
+ */
+const LEGACY_FIELD_KEYS: Record<string, Record<string, string>> = {
+  plots: {
+    nome: "name",
+    coltura: "crop",
+    irrigazione: "irrigation",
+    anno: "plantingYear",
+    area_ha: "areaHa",
+  },
+  treatments: {
+    tipo: "operationType",
+    prodotto: "product",
+    avversita: "target",
+    mese: "month",
+    appezzamento: "plot",
+    quantita: "quantity",
+    acqua_l: "waterL",
+    area_ha: "areaHa",
+  },
+  harvests: {
+    destinazione: "destination",
+    mese: "month",
+    appezzamento: "plot",
+    area_ha: "areaHa",
+  },
+  water: {
+    data: "date",
+    appezzamento: "plot",
+    dr: "depletion",
+    irrigazione: "irrigation",
+    pioggia: "rain",
+    percolazione: "percolation",
+  },
+  weather: {
+    data: "date",
+    temperatura: "temperature",
+    pioggia: "rain",
+    umidita: "humidity",
+    vento: "wind",
+  },
+  dss: {
+    modello: "model",
+    appezzamento: "plot",
+    valore: "value",
+  },
+};
+
+/** Traduce una chiave campo salvata (eventualmente legacy) in quella corrente. */
+export function currentFieldKey(entityId: string, key: unknown): string | null {
+  if (typeof key !== "string") return null;
+  const entity = entityById(entityId);
+  if (!entity) return null;
+  if (entity.fields.some((f) => f.key === key)) return key;
+  const renamed = LEGACY_FIELD_KEYS[entityId]?.[key];
+  return renamed && entity.fields.some((f) => f.key === renamed)
+    ? renamed
+    : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -275,7 +339,7 @@ export interface QuerySpec {
   aggregation: Aggregation;
 }
 
-interface Bucket {
+export interface Bucket {
   /** Valori della misura (numeratore). */
   num: number[];
   /** Valori del denominatore (solo ratio). */
@@ -287,8 +351,12 @@ function fieldLabel(entity: string, key: string | undefined): string {
   return entityById(entity)?.fields.find((f) => f.key === key)?.label ?? key;
 }
 
-/** Valore aggregato di un bucket secondo la funzione scelta. */
-function bucketValue(b: Bucket, agg: Aggregation): number {
+/**
+ * Valore aggregato di un bucket secondo la funzione scelta. Esportata perché è
+ * la stessa aritmetica delle schede KPI custom (`kpi-cards.ts`), che aggregano
+ * senza raggruppare per dimensione.
+ */
+export function bucketValue(b: Bucket, agg: Aggregation): number {
   if (agg === "count") return b.num.length;
   if (agg === "ratio") {
     const den = b.den.reduce((a, c) => a + c, 0);
@@ -348,7 +416,7 @@ export function buildQuery(spec: QuerySpec, data: DashboardData): ChartData {
     entries = entries.slice(0, 30); // top categorie
   }
 
-  const isMonth = temporal && dimField?.key === "mese";
+  const isMonth = temporal && dimField?.key === "month";
   const out = entries.map(([key, b]) => ({
     x: temporal ? (isMonth ? monthLabel(key) : shortDate(key)) : key,
     value: r1(bucketValue(b, spec.aggregation)),

@@ -3,6 +3,7 @@ import { type ChartType, presetById } from "./dashboard-datasets";
 import {
   type Aggregation,
   AGGREGATIONS,
+  currentFieldKey,
   entityById,
 } from "./dashboard-analytics";
 
@@ -51,7 +52,7 @@ export function defaultCharts(): CustomChart[] {
       id: uuidv4(),
       title: "Operazioni per tipo",
       entity: "treatments",
-      dimension: "tipo",
+      dimension: "operationType",
       measure: "dose",
       aggregation: "count",
       type: "bar",
@@ -96,27 +97,35 @@ function sanitizeChart(c: unknown): CustomChart | null {
     return { kind: "preset", id: o.id, title: o.title, presetId: o.presetId as string, type: o.type };
   }
   if (o.kind === "query") {
-    const entity = typeof o.entity === "string" ? entityById(o.entity) : undefined;
+    const entityId = typeof o.entity === "string" ? o.entity : "";
+    const entity = entityById(entityId);
     if (!entity) return null;
-    const dim = entity.fields.find((f) => f.key === o.dimension && f.kind === "dimension");
+    // `currentFieldKey` traduce anche le chiavi salvate prima dell'allineamento
+    // chiavi-righe del catalogo: una config vecchia non va persa.
+    const dimensionKey = currentFieldKey(entityId, o.dimension);
+    const dim = entity.fields.find(
+      (f) => f.key === dimensionKey && f.kind === "dimension",
+    );
     if (!dim) return null;
     if (!isAggregation(o.aggregation)) return null;
     // La misura serve solo se l'aggregazione non è "count"; se invalida, ripiega
     // sulla prima misura available.
     const measures = entity.fields.filter((f) => f.kind === "measure");
+    const measureKey = currentFieldKey(entityId, o.measure);
     const measure =
-      measures.find((m) => m.key === o.measure)?.key ?? measures[0]?.key ?? "";
+      measures.find((m) => m.key === measureKey)?.key ?? measures[0]?.key ?? "";
     // Denominatore valido solo per i rapporti; ripiega su una misura available.
+    const measure2Key = currentFieldKey(entityId, o.measure2);
     const measure2 =
       o.aggregation === "ratio"
-        ? measures.find((m) => m.key === o.measure2)?.key ?? measures[0]?.key ?? ""
+        ? measures.find((m) => m.key === measure2Key)?.key ?? measures[0]?.key ?? ""
         : undefined;
     return {
       kind: "query",
       id: o.id,
       title: o.title,
-      entity: o.entity as string,
-      dimension: o.dimension as string,
+      entity: entityId,
+      dimension: dim.key,
       measure,
       ...(measure2 ? { measure2 } : {}),
       aggregation: o.aggregation,

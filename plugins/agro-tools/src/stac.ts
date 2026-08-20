@@ -326,6 +326,52 @@ export function extractSceneSeries(
 }
 
 /**
+ * Giorno solare (UTC) di una scena, come "YYYY-MM-DD".
+ */
+function sceneDay(scene: IndicesScene): string {
+  return scene.datetime.slice(0, 10);
+}
+
+/**
+ * Ordina due scene dello stesso giorno dalla MIGLIORE alla peggiore: vince la
+ * copertura nuvolosa più bassa; a parità (o senza dato) vince la più recente.
+ * Una scena senza `cloudCover` è sempre peggiore di una che ce l'ha.
+ */
+function compareSceneQuality(a: IndicesScene, b: IndicesScene): number {
+  const ca = a.cloudCover ?? Number.POSITIVE_INFINITY;
+  const cb = b.cloudCover ?? Number.POSITIVE_INFINITY;
+  if (ca !== cb) return ca - cb;
+  return b.datetime.localeCompare(a.datetime);
+}
+
+/**
+ * Id delle scene MIGLIORI di ogni giorno: nella stessa giornata il satellite
+ * può depositare più item (tile adiacenti, riprocessamenti), tutti sotto la
+ * soglia di nuvolosità. Elaborarli e mostrarli tutti raddoppia i punti della
+ * serie senza aggiungere informazione: si tiene quello con la nuvolosità più
+ * bassa (vedi {@link compareSceneQuality}) e gli altri restano "doppioni".
+ */
+export function bestSceneIdsPerDay(scene: IndicesScene[]): Set<string> {
+  const bestByDay = new Map<string, IndicesScene>();
+  for (const s of scene) {
+    const day = sceneDay(s);
+    const current = bestByDay.get(day);
+    if (!current || compareSceneQuality(s, current) < 0) bestByDay.set(day, s);
+  }
+  return new Set([...bestByDay.values()].map((s) => s.itemId));
+}
+
+/**
+ * Una scena per giorno: la meno nuvolosa. Conserva l'ordine della series in
+ * ingresso (tipicamente data decrescente), così i chiamanti possono continuare
+ * a leggere `[0]` come "la più recente".
+ */
+export function bestScenePerDay(scene: IndicesScene[]): IndicesScene[] {
+  const best = bestSceneIdsPerDay(scene);
+  return scene.filter((s) => best.has(s.itemId));
+}
+
+/**
  * Restringe una series di scene (ordinata per data desc) agli ultimi `giorni`
  * **a partire dalla scena più recente disponibile**, non da oggi. I passaggi
  * Sentinel-2 recenti possono essere tutti scartati (nuvole) o il catalogo può

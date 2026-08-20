@@ -8,6 +8,8 @@ import {
   ChevronRight,
   ChevronUp,
   Cloud,
+  CopyMinus,
+  CopyPlus,
   Loader2,
   Pause,
   Play,
@@ -46,6 +48,11 @@ import {
  *   * scene in cache (pallino pieno) — si disegnano all'istante, senza rete;
  *   * scene esistenti sul satellite ma mai elaborate (pallino vuoto) — si
  *     calcolano al volo al primo click e da quel momento sono in cache.
+ *
+ * I DOPPIONI GIORNALIERI (più passaggi nello stesso giorno, tutti sotto la
+ * soglia di nuvolosità) sono nascosti di default: resta la scena meno nuvolosa
+ * del giorno, che è poi l'unica che l'analisi elabora. Un comando li rimette in
+ * striscia, in ambra, per chi vuole confrontarli a mano.
  *
  * Layout UNICO per desktop e smartphone: una striscia di tacche a spaziatura
  * PROPORZIONALE al tempo (i vuoti raccontano i periodi nuvolosi, che è metà
@@ -114,12 +121,23 @@ export function IndexTimeSlider() {
 
   const [collapsed, setCollapsed] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [showDuplicates, setShowDuplicates] = useState(false);
   const [trackWidth, setTrackWidth] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeTickRef = useRef<HTMLButtonElement>(null);
 
   const { scenes, activeSceneId, focusPlotId, loadingSceneId } = timeline;
-  const activeIndex = scenes.findIndex((s) => s.sceneId === activeSceneId);
+
+  // Serie effettivamente in striscia: senza i doppioni del giorno, a meno che
+  // l'utente li abbia richiesti. La scena a video resta sempre visibile, anche
+  // se è un doppione scelto a mano prima di rinascondere gli altri.
+  const duplicateCount = scenes.filter((s) => !s.bestOfDay).length;
+  const visibleScenes = scenes.filter(
+    (s) => s.bestOfDay || showDuplicates || s.sceneId === activeSceneId,
+  );
+  const activeIndex = visibleScenes.findIndex(
+    (s) => s.sceneId === activeSceneId,
+  );
 
   // Larghezza disponibile della striscia: le tacche restano proporzionali al
   // tempo finché ci stanno, e il contenitore scorre solo quando servirebbe più
@@ -137,7 +155,7 @@ export function IndexTimeSlider() {
     return () => observer.disconnect();
   }, [collapsed]);
 
-  const positions = tickPositions(scenes, trackWidth);
+  const positions = tickPositions(visibleScenes, trackWidth);
   const innerWidth = Math.max(
     trackWidth,
     (positions.at(-1) ?? 0) + TRACK_PADDING_PX,
@@ -213,11 +231,12 @@ export function IndexTimeSlider() {
   /** Passo avanti/indietro; in riproduzione si salta alle sole scene in cache. */
   const step = useCallback(
     (direction: 1 | -1, cachedOnly = false) => {
-      if (scenes.length === 0) return;
-      let next = activeIndex < 0 ? scenes.length - 1 : activeIndex + direction;
-      while (next >= 0 && next < scenes.length) {
-        if (!cachedOnly || scenes[next].cached) {
-          void showScene(scenes[next]);
+      if (visibleScenes.length === 0) return;
+      let next =
+        activeIndex < 0 ? visibleScenes.length - 1 : activeIndex + direction;
+      while (next >= 0 && next < visibleScenes.length) {
+        if (!cachedOnly || visibleScenes[next].cached) {
+          void showScene(visibleScenes[next]);
           return;
         }
         next += direction;
@@ -225,7 +244,7 @@ export function IndexTimeSlider() {
       // Fine corsa: l'animazione si ferma da sé.
       if (cachedOnly) setPlaying(false);
     },
-    [activeIndex, scenes, showScene],
+    [activeIndex, visibleScenes, showScene],
   );
 
   // Riproduzione: solo scene già in cache, così premere "play" non innesca una
@@ -261,8 +280,8 @@ export function IndexTimeSlider() {
 
   if (scenes.length === 0 || !focusPlotId || timeline.hidden) return null;
 
-  const active = activeIndex >= 0 ? scenes[activeIndex] : null;
-  const cachedCount = scenes.filter((s) => s.cached).length;
+  const active = activeIndex >= 0 ? visibleScenes[activeIndex] : null;
+  const cachedCount = visibleScenes.filter((s) => s.cached).length;
 
   return (
     <div
@@ -308,6 +327,25 @@ export function IndexTimeSlider() {
           </span>
 
           <div className="flex shrink-0 items-center gap-0.5">
+            {duplicateCount > 0 && (
+              <IconBtn
+                label={
+                  showDuplicates
+                    ? t("indexTimeSlider.hideDuplicates")
+                    : t("indexTimeSlider.showDuplicates", {
+                        count: duplicateCount,
+                      })
+                }
+                onClick={() => setShowDuplicates((v) => !v)}
+                active={showDuplicates}
+              >
+                {showDuplicates ? (
+                  <CopyMinus size={16} />
+                ) : (
+                  <CopyPlus size={16} />
+                )}
+              </IconBtn>
+            )}
             <IconBtn
               label={t("indexTimeSlider.previous")}
               onClick={() => step(-1)}
@@ -331,7 +369,7 @@ export function IndexTimeSlider() {
               onClick={() => step(1)}
               disabled={
                 loadingSceneId != null ||
-                (activeIndex >= 0 && activeIndex >= scenes.length - 1)
+                (activeIndex >= 0 && activeIndex >= visibleScenes.length - 1)
               }
             >
               <ChevronRight size={16} />
@@ -361,9 +399,10 @@ export function IndexTimeSlider() {
               >
                 {/* Asse dei tempi. */}
                 <div className="absolute left-0 right-0 top-[18px] h-px bg-[var(--line)]" />
-                {scenes.map((scene, i) => {
+                {visibleScenes.map((scene, i) => {
                   const isActive = scene.sceneId === activeSceneId;
                   const isLoading = scene.sceneId === loadingSceneId;
+                  const isDuplicate = !scene.bestOfDay;
                   return (
                     <button
                       key={scene.sceneId}
@@ -375,6 +414,14 @@ export function IndexTimeSlider() {
                         scene.cached
                           ? ` · ${t("indexTimeSlider.computed")}`
                           : ` · ${t("indexTimeSlider.notComputed")}`
+                      }${
+                        scene.cloudCover != null
+                          ? ` · ${scene.cloudCover.toFixed(0)}%`
+                          : ""
+                      }${
+                        isDuplicate
+                          ? ` · ${t("indexTimeSlider.duplicate")}`
+                          : ""
                       }`}
                       className="absolute top-0 flex h-11 w-8 -translate-x-1/2 flex-col items-center justify-start pt-2.5"
                       style={{ left: `${positions[i]}px` }}
@@ -388,20 +435,33 @@ export function IndexTimeSlider() {
                         <span
                           className={cn(
                             "h-3 w-3 rounded-full border-2 transition-transform",
-                            scene.cached
-                              ? "border-[var(--accent)] bg-[var(--accent)]"
-                              : "border-[var(--ink-4)] bg-[var(--panel)]",
+                            // Doppione del giorno: ambra, in cache o no — quel
+                            // che conta è che non è la scena "buona" del giorno.
+                            isDuplicate
+                              ? scene.cached
+                                ? "border-[var(--warn)] bg-[var(--warn)]"
+                                : "border-[var(--warn)] bg-[var(--panel)]"
+                              : scene.cached
+                                ? "border-[var(--accent)] bg-[var(--accent)]"
+                                : "border-[var(--ink-4)] bg-[var(--panel)]",
                             isActive &&
-                              "scale-125 ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--panel)]",
+                              "scale-125 ring-2 ring-offset-1 ring-offset-[var(--panel)]",
+                            isActive &&
+                              (isDuplicate
+                                ? "ring-[var(--warn)]"
+                                : "ring-[var(--accent)]"),
                           )}
                         />
                       )}
                       <span
                         className={cn(
                           "agro-num mt-1 text-[9px] leading-none",
-                          isActive
-                            ? "font-semibold text-[var(--accent)]"
-                            : "text-[var(--ink-4)]",
+                          isActive && "font-semibold",
+                          isDuplicate
+                            ? "text-[var(--warn)]"
+                            : isActive
+                              ? "text-[var(--accent)]"
+                              : "text-[var(--ink-4)]",
                         )}
                       >
                         {shortDate(scene.datetime)}
@@ -423,9 +483,25 @@ export function IndexTimeSlider() {
               <span className="flex items-center gap-1">
                 <span className="h-2.5 w-2.5 rounded-full border-2 border-[var(--ink-4)]" />
                 {t("indexTimeSlider.notComputedCount", {
-                  count: scenes.length - cachedCount,
+                  count: visibleScenes.length - cachedCount,
                 })}
               </span>
+              {duplicateCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowDuplicates((v) => !v)}
+                  className="flex items-center gap-1 hover:text-[var(--ink-2)]"
+                >
+                  <span className="h-2.5 w-2.5 rounded-full border-2 border-[var(--warn)]" />
+                  {showDuplicates
+                    ? t("indexTimeSlider.duplicatesShown", {
+                        count: duplicateCount,
+                      })
+                    : t("indexTimeSlider.duplicatesHidden", {
+                        count: duplicateCount,
+                      })}
+                </button>
+              )}
               {timeline.error && (
                 <span className="ml-auto truncate text-[var(--danger)]">
                   {timeline.error}

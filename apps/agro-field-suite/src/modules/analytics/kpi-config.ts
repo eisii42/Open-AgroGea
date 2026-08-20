@@ -1,8 +1,14 @@
 /**
- * Parametri EDITABILI dei KPI del Command Center (Modulo 3 — personalizzazione).
+ * Parametri del motore analitico del Command Center (`CommandCenterEngine`):
+ * base GDD, biofix, soglia di stress idrico, finestra del trend ETc. Alimentano
+ * i KPI che finiscono nell'Executive Report.
+ *
  * Sono preferenze d'utente per-device: persistite in localStorage (istantaneo,
  * offline-safe), come tema/lingua. Non vivono in PGlite (non sono dati di
- * tenant) né hanno bisogno del control plane.
+ * tenant) né hanno bisogno del control plane. Dalla rimozione della griglia a
+ * indici fissi non hanno più un modale di modifica: la personalizzazione degli
+ * indici passa dalle schede KPI custom (`kpi-cards.ts`), che si compongono sul
+ * catalogo dati completo.
  */
 
 export interface KpiParams {
@@ -21,31 +27,6 @@ export const DEFAULT_KPI_PARAMS: KpiParams = {
   gddStartMonth: 1,
   waterStressThreshold: 0.5,
   etcWindowDays: 7,
-};
-
-/** Metadati di un parametro per il modale di modifica del widget. */
-export interface KpiParamMeta {
-  id: keyof KpiParams;
-  label: string;
-  /** Suffisso/unità mostrata accanto all'input. */
-  unit?: string;
-  min: number;
-  max: number;
-  step: number;
-}
-
-export const KPI_PARAM_META: Record<keyof KpiParams, KpiParamMeta> = {
-  gddBase: { id: "gddBase", label: "Temperatura base GDD", unit: "°C", min: 0, max: 20, step: 0.5 },
-  gddStartMonth: { id: "gddStartMonth", label: "Mese inizio accumulo", min: 1, max: 12, step: 1 },
-  waterStressThreshold: {
-    id: "waterStressThreshold",
-    label: "Soglia allerta stress idrico",
-    unit: "frazione 0–1",
-    min: 0.1,
-    max: 1,
-    step: 0.05,
-  },
-  etcWindowDays: { id: "etcWindowDays", label: "Finestra trend ETc", unit: "giorni", min: 3, max: 30, step: 1 },
 };
 
 const STORAGE_KEY = "agrogea.commandCenter.kpiParams";
@@ -78,10 +59,3 @@ export function loadKpiParams(): KpiParams {
   return { ...DEFAULT_KPI_PARAMS };
 }
 
-export function persistKpiParams(params: KpiParams): void {
-  try {
-    globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(params));
-  } catch {
-    /* no-op */
-  }
-}

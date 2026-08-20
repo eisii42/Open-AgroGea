@@ -178,6 +178,8 @@ export {
   applySasToken,
   extractSceneSeries,
   filterWindowFromLatest,
+  bestScenePerDay,
+  bestSceneIdsPerDay,
   signPlanetaryComputerHref,
   selectBestItem,
   SENTINEL2_COLLECTION,

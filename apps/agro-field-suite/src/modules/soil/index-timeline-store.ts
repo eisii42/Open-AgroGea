@@ -30,6 +30,12 @@ export interface TimelineScene {
    */
   cached: boolean;
   /**
+   * true se è la scena MIGLIORE del suo giorno (nuvolosità più bassa), o
+   * l'unica di quel giorno. false = doppione giornaliero: stessa data, nessuna
+   * informazione in più, nascosto di default nello slider.
+   */
+  bestOfDay: boolean;
+  /**
    * Scena STAC con gli href delle bande, presente solo per le scene trovate
    * dall'ultima ricerca. Senza di essa una scena non calcolata non è
    * elaborabile al volo (mancano gli asset da scaricare).
@@ -56,6 +62,7 @@ export function buildTimelineScenes(
       datetime: scene.captured_at,
       cloudCover: scene.cloud_cover,
       cached: true,
+      bestOfDay: true,
       source: null,
     });
   }
@@ -66,15 +73,49 @@ export function buildTimelineScenes(
       datetime: scene.datetime,
       cloudCover: scene.cloudCover,
       cached: existing?.cached ?? false,
+      bestOfDay: true,
       // La scena STAC porta gli href delle bande: senza, una scena non
       // calcolata resterebbe visibile ma non elaborabile.
       source: scene,
     });
   }
 
-  return [...bySceneId.values()].sort((a, b) =>
-    a.datetime.localeCompare(b.datetime),
+  return markBestOfDay(
+    [...bySceneId.values()].sort((a, b) => a.datetime.localeCompare(b.datetime)),
   );
+}
+
+/**
+ * Marca, per ogni giorno, la scena da mostrare: quella con la nuvolosità più
+ * bassa (a parità vince quella già in cache, poi la più recente). Le altre
+ * dello stesso giorno sono doppioni.
+ *
+ * Vale sull'unione trovate+cache, quindi non si può riusare direttamente
+ * `bestScenePerDay` di `@agrogea/tools`, che lavora sulle sole scene STAC: qui
+ * lo stato di cache è un criterio di scelta in più (una scena già calcolata si
+ * disegna all'istante).
+ */
+function markBestOfDay(scenes: TimelineScene[]): TimelineScene[] {
+  const bestByDay = new Map<string, TimelineScene>();
+  for (const scene of scenes) {
+    const day = scene.datetime.slice(0, 10);
+    const current = bestByDay.get(day);
+    if (!current || isBetterScene(scene, current)) bestByDay.set(day, scene);
+  }
+  const bestIds = new Set([...bestByDay.values()].map((s) => s.sceneId));
+  return scenes.map((scene) => ({
+    ...scene,
+    bestOfDay: bestIds.has(scene.sceneId),
+  }));
+}
+
+/** true se `a` è preferibile a `b` come rappresentante del loro giorno. */
+function isBetterScene(a: TimelineScene, b: TimelineScene): boolean {
+  const ca = a.cloudCover ?? Number.POSITIVE_INFINITY;
+  const cb = b.cloudCover ?? Number.POSITIVE_INFINITY;
+  if (ca !== cb) return ca < cb;
+  if (a.cached !== b.cached) return a.cached;
+  return a.datetime.localeCompare(b.datetime) > 0;
 }
 
 export interface IndexTimelineState {

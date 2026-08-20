@@ -1,7 +1,13 @@
-import { type AgroTheme, useAgroStore, useSettingsStore } from "@agrogea/core";
+import {
+  type AgroTheme,
+  type AppView,
+  useAgroStore,
+  useSettingsStore,
+} from "@agrogea/core";
 import { cn } from "@geolibre/ui";
 import {
   Building2,
+  CalendarDays,
   LayoutDashboard,
   Map as MapIcon,
   Moon,
@@ -29,6 +35,41 @@ const THEME_OPTIONS: { id: AgroTheme; labelKey: string; Icon: typeof Sun }[] = [
   { id: "light", labelKey: "nav.themeLight", Icon: Sun },
   { id: "dark", labelKey: "nav.themeDark", Icon: Moon },
   { id: "green", labelKey: "nav.themeGreen", Icon: Sprout },
+];
+
+/**
+ * Viste di primo livello dello switcher. Ogni vista ha il PROPRIO colore
+ * (token `--view-*`): il bottone attivo si riempie di quel colore, così a
+ * colpo d'occhio si capisce dove si è anche senza leggere l'etichetta.
+ */
+const VIEW_OPTIONS: {
+  id: AppView;
+  labelKey: string;
+  titleKey: string;
+  Icon: typeof MapIcon;
+  color: string;
+}[] = [
+  {
+    id: "map",
+    labelKey: "appHeader.map",
+    titleKey: "appHeader.mapView",
+    Icon: MapIcon,
+    color: "--view-map",
+  },
+  {
+    id: "calendar",
+    labelKey: "appHeader.calendar",
+    titleKey: "appHeader.calendar",
+    Icon: CalendarDays,
+    color: "--view-calendar",
+  },
+  {
+    id: "command-center",
+    labelKey: "appHeader.commandCenter",
+    titleKey: "appHeader.commandCenter",
+    Icon: LayoutDashboard,
+    color: "--view-command-center",
+  },
 ];
 
 function syncLed(
@@ -127,37 +168,36 @@ export function AppHeader({
         </div>
       )}
 
-      {/* Switcher di vista (Modulo 1): Mappa ↔ Data Command Center. Cambiare
-          vista smonta/rimonta la mappa ma conserva il contesto aziendale. */}
+      {/* Switcher di vista (Modulo 1): Mappa ↔ Calendario ↔ Data Command
+          Center. Cambiare vista nasconde la mappa (keep-alive) ma conserva il
+          contesto aziendale. */}
       <div className="ml-0 flex shrink-0 items-center gap-0.5 rounded-[var(--r-2)] bg-[var(--panel-2)] p-0.5 sm:ml-2">
-        <button
-          type="button"
-          onClick={() => setActiveView("map")}
-          title={t("appHeader.mapView")}
-          className={cn(
-            "flex h-8 items-center gap-1.5 rounded-[var(--r-1)] px-2.5 text-xs font-medium",
-            activeView === "map"
-              ? "bg-[var(--panel)] text-[var(--accent)] shadow-[var(--sh-1)]"
-              : "text-[var(--ink-3)]",
-          )}
-        >
-          <MapIcon size={14} />
-          <span className="hidden md:inline">{t("appHeader.map")}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveView("command-center")}
-          title={t("appHeader.commandCenter")}
-          className={cn(
-            "flex h-8 items-center gap-1.5 rounded-[var(--r-1)] px-2.5 text-xs font-medium",
-            activeView === "command-center"
-              ? "bg-[var(--panel)] text-[var(--accent)] shadow-[var(--sh-1)]"
-              : "text-[var(--ink-3)]",
-          )}
-        >
-          <LayoutDashboard size={14} />
-          <span className="hidden md:inline">{t("appHeader.commandCenter")}</span>
-        </button>
+        {VIEW_OPTIONS.map(({ id, labelKey, titleKey, Icon, color }) => {
+          const active = activeView === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setActiveView(id)}
+              title={t(titleKey as never)}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex h-8 items-center gap-1.5 rounded-[var(--r-1)] px-2.5 text-xs font-medium transition-colors",
+                active
+                  ? "text-white shadow-[var(--sh-1)]"
+                  : "hover:bg-[var(--panel)]",
+              )}
+              style={
+                active
+                  ? { background: `var(${color})` }
+                  : { color: `var(${color})`, opacity: 0.75 }
+              }
+            >
+              <Icon size={14} />
+              <span className="hidden md:inline">{t(labelKey as never)}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-2">

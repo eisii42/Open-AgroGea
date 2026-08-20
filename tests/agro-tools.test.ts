@@ -13,6 +13,7 @@ import {
   clipRasterToPolygon,
   colorFromRamp,
   applySasToken,
+  bestScenePerDay,
   extractSceneSeries,
   filterWindowFromLatest,
   signPlanetaryComputerHref,
@@ -529,6 +530,49 @@ describe("pipeline STAC multi-index e series temporale", () => {
     // Serie con 0/1 elementi: invariata.
     assert.equal(filterWindowFromLatest([], 15).length, 0);
     assert.equal(filterWindowFromLatest([mk(40)], 15).length, 1);
+  });
+
+  it("bestScenePerDay tiene una scena per giorno: la meno nuvolosa", () => {
+    const mk = (itemId: string, datetime: string, cloudCover: number | null) => ({
+      itemId,
+      datetime,
+      cloudCover,
+      bandHrefs: { B04: "r", B08: "n" },
+    });
+    // Due passaggi il 12, tre il 10 (uno senza dato di nuvolosità).
+    const scene = [
+      mk("a", "2026-06-12T10:05:00Z", 22),
+      mk("b", "2026-06-12T10:07:00Z", 4),
+      mk("c", "2026-06-10T10:05:00Z", null),
+      mk("d", "2026-06-10T10:06:00Z", 11),
+      mk("e", "2026-06-10T10:07:00Z", 30),
+    ];
+    const out = bestScenePerDay(scene);
+    assert.deepEqual(
+      out.map((s) => s.itemId),
+      ["b", "d"],
+      "una per giorno, e l'ordine della serie in ingresso resta",
+    );
+    // Nessun doppione: serie invariata.
+    assert.equal(bestScenePerDay([scene[0], scene[2]]).length, 2);
+    assert.equal(bestScenePerDay([]).length, 0);
+  });
+
+  it("bestScenePerDay: a parità di nuvolosità vince la scena più recente", () => {
+    const mk = (itemId: string, datetime: string) => ({
+      itemId,
+      datetime,
+      cloudCover: 7,
+      bandHrefs: { B04: "r", B08: "n" },
+    });
+    const out = bestScenePerDay([
+      mk("mattina", "2026-06-12T08:00:00Z"),
+      mk("mezzogiorno", "2026-06-12T12:00:00Z"),
+    ]);
+    assert.deepEqual(
+      out.map((s) => s.itemId),
+      ["mezzogiorno"],
+    );
   });
 
   it("signPlanetaryComputerHref aggiunge il SAS token e propaga gli errori", async () => {

@@ -52,7 +52,7 @@ function treatmentRows(treatments: TreatmentLog[]): string[] {
     row([
       "Data",
       "Operazione",
-      "Product",
+      "Prodotto",
       "Sostanza attiva",
       "Dose",
       "Unità dose",
@@ -114,9 +114,9 @@ export function buildExecutiveReportCsv(args: {
   const lines: string[] = [];
 
   lines.push(row(["AgroGea — Executive Report"]));
-  lines.push(row(["Company", companyName]));
+  lines.push(row(["Azienda", companyName]));
   lines.push(row(["Annata agraria", summary.campaignYear]));
-  lines.push(row(["CropType", summary.categoryLabel]));
+  lines.push(row(["Categoria colturale", summary.categoryLabel]));
   lines.push(row(["Appezzamenti", summary.plotCount]));
   lines.push(row(["Superficie (ha)", summary.totalAreaHa.toFixed(2)]));
   lines.push(row(["Generato il", new Date().toLocaleString("it-IT")]));

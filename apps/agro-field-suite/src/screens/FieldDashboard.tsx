@@ -23,6 +23,7 @@ import { GeometryEditToolbar } from "../components/GeometryEditToolbar";
 import { Colorbar } from "../modules/colorbar/Colorbar";
 import { CommandPalette } from "../modules/command-palette/CommandPalette";
 import { MapControls } from "../components/MapControls";
+import { MapSearchControl } from "../components/MapSearchControl";
 import { MapTooltip } from "../components/MapTooltip";
 import { OperationMarkers } from "../components/OperationMarkers";
 import { HarvestMarkers } from "../components/HarvestMarkers";
@@ -36,7 +37,9 @@ import { useFieldLayers } from "../hooks/useFieldLayers";
 import { useFieldPlugins } from "../hooks/useFieldPlugins";
 import { useHoverTooltips } from "../hooks/useHoverTooltips";
 import { useIndexRefreshJob } from "../hooks/useIndexRefreshJob";
+import { useCompassNorth } from "../hooks/useCompassNorth";
 import { useMapStyleEpoch } from "../hooks/useMapStyleEpoch";
+import { useNativeMapI18n } from "../hooks/useNativeMapI18n";
 
 /**
  * Pannelli overlay caricati on-demand (code-splitting): non servono al primo
@@ -184,6 +187,9 @@ export function FieldDashboard() {
   useIndexRefreshJob();
 
   const mapControllerRef = useRef<MapController | null>(null);
+  // Contenitore della mappa: ci vivono i controlli NATIVI (righello, gestore
+  // livelli), che si localizzano a valle — vedi useNativeMapI18n.
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const [mapReady, setMapReady] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -207,7 +213,7 @@ export function FieldDashboard() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
-        if (useAgroStore.getState().activeView === "command-center") return;
+        if (useAgroStore.getState().activeView !== "map") return;
         e.preventDefault();
         setPaletteOpen((v) => !v);
       }
@@ -226,6 +232,11 @@ export function FieldDashboard() {
   useFieldLayers(styleEpoch);
   const hover = useHoverTooltips(mapControllerRef, mapReady);
   useFeatureSelection(mapControllerRef, mapReady);
+  // Righello e gestore livelli sono controlli di terze parti con le etichette
+  // cablate in inglese: si traducono a valle sul DOM della mappa.
+  useNativeMapI18n(mapContainerRef);
+  // Bussola: segnala la vista orientata a nord (piccola "N" + colore).
+  useCompassNorth(mapControllerRef, mapContainerRef);
 
   return (
     <div className="flex h-full flex-col">
@@ -246,6 +257,7 @@ export function FieldDashboard() {
             (es. pannello Misura) a destra della colonna bottoni, così la scheda
             si apre di fianco al bottone without finire dietro la barra moduli. */}
         <div
+          ref={mapContainerRef}
           className="agro-field-map absolute inset-0"
           data-sidebar={sidebarCollapsed ? "collapsed" : "open"}
         >
@@ -258,6 +270,10 @@ export function FieldDashboard() {
           />
         </div>
 
+        {/* "Cerca luogo": bottone appeso alla colonna dei controlli MapLibre
+            (in fondo, sotto il gestore livelli) — vedi MapSearchControl. */}
+        <MapSearchControl mapControllerRef={mapControllerRef} />
+
         {/* Sidebar moduli: overlay che scorre fuori schermo via transform. */}
         <div
           className={cn(
@@ -268,10 +284,14 @@ export function FieldDashboard() {
           <ModuleSidebar />
         </div>
 
-        {/* Colonna fluttuante: toggle sidebar + controlli mappa nativi. */}
+        {/* Colonna fluttuante: toggle sidebar + controlli mappa nativi.
+            La transizione è sulla SOLA posizione: con `transition-all` veniva
+            animata anche la visibility ereditata, e uscendo dalla vista mappa
+            (nascosta con visibility:hidden) i bottoni restavano a schermo per
+            tutta la durata dell’animazione. */}
         <div
           className={cn(
-            "absolute top-3 z-30 flex flex-col gap-2 transition-all duration-300 ease-in-out",
+            "absolute top-3 z-30 flex flex-col gap-2 transition-[left] duration-300 ease-in-out",
             sidebarCollapsed ? "left-3" : "left-[272px]",
           )}
         >

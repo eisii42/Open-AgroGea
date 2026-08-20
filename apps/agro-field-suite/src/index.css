@@ -29,11 +29,167 @@ select {
   font-size: 16px;
 }
 
-/* I controlli MapLibre di default sono troppo piccoli per i guanti da campo:
-   override scoped, mai dentro node_modules (convenzione GeoLibre). */
-.agro-field-map .maplibregl-ctrl button {
+/* Controlli MapLibre nativi (zoom, bussola, schermo intero, GPS, terreno,
+   gestore livelli) con la stessa veste dei bottoni AgroGea della colonna di
+   sinistra: quadrato arrotondato su --panel, bordo --line, icona --ink-2.
+   Le icone sono i glifi Lucide dell'app applicati come maschera, così seguono
+   il colore del tema invece di restare disegnate in nero sul pannello scuro.
+   Override scoped al contenitore mappa, mai dentro node_modules. */
+.agro-field-map .maplibregl-ctrl-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+.agro-field-map .maplibregl-ctrl-group:not(:empty) {
+  margin: 0 10px 8px 0;
+}
+.agro-field-map .maplibregl-ctrl-group > button {
+  width: var(--touch-min);
+  height: var(--touch-min);
   min-width: var(--touch-min);
   min-height: var(--touch-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: var(--r-2);
+  background: var(--panel);
+  color: var(--ink-2);
+  box-shadow: var(--sh-1);
+}
+.agro-field-map .maplibregl-ctrl-group > button + button {
+  border-top: 1px solid var(--line);
+}
+.agro-field-map .maplibregl-ctrl-group > button:hover:not(:disabled) {
+  background: var(--panel-2);
+}
+.agro-field-map .maplibregl-ctrl-group > button:disabled {
+  color: var(--ink-4);
+  opacity: 0.5;
+}
+
+/* Base delle icone: la maschera prende il colore del bottone. */
+.agro-field-map .maplibregl-ctrl-group > button .maplibregl-ctrl-icon,
+.agro-field-map .maplibregl-ctrl-layer-control .layer-control-icon {
+  width: 20px;
+  height: 20px;
+  background-image: none;
+  background-color: currentColor;
+  mask-position: center;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  mask-size: 20px 20px;
+  -webkit-mask-size: 20px 20px;
+}
+/* Il gestore livelli disegna un suo SVG inline: resta la sola maschera. */
+.agro-field-map .maplibregl-ctrl-layer-control .layer-control-icon > svg {
+  display: none;
+}
+
+.agro-field-map .maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon {
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M5%2012h14%22%2F%3E%3Cpath%20d%3D%22M12%205v14%22%2F%3E%3C%2Fsvg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M5%2012h14%22%2F%3E%3Cpath%20d%3D%22M12%205v14%22%2F%3E%3C%2Fsvg%3E");
+}
+.agro-field-map .maplibregl-ctrl-zoom-out .maplibregl-ctrl-icon {
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M5%2012h14%22%2F%3E%3C%2Fsvg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M5%2012h14%22%2F%3E%3C%2Fsvg%3E");
+}
+.agro-field-map .maplibregl-ctrl-compass .maplibregl-ctrl-icon {
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%2210%22%2F%3E%3Cpath%20d%3D%22m16.24%207.76-1.804%205.411a2%202%200%200%201-1.265%201.265L7.76%2016.24l1.804-5.411a2%202%200%200%201%201.265-1.265z%22%2F%3E%3C%2Fsvg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%2210%22%2F%3E%3Cpath%20d%3D%22m16.24%207.76-1.804%205.411a2%202%200%200%201-1.265%201.265L7.76%2016.24l1.804-5.411a2%202%200%200%201%201.265-1.265z%22%2F%3E%3C%2Fsvg%3E");
+}
+.agro-field-map .maplibregl-ctrl-fullscreen .maplibregl-ctrl-icon {
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M8%203H5a2%202%200%200%200-2%202v3%22%2F%3E%3Cpath%20d%3D%22M21%208V5a2%202%200%200%200-2-2h-3%22%2F%3E%3Cpath%20d%3D%22M3%2016v3a2%202%200%200%200%202%202h3%22%2F%3E%3Cpath%20d%3D%22M16%2021h3a2%202%200%200%200%202-2v-3%22%2F%3E%3C%2Fsvg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M8%203H5a2%202%200%200%200-2%202v3%22%2F%3E%3Cpath%20d%3D%22M21%208V5a2%202%200%200%200-2-2h-3%22%2F%3E%3Cpath%20d%3D%22M3%2016v3a2%202%200%200%200%202%202h3%22%2F%3E%3Cpath%20d%3D%22M16%2021h3a2%202%200%200%200%202-2v-3%22%2F%3E%3C%2Fsvg%3E");
+}
+.agro-field-map .maplibregl-ctrl-shrink .maplibregl-ctrl-icon {
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M8%203v3a2%202%200%200%201-2%202H3%22%2F%3E%3Cpath%20d%3D%22M21%208h-3a2%202%200%200%201-2-2V3%22%2F%3E%3Cpath%20d%3D%22M3%2016h3a2%202%200%200%201%202%202v3%22%2F%3E%3Cpath%20d%3D%22M16%2021v-3a2%202%200%200%201%202-2h3%22%2F%3E%3C%2Fsvg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M8%203v3a2%202%200%200%201-2%202H3%22%2F%3E%3Cpath%20d%3D%22M21%208h-3a2%202%200%200%201-2-2V3%22%2F%3E%3Cpath%20d%3D%22M3%2016h3a2%202%200%200%201%202%202v3%22%2F%3E%3Cpath%20d%3D%22M16%2021v-3a2%202%200%200%201%202-2h3%22%2F%3E%3C%2Fsvg%3E");
+}
+.agro-field-map .maplibregl-ctrl-geolocate .maplibregl-ctrl-icon {
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cline%20x1%3D%222%22%20x2%3D%225%22%20y1%3D%2212%22%20y2%3D%2212%22%2F%3E%3Cline%20x1%3D%2219%22%20x2%3D%2222%22%20y1%3D%2212%22%20y2%3D%2212%22%2F%3E%3Cline%20x1%3D%2212%22%20x2%3D%2212%22%20y1%3D%222%22%20y2%3D%225%22%2F%3E%3Cline%20x1%3D%2212%22%20x2%3D%2212%22%20y1%3D%2219%22%20y2%3D%2222%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%227%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%223%22%2F%3E%3C%2Fsvg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cline%20x1%3D%222%22%20x2%3D%225%22%20y1%3D%2212%22%20y2%3D%2212%22%2F%3E%3Cline%20x1%3D%2219%22%20x2%3D%2222%22%20y1%3D%2212%22%20y2%3D%2212%22%2F%3E%3Cline%20x1%3D%2212%22%20x2%3D%2212%22%20y1%3D%222%22%20y2%3D%225%22%2F%3E%3Cline%20x1%3D%2212%22%20x2%3D%2212%22%20y1%3D%2219%22%20y2%3D%2222%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%227%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%223%22%2F%3E%3C%2Fsvg%3E");
+}
+.agro-field-map .maplibregl-ctrl-terrain .maplibregl-ctrl-icon {
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m8%203%204%208%205-5%205%2015H2L8%203z%22%2F%3E%3C%2Fsvg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m8%203%204%208%205-5%205%2015H2L8%203z%22%2F%3E%3C%2Fsvg%3E");
+}
+.agro-field-map .maplibregl-ctrl-terrain-enabled .maplibregl-ctrl-icon {
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m8%203%204%208%205-5%205%2015H2L8%203z%22%2F%3E%3C%2Fsvg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m8%203%204%208%205-5%205%2015H2L8%203z%22%2F%3E%3C%2Fsvg%3E");
+}
+.agro-field-map .maplibregl-ctrl-layer-control .layer-control-icon {
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12.83%202.18a2%202%200%200%200-1.66%200L2.6%206.08a1%201%200%200%200%200%201.83l8.58%203.91a2%202%200%200%200%201.66%200l8.58-3.9a1%201%200%200%200%200-1.83z%22%2F%3E%3Cpath%20d%3D%22M2%2012a1%201%200%200%200%20.58.91l8.6%203.91a2%202%200%200%200%201.65%200l8.58-3.9A1%201%200%200%200%2022%2012%22%2F%3E%3Cpath%20d%3D%22M2%2017a1%201%200%200%200%20.58.91l8.6%203.91a2%202%200%200%200%201.65%200l8.58-3.9A1%201%200%200%200%2022%2017%22%2F%3E%3C%2Fsvg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12.83%202.18a2%202%200%200%200-1.66%200L2.6%206.08a1%201%200%200%200%200%201.83l8.58%203.91a2%202%200%200%200%201.66%200l8.58-3.9a1%201%200%200%200%200-1.83z%22%2F%3E%3Cpath%20d%3D%22M2%2012a1%201%200%200%200%20.58.91l8.6%203.91a2%202%200%200%200%201.65%200l8.58-3.9A1%201%200%200%200%2022%2012%22%2F%3E%3Cpath%20d%3D%22M2%2017a1%201%200%200%200%20.58.91l8.6%203.91a2%202%200%200%200%201.65%200l8.58-3.9A1%201%200%200%200%2022%2017%22%2F%3E%3C%2Fsvg%3E");
+}
+
+/* Bussola orientata a NORD (classe messa da useCompassNorth): compare una
+   piccola "N" sopra il glifo e l'icona vira all'accento. Ruotando la mappa
+   entrambe le cose spariscono, e la bussola torna un semplice comando di
+   rimessa a nord. La "N" sta sul BOTTONE, non sull'icona: quest'ultima ruota
+   col bearing e se la trascinerebbe dietro. */
+.agro-field-map .maplibregl-ctrl-compass {
+  position: relative;
+}
+.agro-field-map .maplibregl-ctrl-compass::after {
+  content: "N";
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity 0.15s ease-in-out;
+  pointer-events: none;
+}
+.agro-field-map .maplibregl-ctrl-compass.agro-compass-north::after {
+  opacity: 1;
+}
+.agro-field-map .maplibregl-ctrl-group > button.maplibregl-ctrl-compass {
+  transition: color 0.15s ease-in-out;
+}
+.agro-field-map
+  .maplibregl-ctrl-group
+  > button.maplibregl-ctrl-compass.agro-compass-north {
+  color: var(--accent);
+}
+
+/* Stati attivi: stesso glifo, colore d'accento — come i bottoni AgroGea. */
+.agro-field-map .maplibregl-ctrl-group > button.maplibregl-ctrl-geolocate-active,
+.agro-field-map .maplibregl-ctrl-group > button.maplibregl-ctrl-geolocate-background,
+.agro-field-map .maplibregl-ctrl-group > button.maplibregl-ctrl-terrain-enabled {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.agro-field-map
+  .maplibregl-ctrl-group
+  > button.maplibregl-ctrl-geolocate-waiting
+  .maplibregl-ctrl-icon {
+  animation: agro-map-ctrl-pulse 1s ease-in-out infinite;
+}
+/* Bottoni AgroGea appesi alla colonna nativa (es. "Cerca luogo"): stesso
+   stato attivo dei controlli MapLibre. */
+.agro-field-map .maplibregl-ctrl-group > button.agro-map-ctrl-active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.agro-field-map .maplibregl-ctrl-group > button.maplibregl-ctrl-geolocate-active-error {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+@keyframes agro-map-ctrl-pulse {
+  50% {
+    opacity: 0.35;
+  }
 }
 
 /* Pannello Misura nativo (controllo top-left): toggle nativo nascosto (apertura

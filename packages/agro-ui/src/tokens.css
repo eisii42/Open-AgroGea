@@ -34,6 +34,15 @@
   --danger: #d8443c;
   --danger-l: #fbe9e8;
 
+  /* Viste di primo livello (switcher dell'header): un colore dedicato per
+     vista, così il bottone attivo si riconosce a colpo d'occhio. */
+  --view-map: #1f8a5b;
+  --view-map-l: #e4f2ea;
+  --view-calendar: #d97a24;
+  --view-calendar-l: #fbeedf;
+  --view-command-center: #6c4bd0;
+  --view-command-center-l: #eee9fb;
+
   /* Colture */
   --crop-vite: #7b3f6b;
   --crop-vite-l: #f3eaf1;
@@ -91,6 +100,13 @@
   --warn-l: #34250f;
   --danger-l: #371413;
 
+  --view-map: #2f9e68;
+  --view-map-l: #102e20;
+  --view-calendar: #c96f1f;
+  --view-calendar-l: #33220f;
+  --view-command-center: #7d5cd6;
+  --view-command-center-l: #221a3d;
+
   --crop-vite-l: #2b1a27;
   --crop-cereali-l: #2d2310;
   --crop-olivo-l: #1b2412;
@@ -118,6 +134,11 @@
   --accent-d: #18744c;
   --accent-l: #e4f2ea;
   --accent-bd: #aed8c2;
+
+  /* La vista Mappa segue l'accento verde del tema; calendario e command
+     center restano arancio e viola come negli altri temi. */
+  --view-map: #1f8a5b;
+  --view-map-l: #e4f2ea;
 }
 
 .agro-num {

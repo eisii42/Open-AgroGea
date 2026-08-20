@@ -21,20 +21,18 @@ import { AppHeader } from "../components/AppHeader";
 import { CompanyDataIo } from "../modules/registry/CompanyDataIo";
 import { CompanyOverview } from "../modules/analytics/CompanyOverview";
 import { CustomDashboard } from "../modules/analytics/CustomDashboard";
+import { CustomKpiCards } from "../modules/analytics/CustomKpiCards";
 import type { DashboardData } from "../modules/analytics/dashboard-datasets";
 import {
   buildExecutiveReportCsv,
   executiveReportFilename,
 } from "../modules/analytics/executive-report";
-import { KpiGrid } from "../modules/analytics/KpiGrid";
-import { OperationsCalendar } from "../modules/analytics/OperationsCalendar";
 import { RawDataInspector } from "../modules/analytics/RawDataInspector";
 import { useCommandCenterData } from "../modules/analytics/useCommandCenterData";
 import { useFullRecalc } from "../modules/analytics/useFullRecalc";
 import {
   type KpiParams,
   loadKpiParams,
-  persistKpiParams,
 } from "../modules/analytics/kpi-config";
 import { downloadArtifact } from "../services/gis/geo-export";
 
@@ -46,8 +44,9 @@ type CommandCenterPage = "crops" | "company";
  * disaccoppiato dalla vista mappa (la mappa MapLibre è smontata dall'App quando
  * questa vista è attiva, liberando risorse hardware). Diviso in DUE pagine:
  *   * «Colture e plots» — l'analisi agronomica: filters gerarchici
- *     (annata → crop → plots), griglia KPI configurabile, dashboard
- *     editabile, calendario operativo e Raw Data Inspector con cross-filtering;
+ *     (annata → crop → plots), schede KPI personalizzate, dashboard
+ *     editabile e Raw Data Inspector con cross-filtering (il calendario
+ *     operativo è una vista di primo livello a sé, vedi `modules/calendar`);
  *   * «Company» — l'andamento generale: area/operazioni/raccolto
  *     dell'annata, stato del Magazzino (value giacenze a CUMP, lots scaduti e
  *     in scadenza), costo products imputato per field e backup/ripristino.
@@ -73,7 +72,11 @@ export function CommandCenter() {
   const [campaignYear, setCampaignYear] = useState(activeCampaign);
   const [cropId, setCropId] = useState<string | null>(null);
   const [selectedPlotIds, setSelectedPlotIds] = useState<string[]>([]);
-  const [params, setParams] = useState<KpiParams>(() => loadKpiParams());
+  // Parametri del motore analitico (base GDD, finestra ETc, soglia di stress):
+  // non hanno più una griglia fissa da configurare, ma restano nel calcolo che
+  // alimenta l'Executive Report. Si leggono una volta sola, come preferenza di
+  // device già salvata.
+  const [params] = useState<KpiParams>(loadKpiParams);
 
   // Cambiare annata o crop ridefinisce l'insieme dei campi: azzera la
   // selezione multi-plot per non trascinare un filtro fuori scope.
@@ -85,14 +88,6 @@ export function CommandCenter() {
   // "Calcola tutto": indici satellitari + DSS + bilancio idrico su tutti i campi,
   // con barra di avanzamento; al termine reload i dati della vista.
   const fullRecalc = useFullRecalc(data.refresh);
-
-  const onChangeParams = (patch: Partial<KpiParams>) => {
-    setParams((prev) => {
-      const next = { ...prev, ...patch };
-      persistKpiParams(next);
-      return next;
-    });
-  };
 
   // Colture presenti nelle campagne dell'annata selezionata (per il selettore).
   const cropOptions = useMemo(() => {
@@ -432,11 +427,14 @@ export function CommandCenter() {
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {data.result && (
-              <KpiGrid
-                kpis={data.result.kpis}
-                params={params}
-                onChangeParams={onChangeParams}
+            {/* Schede KPI personalizzate: indici composti dall'utente sul
+                catalogo dati completo. Hanno sostituito la griglia a indici
+                fissi (vigore, trattamenti, GDD, rischio, stress idrico). */}
+            {activeCompanyId && (
+              <CustomKpiCards
+                data={dashboardData}
+                companyId={activeCompanyId}
+                campaignYear={campaignYear}
               />
             )}
 
@@ -450,21 +448,15 @@ export function CommandCenter() {
               />
             )}
 
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-              <OperationsCalendar
-                campaignYear={campaignYear}
-                plotIds={effectivePlotIds}
-                treatments={treatments}
-                harvests={harvests}
-                dssResults={data.dssResults}
-              />
-              <RawDataInspector
-                plotIds={scopePlotIds}
-                campaignYear={campaignYear}
-                focusedPlotId={focusedPlotId}
-                onFocusPlot={onFocusPlot}
-              />
-            </div>
+            {/* Il calendario operativo NON vive più qui: è la vista di primo
+                livello «Calendario» (modules/calendar), completa di
+                pianificazione, meteo e bilancio idrico. */}
+            <RawDataInspector
+              plotIds={scopePlotIds}
+              campaignYear={campaignYear}
+              focusedPlotId={focusedPlotId}
+              onFocusPlot={onFocusPlot}
+            />
           </div>
         )}
           </>

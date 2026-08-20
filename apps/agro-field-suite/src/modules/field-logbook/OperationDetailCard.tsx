@@ -46,7 +46,12 @@ export function OperationDetailCard({
   operation: TreatmentLog;
   appezzamentoNome: string | null;
   onClose: () => void;
-  onDelete: () => void | Promise<void>;
+  /**
+   * Cancellazione dell'operazione. OMESSO = scheda di sola CONSULTAZIONE: è la
+   * forma usata dal Calendario, dove le operazioni si leggono e basta (si
+   * correggono dal Quaderno, che è il loro registro).
+   */
+  onDelete?: () => void | Promise<void>;
 }) {
   const { t } = useTranslation();
   const o = operation;
@@ -139,14 +144,16 @@ export function OperationDetailCard({
           )}
         </div>
 
-        <div className="flex shrink-0 items-center justify-between border-t border-[var(--line)] px-4 py-3">
-          <button
-            type="button"
-            onClick={() => void onDelete()}
-            className="flex items-center gap-1.5 rounded-[var(--r-2)] px-2.5 py-1.5 text-xs font-medium text-[var(--danger)] hover:bg-[var(--danger-l,#fee2e2)]"
-          >
-            <Trash2 size={13} /> {t("operationDetailCard.delete")}
-          </button>
+        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-[var(--line)] px-4 py-3">
+          {onDelete && (
+            <button
+              type="button"
+              onClick={() => void onDelete()}
+              className="mr-auto flex items-center gap-1.5 rounded-[var(--r-2)] px-2.5 py-1.5 text-xs font-medium text-[var(--danger)] hover:bg-[var(--danger-l,#fee2e2)]"
+            >
+              <Trash2 size={13} /> {t("operationDetailCard.delete")}
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}
