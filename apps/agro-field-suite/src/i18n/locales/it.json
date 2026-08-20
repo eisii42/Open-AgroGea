@@ -975,6 +975,33 @@
     "machineCreateSave": "Crea e seleziona"
   },
   "warehouse": {
+    "importCsv": "Importa CSV",
+    "import": {
+      "title": "Importa prodotti da CSV",
+      "instructions": "Riga d'intestazione obbligatoria, separatore ; o , (riconosciuto da solo). Colonne obbligatorie: category, name, unit. Facoltative: registration_number, active_substance, npk_n, npk_p, npk_k, uma_code, supplier, notes, min_stock, safety_period_days, reentry_interval_h, species, scientific_name, variety_name, crop_category, lot_number, expires_at, initial_quantity, unit_cost.",
+      "categoryRules": "category accetta phytosanitary, fertilizer, seed, fuel, other (o agrofarmaco, concime, semente, carburante, altro). Valgono le stesse regole del form: agrofarmaci → n. registrazione, concimi → titoli N-P-K fra 0 e 100, carburante → codice UMA.",
+      "lotNotice": "Il carico iniziale è facoltativo: con initial_quantity e unit_cost si crea anche il lotto e si muove il CUMP; senza, entra la sola anagrafica a giacenza zero. La scadenza va scritta come AAAA-MM-GG.",
+      "template": "Scarica modello",
+      "parseError": "Impossibile leggere il file: {{message}}",
+      "missingHeader": "Intestazione incompleta: mancano le colonne {{columns}}.",
+      "previewTitle": "Anteprima ({{valid}} validi su {{total}})",
+      "errorCategoryRequired": "categoria obbligatoria",
+      "errorCategoryUnknown": "categoria sconosciuta: {{value}}",
+      "errorNameRequired": "nome obbligatorio",
+      "errorUnitRequired": "unità di misura obbligatoria",
+      "errorRegistrationRequired": "n. registrazione obbligatorio per gli agrofarmaci",
+      "errorUmaRequired": "codice UMA obbligatorio per il carburante",
+      "errorNpk": "titoli N-P-K obbligatori (0–100) per i concimi",
+      "errorDuplicate": "prodotto già presente in magazzino",
+      "errorQuantity": "quantità di carico non valida",
+      "errorUnitCost": "costo unitario non valido",
+      "errorExpiry": "scadenza non valida: {{value}}",
+      "submit": "Importa {{count}} prodotti",
+      "importing": "Importazione in corso… ({{done}}/{{total}})",
+      "resultSummary": "{{success}} prodotti importati su {{total}}.",
+      "resultWithErrors": "{{success}} importati, {{failed}} falliti.",
+      "close": "Chiudi"
+    },
     "title": "Magazzino",
     "comingSoon": "In arrivo.",
     "tabs": {

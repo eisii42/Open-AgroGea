@@ -10,9 +10,10 @@ import {
 } from "@agrogea/core";
 import { FieldSheet } from "@agrogea/ui";
 import { Button, cn, Input, Label, Select } from "@geolibre/ui";
-import { PackagePlus, Trash2 } from "lucide-react";
+import { FileUp, PackagePlus, Trash2 } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ProductImportDialog } from "./ProductImportDialog";
 import { WarehouseTabBar } from "./WarehouseTabBar";
 import { MachineryTab } from "../machinery/MachineryTab";
 
@@ -105,8 +106,9 @@ function ProductsTab({ onClose }: { onClose: () => void }) {
   const receiveLot = useAgroStore((s) => s.receiveLot);
   const deleteLot = useAgroStore((s) => s.deleteLot);
 
-  // Vista: elenco | form nuovo product | dettaglio product (lots + carico).
+  // Vista: elenco | form nuovo product | import CSV | dettaglio product.
   const [creatingNew, setCreatingNew] = useState(false);
+  const [importingCsv, setImportingCsv] = useState(false);
   const [openProductId, setOpenProductId] = useState<string | null>(null);
   const [warningDays, setWarningDays] = useState(loadExpiryDays);
   const [errore, setErrore] = useState<string | null>(null);
@@ -158,34 +160,49 @@ function ProductsTab({ onClose }: { onClose: () => void }) {
       // Nuovo product → scheda a tutto schermo: il form ha molti campi
       // (categoria, anagrafica, carico iniziale) e nel drawer stretto risultava
       // confuso. L'elenco e il dettaglio restano nel drawer laterale.
-      wide={creatingNew}
+      // L'anteprima dell'import è una tabella: come il form nuovo prodotto,
+      // nel drawer stretto non si legge.
+      wide={creatingNew || importingCsv}
       title={
         creatingNew
           ? t("warehouse.newProduct")
-          : openProduct
-            ? openProduct.name
-            : t("warehouse.title")
+          : importingCsv
+            ? t("warehouse.import.title")
+            : openProduct
+              ? openProduct.name
+              : t("warehouse.title")
       }
       onClose={onClose}
       footer={
-        creatingNew || openProduct ? undefined : (
-          <Button
-            className="min-h-[var(--touch-min)] w-full"
-            onClick={() => setCreatingNew(true)}
-          >
-            ＋ {t("warehouse.newProduct")}
-          </Button>
+        creatingNew || importingCsv || openProduct ? undefined : (
+          <div className="flex gap-2">
+            <Button
+              className="min-h-[var(--touch-min)] flex-1"
+              onClick={() => setCreatingNew(true)}
+            >
+              ＋ {t("warehouse.newProduct")}
+            </Button>
+            <Button
+              variant="outline"
+              className="min-h-[var(--touch-min)] gap-1.5"
+              onClick={() => setImportingCsv(true)}
+            >
+              <FileUp size={16} /> {t("warehouse.importCsv")}
+            </Button>
+          </div>
         )
       }
     >
-      {!creatingNew && !openProduct && <WarehouseTabBar />}
+      {!creatingNew && !importingCsv && !openProduct && <WarehouseTabBar />}
       {errore && (
         <p className="mb-3 rounded-[var(--r-2)] border border-[var(--danger)] bg-[var(--danger-l)] px-3 py-2 text-xs text-[var(--danger)]">
           {errore}
         </p>
       )}
 
-      {creatingNew ? (
+      {importingCsv ? (
+        <ProductImportDialog onClose={() => setImportingCsv(false)} />
+      ) : creatingNew ? (
         <ProductForm
           onSubmit={async (input, lottoIniziale) => {
             // Product + carico del lot iniziale (stock di partenza): il

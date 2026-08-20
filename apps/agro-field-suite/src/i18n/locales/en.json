@@ -975,6 +975,33 @@
     "machineCreateSave": "Create and select"
   },
   "warehouse": {
+    "importCsv": "Import CSV",
+    "import": {
+      "title": "Import products from CSV",
+      "instructions": "Header row required, delimiter ; or , (auto-detected). Required columns: category, name, unit. Optional: registration_number, active_substance, npk_n, npk_p, npk_k, uma_code, supplier, notes, min_stock, safety_period_days, reentry_interval_h, species, scientific_name, variety_name, crop_category, lot_number, expires_at, initial_quantity, unit_cost.",
+      "categoryRules": "category accepts phytosanitary, fertilizer, seed, fuel, other (Italian aliases work too). The form's rules still apply: plant protection products need a registration number, fertilizers N-P-K titres between 0 and 100, fuel a UMA code.",
+      "lotNotice": "The opening stock is optional: with initial_quantity and unit_cost a lot is created and the weighted average cost moves; without them only the product record is imported, at zero stock. Expiry dates go in as YYYY-MM-DD.",
+      "template": "Download template",
+      "parseError": "Could not read the file: {{message}}",
+      "missingHeader": "Incomplete header: missing columns {{columns}}.",
+      "previewTitle": "Preview ({{valid}} valid out of {{total}})",
+      "errorCategoryRequired": "category required",
+      "errorCategoryUnknown": "unknown category: {{value}}",
+      "errorNameRequired": "name required",
+      "errorUnitRequired": "unit required",
+      "errorRegistrationRequired": "registration number required for plant protection products",
+      "errorUmaRequired": "UMA code required for fuel",
+      "errorNpk": "N-P-K titres required (0–100) for fertilizers",
+      "errorDuplicate": "product already in the warehouse",
+      "errorQuantity": "invalid opening quantity",
+      "errorUnitCost": "invalid unit cost",
+      "errorExpiry": "invalid expiry date: {{value}}",
+      "submit": "Import {{count}} products",
+      "importing": "Importing… ({{done}}/{{total}})",
+      "resultSummary": "{{success}} products imported out of {{total}}.",
+      "resultWithErrors": "{{success}} imported, {{failed}} failed.",
+      "close": "Close"
+    },
     "title": "Warehouse",
     "comingSoon": "Coming soon.",
     "tabs": {
