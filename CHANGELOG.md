@@ -8,7 +8,54 @@ Gli installer nativi di ogni versione rilasciata sono su [GitHub Releases](https
 
 ## [Non rilasciato]
 
-### Aggiunto — 0.4.0 «Geofencing e Modalità Campo low-touch»
+Nulla al momento: `dev` coincide con la 0.4.1 rilasciata.
+
+## [0.4.1] — 2026-08-20
+
+Quattro aree: il calendario delle operazioni diventa una vista di primo livello e le sessioni a bordo campo si chiudono su un avanzamento dichiarato; il Command Center abbandona la griglia di KPI fissi in favore di indici composti dall'utente; i controlli mappa vengono localizzati, restilizzati e riorganizzati; l'anagrafica prodotti si importa da CSV.
+
+Lo storage local-first non è toccato: **nessuna migrazione di schema PGlite**, nessuna tabella nuova, nessun cambiamento alla coda di sync. L'unica nuova persistenza sono le preferenze di visualizzazione per azienda in `localStorage`.
+
+### Aggiunto — Calendario aziendale
+- **Terza vista di primo livello** (`modules/calendar/`), accanto a Mappa e Command Center invece che riquadro dentro il cruscotto analitico: una sola griglia mensile per tutto ciò che ha una data. Le tre viste restano montate (keep-alive in `App.tsx`), quindi passare al calendario non ricarica il workspace; le **frecce ←/→** le scorrono nell'ordine Mappa → Calendario → Command Center.
+- **Cinque sorgenti, una griglia**: task `PLANNED` (l'unica sorgente futura, pianificabile a mano dal calendario), operazioni del Quaderno, raccolte, giorni a **rischio alto dei DSS** e giorni di **stress idrico** del bilancio FAO 56/66. Le ultime due compaiono non appena il rispettivo calcolo viene eseguito altrove: il calendario le legge dalla cache locale, non le ricalcola. Costruzione degli eventi **pura e testata** (`calendar-events.ts`: nessun hook, nessun DAL, nessun `t()` — le etichette arrivano dal chiamante).
+- **Meteo giorno per giorno** nella stessa griglia, storico e previsione (`useCalendarWeather` + `WeatherSyncService` su Open-Meteo, centroide dell'azienda). È un dato di **contorno**: non tocca `weather_readings` — la serie che alimenta i DSS resta di competenza del servizio meteo — e offline il calendario funziona identico, senza celle mancanti.
+- **Dettaglio del giorno**: cosa è successo o succederà in quella data, il meteo, e due porte d'ingresso — *Pianifica task* e *Registra operazione* — sempre **sul giorno aperto**, mai su "oggi" per errore. Filtro per appezzamento, legenda che accende/spegne le categorie, scorciatoia a *Oggi*, ricarica di DSS e bilancio idrico.
+- **Il calendario consulta il registro, non lo riscrive**: operazioni e raccolte si aprono nella loro scheda di sola lettura, e correzioni/cancellazioni restano dove vive il record. Un registro di rilevanza legale non deve avere due porte di modifica con regole diverse. Restano modificabili le sole **task**, che sono pianificazione e non registrazione.
+- Test dedicati: `tests/agro-calendar-events.test.ts`.
+
+### Aggiunto — Schede KPI personalizzate (Command Center)
+- La griglia a **indici fissi** (anomalia di vigore, trattamenti, GDD, rischio malattie, stress idrico) è stata **rimossa**: l'utente compone l'indice che gli serve scegliendo **entità → funzione(misura) → periodo**, con filtro, unità, decimali, sparkline di andamento e soglie di colore facoltativi (`kpi-cards.ts`, modulo puro; rendering in `CustomKpiCards.tsx`).
+- Il catalogo dati è **lo stesso** dell'analisi libera dei grafici (`dashboard-analytics`): appezzamenti, operazioni, raccolte, bilancio idrico, meteo, DSS — nessuna riga di logica duplicata. La differenza è che una scheda non raggruppa per dimensione: aggrega tutto in **un** numero e usa la dimensione temporale solo per sparkline e variazione.
+- **Soglie con direzione esplicita** (`above`/`below`): un indice che peggiora salendo (giorni di stress) e uno che peggiora scendendo (NDVI medio) non possono condividere la stessa regola di colore.
+- Persistenza **per azienda e per dispositivo** in `localStorage`, come la config dei grafici: sono preferenze di visualizzazione, non dati di dominio, e non passano dal DAL né dal sync. Alla prima apertura tre schede generiche di partenza, modificabili o eliminabili.
+- Test dedicati: `tests/agro-kpi-cards.test.ts`.
+
+### Aggiunto — Import CSV dell'anagrafica prodotti
+- **Import massivo dei prodotti di magazzino** (`ProductImportDialog` + `product-import.ts`) con anteprima, validazione riga per riga, import parziale e **modello CSV** scaricabile. Le regole sono le **stesse del form**, riusate dal DAL: agrofarmaci → n. di registrazione, concimi → titoli N-P-K fra 0 e 100, carburante → codice UMA; `category` accetta sia i codici inglesi sia i nomi italiani. Un CSV non può essere una porta di servizio per far entrare un'anagrafica non conforme.
+- **Carico iniziale facoltativo**: con `initial_quantity` e `unit_cost` nasce anche il lotto e il CUMP si muove; senza, entra la sola anagrafica a giacenza zero.
+- **Deduplica su categoria + nome** (normalizzato): un prodotto già in magazzino viene scartato, e il controllo vale anche fra righe dello stesso file.
+- **Parser CSV condiviso** estratto in `lib/csv.ts` (RFC4180-ish, zero dipendenze npm, campi fra virgolette, CRLF, BOM di Excel, separatore `;`/`,`/tab riconosciuto da solo): ora lo usano sia l'import mezzi sia quello prodotti, invece di due implementazioni parallele.
+- Test dedicati: `tests/agro-product-import.test.ts`.
+
+### Modificato — Superficie lavorata: dichiarata, non stimata dal GPS
+- Alla chiusura di una sessione a bordo campo compare **una sola domanda** («Quanto hai lavorato?», scatti rapidi 25/50/75/100%, `SessionCompletionSheet`): la superficie che finisce nel Quaderno — e quindi le quantità di prodotto e lo scarico di magazzino — è la **quota dichiarata** dell'appezzamento, non più `lunghezza_tracciato × larghezza_di_lavoro`. Quella stima prometteva una precisione che il GPS non ha: dipendeva dalla larghezza registrata sull'attrezzo, si gonfiava sulle passate sovrapposte e crollava a zero col fix scadente. Il tracciato continua a essere registrato, ma non dimensiona più il registro.
+- **Sotto il 100% la task non si chiude**: torna `PLANNED` con l'avanzamento in `planned_tasks.metadata.completion_percent` (colonna JSONB già esistente, nessuna migrazione), così il geofencing la ripropone il giorno dopo e si riprende da dove si era rimasti. La quota lavorata oggi è sempre `dichiarato − già registrato`: una ripresa non conta due volte il prodotto di ieri.
+- **La Modalità Campo mostra ciò che è vero**: velocità, tempo attivo, superficie totale del campo e **cosa si sta facendo** (ricetta, prodotti e dosi dalla task), più l'avanzamento già registrato — al posto degli ettari stimati che salivano da soli.
+- **Semina → coltura anche a bordo campo** (`field/session-crop.ts`, regola pura): una semina chiusa in campo assegna ora la coltura di campagna all'appezzamento, come già faceva la stessa semina registrata a mano. Solo se il campo non ha già una campagna aperta per l'annata — una coltura in corso non si sovrascrive mai. Prima il campo restava senza coltura: niente DSS, niente bilancio idrico, nessuna riga nella campagna agraria.
+- Test dedicati: `tests/agro-session-completion.test.ts`.
+
+### Modificato — Controlli della mappa: localizzati, restilizzati, riorganizzati
+- **Controlli nativi tradotti** (`native-map-i18n.ts` + `useNativeMapI18n`): righello, gestore livelli, zoom, bussola, schermo intero, GPS e rilievo arrivano da pacchetti di terze parti che scrivono le etichette in inglese direttamente nel DOM e non espongono alcuna opzione di i18n; i pacchetti `@geolibre/*` sono vendorizzati e non si modificano. Si traducono quindi **a valle**, per stringa esatta: nomi di livello, valori numerici e qualsiasi testo fuori dizionario restano intatti, così nessuna euristica può storpiare un dato dell'utente.
+- **«Cerca luogo»** (`MapSearchControl`) spostata nella colonna dei controlli MapLibre, dove stava finendo sotto la barra dei moduli. Il pannello di ricerca è quello nativo di GeoLibre, pilotato dalle API standalone come il righello.
+- **Bussola con la «N»** quando la vista è a nord (`useCompassNorth`): lo stato si legge dal `bearing` della mappa, non dal `transform` che MapLibre scrive sull'icona.
+- **Zoom del satellite limitato a 18**: oltre quel livello Esri World Imagery risponde con tile vuote su buona parte del territorio e la vista satellitare "si buca". Il limite vale finché il satellite è attivo.
+- **Ordine dei layer di sfondo** reso deterministico: i basemap si posizionano sempre sotto il primo layer applicativo (store GeoLibre, editor Geoman, selezione, righello), col catasto sopra il satellite.
+- **«Modifica / elimina geometrie» diventa «Lista appezzamenti»**: la voce descrive ora ciò che il pannello fa davvero — elencare gli elementi tracciati, inquadrarli e aprirne la scheda (suolo, metadati, geometria) — invece di annunciare solo le due azioni distruttive.
+
+## [0.4.0] — 2026-07-30
+
+### Aggiunto — Geofencing e Modalità Campo low-touch
 - **Pianificazione task e ricette** (schema locale v19, migrazione additiva e non distruttiva): tabelle `recipes` (miscele riutilizzabili, prodotti con dose per ettaro in JSONB), `planned_tasks` (schede di lavorazione programmate per appezzamento, stato `PLANNED`/`IN_PROGRESS`/`COMPLETED`/`CANCELLED`) e `field_operation_sessions` (sessione eseguita: tracciato GPS `LineString` in JSONB, superficie lavorata, note vocali, righe di Quaderno collegate) — tutte sincronizzate via `sync_outbox`. La tabella `field_session_audio` è **local-only**: il contenuto delle note vocali non lascia il dispositivo. Rollback logico documentato in testa a `packages/agro-core/src/db/schema.ts`.
 - **Riquadro «Pianificazione Task» a schermo intero** (sidebar → Pianificazione Task): task programmate ordinate per data, storico, e libreria ricette con prodotti prelevati dall'anagrafica di magazzino (n. registrazione e sostanza attiva derivati automaticamente).
 - **Geofencing GPS automatico**: nessun pulsante e nessuna impostazione da attivare. Il rilevamento dell'ingresso in un appezzamento richiede una **permanenza continuativa di 15 s** (debounce) e l'uscita un'assenza sostenuta di 30 s (**isteresi** contro il jitter del segnale); i campioni con accuratezza peggiore della soglia sono scartati. Il motore è puro e testato in isolamento (`plugins/agro-tools/src/geofencing.ts`).
@@ -53,7 +100,18 @@ Gli installer nativi di ogni versione rilasciata sono su [GitHub Releases](https
 - Test dedicati (`tests/agro-row-mapping.test.ts`), tutti su righe realmente rilette dal database — una riga costruita in TypeScript avrebbe già i tipi giusti e non proverebbe nulla. L'intera suite è verificata anche sotto `TZ` diversi (UTC, Europe/Rome, America/New_York, Asia/Tokyo, Pacific/Kiritimati).
 - Corretto inoltre un helper di test (`relativeDay` in `tests/agro-warehouse.test.ts`) che costruiva le date in UTC mentre la funzione sotto test confronta in ora locale: il test falliva se eseguito fra mezzanotte e l'offset del fuso.
 
-### Aggiunto — 0.3.0 «Parco macchine»
+### Aggiunto — Cache locale degli indici satellitari e time slider
+- **Cache delle scene elaborate** (schema locale v21, additiva): due tabelle **local-only** `vegetation_index_scenes` (una riga per appezzamento × scena STAC, medie per indice, copertura nuvolosa, pixel validi) e `vegetation_index_rasters` (la griglia di pixel). Sono interamente ricomputabili dalle scene STAC, quindi **non generano voci di outbox** come `dss_results` e `soil_water_indices`. Riaprendo l'app una scena già elaborata si ridisegna **senza rete**. Rollback logico in testa a `packages/agro-core/src/db/schema.ts`.
+- **Si persiste il raster, non le celle**: valori **Int16 little-endian scalati** (`value_scale`, default 10 000 → 4 decimali su −1..1) con sentinella per i pixel fuori poligono, base64 in `text` come `field_session_audio`. Sono ~2 byte/pixel invece di ~300: **~10 KB per scena su 50 ha** invece di ~1,5 MB. `rasterToIndexCells` ricostruisce le celle quando servono.
+- **Deduplica per `(plot_id, scene_id)`**: i COG di una scena già elaborata non si riscaricano. Una scena in cache è riutilizzabile solo se copre **tutti** gli indici richiesti; altrimenti si rielabora e l'upsert fonde le medie invece di duplicare. **Ritenzione 24 mesi** (due annate, per i confronti anno-su-anno), potatura a fine run coi raster in cascata.
+- **Una scena per giorno** (`bestScenePerDay` in `@agrogea/tools`): nella stessa giornata il satellite deposita spesso più item (tile adiacenti, riprocessamenti); si tiene il meno nuvoloso e gli altri restano *doppioni*, mostrabili a richiesta. Elaborarli tutti raddoppierebbe i punti della serie senza aggiungere informazione.
+- **Time slider degli indici** (`IndexTimeSlider`): navigazione temporale delle scene di un appezzamento, ancorata in basso sulla mappa dopo un calcolo e utilizzabile anche a pannello Suolo chiuso, con riproduzione automatica della serie, badge *in cache* / *da calcolare*, elaborazione al volo della scena su cui ci si sposta e toggle **Mostra / Nascondi** dal pannello Suolo.
+- **Job di aggiornamento all'avvio** (`useIndexRefreshJob`): controlla le nuove scene al massimo **una volta ogni 12 ore per azienda** (Sentinel-2 ripassa ogni ~5 giorni) e ne calcola il **solo NDVI**, dal worker condiviso a coda — un'analisi avviata dall'utente attende al massimo una scena. Il timestamp vive in `agro_meta` del DB del tenant, non in localStorage, così segue il backup del dataDir. Deliberatamente **non** aggiorna `plots_registry.last_ndvi_mean`: è una colonna sincronizzata, e un job automatico non deve sporcare la coda di sync a ogni avvio.
+- Test dedicati: `tests/agro-index-cache.test.ts`.
+
+## [0.3.0] — 2026-07-23
+
+### Aggiunto — Parco macchine
 - **Anagrafica mezzi e attrezzi** (schema locale v18, migrazione additiva e non distruttiva): tabelle `machines` (unità motrici tracciate a **ore di lavoro**, stato operativo/in manutenzione/fermo-guasto/dismesso, campi predisposti per l'ammortamento futuro), `equipment` (attrezzi tracciati per **usura** e larghezza di lavoro), `activity_machines` (giunzione attività ↔ mezzo ↔ attrezzo con ore), `maintenance_schedules`/`maintenance_logs`, `machine_documents`, `counter_adjustments` e `fuel_refills`. Tutte sincronizzate via `sync_outbox`; rollback logico documentato in testa a `packages/agro-core/src/db/schema.ts`. I dati preesistenti e il testo libero `machinery_equipment` restano intatti.
 - **Sotto-scheda «Mezzi»** dentro il modulo Magazzino: anagrafica mezzi/attrezzi con contatori, stato a semaforo, import **CSV** (anteprima + validazione, import parziale, 100% offline) e cruscotto **«Richiede attenzione»** che aggrega manutenzioni in scadenza/scadute, documenti in scadenza/scaduti, consumi anomali e mezzi fermi.
 - **Contatori ore automatici** (§5.2): registrando un'operazione di campo si seleziona un **mezzo già a database** (motrice + attrezzo opz.) con le ore; al salvataggio i contatori si **incrementano** nella stessa transazione dell'attività; modifica/cancellazione li **stornano** senza scostamenti. Le rettifiche manuali (lettura iniziale, sostituzione motore) passano da `counter_adjustments` con audit trail; l'incremento automatico riparte dal valore rettificato.
@@ -64,12 +122,32 @@ Gli installer nativi di ogni versione rilasciata sono su [GitHub Releases](https
 - **Impostazioni profilo**: le nuove sezioni «Parco macchine» (`panelMezzi`) e il pulsante «Refill carburante» (`panelRefill`) sono attivabili/disattivabili dalle impostazioni del profilo.
 - Test dedicati (`tests/agro-machinery.test.ts`): migrazione additiva, contatori con storno su modifica/cancellazione e interazione con le rettifiche, refill atomico (blocco per giacenza cisterna insufficiente, coerenza cisterna→mezzo), manutenzione a soglia (tempo/ore) e riprogrammazione, scarico ricambio atomico, documenti a soglia, consumo l/h + anomalie e flusso end-to-end della Definition of Done.
 
+### Aggiunto — Indice NDMI e rendering degli indici a celle
+- **NDMI** (`(B08 − B11) / (B08 + B11)`, NIR−SWIR, formulazione Gao): misura l'acqua **dentro la chioma** ed è la spia dello stress idrico della coltura, che l'NDWI di McFeeters (nato per l'acqua libera) può non mostrare affatto. Rampa colore dedicata, distinta da quella dell'NDWI.
+- **Celle vettoriali al posto dell'overlay raster sfumato** (`index-grid.ts`): un poligono per pixel Sentinel-2, agganciato alla griglia UTM della scena — celle adiacenti condividono gli stessi angoli in coordinate float piene, quindi niente fessure visibili. Ogni cella è interrogabile e porta il valore di **tutti** gli indici calcolati in quel pixel, non solo del primario.
+- **Scala colore relativa** (`relativeDomain`): la rampa si tara sul dominio effettivo dei pixel calcolati nella stessa run (2°–98° percentile), non sull'intervallo teorico −1..1. È ciò che fa emergere la variabilità *interna* all'appezzamento — l'informazione che serve alla zonazione VRA — invece di una macchia uniformemente verde. Domini degeneri gestiti (min/max reali, poi ±0,01). La colorbar collassa i duplicati dello stesso indice e adatta i decimali dei tick all'ampiezza del dominio.
+
+### Aggiunto — Versione dal tag git nella build di rilascio
+- `scripts/set-version.mjs` inietta la versione ricavata dal tag (`vX.Y.Z`, o da `GITHUB_REF_NAME` in CI) in `tauri.conf.json`, nei due `package.json` e nella sezione `[package]` di `Cargo.toml`, **prima** che `tauri-action` builda l'installer. Senza, quel campo restava fermo a `0.1.0` mentre si pushavano tag nuovi, e l'updater — che confronta proprio quella versione — non avrebbe mai proposto un aggiornamento. Non tocca il `versionCode` Android né le `version` delle dipendenze Cargo. Documentato in [`docs/technical/desktop-auto-update.md`](docs/technical/desktop-auto-update.md) §6.
+
+## [0.2.1] — 2026-07-12
+
+### Modificato — Anglicizzazione degli identificatori interni
+- **Tutto il codice sorgente passa a un inglese tecnico standard** — nomi di file e cartelle, tipi, componenti, funzioni, hook, costanti esportate, campi e azioni dello store Zustand, metodi del DAL, identificatori locali — in una serie di commit **behavior-preserving**, separati dalle modifiche funzionali (`TrattamentoFormValues→TreatmentFormValues`, `AVVERSITA_PAN→PAN_PESTS`, `BilancioIdricoPanel→WaterBalancePanel`, …). Restano deliberatamente invariati: schema PGlite persistito, chiavi JSONB, valori-stringa discriminanti, sigle normative (PAN, SIAN, SIEX, UMA, BBCH, FAO-56) e i nomi dei campi degli export ufficiali.
+- **I pannelli di dominio escono da `components/`** e vanno nei rispettivi `modules/<feature>/`: `components/` ospita ora solo UI generica e infrastruttura mappa/campo.
+- **Gate di qualità in CI** (`.github/workflows/quality.yml`) e regola `@typescript-eslint/naming-convention` come warning; documentazione per i contributori: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/glossary.md`](docs/glossary.md), [`docs/naming-conventions.md`](docs/naming-conventions.md), [`docs/contributing.md`](docs/contributing.md).
+
+### Corretto
+- **Endpoint meteo aggiornati** e correzioni al form e alla scheda di dettaglio delle operazioni (griglia adattiva, rendering dinamico dei campi per tipo di operazione).
+
+## [0.2.0] — 2026-07-07
+
 ### Corretto — Export CSV del Quaderno di Campagna (QDCA)
 - **Tipo operazione localizzato**: il CSV riporta l'etichetta leggibile nella lingua attiva (es. «Raccolta», «Semina/Trapianto») invece del codice interno inglese (`harvest`, `sowing`); default italiano anche fuori dalla UI.
 - **Codici SIAN sempre riportati**: i riferimenti ministeriali (codice coltura, isola, appezzamento) si risolvono via `plot_campaign_id` con **fallback per appezzamento + anno**, così i codici compilati nella scheda coltura DOPO la registrazione — o su operazioni non agganciate (es. semina con auto-assegnazione) — compaiono comunque. Il dialog carica le campagne di **tutte le annate**, non solo quella attiva.
 - **Le raccolte rientrano nel QDCA**: gli eventi di raccolta (`harvest_logs`) confluiscono nell'export come operazioni `harvest` (cultivar, quantità raccolta in kg, destinazione), con i codici SIAN della campagna del campo; due nuove colonne dedicate «Quantità raccolta (kg)» e «Destinazione raccolta».
 
-### Aggiunto — 0.2.0 «Magazzino»
+### Aggiunto — Magazzino
 - **Magazzino con anagrafiche reali** (schema locale v16, migrazione additiva e non distruttiva): tabelle `products` (categorie rigide: agrofarmaci con n. registrazione PAN, concimi con titoli N-P-K, sementi, carburante con assegnazione UMA), `product_lots` (lotto, scadenza, giacenza, costo di carico) e `activity_products` (giunzione attività ↔ lotto con costo imputato). Le nuove entità sono sincronizzate via `sync_outbox` come le altre tabelle di dominio; il rollback logico è documentato in testa a `packages/agro-core/src/db/schema.ts`. I campi a testo libero di `treatment_logs` restano intatti come fallback.
 - **Nuovo pannello Magazzino** (sidebar → Magazzino): anagrafica prodotti con campi obbligatori per categoria, carico lotti con scadenza e costo, giacenze e **alert di scadenza** con soglia configurabile (default 30 giorni).
 - **Scarico reale dalle attività di campo**: nel form del Quaderno la sezione «Scarico da magazzino» (prodotto → lotto → quantità) scarica la giacenza nella **stessa transazione** della registrazione; se la giacenza andrebbe sotto zero l'intera operazione fallisce (blocco atomico) con messaggio chiaro. I lotti **scaduti** sono bloccati (non selezionabili); l'eliminazione di un'operazione con scarichi **reintegra** le giacenze.
@@ -77,7 +155,7 @@ Gli installer nativi di ogni versione rilasciata sono su [GitHub Releases](https
 - Test dedicati (`tests/agro-warehouse.test.ts`): CUMP, scarico atomico (incluso blocco per giacenza negativa e lotti scaduti), migrazione additiva con dati preesistenti intatti e flusso end-to-end della Definition of Done.
 - **Anagrafica prodotti estesa**: creazione prodotto con **carico iniziale contestuale** (lotto, scadenza, quantità obbligatoria, costo); sostanza attiva (agrofarmaci), fornitore, **scorta minima** con badge di riordino; categoria residuale «Altro / materiali»; **Command Center a due pagine** («Colture e appezzamenti» + «Azienda» con andamento generale, stato magazzino e costo prodotti per campo); modulo Magazzino disattivabile dalle impostazioni profilo (`panelMagazzino`).
 
-### Aggiunto — 0.2.0 «Automazioni del ciclo colturale» (schema locale v17, additivo)
+### Aggiunto — Automazioni del ciclo colturale (schema locale v17, additivo)
 - **Dose ⇄ scarico riconciliati**: nel form operazione la quantità scaricata segue automaticamente il totale calcolato (dose × superficie, o totale manuale kg); l'edit manuale mostra la **dose effettiva** e segnala lo scostamento; i prodotti con unità non riconciliabile non sono selezionabili. Lotto preselezionato in **FEFO** e **split automatico multi-lotto** quando un lotto non basta.
 - **Semina → coltura automatica**: l'anagrafica della semente porta l'**identità colturale** (specie, nome scientifico, varietà, tipo coltura in `products.metadata`); seminando su un campo libero l'operazione crea automaticamente scheda coltura (`crops`) e campagna agraria (`plots_campaign`), con densità di semina derivata dalla dose.
 - **Il raccolto chiude il ciclo**: colonna `plots_campaign.closed_at` + indice unico parziale sulle campagne aperte (possibile il **secondo raccolto** nello stesso anno). Alla raccolta di un'annuale la chiusura è proposta pre-attiva; il campo torna libero (mappa neutra, DSS spento). Rollback logico documentato in `packages/agro-core/src/db/schema.ts`.
@@ -85,7 +163,7 @@ Gli installer nativi di ogni versione rilasciata sono su [GitHub Releases](https
 - **Micro-automazioni**: carenza/rientro di default dall'anagrafica agrofarmaco; operatore/CF/patentino ricordati per dispositivo; «**Ripeti operazione**» dal registro (form precompilato, data odierna); cultivar della raccolta precompilata dalla coltura di campagna; badge ⚠ lotti in scadenza sul modulo Magazzino in sidebar.
 - Test (`tests/agro-crop-cycle.test.ts`): chiusura campagna e secondo raccolto, indice unico parziale, metadata prodotti, compliance dichiarativa country-aware, campo libero dopo chiusura.
 
-### Aggiunto
+### Aggiunto — Documentazione bilingue
 - Documentazione tecnica bilingue dei moduli agronomici (`docs/technical/moduli-agronomici.md`, `agronomic-modules.en.md`): formule e assunzioni di indici satellitari, pedotransfer del suolo, bilancio idrico FAO 56/66, DSS fitopatologico, zonazione VRA.
 - README e manuale utente in inglese (`README.en.md`, `docs/user-guide/manual.en.md`), con selettore lingua.
 
@@ -104,5 +182,10 @@ Primo rilascio pubblico dell'edizione Community (standalone, local-first).
 - **Storage local-first**: istanza PGlite (PostgreSQL WASM) isolata per azienda, coda `sync_outbox`, sync opzionale verso PostgreSQL on-premise via comando Rust nativo (Tauri v2).
 - **App desktop** Windows / macOS / Linux con aggiornamenti automatici via Tauri Updater + GitHub Releases, e demo web standalone in-browser.
 
-[Non rilasciato]: https://github.com/eisii42/Open-AgroGea/compare/v0.1.0...HEAD
+[Non rilasciato]: https://github.com/eisii42/Open-AgroGea/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/eisii42/Open-AgroGea/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/eisii42/Open-AgroGea/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/eisii42/Open-AgroGea/compare/v0.2.1...v0.3.0
+[0.2.1]: https://github.com/eisii42/Open-AgroGea/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/eisii42/Open-AgroGea/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/eisii42/Open-AgroGea/releases/tag/v0.1.0

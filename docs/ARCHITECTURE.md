@@ -1,5 +1,7 @@
 # Architecture
 
+> **Document version 0.4.1** · updated 21 August 2026 · aligned with **AgroGea Community 0.4.1** (local PGlite schema **v21**).
+
 AgroGea Community is a **local-first** agronomic GIS suite: an npm workspaces
 monorepo (Node 22+) with a single Tauri v2 app and a set of internal packages.
 This document maps the packages and features, the data flow, and where to add
@@ -34,8 +36,12 @@ already — leave it as upstream.
 app entry     main.tsx, App.tsx, standalone.ts, edition.ts, index.css
 modules/      ONE folder per functional domain (the "features" layer):
                 water-balance, warehouse, field-logbook, registry, settings,
-                weather, soil, compliance, crops, dss, vra, analytics, sian,
+                weather, soil, compliance, crops, dss, vra, sian,
                 print, colorbar, command-palette, add-data, team,
+                analytics (Command Center: composable charts + user-composed
+                  KPI cards, persisted per company in localStorage),
+                calendar (third top-level view: one month grid over tasks,
+                  operations, harvests, DSS risk, water stress + daily weather),
                 tasks (task/recipe planning), field-mode (geofencing +
                   low-touch in-field screens), plot-sheet (per-parcel dossier:
                   planned tasks + recorded operations)
@@ -74,6 +80,13 @@ UI (modules/*, components/*)
   ([`control-plane.ts`](../packages/agro-core/src/control-plane.ts)).
 - **DuckDB Spatial (WASM)** reads from PGlite for overlays, spatial joins and
   zoning, entirely on-device.
+- Some tables are **local-only and recomputable** — `dss_results`,
+  `soil_water_indices`, `field_session_audio`, and (v21) the vegetation-index
+  cache `vegetation_index_scenes` / `vegetation_index_rasters`. They never enter
+  `sync_outbox`: derived output that the device can rebuild does not belong in a
+  mutation queue. The index cache stores the **raster** (scaled Int16, base64)
+  rather than the GeoJSON cells — ~2 bytes/pixel instead of ~300 — and
+  `rasterToIndexCells` rebuilds the geometry on demand.
 
 The PGlite schema ([`db/schema.ts`](../packages/agro-core/src/db/schema.ts)) is
 **English** (tables/columns) and versioned (`AGRO_LOCAL_SCHEMA_VERSION`).
@@ -103,8 +116,12 @@ useGeofenceWatch (the ONLY navigator.geolocation watch in the app)
     → store geofenceDetection → FieldDetectionModal (matches planned_tasks)
       → startFieldSession      (atomic: session + task → IN_PROGRESS)
         → InFieldDashboard + useFieldSessionTracking (batched path writes)
+        → SessionCompletionSheet (the operator DECLARES the % of the parcel
+                                  completed: that is the area quantities and
+                                  stock issues are computed on)
           → completeFieldSession (atomic: treatment_logs + lot issues +
-                                  session/task → COMPLETED, idempotent)
+                                  session/task → COMPLETED or back to PLANNED
+                                  with metadata.completion_percent, idempotent)
             → PostOperationSummary (notification of what was written)
 ```
 
@@ -124,7 +141,16 @@ Non-obvious constraints, each with a reason:
   a half-write or a double tap would corrupt a legally-relevant register with
   nobody watching. Completeness is therefore enforced *upstream*, at planning
   time ([`field/task-completeness.ts`](../packages/agro-core/src/field/task-completeness.ts)).
-- Quantities come from the **GPS-measured** area, never `plots_registry.area_ha`.
+- Quantities come from the **declared** worked area — `(declared % − already
+  recorded %) × parcel area` — not from a GPS estimate. Up to 0.4.0 it was
+  `track_length × working_width`; that promised a precision the GPS does not
+  have (it depends on the implement's recorded width, inflates on overlapping
+  passes, collapses to zero on a poor fix). The track is still recorded, it just
+  no longer sizes the register. Falling back to `plots_registry.area_ha` is
+  allowed but always **flagged** in the summary.
+- **Partial progress does not close the task**: below 100% it returns to
+  `PLANNED` carrying `metadata.completion_percent`, so the next entry resumes
+  where it stopped and the same hectares are never dosed twice.
 - `InFieldDashboard` is the one component that deliberately **ignores the app
   theme** (fixed black/lime palette): it is a sunlight-readable driving
   instrument, not a themed panel.
