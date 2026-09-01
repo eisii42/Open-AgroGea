@@ -1660,11 +1660,11 @@
     },
     "map": {
       "title": "Vista del mapa",
-      "subtitle": "Intervalo de zoom dentro del cual puede moverse el mapa de campo.",
+      "subtitle": "Intervalo de zoom dentro del cual puede moverse el mapa de campo. Solo se permite de 13 a 17: puedes estrecharlo, no ampliarlo.",
       "minZoom": "Zoom mínimo",
-      "minZoomHint": "Cuánto puede alejarse la vista (13 = explotación o comarca).",
+      "minZoomHint": "Cuánto puede alejarse la vista. Mínimo permitido 13 (explotación o comarca).",
       "maxZoom": "Zoom máximo",
-      "maxZoomHint": "Cuánto puede acercarse la vista (17 = hilera o planta individual)."
+      "maxZoomHint": "Cuánto puede acercarse la vista. Máximo permitido 17 (hilera o planta individual)."
     }
   },
   "operationDetailCard": {

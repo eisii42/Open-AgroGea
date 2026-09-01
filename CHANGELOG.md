@@ -8,7 +8,35 @@ Gli installer nativi di ogni versione rilasciata sono su [GitHub Releases](https
 
 ## [Non rilasciato]
 
-Nulla al momento: `dev` coincide con la 0.4.1 rilasciata.
+Tre aree: il magazzino diventa un insieme di **luoghi** con una posizione sulla mappa, la vista cartografica viene vincolata alla scala in cui il lavoro di campo si svolge davvero, e gli appezzamenti segnalano da sé che cosa manca.
+
+Storage: **migrazione additiva PGlite v23** (una tabella nuova e una colonna nullable). Nessuna colonna esistente cambia, nessun dato va migrato a mano; il rollback logico è documentato in testa a `packages/agro-core/src/db/schema.ts`.
+
+### Aggiunto — Magazzini multipli e georeferenziati
+- **Tabella `warehouses`** (sincronizzata via `sync_outbox` come le altre tabelle di dominio): nome, tipologia, indirizzo, note e una **`geometry` puntuale FACOLTATIVA**. Un'azienda può quindi avere tanti depositi quanti ne servono — capannone, deposito fitofarmaci, cisterna, silos — invece di un unico magazzino implicito.
+- **La collocazione vive nel LOTTO, non nell'anagrafica**: `product_lots.warehouse_id` (nullable, FK). La giacenza è del lotto, quindi è il lotto ad avere un posto in cui sta — ed è questo che permette lo **stesso prodotto in due depositi** con scadenze e quantità diverse senza duplicare l'anagrafica. I lotti pre-v23 restano *non assegnati*, contano nella giacenza complessiva e continuano a funzionare invariati: nessuna migrazione di dati.
+- **POI del magazzino sulla mappa** (`WarehouseMarkers`): i depositi con posizione compaiono come punto cliccabile con **icona per tipologia** (generico, fitosanitari, concimi, sementi, carburante, mezzi) e badge dei lotti in giacenza. Il click apre la scheda di **quel** deposito. Sono marker permanenti e non dipendono da un toggle: un deposito è un elemento stabile dell'azienda, non una sovrapposizione temporanea come i simboli delle operazioni.
+- **Anagrafica dei depositi** (`WarehouseManager`, pulsante *Magazzini* nel modulo) con creazione, modifica ed eliminazione, e **posizionamento «tocca la mappa»** che riusa il pattern del rilievo scouting (un flag nello store inibisce la selezione delle feature, così quel tocco posa il punto e non apre la scheda di ciò che sta sotto).
+- **Filtro per deposito** in testa al pannello: *Tutti i magazzini* mostra l'anagrafica completa (anche a giacenza zero), un deposito selezionato mostra **solo ciò che ci sta dentro**, con giacenze, alert di scadenza e badge di sotto-scorta calcolati su quel deposito. Il carico lotto e il **carico iniziale** del nuovo prodotto hanno un selettore *Magazzino di destinazione* preselezionato sul deposito in cui si sta lavorando (o sull'unico esistente); l'**import CSV** deposita i carichi nel magazzino su cui il modulo è puntato.
+- **Eliminare un deposito non elimina la merce**: i suoi lotti tornano *non assegnati* in una scrittura tracciata dall'outbox. Chiudere un magazzino è un fatto logistico, non una distruzione di scorte — e un soft-delete che si portasse dietro le giacenze sarebbe una perdita silenziosa.
+- Il click sul POI riporta il pannello all'**elenco di quel deposito** anche se era fermo su un'altra sotto-vista (`warehouseFocusToken`, stesso pattern di `logbookScopeToken`): un token e non il solo id, così ritoccare il POI del deposito già selezionato viene comunque onorato.
+- Test dedicati in `tests/agro-warehouse.test.ts` (collocazione e filtro per deposito, lotti non assegnati, eliminazione che preserva le giacenze, nome obbligatorio) e `tests/agro-schema-migration.test.ts` (tabella, colonna nullable, idempotenza della ALTER).
+
+### Aggiunto — Limiti di zoom della mappa (13–17)
+- La mappa di campo si muove **solo fra lo zoom 13 e il 17**, ed è anche l'intervallo di default: sotto il 13 si guarda una regione, sopra il 17 si sovracampionano pixel di ortofoto che non esistono. Sono **estremi assoluti** (`MAP_ZOOM_FLOOR`/`MAP_ZOOM_CEILING`): dalle **Impostazioni profilo → Vista della mappa** l'utente può *stringere* l'intervallo, mai allargarlo.
+- La preferenza è local-first come unità e lingua (`localStorage` + `preferences.mapZoom` per il cross-device) e il clamp vale **anche in lettura**: un valore fuori intervallo rimasto in storage o arrivato dal profilo remoto viene riportato dentro invece di essere applicato alla mappa. `normalizeMapZoomLimits` garantisce inoltre `min <= max` — un intervallo invertito farebbe alzare `minZoom` sopra `maxZoom` e la vista resterebbe incastrata.
+- **Un unico proprietario di `preferences.map`** (`useMapZoomLimits`): il tetto tecnico dell'ortofoto Esri, che stava in `BasemapSwitcher` con un ref di ripristino, è ora **composto** con la preferenza dell'utente invece di sovrascriverla. Con una preferenza scrivibile i due effetti si sarebbero rincorsi, ripristinando a vicenda il valore appena cambiato.
+- Test dedicati in `tests/agro-settings.test.ts`.
+
+### Aggiunto — Segnali di attenzione sugli appezzamenti
+- Sulla mappa compaiono due simboli distinti, perché chiedono due azioni diverse: **`!`** (pallino blu) dove c'è **lavoro previsto** — task `PLANNED`/`IN_PROGRESS` sul campo, col conteggio — e **⚠** (triangolo ambra) dove **mancano dati**: tessitura del suolo, campi dichiarativi di campagna (SIAN/SIEX), righe del Quaderno o task incomplete. Un badge unico avrebbe reso un promemoria indistinguibile da un errore da correggere.
+- **Il click porta dove si risolve**: il `!` apre la scheda dell'appezzamento (da cui le task si avviano); il ⚠ apre *Dati coltura*, *Pianificazione Task* o la scheda del suolo a seconda del **gap più urgente**.
+- Il motore (`field/plot-alerts.ts`) è **puro** e **riusa** `evaluateTaskCompleteness`/`evaluateLogCompleteness` e `missingDeclarative` invece di reimplementarne le regole: l'elenco di ciò che manca deve essere lo stesso che l'utente legge nel cruscotto «Record incompleti» e nel gate SIAN, altrimenti la mappa direbbe una cosa e il pannello un'altra. Gli appezzamenti senza nulla da segnalare non producono alcun marker: un simbolo su ogni campo non segnalerebbe più niente.
+- I dichiarativi si valutano **solo sulla campagna aperta** e **solo dove il paese ha un sistema gateato**, altrimenti ogni campo a riposo porterebbe un triangolo.
+- Test dedicati: `tests/agro-plot-alerts.test.ts`.
+
+### Documentazione
+- Manuale utente (IT/EN) §2 e §4.14 riscritti sui **depositi** (creazione, tipologie, POI, filtro, cosa succede eliminandoli, dove finiscono i lotti importati), più i limiti di zoom e i simboli di attenzione; glossario e `docs/ARCHITECTURE.md` aggiornati sul modello dati del magazzino.
 
 ## [0.4.1] — 2026-08-20
 

@@ -7,12 +7,15 @@ import { SATELLITE_LAYER_ID, SATELLITE_MAX_ZOOM } from "../lib/basemaps";
  * UNICO proprietario dei limiti di zoom della mappa di campo. Compone due
  * vincoli che prima vivevano in punti diversi (e si sovrascrivevano a vicenda):
  *
- *   1. la PREFERENZA dell'utente (`useSettingsStore.mapZoomLimits`, default
- *      13–17): l'intervallo in cui il lavoro agronomico si svolge davvero,
- *      modificabile in Impostazioni del profilo;
+ *   1. la PREFERENZA dell'utente (`useSettingsStore.mapZoomLimits`): un
+ *      intervallo scelto DENTRO gli estremi assoluti 13–17, l'unica finestra
+ *      in cui il lavoro agronomico si svolge davvero;
  *   2. il TETTO TECNICO della basemap attiva: oltre {@link SATELLITE_MAX_ZOOM}
  *      Esri non ha copertura e l'ortofoto si "buca" (tile vuote), quindi
- *      finché il satellite è acceso il massimo effettivo è abbassato.
+ *      finché il satellite è acceso il massimo effettivo è abbassato. Con il
+ *      soffitto a 17 questo vincolo oggi non morde mai, ma resta perché è la
+ *      basemap a doverlo dichiarare: una sorgente futura con copertura più
+ *      bassa lo farebbe scattare senza toccare questo hook.
  *
  * Il tetto satellitare stava in `BasemapSwitcher` con un ref di ripristino:
  * funzionava finché nessun altro toccava `maxZoom`, ma con una preferenza

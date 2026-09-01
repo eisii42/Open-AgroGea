@@ -3,6 +3,8 @@
 > 🇮🇹 Italiano · [🇬🇧 English](./manual.en.md)
 
 > **Versione documento 0.4.1** · aggiornato il 21 agosto 2026 · descrive **AgroGea Community 0.4.1**. Se la tua app mostra una versione diversa (menu **?** → *Informazioni*), le differenze sono elencate nel [CHANGELOG](../../CHANGELOG.md).
+>
+> Include inoltre le novità ancora **non rilasciate** presenti su `dev` (sezione *Non rilasciato* del CHANGELOG): **magazzini multipli e georeferenziati**, **limiti di zoom della mappa** e **segnali di attenzione sugli appezzamenti**.
 
 > Guida **passo-passo** all'edizione Desktop Open Source. Parte dall'app appena installata e ti accompagna lungo il flusso di lavoro completo:
 > **Dati aziendali → Appezzamenti → Colture** e poi l'uso di **tutti i moduli** della suite.
@@ -33,7 +35,7 @@
    - [4.11 Calendario aziendale](#411-calendario-aziendale)
    - [4.12 Esportazioni ufficiali e backup](#412-esportazioni-ufficiali-e-backup)
    - [4.13 Impostazioni: meteo, tema, profilo](#413-impostazioni-meteo-tema-profilo)
-   - [4.14 Magazzino — prodotti, lotti e giacenze](#414-magazzino--prodotti-lotti-e-giacenze)
+   - [4.14 Magazzino — depositi, prodotti, lotti e giacenze](#414-magazzino--depositi-prodotti-lotti-e-giacenze)
    - [4.15 Parco macchine — mezzi, manutenzione e carburante](#415-parco-macchine--mezzi-manutenzione-e-carburante)
    - [4.16 Pianificazione Task e Modalità Campo — il flusso senza digitazioni](#416-pianificazione-task-e-modalità-campo--il-flusso-senza-digitazioni)
 5. [Scorciatoie e produttività](#5-scorciatoie-e-produttività)
@@ -77,13 +79,20 @@ Si apre dalla **maniglia** sul bordo della mappa e raccoglie tutti gli strumenti
 | **Acqua** | Bilancio idrico |
 | **Disegno** | Disegna appezzamento, Disegna infrastruttura, Disegna POI, Lista appezzamenti, Stampa |
 | **Quaderno (QDC)** | Operazioni, Raccolta, Export SIAN |
+| **Magazzino** | Prodotti e lotti (con l'anagrafica dei **Magazzini**), Parco macchine |
 | **Impostazioni** | Anagrafica azienda, Meteo |
 
 Cliccando uno strumento si apre il pannello corrispondente; cliccandolo di nuovo si chiude.
 
 **I controlli della mappa** stanno nella colonna a destra e sono quelli nativi del motore cartografico, **tradotti nella lingua dell'app**: zoom **＋ / −**, **bussola** (trascina per ruotare, clicca per rimettere il nord in alto — quando la mappa è già a nord il pulsante mostra una piccola **N**), **schermo intero**, **trova la mia posizione**, **rilievo 3D**, **righello** (misura distanze e aree, con unità selezionabili), **gestore livelli** (visibilità, opacità, ordine, stile) e **🔍 Cerca luogo** per la ricerca toponomastica.
 
-> **Zoom sul satellite.** L'ortofoto Esri ha copertura globale garantita fino allo zoom 18: finché lo sfondo satellitare è attivo la mappa si ferma lì, per non mostrare tessere vuote. Disattivandolo si continua a zoomare sullo stradario.
+> **Quanto si può zoomare.** La mappa di campo si muove **solo fra lo zoom 13 e il 17**: sotto il 13 si guarderebbe una regione, sopra il 17 si sovracampionano pixel di ortofoto che non esistono — in mezzo c'è tutto il lavoro agronomico, dal comprensorio al filare. Sono gli **estremi assoluti**: dalle Impostazioni profilo puoi *stringere* l'intervallo (es. 14–16), mai allargarlo. Nota di contorno: l'ortofoto Esri ha copertura garantita fino allo zoom 18, quindi con questi limiti non capita mai di vedere tessere vuote.
+
+**Simboli sulla mappa.** Oltre agli appezzamenti colorati per coltura, la mappa mostra da sé:
+
+- 🏬 i **POI dei magazzini** georeferenziati (riquadro indaco, icona per tipologia, badge coi lotti in giacenza): un tocco apre la scheda di quel deposito (§4.14);
+- **!** un pallino blu sui campi che hanno **lavorazioni previste** (task programmate o in corso): un tocco apre la scheda dell'appezzamento, da cui si avviano;
+- **⚠** un triangolo ambra sui campi a cui **mancano dei dati** — tessitura del suolo, dati dichiarativi di campagna (SIAN/SIEX), righe del Quaderno incomplete. Il tocco porta direttamente dove si compila il dato più urgente. Compare **solo** dove c'è davvero qualcosa da sistemare: un simbolo su ogni campo non segnalerebbe più nulla.
 
 **L'annata (Campagna Agraria):** molti moduli lavorano su un **anno di campagna**. Lo imposti dentro il modulo Coltura con i pulsanti **− / +** accanto all'anno: è il contesto temporale condiviso (colture, DSS, export).
 
@@ -353,11 +362,30 @@ L'export CSV copre l'**intero Quaderno di Campagna Agraria**: comprende sia i tr
 
 - **Meteo** (Impostazioni → Meteo) — configura la stazione/sorgente meteo che alimenta il bilancio idrico e il DSS.
 - **Tema** — Chiaro / Scuro / Verde, dal selettore nell'header.
-- **Profilo** — dal menu utente in alto a destra: preferenze e impostazioni dell'app.
+- **Profilo** — dal menu utente in alto a destra: preferenze e impostazioni dell'app. Qui, oltre a moduli visibili, lingua e unità di misura, c'è la **Vista della mappa**: *zoom minimo* e *zoom massimo* consentiti, selezionabili fra 13 e 17 (vedi §2). Serve a fissare la scala di lavoro: chi lavora sempre a filare può stringere a 16–17 e non perdere più l'inquadratura.
 
-### 4.14 Magazzino — prodotti, lotti e giacenze
+### 4.14 Magazzino — depositi, prodotti, lotti e giacenze
 
-Il Magazzino tiene l'**anagrafica dei prodotti** e i loro **lotti** con scadenza, giacenza e costo, e collega tutto alle attività del Quaderno.
+Il Magazzino tiene tre cose collegate: i **depositi** (dove la merce sta davvero), l'**anagrafica dei prodotti** e i loro **lotti** con scadenza, giacenza e costo. Le attività del Quaderno scaricano da qui.
+
+> **La giacenza vive nel lotto, non nel prodotto.** È il singolo lotto ad avere una collocazione, e per questo lo stesso prodotto può stare in due depositi con scadenze e quantità diverse senza duplicare l'anagrafica.
+
+#### I depositi
+
+Un'azienda può averne quanti ne servono: il capannone, il deposito fitofarmaci sotto chiave, la cisterna del gasolio, il silos delle sementi.
+
+1. Sidebar → **Magazzino** → **Prodotti e lotti** → pulsante **Magazzini**, in testa al pannello accanto al selettore.
+2. **＋ Nuovo magazzino**: dai un **nome** ("Capannone Nord", "Deposito fitofarmaci") e scegli la **tipologia** — *Generico, Deposito fitosanitari, Deposito concimi, Deposito sementi, Cisterna carburante, Rimessa mezzi*. La tipologia non impone regole: sceglie l'**icona** con cui il deposito compare sulla mappa e aiuta a distinguerli in elenco.
+3. **Posizione sulla mappa** (facoltativa): premi **Tocca la mappa**, poi tocca il punto dove il deposito sta. Da lì in avanti il magazzino è un **POI cliccabile** — riquadro indaco con l'icona della sua tipologia e un **badge** che conta i lotti in giacenza. Un magazzino senza posizione resta valido: è un magazzino "logico", raggiungibile solo dal modulo.
+4. Facoltativi: **indirizzo** e **note**. Il ✏️ modifica un deposito esistente, anche solo per spostarne il punto.
+
+**Aprire un magazzino dalla mappa:** tocca il suo POI. Il modulo si apre già **puntato su quel deposito**, qualunque schermata avessi lasciato aperta prima (un altro prodotto, l'anagrafica depositi, un form): chi tocca un magazzino sulla mappa si aspetta di vederne il contenuto, non di dover ritrovare la strada.
+
+**Filtrare per deposito:** il selettore **Magazzino** in testa al pannello sceglie fra *Tutti i magazzini* — la vista aggregata, con l'anagrafica completa anche dei prodotti a giacenza zero — e un singolo deposito, dove compare **solo ciò che ci sta dentro**. Con un deposito selezionato, giacenze, alert di scadenza e badge di sotto-scorta sono calcolati **su quel deposito**.
+
+**Eliminare un magazzino non elimina la merce:** i suoi lotti tornano **«non assegnati»** e continuano a contare nella giacenza complessiva dell'azienda. Chiudere un deposito è un fatto logistico, non una distruzione di scorte.
+
+#### Prodotti e lotti
 
 1. Sidebar → **Magazzino** → **Prodotti e lotti**.
 2. **＋ Nuovo prodotto** e scegli la **categoria** (rigida — determina i campi obbligatori):
@@ -367,9 +395,11 @@ Il Magazzino tiene l'**anagrafica dei prodotti** e i loro **lotti** con scadenza
    - **Carburante** — richiede il codice di **assegnazione UMA**;
    - **Altro / materiali** — lubrificanti e consumabili, senza campi extra.
 
-   Il form include il **carico iniziale** (lotto di produzione, scadenza, **quantità obbligatoria** e costo): un prodotto nasce già con la sua giacenza. Facoltativi per tutte le categorie: fornitore e **scorta minima** (sotto soglia appare il badge di riordino).
-3. Dal dettaglio prodotto, **Carica lotto** aggiunge i carichi successivi. Ogni carico aggiorna il **CUMP** (Costo Unitario Medio Ponderato) del prodotto con la media ponderata sulle giacenze.
+   Il form include il **carico iniziale** (magazzino di destinazione, lotto di produzione, scadenza, **quantità obbligatoria** e costo): un prodotto nasce già con la sua giacenza, e già collocata. Facoltativi per tutte le categorie: fornitore e **scorta minima** (sotto soglia appare il badge di riordino).
+3. Dal dettaglio prodotto, **Carica lotto** aggiunge i carichi successivi, ciascuno col proprio **magazzino di destinazione**. Ogni carico aggiorna il **CUMP** (Costo Unitario Medio Ponderato) del prodotto con la media ponderata sulle giacenze — il CUMP è **di prodotto**, non di deposito: è il costo medio della merce, non del posto in cui è appoggiata. Nell'elenco dei lotti, ogni riga mostra il deposito in cui si trova.
 4. **Importa CSV** — per popolare l'anagrafica in un colpo solo (es. il listino del consorzio o l'export del gestionale precedente), senza rete.
+
+> **Il magazzino di destinazione è facoltativo.** Il selettore propone *Non assegnato*, ed è la scelta giusta finché non hai definito i depositi: la giacenza è reale e utilizzabile lo stesso, semplicemente non ha una collocazione. Se hai un solo magazzino viene proposto da sé, e se stai lavorando dentro un deposito è quello a essere preselezionato.
 
 **Come si prepara il file CSV dei prodotti:**
 
@@ -382,11 +412,13 @@ Il Magazzino tiene l'**anagrafica dei prodotti** e i loro **lotti** con scadenza
 
 Il pulsante **Scarica modello** ti dà un CSV già impostato con una riga di esempio per categoria. Prima di scrivere qualcosa vedi l'**anteprima** con quante righe sono valide e, per ognuna, l'errore preciso (categoria sconosciuta, n. registrazione mancante, prodotto già presente in magazzino…): le righe valide si importano comunque, le altre restano fuori e le correggi con calma nel file.
 
+> **Dove finiscono i lotti importati:** nel **deposito su cui il modulo è puntato** quando lanci l'import. Se il selettore è su *Tutti i magazzini*, i carichi entrano senza collocazione. Il file CSV non ha una colonna per il magazzino: seleziona prima il deposito, poi importa.
+
 **Scarico dalle attività:** nel form del Quaderno (trattamenti, fertilizzazioni, semine) compare la sezione **Scarico da magazzino**: scegli prodotto → lotto → quantità. Al salvataggio la giacenza si scarica **realmente**, in un'unica transazione con l'attività: se la quantità supera la disponibilità, **l'intera registrazione fallisce** (nessuno scarico parziale) con un messaggio chiaro. Il costo dei prodotti (quantità × CUMP al momento dello scarico) è **imputato al campo trattato** e sarà la base del bilancio di campo.
 
 **Scadenze:** i lotti **scaduti** sono evidenziati e il loro uso nelle attività è **bloccato** (non selezionabili); i lotti **in scadenza** entro la soglia configurabile (default 30 giorni) sono segnalati con un alert nel pannello.
 
-> **Compatibilità:** le registrazioni esistenti con prodotti/mezzi a testo libero restano valide; lo scarico da magazzino è facoltativo e si affianca al testo libero finché non colleghi un lotto reale. Eliminando un'operazione con scarichi, le giacenze vengono **reintegrate** automaticamente.
+> **Compatibilità:** le registrazioni esistenti con prodotti/mezzi a testo libero restano valide; lo scarico da magazzino è facoltativo e si affianca al testo libero finché non colleghi un lotto reale. Eliminando un'operazione con scarichi, le giacenze vengono **reintegrate** automaticamente. I lotti caricati **prima** dell'introduzione dei depositi multipli risultano *non assegnati*: nessun dato è cambiato, continuano a contare nella giacenza e restano utilizzabili nelle attività. La collocazione si sceglie **al carico**: un lotto già esistente non si sposta fra depositi (per collocare vecchie scorte, caricale nel deposito giusto man mano che rientrano).
 
 ---
 

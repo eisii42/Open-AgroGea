@@ -335,17 +335,23 @@ export interface MapZoomLimits {
 }
 
 /**
- * Default: 13 (azienda/comprensorio) → 17 (filare/pianta singola). Sono i due
- * estremi in cui il lavoro di campo si svolge davvero; chi ha bisogno di uscire
- * dall'intervallo lo allarga dalle Impostazioni del profilo.
+ * ESTREMI ASSOLUTI della mappa di campo: 13 (azienda/comprensorio) e 17
+ * (filare/pianta singola). Non sono soltanto il default, sono il pavimento e
+ * il soffitto invalicabili — l'utente può stringere l'intervallo dentro
+ * questi due valori, mai allargarlo oltre. Fuori di qui la vista non serve al
+ * lavoro di campo: sotto il 13 si guarda una regione, sopra il 17 si
+ * sovracampionano pixel di ortofoto che non esistono.
  */
-export const DEFAULT_MAP_ZOOM_LIMITS: MapZoomLimits = { min: 13, max: 17 };
+export const MAP_ZOOM_FLOOR = 13;
+export const MAP_ZOOM_CEILING = 17;
 
-/** Estremi assoluti ammessi dallo slider/selettore (limiti di MapLibre). */
-export const MAP_ZOOM_FLOOR = 3;
-export const MAP_ZOOM_CEILING = 22;
+/** Default: l'intervallo pieno consentito. */
+export const DEFAULT_MAP_ZOOM_LIMITS: MapZoomLimits = {
+  min: MAP_ZOOM_FLOOR,
+  max: MAP_ZOOM_CEILING,
+};
 
-/** Valori proposti dal selettore delle Impostazioni (interi nell'intervallo utile). */
+/** Valori proposti dal selettore delle Impostazioni: 13, 14, 15, 16, 17. */
 export const MAP_ZOOM_CHOICES: readonly number[] = Array.from(
   { length: MAP_ZOOM_CEILING - MAP_ZOOM_FLOOR + 1 },
   (_, i) => MAP_ZOOM_FLOOR + i,
@@ -359,8 +365,13 @@ function clampZoom(value: unknown, fallback: number): number {
 
 /**
  * Normalizza una coppia (parziale, legacy o corrotta) contro i default,
+ * riportandola dentro [{@link MAP_ZOOM_FLOOR}, {@link MAP_ZOOM_CEILING}] e
  * garantendo l'invariante `min <= max`: un intervallo invertito bloccherebbe la
  * mappa (MapLibre alza `minZoom` sopra `maxZoom` e la vista resta incastrata).
+ *
+ * Il clamp vale anche in LETTURA, non solo sull'input del selettore: un valore
+ * fuori intervallo rimasto in `localStorage` o arrivato dal profilo remoto
+ * viene riportato dentro i limiti invece di essere applicato alla mappa.
  */
 export function normalizeMapZoomLimits(
   partial: { min?: unknown; max?: unknown } | null | undefined,

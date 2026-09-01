@@ -1876,11 +1876,11 @@
     },
     "map": {
       "title": "Map view",
-      "subtitle": "Zoom range the field map is allowed to move within.",
+      "subtitle": "Zoom range the field map is allowed to move within. Only 13 to 17 is permitted: you can narrow it, not widen it.",
       "minZoom": "Minimum zoom",
-      "minZoomHint": "How far out the view can go (13 = farm or district).",
+      "minZoomHint": "How far out the view can go. Lowest allowed is 13 (farm or district).",
       "maxZoom": "Maximum zoom",
-      "maxZoomHint": "How far in the view can go (17 = row or single plant)."
+      "maxZoomHint": "How far in the view can go. Highest allowed is 17 (row or single plant)."
     }
   },
   "operationDetailCard": {

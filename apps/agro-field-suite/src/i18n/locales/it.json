@@ -1876,11 +1876,11 @@
     },
     "map": {
       "title": "Vista della mappa",
-      "subtitle": "Intervallo di zoom entro cui la mappa di campo può muoversi.",
+      "subtitle": "Intervallo di zoom entro cui la mappa di campo può muoversi. Consentito solo fra 13 e 17: puoi stringerlo, non allargarlo.",
       "minZoom": "Zoom minimo",
-      "minZoomHint": "Quanto si può allargare la vista (13 = azienda o comprensorio).",
+      "minZoomHint": "Quanto si può allargare la vista. Minimo consentito 13 (azienda o comprensorio).",
       "maxZoom": "Zoom massimo",
-      "maxZoomHint": "Quanto si può stringere la vista (17 = filare o pianta singola)."
+      "maxZoomHint": "Quanto si può stringere la vista. Massimo consentito 17 (filare o pianta singola)."
     }
   },
   "operationDetailCard": {

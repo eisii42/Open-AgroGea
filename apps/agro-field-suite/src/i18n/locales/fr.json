@@ -1660,11 +1660,11 @@
     },
     "map": {
       "title": "Vue de la carte",
-      "subtitle": "Plage de zoom dans laquelle la carte de terrain peut se déplacer.",
+      "subtitle": "Plage de zoom dans laquelle la carte de terrain peut se déplacer. Seul 13 à 17 est permis : vous pouvez la resserrer, pas l'élargir.",
       "minZoom": "Zoom minimal",
-      "minZoomHint": "Jusqu'où la vue peut s'élargir (13 = exploitation ou territoire).",
+      "minZoomHint": "Jusqu'où la vue peut s'élargir. Minimum autorisé 13 (exploitation ou territoire).",
       "maxZoom": "Zoom maximal",
-      "maxZoomHint": "Jusqu'où la vue peut se resserrer (17 = rang ou plante isolée)."
+      "maxZoomHint": "Jusqu'où la vue peut se resserrer. Maximum autorisé 17 (rang ou plante isolée)."
     }
   },
   "operationDetailCard": {

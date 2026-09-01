@@ -62,6 +62,13 @@ testo come fallback finché non collegati.
 - **Rilascio quando:** un'attività di campo scarica un lotto reale, la giacenza si
   aggiorna e il costo prodotti è imputato al campo.
 
+> **Esteso dopo la pianificazione originale** (schema v23, in attesa di rilascio):
+> il magazzino non è più unico e implicito. Una tabella `warehouses` con posizione
+> puntuale facoltativa dà all'azienda **più depositi**, ciascuno un POI cliccabile
+> sulla mappa; la collocazione vive su `product_lots.warehouse_id`, così lo stesso
+> prodotto può stare in due depositi con scadenze e quantità diverse. Dettagli
+> nella sezione *Non rilasciato* del [CHANGELOG](./CHANGELOG.md).
+
 ### `0.3.0` — Parco macchine ✅ implementata (in attesa di rilascio)
 
 - Anagrafiche `machines` (unità motrici) ed `equipment` (attrezzi) con la giunzione

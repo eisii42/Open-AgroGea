@@ -3,6 +3,8 @@
 > [🇮🇹 Italiano](./manuale.md) · 🇬🇧 English
 
 > **Document version 0.4.1** · updated 21 August 2026 · describes **AgroGea Community 0.4.1**. If your app shows a different version (**?** menu → *About*), the differences are listed in the [CHANGELOG](../../CHANGELOG.md).
+>
+> It also covers the changes still **unreleased** on `dev` (the *Unreleased* section of the CHANGELOG): **multiple georeferenced warehouses**, **map zoom limits** and **attention markers on parcels**.
 
 > **Step-by-step** guide to the Open Source Desktop edition. It starts from the freshly installed app and walks you through the complete workflow:
 > **Farm data → Parcels → Crops** and then the use of **all the suite's modules**.
@@ -33,7 +35,7 @@
    - [4.11 Farm calendar](#411-farm-calendar)
    - [4.12 Official exports and backup](#412-official-exports-and-backup)
    - [4.13 Settings: weather, theme, profile](#413-settings-weather-theme-profile)
-   - [4.14 Warehouse — products, lots and stock](#414-warehouse--products-lots-and-stock)
+   - [4.14 Warehouse — stores, products, lots and stock](#414-warehouse--stores-products-lots-and-stock)
    - [4.15 Machinery — vehicles, maintenance and fuel](#415-machinery--vehicles-maintenance-and-fuel)
    - [4.16 Task planning and Field Mode — the no-typing flow](#416-task-planning-and-field-mode--the-no-typing-flow)
 5. [Shortcuts and productivity](#5-shortcuts-and-productivity)
@@ -77,13 +79,20 @@ It opens from the **handle** on the edge of the map and gathers all the tools, g
 | **Water** | Water balance |
 | **Drawing** | Draw parcel, Draw infrastructure, Draw POI, Plot list, Print |
 | **Logbook (QDC)** | Operations, Harvest, SIAN export |
+| **Warehouse** | Products and lots (including the **Warehouses** registry), Machinery |
 | **Settings** | Farm registry, Weather |
 
 Clicking a tool opens the corresponding panel; clicking it again closes it.
 
 **The map controls** sit in the right-hand column and are the mapping engine's native ones, **translated into the app's language**: zoom **＋ / −**, **compass** (drag to rotate, click to put north back on top — when the map is already facing north the button shows a small **N**), **fullscreen**, **find my location**, **3D terrain**, **ruler** (measure distances and areas, with selectable units), **layer manager** (visibility, opacity, order, style) and **🔍 Search place** for gazetteer search.
 
-> **Zoom on satellite imagery.** The Esri orthophoto has guaranteed global coverage up to zoom 18: while the satellite background is on, the map stops there so it never shows empty tiles. Turn it off and you keep zooming on the street map.
+> **How far you can zoom.** The field map moves **only between zoom 13 and 17**: below 13 you would be looking at a region, above 17 you oversample orthophoto pixels that do not exist — in between sits every bit of agronomic work, from the district down to the vine row. These are the **absolute bounds**: in Profile settings you can *narrow* the range (e.g. 14–16), never widen it. As a side note, the Esri orthophoto has guaranteed coverage up to zoom 18, so with these limits you never run into empty tiles.
+
+**Symbols on the map.** Besides the parcels coloured by crop, the map shows on its own:
+
+- 🏬 the **warehouse POIs** that have a position (indigo tile, icon per type, badge counting the lots in stock): a tap opens that warehouse's sheet (§4.14);
+- **!** a blue dot on fields with **planned work** (scheduled or in-progress tasks): a tap opens the parcel sheet, where those tasks are started;
+- **⚠** an amber triangle on fields with **missing data** — soil texture, campaign declaration data (SIAN/SIEX), incomplete logbook rows. The tap takes you straight to where the most urgent one is filled in. It appears **only** where there is genuinely something to fix: a symbol on every field would signal nothing.
 
 **The season (Agrarian Campaign):** many modules work on a **campaign year**. You set it inside the Crop module with the **− / +** buttons next to the year: it is the shared temporal context (crops, DSS, exports).
 
@@ -353,11 +362,30 @@ The CSV export covers the **whole Field Logbook (QDCA)**: it includes both treat
 
 - **Weather** (Settings → Weather) — configure the weather station/source that feeds the water balance and the DSS.
 - **Theme** — Light / Dark / Green, from the selector in the header.
-- **Profile** — from the user menu top-right: app preferences and settings.
+- **Profile** — from the user menu top-right: app preferences and settings. Besides visible modules, language and units, this is where **Map view** lives: the allowed *minimum zoom* and *maximum zoom*, selectable between 13 and 17 (see §2). It fixes your working scale: someone always working row by row can narrow it to 16–17 and stop losing the framing.
 
-### 4.14 Warehouse — products, lots and stock
+### 4.14 Warehouse — stores, products, lots and stock
 
-The Warehouse keeps the **product registry** and their **lots** with expiry, stock and cost, and links everything to the logbook activities.
+The Warehouse keeps three linked things: the **stores** (where the goods physically are), the **product registry**, and their **lots** with expiry, stock and cost. Logbook activities withdraw from here.
+
+> **Stock lives in the lot, not in the product.** It is the individual lot that has a location, which is why the same product can sit in two stores with different expiry dates and quantities without duplicating the registry entry.
+
+#### The stores
+
+A farm can have as many as it needs: the main shed, the locked plant-protection store, the diesel tank, the seed silo.
+
+1. Sidebar → **Warehouse** → **Products and lots** → **Warehouses** button, at the top of the panel next to the selector.
+2. **＋ New warehouse**: give it a **name** ("North shed", "Plant protection store") and pick the **type** — *General, Plant protection store, Fertiliser store, Seed store, Fuel tank, Machinery shed*. The type enforces no rules: it picks the **icon** the store gets on the map and helps you tell them apart in the list.
+3. **Position on the map** (optional): press **Tap the map**, then tap where the store is. From then on the warehouse is a **clickable POI** — an indigo tile with its type icon and a **badge** counting the lots in stock. A warehouse with no position stays perfectly valid: it is a "logical" store, reachable only from the module.
+4. Optional: **address** and **notes**. The ✏️ edits an existing store, if only to move its point.
+
+**Opening a warehouse from the map:** tap its POI. The module opens already **pointed at that store**, whatever screen you had left open before (another product, the store registry, a form): whoever taps a warehouse on the map expects to see what is inside it, not to find their way back.
+
+**Filtering by store:** the **Warehouse** selector at the top of the panel switches between *All warehouses* — the aggregate view, with the full registry including products at zero stock — and a single store, which shows **only what is inside it**. With a store selected, stock figures, expiry alerts and below-minimum badges are computed **on that store**.
+
+**Deleting a warehouse does not delete the goods:** its lots become **"unassigned"** and keep counting towards the farm's overall stock. Closing a store is a logistics fact, not the destruction of supplies.
+
+#### Products and lots
 
 1. Sidebar → **Warehouse** → **Products and lots**.
 2. **＋ New product** and pick the **category** (rigid — it determines the required fields):
@@ -367,9 +395,11 @@ The Warehouse keeps the **product registry** and their **lots** with expiry, sto
    - **Fuel** — requires the agricultural fuel (**UMA**) allocation code;
    - **Other / supplies** — lubricants and consumables, no extra fields.
 
-   The form includes the **initial load** (production lot, expiry, **mandatory quantity** and cost): a product is born with its stock. Optional for all categories: supplier and **minimum stock** (below the threshold a reorder badge appears).
-3. From the product detail, **Load lot** adds further loads. Every load updates the product's **weighted average cost (WAC/CUMP)** over the current stock.
+   The form includes the **initial load** (destination warehouse, production lot, expiry, **mandatory quantity** and cost): a product is born with its stock, and already placed. Optional for all categories: supplier and **minimum stock** (below the threshold a reorder badge appears).
+3. From the product detail, **Load lot** adds further loads, each with its own **destination warehouse**. Every load updates the product's **weighted average cost (WAC/CUMP)** over the current stock — the WAC is **per product**, not per store: it is the average cost of the goods, not of the place they rest in. In the lot list, each row shows the store it sits in.
 4. **Import CSV** — to populate the registry in one go (e.g. the consortium price list or the export from your previous software), with no network.
+
+> **The destination warehouse is optional.** The selector offers *Unassigned*, and that is the right choice until you have defined your stores: the stock is real and usable all the same, it simply has no location. If you have a single warehouse it is preselected on its own, and if you are working inside a store, that one is preselected.
 
 **How to prepare the products CSV file:**
 
@@ -382,11 +412,13 @@ The Warehouse keeps the **product registry** and their **lots** with expiry, sto
 
 The **Download template** button gives you a ready-made CSV with one example row per category. Before anything is written you get a **preview** with how many rows are valid and, for each one, the exact error (unknown category, missing registration number, product already in the warehouse…): valid rows are imported anyway, the others stay out and you fix them calmly in the file.
 
+> **Where imported lots land:** in the **store the module is pointed at** when you run the import. If the selector is on *All warehouses*, the loads enter with no location. The CSV file has no column for the warehouse: select the store first, then import.
+
 **Withdrawing from activities:** the logbook form (treatments, fertilizations, sowing) shows a **Warehouse withdrawal** section: pick product → lot → quantity. On save the stock is withdrawn **for real**, in a single transaction with the activity: if the quantity exceeds availability, **the whole registration fails** (no partial withdrawal) with a clear message. The product cost (quantity × WAC at withdrawal time) is **charged to the treated field** and will feed the field balance.
 
 **Expiry:** **expired** lots are highlighted and their use in activities is **blocked** (not selectable); lots **expiring** within the configurable threshold (default 30 days) raise an alert in the panel.
 
-> **Compatibility:** existing records with free-text products/machinery remain valid; the warehouse withdrawal is optional and coexists with free text until you link a real lot. Deleting an operation with withdrawals **restores** the stock automatically.
+> **Compatibility:** existing records with free-text products/machinery remain valid; the warehouse withdrawal is optional and coexists with free text until you link a real lot. Deleting an operation with withdrawals **restores** the stock automatically. Lots loaded **before** multiple stores were introduced show as *unassigned*: no data changed, they keep counting towards stock and stay usable in activities. The location is chosen **at load time**: an existing lot is not moved between stores (to place old supplies, load them into the right store as they come back in).
 
 ---
 

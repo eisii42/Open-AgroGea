@@ -29,9 +29,11 @@ Scope and rules (see `CLAUDE.md` §2–§3):
 | operazione | operation | `operation_type` |
 | trattamento | treatment | `treatment_logs` |
 | raccolta / raccolte | harvest / harvests | `harvest_logs` |
-| magazzino | warehouse | |
+| magazzino (il modulo) | warehouse | |
+| magazzino / deposito (il luogo) | warehouse (store) | `warehouses`, `warehouse_id` |
+| tipologia di deposito | warehouse type | `warehouse_type` (free text, `WarehouseKind` for the canonical list) |
 | prodotto / prodotti | product / products | `products` |
-| lotto | lot | `product_lots` |
+| lotto | lot | `product_lots` (holds the location: `warehouse_id`) |
 | giacenza | stock / quantity on hand | `quantity_on_hand` |
 | scadenza | expiry | `expires_at` |
 | carico (di magazzino) | inbound / receipt | keep `CUMP` token |

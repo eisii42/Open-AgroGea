@@ -97,6 +97,14 @@ UI (modules/*, components/*)
   rather than the GeoJSON cells — ~2 bytes/pixel instead of ~300 — and
   `rasterToIndexCells` rebuilds the geometry on demand.
 
+- **Warehouses are places, lots carry the location** (v23). `warehouses` is a
+  synced domain table with an optional `geometry` (a GeoJSON `Point`: present, it
+  becomes a clickable POI on the map); the stock lives in `product_lots`, so it
+  is the **lot** that holds `warehouse_id`, not the product registry. That is
+  what lets the same product sit in two stores with different expiries without
+  duplicating the registry, and why deleting a store only unassigns its lots.
+  The column is nullable: lots loaded before v23 need no data migration.
+
 The PGlite schema ([`db/schema.ts`](../packages/agro-core/src/db/schema.ts)) is
 **English** (tables/columns) and versioned (`AGRO_LOCAL_SCHEMA_VERSION`).
 Migrations are **additive and idempotent** — never rename/drop persisted columns
