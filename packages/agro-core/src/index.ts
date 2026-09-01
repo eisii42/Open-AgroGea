@@ -220,6 +220,11 @@ export {
   type DeclarativeSystem,
 } from "./compliance/sian-campaign";
 export {
+  EPSG_DEFINITIONS,
+  UnknownCrsError,
+  createProj4Reprojector,
+} from "./geo/reproject";
+export {
   COUNTRIES_WITH_BBOX,
   DEFAULT_COUNTRY,
   SUPPORTED_COUNTRIES,

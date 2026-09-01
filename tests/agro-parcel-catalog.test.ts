@@ -59,7 +59,9 @@ describe("catalogo particelle / il catalogo spedito è valido", () => {
     const nl = sourceById("nl-brp-gewaspercelen");
     assert.ok(nl, "atteso il record nl-brp-gewaspercelen");
     assert.equal(nl?.accessType, "wfs");
-    assert.equal(nl?.crs, "EPSG:28992");
+    // EPSG:4258 e non 28992: è il DefaultCRS che il servizio dichiara davvero
+    // nel suo GetCapabilities (28992 è solo uno degli OtherCRS).
+    assert.equal(nl?.crs, "EPSG:4258");
     assert.equal(nl?.referenceUnitType, "agricultural_parcel");
     assert.equal(nl?.license.id, "CC0-1.0");
     assert.equal(nl?.license.attribution, "RVO / PDOK");

@@ -99,16 +99,15 @@
       "required": ["sourceId"],
       "properties": {
         "sourceId": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Attributo con l'identificativo nativo. Obbligatorio: senza, non si può deduplicare."
+          "$ref": "#/$defs/mapping",
+          "description": "Identificativo nativo. Obbligatorio: senza, non si può deduplicare."
         },
-        "nationalCropCode": { "type": "string", "minLength": 1 },
-        "declaredArea": { "type": "string", "minLength": 1 },
-        "eligibleArea": { "type": "string", "minLength": 1 },
-        "validityYear": { "type": "string", "minLength": 1 }
+        "nationalCropCode": { "$ref": "#/$defs/mapping" },
+        "declaredArea": { "$ref": "#/$defs/mapping" },
+        "eligibleArea": { "$ref": "#/$defs/mapping" },
+        "validityYear": { "$ref": "#/$defs/mapping" }
       },
-      "description": "Corrispondenza fra i campi di Parcel e i nomi degli attributi nella fonte. È qui che vivono le differenze fra portali, invece che in rami di codice."
+      "description": "Corrispondenza fra i campi di Parcel e gli attributi della fonte. È qui che vivono le differenze fra portali, invece che in rami di codice."
     },
     "updateCadence": {
       "enum": [
@@ -125,6 +124,27 @@
       "type": ["string", "null"],
       "format": "date-time",
       "description": "Istante ISO 8601 dell'ultima verifica riuscita contro il servizio vivo. null = mai verificato. Lo scrive lo script di verifica, non si compila a mano."
+    }
+  },
+  "$defs": {
+    "mapping": {
+      "description": "Nome dell'attributo, oppure nome più un'espressione regolare che ne estrae la parte utile (serve ai servizi INSPIRE, dove il codice coltura è l'ultimo segmento di un URI di codelist).",
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["attribute", "pattern"],
+          "properties": {
+            "attribute": { "type": "string", "minLength": 1 },
+            "pattern": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Espressione regolare con esattamente un gruppo di cattura."
+            }
+          }
+        }
+      ]
     }
   }
 }

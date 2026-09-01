@@ -30,8 +30,10 @@ export {
 export {
   PARCEL_SOURCE_ACCESS_TYPES,
   PARCEL_SOURCE_UPDATE_CADENCES,
+  nutsCountryToIso,
   validateCatalog,
   validateSourceRecord,
+  type ParcelAttributeMapping,
   type ParcelSourceAccessType,
   type ParcelSourceAttributeMap,
   type ParcelSourceIssue,
@@ -44,3 +46,45 @@ export {
   sourceById,
   sourcesCovering,
 } from "./catalog";
+export {
+  DEFAULT_MAX_FEATURES,
+  DEFAULT_PAGE_SIZE,
+  POINT_QUERY_EPSILON_DEG,
+  bboxAroundPoint,
+  isPolygonal,
+  type BBox,
+  type LngLat,
+  type ParcelFetch,
+  type ParcelPrefetchProgress,
+  type ParcelQueryOptions,
+  type ParcelSource,
+  type ParcelSourceDeps,
+  type Position2D,
+  type Reprojector,
+} from "./source";
+export {
+  featureToParcel,
+  normalizeFeatureCollection,
+  reprojectGeometry,
+  resolveMapping,
+  type NormalizeDeps,
+  type NormalizeResult,
+} from "./normalize";
+export { buildWfsUrl, createWfsSource, epsgToUrn } from "./wfs-source";
+export {
+  buildOgcApiUrl,
+  createOgcApiSource,
+  epsgToOgcUri,
+  nextPageUrl,
+} from "./ogcapi-source";
+export {
+  MANUAL_SOURCE_ID,
+  createManualParcel,
+  createManualSource,
+  type ManualParcelDeps,
+  type ManualParcelInput,
+} from "./manual-source";
+export {
+  UnsupportedAccessTypeError,
+  createParcelSource,
+} from "./source-factory";

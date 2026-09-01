@@ -22,7 +22,7 @@
  * finiscono mai davanti a un utente — li leggono i test e la CI — quindi sono
  * testo diretto e non chiavi i18n.
  */
-import { isIsoAlpha2 } from "./iso-3166";
+import { isIsoAlpha2, type IsoAlpha2 } from "./iso-3166";
 import {
   isReferenceUnitType,
   type ParcelLicense,
@@ -68,7 +68,32 @@ export const PARCEL_SOURCE_UPDATE_CADENCES = [
 ] as const;
 
 /**
- * Corrispondenza fra i campi di `Parcel` e i nomi degli attributi nella fonte.
+ * Come si ricava un campo di `Parcel` da un attributo della fonte: il nome
+ * dell'attributo, oppure il nome più un'espressione regolare che ne estrae la
+ * parte utile.
+ *
+ * L'estrazione non è un vezzo. Nei servizi INSPIRE armonizzati il codice
+ * coltura non è un attributo a sé: è l'ultimo segmento di un URI di codelist
+ * (`https://www.rvo.nl/gewascodes/259`). Senza un modo DICHIARATIVO di tirarlo
+ * fuori, l'unica alternativa sarebbe una funzione per portale — cioè il
+ * "modulo per paese" che il catalogo esiste apposta per evitare. E poiché
+ * l'armonizzazione INSPIRE è la stessa in tutta Europa, lo stesso schema
+ * servirà agli altri nodi.
+ *
+ * `pattern` deve avere ESATTAMENTE un gruppo di cattura: il valore estratto è
+ * quello. Se non combacia, il campo resta vuoto — non si inventa un ripiego.
+ */
+export type ParcelAttributeMapping =
+  | string
+  | {
+      /** Nome dell'attributo nella fonte. */
+      attribute: string;
+      /** Espressione regolare con un solo gruppo di cattura. */
+      pattern: string;
+    };
+
+/**
+ * Corrispondenza fra i campi di `Parcel` e gli attributi della fonte.
  * È il cuore del "paese come dato": ciò che altrove sarebbe un adapter per
  * nazione, qui è questo oggetto.
  *
@@ -76,16 +101,16 @@ export const PARCEL_SOURCE_UPDATE_CADENCES = [
  * deduplicare né riconoscere una particella già adottata.
  */
 export interface ParcelSourceAttributeMap {
-  /** Attributo che porta l'identificativo nativo della particella. */
-  sourceId: string;
-  /** Attributo del codice coltura nella codifica nazionale. */
-  nationalCropCode?: string;
-  /** Attributo della superficie dichiarata (ettari). */
-  declaredArea?: string;
-  /** Attributo della superficie ammissibile a premio (ettari). */
-  eligibleArea?: string;
-  /** Attributo dell'annata di validità del dato. */
-  validityYear?: string;
+  /** Identificativo nativo della particella. */
+  sourceId: ParcelAttributeMapping;
+  /** Codice coltura nella codifica nazionale. */
+  nationalCropCode?: ParcelAttributeMapping;
+  /** Superficie dichiarata (ettari). */
+  declaredArea?: ParcelAttributeMapping;
+  /** Superficie ammissibile a premio (ettari). */
+  eligibleArea?: ParcelAttributeMapping;
+  /** Annata di validità del dato. */
+  validityYear?: ParcelAttributeMapping;
 }
 
 /** Chiavi ammesse in {@link ParcelSourceAttributeMap}, per intercettare i refusi. */
@@ -186,10 +211,27 @@ function isHttpUrl(value: unknown): boolean {
   }
 }
 
+/** Traduzione dei due codici paese NUTS che divergono dall'ISO 3166-1. */
+const NUTS_TO_ISO: Readonly<Record<string, string>> = {
+  EL: "GR",
+  UK: "GB",
+};
+
+/**
+ * Codice ISO 3166-1 alpha-2 del paese di un nodo NUTS, o `null` se il nodo non
+ * appartiene a un paese noto. Traduce le due divergenze di Eurostat (`EL`→`GR`,
+ * `UK`→`GB`): senza questo passaggio una particella greca porterebbe nel campo
+ * `country` un valore che non è un codice ISO.
+ */
+export function nutsCountryToIso(nutsCode: string): IsoAlpha2 | null {
+  const prefix = nutsCode.slice(0, 2).toUpperCase();
+  const iso = NUTS_TO_ISO[prefix] ?? prefix;
+  return isIsoAlpha2(iso) ? iso : null;
+}
+
 /** True se il paese di un codice NUTS è un paese reale (ISO, più EL e UK). */
 function hasKnownNutsCountry(code: string): boolean {
-  const country = code.slice(0, 2);
-  return isIsoAlpha2(country) || NUTS_ONLY_COUNTRIES.includes(country);
+  return nutsCountryToIso(code) !== null;
 }
 
 function checkLicense(
@@ -220,6 +262,61 @@ function checkLicense(
   }
 }
 
+/**
+ * Valida una singola mappatura, nella forma breve (nome dell'attributo) o
+ * estesa (nome + espressione regolare). Il `pattern` viene COMPILATO qui: una
+ * regex malformata deve fermare la CI, non fallire a runtime sul dispositivo di
+ * un agricoltore.
+ */
+function checkMapping(
+  mapping: unknown,
+  path: string,
+  issues: ParcelSourceIssue[],
+): void {
+  if (isNonEmptyString(mapping)) return;
+  if (typeof mapping !== "object" || mapping === null || Array.isArray(mapping)) {
+    issues.push({
+      path,
+      message:
+        "attesa una stringa, o un oggetto { attribute, pattern }",
+    });
+    return;
+  }
+  const extra = Object.keys(mapping).filter(
+    (key) => key !== "attribute" && key !== "pattern",
+  );
+  for (const key of extra) {
+    issues.push({ path: `${path}.${key}`, message: "campo sconosciuto" });
+  }
+  const { attribute, pattern } = mapping as Record<string, unknown>;
+  if (!isNonEmptyString(attribute)) {
+    issues.push({ path: `${path}.attribute`, message: "nome di attributo mancante" });
+  }
+  if (!isNonEmptyString(pattern)) {
+    issues.push({ path: `${path}.pattern`, message: "espressione regolare mancante" });
+    return;
+  }
+  let compiled: RegExp;
+  try {
+    compiled = new RegExp(pattern);
+  } catch {
+    issues.push({
+      path: `${path}.pattern`,
+      message: "espressione regolare non compilabile",
+    });
+    return;
+  }
+  // Un solo gruppo di cattura: zero non estrarrebbe nulla, più d'uno renderebbe
+  // ambiguo quale valore prendere.
+  const groups = new RegExp(`${compiled.source}|`).exec("")?.length ?? 0;
+  if (groups - 1 !== 1) {
+    issues.push({
+      path: `${path}.pattern`,
+      message: `atteso esattamente 1 gruppo di cattura, trovati ${groups - 1}`,
+    });
+  }
+}
+
 function checkAttributeMap(
   attributeMap: unknown,
   issues: ParcelSourceIssue[],
@@ -241,14 +338,9 @@ function checkAttributeMap(
       });
       continue;
     }
-    if (!isNonEmptyString(value)) {
-      issues.push({
-        path: `attributeMap.${key}`,
-        message: "nome di attributo vuoto o non testuale",
-      });
-    }
+    checkMapping(value, `attributeMap.${key}`, issues);
   }
-  if (!isNonEmptyString((attributeMap as ParcelSourceAttributeMap).sourceId)) {
+  if (!("sourceId" in (attributeMap as object))) {
     issues.push({
       path: "attributeMap.sourceId",
       message:
