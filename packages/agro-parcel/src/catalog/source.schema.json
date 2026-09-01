@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agrogea.dev/schemas/parcel-source-record.json",
+  "title": "AgroGea — record di catalogo di una fonte di particelle",
+  "description": "Descrive una fonte pubblica di unità di riferimento territoriale per uno o più nodi NUTS. Serve all'editor per completamento e segnalazioni; la verifica autorevole resta validateSourceRecord in source-record.ts, che questo schema rispecchia.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "nuts",
+    "name",
+    "accessType",
+    "endpoint",
+    "featureType",
+    "crs",
+    "referenceUnitType",
+    "license",
+    "attributeMap",
+    "updateCadence",
+    "lastVerified"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Puntatore a questo schema per l'editor. Non fa parte del contratto."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Identificativo stabile in kebab-case, es. nl-brp-gewaspercelen."
+    },
+    "nuts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z]{2}[A-Z0-9]{0,3}$"
+      },
+      "description": "Nodi NUTS coperti. La copertura si eredita verso il basso: NL copre NL32. I codici paese seguono l'ISO 3166-1 alpha-2, con le due eccezioni NUTS EL (Grecia) e UK (Regno Unito)."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Nome della fonte come va mostrato e attribuito."
+    },
+    "accessType": {
+      "enum": ["wfs", "ogcapi", "atom", "bulk", "gml"],
+      "description": "Come si interroga la fonte."
+    },
+    "endpoint": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https?://",
+      "description": "URL di base del servizio o del file."
+    },
+    "featureType": {
+      "type": ["string", "null"],
+      "description": "Tipo di feature da richiedere. Obbligatorio per wfs/ogcapi/gml, null per atom/bulk."
+    },
+    "crs": {
+      "type": "string",
+      "pattern": "^EPSG:[0-9]+$",
+      "description": "CRS in cui la fonte pubblica le geometrie, es. EPSG:28992."
+    },
+    "referenceUnitType": {
+      "enum": [
+        "cadastral_parcel",
+        "physical_block",
+        "farmer_parcel",
+        "agricultural_parcel"
+      ],
+      "description": "Che cosa rappresentano le geometrie. \"manual\" è escluso: è la digitalizzazione dell'utente, non esce da una fonte pubblica."
+    },
+    "license": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "attribution"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identificativo SPDX dove esiste, es. CC0-1.0."
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Attribuzione richiesta dalla fonte. Viaggia su ogni particella acquisita e nel file di scambio."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://"
+        }
+      }
+    },
+    "attributeMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceId"],
+      "properties": {
+        "sourceId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Attributo con l'identificativo nativo. Obbligatorio: senza, non si può deduplicare."
+        },
+        "nationalCropCode": { "type": "string", "minLength": 1 },
+        "declaredArea": { "type": "string", "minLength": 1 },
+        "eligibleArea": { "type": "string", "minLength": 1 },
+        "validityYear": { "type": "string", "minLength": 1 }
+      },
+      "description": "Corrispondenza fra i campi di Parcel e i nomi degli attributi nella fonte. È qui che vivono le differenze fra portali, invece che in rami di codice."
+    },
+    "updateCadence": {
+      "enum": [
+        "annual",
+        "biannual",
+        "quarterly",
+        "monthly",
+        "continuous",
+        "irregular"
+      ],
+      "description": "Ritmo di pubblicazione dichiarato dall'ente."
+    },
+    "lastVerified": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Istante ISO 8601 dell'ultima verifica riuscita contro il servizio vivo. null = mai verificato. Lo scrive lo script di verifica, non si compila a mano."
+    }
+  }
+}

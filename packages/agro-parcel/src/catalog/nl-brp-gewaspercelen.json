@@ -1,0 +1,22 @@
+{
+  "$schema": "./source.schema.json",
+  "id": "nl-brp-gewaspercelen",
+  "nuts": ["NL"],
+  "name": "BRP Gewaspercelen (INSPIRE geharmoniseerd)",
+  "accessType": "wfs",
+  "endpoint": "https://service.pdok.nl/rvo/gewaspercelen-geharmoniseerd/wfs/v1_0",
+  "featureType": "lu:ExistingLandUseObject",
+  "crs": "EPSG:28992",
+  "referenceUnitType": "agricultural_parcel",
+  "license": {
+    "id": "CC0-1.0",
+    "attribution": "RVO / PDOK",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/deed.nl"
+  },
+  "attributeMap": {
+    "sourceId": "inspireId",
+    "nationalCropCode": "specificLandUse"
+  },
+  "updateCadence": "annual",
+  "lastVerified": null
+}

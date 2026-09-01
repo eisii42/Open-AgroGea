@@ -27,3 +27,20 @@ export {
   isIsoAlpha2,
   type IsoAlpha2,
 } from "./iso-3166";
+export {
+  PARCEL_SOURCE_ACCESS_TYPES,
+  PARCEL_SOURCE_UPDATE_CADENCES,
+  validateCatalog,
+  validateSourceRecord,
+  type ParcelSourceAccessType,
+  type ParcelSourceAttributeMap,
+  type ParcelSourceIssue,
+  type ParcelSourceRecord,
+  type ParcelSourceUpdateCadence,
+} from "./source-record";
+export {
+  PARCEL_SOURCE_CATALOG,
+  nutsCovers,
+  sourceById,
+  sourcesCovering,
+} from "./catalog";
