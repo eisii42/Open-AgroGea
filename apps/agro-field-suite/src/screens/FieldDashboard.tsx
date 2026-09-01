@@ -31,6 +31,7 @@ import { ModuleSidebar } from "../components/ModuleSidebar";
 import { TransferTagsFeed } from "../components/TransferTagsFeed";
 import { useReadOnly } from "@agrogea/core";
 import { useGeometryUndoRedo } from "../hooks/useGeometryUndoRedo";
+import { useParcelCandidatesLayer } from "../hooks/useParcelCandidatesLayer";
 import { usePlotsLayer } from "../hooks/usePlotsLayer";
 import { useFeatureSelection } from "../hooks/useFeatureSelection";
 import { useFieldLayers } from "../hooks/useFieldLayers";
@@ -234,6 +235,9 @@ export function FieldDashboard() {
 
   useFieldPlugins(mapControllerRef, mapReady);
   usePlotsLayer(mapControllerRef, styleEpoch);
+  // Particelle proposte dall'adozione: sopra gli appezzamenti, così durante la
+  // scelta hover e click appartengono alla proposta.
+  useParcelCandidatesLayer(mapControllerRef, styleEpoch);
   useFieldLayers(styleEpoch);
   const hover = useHoverTooltips(mapControllerRef, mapReady);
   useFeatureSelection(mapControllerRef, mapReady);

@@ -1947,7 +1947,12 @@
     "poi": "POI",
     "id": "ID",
     "indexCell": "Index cell",
-    "cellSize": "{{size}} × {{size}} m"
+    "cellSize": "{{size}} × {{size}} m",
+    "parcelNoReference": "No native identifier",
+    "parcelDeclaredArea": "Declared area",
+    "parcelCropCode": "Crop code",
+    "parcelYear": "Year",
+    "parcelClickHint": "Click to add it"
   },
   "appHeader": {
     "commandCenter": "Command Center",
@@ -2357,7 +2362,8 @@
       "farmer_parcel": "Farmer parcel as declared to the paying agency.",
       "agricultural_parcel": "Agricultural parcel — already a single cropped unit.",
       "manual": "Drawn by hand."
-    }
+    },
+    "foundHint": "{{count}} parcels drawn on the map. Hover one to see its details, click it to add it."
   },
   "onboarding": {
     "title": "Welcome to AgroGea",

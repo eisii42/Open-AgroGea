@@ -1,3 +1,4 @@
+import { isSourcedParcel, parcelGeometry, type Parcel } from "@agrogea/parcel";
 import type { Feature, FeatureCollection, Point } from "geojson";
 import { cropStyle } from "../crop-colors";
 import type {
@@ -110,6 +111,64 @@ export function plotsToFeatureCollection(
           // renderer compute opacità/spessore = to-number(null) = 0 → invisibile.
           "fill-opacity": 0.35,
           "stroke-width": 1.5,
+        },
+      };
+    }),
+  };
+}
+
+/**
+ * Colore delle particelle candidate all'adozione. Ambra, deliberatamente fuori
+ * dalla tavolozza delle colture: sulla mappa devono leggersi come "proposte da
+ * una fonte esterna", non come qualcosa che l'azienda già possiede.
+ */
+export const PARCEL_CANDIDATE_COLOR = "#f59e0b";
+
+/** Colore della candidata selezionata, in attesa di conferma. */
+export const PARCEL_SELECTED_COLOR = "#ea580c";
+
+/**
+ * FeatureCollection delle particelle candidate, per il layer di adozione.
+ *
+ * Le `properties` portano tutto ciò che la scheda al passaggio del mouse deve
+ * mostrare: si legge dalla feature sotto il cursore, senza risalire all'oggetto
+ * di dominio. `selected` pilota l'evidenziazione, così l'elemento cliccato si
+ * distingue senza un secondo layer.
+ */
+export function parcelsToFeatureCollection(
+  parcels: readonly Parcel[],
+  selectedId: string | null = null,
+): FeatureCollection {
+  return {
+    type: "FeatureCollection",
+    features: parcels.map((parcel) => {
+      const selected = parcel.id === selectedId;
+      const color = selected ? PARCEL_SELECTED_COLOR : PARCEL_CANDIDATE_COLOR;
+      const sourced = isSourcedParcel(parcel);
+      return {
+        type: "Feature" as const,
+        id: parcel.id,
+        geometry: parcelGeometry(parcel),
+        properties: {
+          id: parcel.id,
+          sourceId: sourced ? parcel.sourceId : null,
+          referenceUnitType: parcel.referenceUnitType,
+          declaredArea: parcel.declaredArea,
+          eligibleArea: parcel.eligibleArea,
+          nationalCropCode: parcel.nationalCropCode,
+          validityYear: parcel.validityYear,
+          country: parcel.country,
+          nutsCode: parcel.nutsCode,
+          sourceName: sourced ? parcel.sourceName : null,
+          licenseId: sourced ? parcel.license.id : null,
+          licenseAttribution: sourced ? parcel.license.attribution : null,
+          selected,
+          fill: color,
+          stroke: color,
+          // Obbligatori con simpleStyleEnabled: senza, il renderer compute
+          // opacità/spessore = to-number(null) = 0 → invisibile.
+          "fill-opacity": selected ? 0.45 : 0.2,
+          "stroke-width": selected ? 3 : 1.5,
         },
       };
     }),

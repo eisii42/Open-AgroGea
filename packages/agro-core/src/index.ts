@@ -90,6 +90,9 @@ export { SyncRouter, type SyncRouterOptions } from "./sync/router";
 export {
   useAgroStore,
   isViewerReadOnly,
+  PARCEL_CANDIDATE_COLOR,
+  PARCEL_SELECTED_COLOR,
+  parcelsToFeatureCollection,
   plotsToFeatureCollection,
   assetsToFeatureCollection,
   cropForPlot,

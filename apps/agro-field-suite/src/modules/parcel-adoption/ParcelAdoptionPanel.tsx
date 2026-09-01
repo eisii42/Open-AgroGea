@@ -12,7 +12,7 @@ import {
 import { FieldSheet } from "@agrogea/ui";
 import { Button } from "@geolibre/ui";
 import type { MapController } from "@geolibre/map";
-import { Crosshair, Loader2, MapPin, Search } from "lucide-react";
+import { Crosshair, Loader2, Search } from "lucide-react";
 import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { createParcelSourceDeps } from "../../lib/parcel-source-transport";
@@ -26,9 +26,13 @@ import {
 } from "./parcel-adoption";
 
 /**
- * Pannello "Particelle pubbliche": l'utente sceglie una fonte del catalogo,
- * cerca nella zona che sta guardando (o clicca un punto), vede che cosa la
- * fonte pubblica lì, e adotta ciò che gli appartiene.
+ * Pannello "Particelle pubbliche".
+ *
+ * L'interazione vive sulla MAPPA, non in un elenco: la ricerca disegna tutte le
+ * particelle trovate, il passaggio del mouse ne mostra la scheda, il click ne
+ * evidenzia una e apre qui il modulo per adottarla. Un elenco testuale sarebbe
+ * stato più semplice da scrivere e peggiore da usare — di una particella conta
+ * dove sta e che forma ha, e nessuna riga di testo lo dice.
  *
  * Due cose che il pannello NON fa, deliberatamente:
  *
@@ -50,6 +54,10 @@ export function ParcelAdoptionPanel({
   const { t } = useTranslation();
   const plots = useAgroStore((s) => s.plots);
   const adoptParcel = useAgroStore((s) => s.adoptParcel);
+  const candidates = useAgroStore((s) => s.parcelCandidates);
+  const selectedParcelId = useAgroStore((s) => s.selectedParcelId);
+  const setParcelCandidates = useAgroStore((s) => s.setParcelCandidates);
+  const clearParcelCandidates = useAgroStore((s) => s.clearParcelCandidates);
   const { countryCode } = useTenantCountry();
 
   const sources = useMemo(
@@ -65,24 +73,35 @@ export function ParcelAdoptionPanel({
   const [busy, setBusy] = useState(false);
   const [pickingPoint, setPickingPoint] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [candidates, setCandidates] = useState<Parcel[]>([]);
-  const [selected, setSelected] = useState<Parcel | null>(null);
   const [plotName, setPlotName] = useState("");
+
+  const selected = useMemo(
+    () => candidates.find((c) => c.id === selectedParcelId) ?? null,
+    [candidates, selectedParcelId],
+  );
 
   // Le capacità di rete/geodesia si costruiscono una volta per la vita del
   // pannello: il riproiettore memorizza le trasformazioni, e ricrearlo a ogni
   // ricerca ne butterebbe via la cache.
   const depsRef = useRef(createParcelSourceDeps());
 
+  // Chiudendo il pannello la mappa torna sgombra: le proposte appartengono
+  // alla sessione di scelta, non alla cartografia dell'azienda.
+  useEffect(() => () => clearParcelCandidates(), [clearParcelCandidates]);
+
+  // Il nome proposto segue la particella evidenziata sulla mappa.
+  useEffect(() => {
+    if (selected) setPlotName(suggestedPlotName(selected, plots.length + 1));
+  }, [selected, plots.length]);
+
   async function runQuery(query: (source: ParcelSourceRecord) => Promise<Parcel[]>) {
     if (!source) return;
     setBusy(true);
     setError(null);
-    setSelected(null);
     try {
-      setCandidates(await query(source));
+      setParcelCandidates(await query(source));
     } catch (cause) {
-      setCandidates([]);
+      setParcelCandidates([]);
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
       setBusy(false);
@@ -95,7 +114,7 @@ export function ParcelAdoptionPanel({
     const bbox: BBox = boundsToBBox(map.getBounds());
     if (isViewportTooWide(bbox)) {
       setError(t("parcelAdoption.zoomIn"));
-      setCandidates([]);
+      setParcelCandidates([]);
       return;
     }
     void runQuery((record) =>
@@ -126,20 +145,14 @@ export function ParcelAdoptionPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickingPoint, source, mapControllerRef]);
 
-  function selectCandidate(parcel: Parcel) {
-    setSelected(parcel);
-    setPlotName(suggestedPlotName(parcel, plots.length + 1));
-    setError(null);
-  }
-
   async function adopt() {
     if (!selected) return;
     setBusy(true);
     setError(null);
     try {
-      await adoptParcel(selected, { name: plotName.trim() || suggestedPlotName(selected, plots.length + 1) });
-      setSelected(null);
-      setCandidates((current) => current.filter((c) => c !== selected));
+      await adoptParcel(selected, {
+        name: plotName.trim() || suggestedPlotName(selected, plots.length + 1),
+      });
     } catch (cause) {
       setError(
         cause instanceof ParcelAlreadyAdoptedError
@@ -154,6 +167,8 @@ export function ParcelAdoptionPanel({
       setBusy(false);
     }
   }
+
+  const summary = selected ? candidateSummary(selected) : null;
 
   return (
     <FieldSheet title={t("parcelAdoption.title")} onClose={onClose}>
@@ -211,59 +226,43 @@ export function ParcelAdoptionPanel({
           </p>
         )}
 
-        {!busy && candidates.length === 0 && !error && (
+        {!busy && !error && candidates.length === 0 && (
           <p className="text-[var(--ink-2)]">{t("parcelAdoption.noResults")}</p>
         )}
 
-        <ul className="flex flex-col gap-2">
-          {candidates.map((parcel) => {
-            const summary = candidateSummary(parcel);
-            const isSelected = parcel === selected;
-            return (
-              <li key={parcel.id}>
-                <button
-                  type="button"
-                  onClick={() => selectCandidate(parcel)}
-                  className={`w-full rounded-[var(--r-2)] border p-2 text-left ${
-                    isSelected
-                      ? "border-[var(--accent)] bg-[var(--panel-2)]"
-                      : "border-[var(--line)]"
-                  }`}
-                >
-                  <span className="flex items-center gap-2 font-medium">
-                    <MapPin size={14} />
-                    {summary.reference ?? t("parcelAdoption.noReference")}
-                  </span>
-                  {/* Che cosa si sta adottando: blocco fisico, particella
-                      catastale o unità colturale. Cambia il significato. */}
-                  <span className="block text-xs text-[var(--ink-2)]">
-                    {t(summary.unitTypeKey)}
-                  </span>
-                  <span className="block text-xs text-[var(--ink-2)]">
-                    {[
-                      summary.declaredArea != null
-                        ? t("parcelAdoption.declaredArea", {
-                            value: summary.declaredArea.toFixed(4),
-                          })
-                        : null,
-                      summary.nationalCropCode
-                        ? t("parcelAdoption.cropCode", {
-                            code: summary.nationalCropCode,
-                          })
-                        : null,
-                      summary.validityYear ?? null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        {/* Trovate ma non ancora scelte: l'istruzione dice dove guardare, cioè
+            sulla mappa. */}
+        {candidates.length > 0 && !selected && (
+          <p className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2 text-[var(--ink-2)]">
+            {t("parcelAdoption.foundHint", { count: candidates.length })}
+          </p>
+        )}
 
-        {selected && (
-          <div className="flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--line)] p-2">
+        {selected && summary && (
+          <div className="flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--accent)] p-2">
+            <p className="text-[13px] font-semibold">
+              {summary.reference ?? t("parcelAdoption.noReference")}
+            </p>
+            {/* Che cosa si sta adottando: blocco fisico, particella catastale o
+                unità colturale. Cambia il significato dell'appezzamento. */}
+            <p className="text-xs leading-snug text-[var(--ink-2)]">
+              {t(summary.unitTypeKey)}
+            </p>
+            <p className="text-xs text-[var(--ink-2)]">
+              {[
+                summary.declaredArea != null
+                  ? t("parcelAdoption.declaredArea", {
+                      value: summary.declaredArea.toFixed(4),
+                    })
+                  : null,
+                summary.nationalCropCode
+                  ? t("parcelAdoption.cropCode", { code: summary.nationalCropCode })
+                  : null,
+                summary.validityYear ?? null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
             <label className="flex flex-col gap-1">
               <span className="text-xs text-[var(--ink-2)]">
                 {t("parcelAdoption.plotNameLabel")}

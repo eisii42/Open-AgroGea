@@ -39,6 +39,9 @@ export type {
 } from "./store/state";
 export { isViewerReadOnly } from "./store/helpers";
 export {
+  PARCEL_CANDIDATE_COLOR,
+  PARCEL_SELECTED_COLOR,
+  parcelsToFeatureCollection,
   plotsToFeatureCollection,
   assetsToFeatureCollection,
   cropForPlot,

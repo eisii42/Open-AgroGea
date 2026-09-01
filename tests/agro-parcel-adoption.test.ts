@@ -6,6 +6,7 @@ import {
   findAdoptedPlot,
   PARCEL_METADATA_KEY,
   parcelProvenance,
+  parcelsToFeatureCollection,
   parcelToPlotDraft,
   plotProvenance,
   type Plot,
@@ -322,6 +323,66 @@ describe("adozione particelle / conversione in appezzamento", () => {
     const provenance = parcelProvenance(manualParcel());
     assert.equal(provenance.license, null);
     assert.equal(provenance.sourceName, null);
+  });
+});
+
+describe("adozione particelle / proiezione sulla mappa", () => {
+  it("porta nelle properties tutto ciò che serve alla scheda", () => {
+    // La scheda al passaggio del mouse legge dalla feature sotto il cursore,
+    // senza risalire all'oggetto di dominio: se un campo non è qui, non si vede.
+    const fc = parcelsToFeatureCollection([sourcedParcel()]);
+    const props = fc.features[0].properties as Record<string, unknown>;
+    assert.equal(props.sourceId, "BRP.2025.45247317");
+    assert.equal(props.referenceUnitType, "agricultural_parcel");
+    assert.equal(props.declaredArea, 2.4312);
+    assert.equal(props.nationalCropCode, "259");
+    assert.equal(props.validityYear, 2025);
+    assert.equal(props.sourceName, "BRP Gewaspercelen (INSPIRE geharmoniseerd)");
+    assert.equal(props.licenseId, "CC0-1.0");
+    assert.equal(props.licenseAttribution, "RVO / PDOK");
+  });
+
+  it("evidenzia la candidata selezionata", () => {
+    const parcels = [sourcedParcel(), sourcedParcel({ id: "altra" })];
+    const fc = parcelsToFeatureCollection(parcels, "altra");
+    const [first, second] = fc.features.map(
+      (f) => f.properties as Record<string, unknown>,
+    );
+    assert.equal(first.selected, false);
+    assert.equal(second.selected, true);
+    // Colore e spessore diversi: l'elemento cliccato si distingue senza un
+    // secondo layer.
+    assert.notEqual(first.fill, second.fill);
+    assert.ok(
+      (second["stroke-width"] as number) > (first["stroke-width"] as number),
+    );
+  });
+
+  it("senza selezione nessuna candidata è evidenziata", () => {
+    const fc = parcelsToFeatureCollection([sourcedParcel()]);
+    assert.equal((fc.features[0].properties as Record<string, unknown>).selected, false);
+  });
+
+  it("disegna la rettifica dell'utente quando c'è", () => {
+    const fc = parcelsToFeatureCollection([
+      sourcedParcel({ editedGeometry: EDITED_GEOMETRY }),
+    ]);
+    assert.deepEqual(fc.features[0].geometry, EDITED_GEOMETRY);
+  });
+
+  it("una particella manuale non ha provenienza da mostrare", () => {
+    const fc = parcelsToFeatureCollection([manualParcel()]);
+    const props = fc.features[0].properties as Record<string, unknown>;
+    assert.equal(props.sourceId, null);
+    assert.equal(props.licenseId, null);
+    assert.equal(props.referenceUnitType, "manual");
+  });
+
+  it("un elenco vuoto produce una collezione vuota, non un errore", () => {
+    assert.deepEqual(parcelsToFeatureCollection([]), {
+      type: "FeatureCollection",
+      features: [],
+    });
   });
 });
 

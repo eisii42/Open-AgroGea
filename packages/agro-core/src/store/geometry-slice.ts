@@ -24,6 +24,18 @@ export function createGeometrySlice(
     geomEditRequest: null,
     geometryUndo: [],
     geometryRedo: [],
+    parcelCandidates: [],
+    selectedParcelId: null,
+
+    setParcelCandidates: (parcels) =>
+      // Una nuova ricerca azzera la selezione: l'elemento evidenziato prima
+      // quasi certamente non è più fra i risultati.
+      set({ parcelCandidates: parcels, selectedParcelId: null }),
+
+    selectParcelCandidate: (id) => set({ selectedParcelId: id }),
+
+    clearParcelCandidates: () =>
+      set({ parcelCandidates: [], selectedParcelId: null }),
 
     saveDrawnPlot: async (geometria, attrs = {}) => {
       assertWritable(get);
@@ -73,6 +85,11 @@ export function createGeometrySlice(
       const record = await dal.upsertPlot(draft);
       set((s) => ({
         plots: [...s.plots.filter((a) => a.id !== record.id), record],
+        // Adottata: esce dalle candidate e la mappa la ridisegna come
+        // appezzamento aziendale, non più come proposta.
+        parcelCandidates: s.parcelCandidates.filter((p) => p.id !== parcel.id),
+        selectedParcelId:
+          s.selectedParcelId === parcel.id ? null : s.selectedParcelId,
       }));
       syncRouter?.notifyLocalWrite();
       return record;

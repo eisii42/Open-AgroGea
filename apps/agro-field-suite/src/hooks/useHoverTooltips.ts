@@ -24,7 +24,12 @@ import { type RefObject, useEffect, useMemo, useState } from "react";
  * quando sotto il cursore c'è anche una cella indice.
  */
 
-export type HoverKind = "appezzamento" | "infrastruttura" | "poi" | "indexCell";
+export type HoverKind =
+  | "appezzamento"
+  | "infrastruttura"
+  | "poi"
+  | "indexCell"
+  | "parcelCandidate";
 
 export interface HoverState {
   kind: HoverKind;
@@ -36,6 +41,7 @@ export interface HoverState {
 const PLOTS_ID = "agrogea-plots";
 const INFRASTRUTTURE_ID = "agrogea-infrastrutture";
 const POI_ID = "agrogea-poi";
+const PARCEL_CANDIDATES_ID = "agrogea-parcel-candidates";
 
 interface Binding {
   layerId: string;
@@ -83,7 +89,10 @@ export function useHoverTooltips(
     const cellFillIds = cellBindings.map(([id]) => fillLayerId(id));
 
     // Layer nativi (anche se i dati arrivano dopo: MapLibre lega per id).
+    const candidateFillId = fillLayerId(PARCEL_CANDIDATES_ID);
+
     const bindings: Binding[] = [
+      { layerId: candidateFillId, kind: "parcelCandidate" },
       { layerId: fillLayerId(PLOTS_ID), kind: "appezzamento" },
       { layerId: lineLayerId(INFRASTRUTTURE_ID), kind: "infrastruttura" },
       { layerId: fillLayerId(INFRASTRUTTURE_ID), kind: "infrastruttura" },
@@ -116,6 +125,18 @@ export function useHoverTooltips(
         cellFillIds.length > 0 &&
         map.queryRenderedFeatures([e.point.x, e.point.y], {
           layers: cellFillIds.filter((id) => map.getLayer(id)),
+        }).length > 0
+      ) {
+        return;
+      }
+      // Stessa logica per le particelle candidate: mentre si sceglie che cosa
+      // adottare, la proposta sotto il cursore conta più dell'appezzamento che
+      // le sta sotto.
+      if (
+        kind === "appezzamento" &&
+        map.getLayer(candidateFillId) &&
+        map.queryRenderedFeatures([e.point.x, e.point.y], {
+          layers: [candidateFillId],
         }).length > 0
       ) {
         return;

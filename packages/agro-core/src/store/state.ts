@@ -939,6 +939,21 @@ export interface GeometrySlice {
   /** Pila redo delle modifiche geometriche (DAL-aware). */
   geometryRedo: GeometrySnapshot[];
 
+  /**
+   * Particelle proposte dall'ultima interrogazione, disegnate sulla mappa.
+   * Stanno nello store e non nel pannello perché sono l'oggetto di un dialogo
+   * fra due parti dell'interfaccia: il pannello le trova, la mappa le mostra e
+   * ne raccoglie il click. Vivono solo in memoria — nulla entra in PGlite
+   * finché l'utente non adotta.
+   */
+  parcelCandidates: Parcel[];
+  /** Candidata evidenziata sulla mappa, di cui il pannello mostra la scheda. */
+  selectedParcelId: string | null;
+  setParcelCandidates: (parcels: Parcel[]) => void;
+  selectParcelCandidate: (id: string | null) => void;
+  /** Sgombera la mappa: chiude il pannello o azzera una ricerca. */
+  clearParcelCandidates: () => void;
+
   saveDrawnPlot: (
     geometria: Plot["geometry"],
     attrs?: PlotDrawAttrs,
