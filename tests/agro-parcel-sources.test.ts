@@ -14,6 +14,7 @@ import {
   nextPageUrl,
   normalizeFeatureCollection,
   nutsCountryToIso,
+  PARCEL_SOURCE_CATALOG,
   reprojectGeometry,
   resolveMapping,
   sourceById,
@@ -24,6 +25,7 @@ import {
   type Reprojector,
 } from "@agrogea/parcel";
 import { createProj4Reprojector, UnknownCrsError } from "@agrogea/core";
+import { catalogHosts } from "../apps/agro-field-suite/src/lib/parcel-source-transport";
 import type { Polygon } from "geojson";
 import bboxPage from "./fixtures/parcel-sources/nl-brp-bbox.json";
 import page1 from "./fixtures/parcel-sources/nl-brp-page-1.json";
@@ -490,6 +492,24 @@ describe("fonti particelle / scelta dell'adapter", () => {
       () => createParcelSource({ ...NL, accessType: "gml" }, deps),
       UnsupportedAccessTypeError,
     );
+  });
+});
+
+describe("fonti particelle / allow-list del trasporto", () => {
+  it("copre esattamente gli host del catalogo", () => {
+    // È l'invariante che tiene in piedi la difesa nativa: se un host del
+    // catalogo mancasse, quella fonte sarebbe bloccata dal comando Rust; se ce
+    // ne fosse uno in più, l'allow-list smetterebbe di derivare dal catalogo.
+    const hosts = new Set(catalogHosts());
+    const expected = new Set(
+      PARCEL_SOURCE_CATALOG.map((source) => new URL(source.endpoint).host),
+    );
+    assert.deepEqual([...hosts].sort(), [...expected].sort());
+  });
+
+  it("non duplica un host condiviso da più fonti", () => {
+    const hosts = catalogHosts();
+    assert.equal(new Set(hosts).size, hosts.length);
   });
 });
 
