@@ -20,7 +20,9 @@ import {
   type AgronomicLogs,
   type Company,
   type CompanySnapshot,
+  type Plot,
   parseCompanyTransfer,
+  planPlotImport,
   serializeCompanySnapshot,
   useAgroStore,
 } from "@agrogea/core";
@@ -139,7 +141,28 @@ export interface ImportSummary {
   harvests: number;
   assets: number;
   scouting: number;
+  /**
+   * Appezzamenti saltati perché la loro particella pubblica è già nel
+   * portafoglio sotto un altro record, e l'utente non ha scelto di
+   * sovrascriverla.
+   */
+  plotsSkipped: number;
 }
+
+/**
+ * Decide che fare di un appezzamento in arrivo che descrive una particella già
+ * presente sotto un record diverso. Riceve i due contendenti e risponde se
+ * sovrascrivere.
+ *
+ * Il default, quando il chiamante non la fornisce, è **non** sovrascrivere: un
+ * import è un'operazione di ripristino, e perdere in silenzio il quaderno di
+ * campagna di un appezzamento già lavorato sarebbe il danno peggiore che questa
+ * funzione possa fare.
+ */
+export type ImportConflictResolver = (conflict: {
+  incoming: Plot;
+  existing: Plot;
+}) => boolean | Promise<boolean>;
 
 /**
  * Ripristina i dati del documento nell'azienda `targetCompanyId`. Ogni record
@@ -151,6 +174,7 @@ export async function importCompanyData(
   dal: AgroDal,
   raw: unknown,
   targetCompanyId: string,
+  onConflict: ImportConflictResolver = () => false,
 ): Promise<ImportSummary> {
   const snapshot = parseCompanyTransfer(raw);
   const summary: ImportSummary = {
@@ -162,6 +186,7 @@ export async function importCompanyData(
     harvests: 0,
     assets: 0,
     scouting: 0,
+    plotsSkipped: 0,
   };
 
   const restoreLogs = async (logs: AgronomicLogs) => {
@@ -196,7 +221,20 @@ export async function importCompanyData(
     summary.crops++;
   }
 
-  for (const bundle of snapshot.plots) {
+  // Si pianifica PRIMA di scrivere: gli appezzamenti nuovi e i ripristini dello
+  // stesso record passano lisci, mentre una particella già presente sotto un
+  // altro record si chiede — mai la si sovrascrive di iniziativa.
+  const plan = planPlotImport(snapshot.plots, await dal.listPlots(targetCompanyId));
+  const bundles = [...plan.toCreate, ...plan.toUpdate];
+  for (const { incoming, existing } of plan.conflicts) {
+    if (await onConflict({ incoming: incoming.plot, existing })) {
+      bundles.push(incoming);
+    } else {
+      summary.plotsSkipped++;
+    }
+  }
+
+  for (const bundle of bundles) {
     await dal.upsertPlot({
       ...stripEnv(bundle.plot),
       company_id: targetCompanyId,

@@ -23,6 +23,7 @@
     "lint": "eslint apps packages plugins tests",
     "test": "node --import tsx --test tests/agro-*.test.ts",
     "licenses:agro": "node scripts/gen-third-party-licenses.mjs",
+    "verify:sources": "node --import tsx scripts/verify-parcel-sources.mts",
     "tauri": "npm run tauri -w agro-field-suite",
     "tauri:dev": "npm run tauri dev -w agro-field-suite",
     "tauri:build": "npm run tauri build -w agro-field-suite",
