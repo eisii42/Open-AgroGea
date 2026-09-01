@@ -14,18 +14,43 @@
  * Modulo **PURO**: nessun DOM/React, nessun accesso DB (accetta geometrie
  * GeoJSON, non rows di tabella). Sopravvive intatto al rename dello schema e
  * resta testabile sotto `node --test`.
+ *
+ * ## Tre insiemi di paesi, deliberatamente distinti
+ *
+ * Finora coincidevano tutti e tre in `IT|ES|FR`, quindi una sola unione bastava.
+ * Con l'acquisizione delle particelle da fonti pubbliche europee un'azienda può
+ * avere campi in un paese di cui non conosciamo né i confini né la burocrazia, e
+ * i tre concetti divergono:
+ *
+ *   * {@link CountryCode} — **dove può stare un'azienda**: qualunque paese reale
+ *     (ISO 3166-1 alpha-2), più la sentinella `EU` del fallback internazionale.
+ *   * {@link CountryWithBbox} — **dove sappiamo verificare le coordinate**: i
+ *     paesi di cui abbiamo il bounding box. Fuori da qui il cross-check spaziale
+ *     si ASTIENE, non accusa (vedi {@link checkPlotCountry}).
+ *   * {@link SUPPORTED_COUNTRIES} — **dove sappiamo produrre gli export
+ *     normativi**: i paesi con un adapter nazionale dedicato.
+ *
+ * Tenerli separati è ciò che impedisce a un'azienda olandese di ricevere un
+ * avviso "campi fuori dal paese dichiarato" solo perché non abbiamo (ancora) il
+ * riquadro dei Paesi Bassi.
  */
 import type { MultiPolygon, Polygon } from "geojson";
 import { boundingBox, centroid } from "../geo/area";
+import { type IsoAlpha2, isIsoAlpha2 } from "./iso-3166";
 
 /**
- * Codici paese supportati dagli adapter regionali (ISO 3166-1 alpha-2), più il
- * fallback internazionale `EU` per i tenant fuori dai paesi con adapter dedicato
- * (usa il Base Adapter: CSV ISO standard).
+ * Paese di un'azienda: qualunque codice ISO 3166-1 alpha-2 assegnato, più `EU`
+ * come fallback internazionale (nessun adapter nazionale dedicato → Base
+ * Adapter, CSV ISO standard). `EU` non è un codice assegnato, quindi non
+ * collide mai con un paese reale.
  */
-export type CountryCode = "IT" | "ES" | "FR" | "EU";
+export type CountryCode = IsoAlpha2 | "EU";
 
-/** Codici con un adapter nazionale dedicato (non il solo Base internazionale). */
+/**
+ * Codici con un adapter nazionale dedicato di EXPORT (non il solo Base
+ * internazionale). NON è l'insieme dei paesi in cui un'azienda può operare:
+ * quello è {@link CountryCode}.
+ */
 export const SUPPORTED_COUNTRIES: readonly CountryCode[] = ["IT", "ES", "FR"];
 
 /** Fallback usato quando né anagrafica né coordinate determinano un paese noto. */
@@ -34,12 +59,27 @@ export const DEFAULT_COUNTRY: CountryCode = "EU";
 type Bbox = readonly [number, number, number, number]; // [minLon, minLat, maxLon, maxLat]
 
 /**
+ * Paesi di cui conosciamo il bounding box, in ordine di precedenza: a parità di
+ * sovrapposizione fra riquadri vince il primo, il che rende
+ * {@link detectCountryAtPoint} deterministico. Aggiungere un paese qui obbliga
+ * ad aggiungerne il riquadro a {@link COUNTRY_BBOXES} (lo impone il tipo).
+ */
+export const COUNTRIES_WITH_BBOX = ["IT", "ES", "FR"] as const;
+
+/** Paese di cui sappiamo verificare l'appartenenza di un punto. */
+export type CountryWithBbox = (typeof COUNTRIES_WITH_BBOX)[number];
+
+/**
  * Bounding box nazionali approssimati in EPSG:4326 (lon/lat). Pensati per un
  * controllo di appartenenza rapido (point-in-bbox), non per confini esatti: un
  * paese può avere più riquadri (territori non contigui, es. Canarie, Corsica).
  * Sono volutamente generosi per non generare falsi positivi ai confini.
+ *
+ * Il `Record` è ESAUSTIVO su {@link CountryWithBbox}, non su {@link CountryCode}:
+ * la copertura resta completa per i paesi che dichiariamo di saper verificare,
+ * invece di diventare silenziosamente parziale su 249 codici.
  */
-const COUNTRY_BBOXES: Record<Exclude<CountryCode, "EU">, readonly Bbox[]> = {
+const COUNTRY_BBOXES: Record<CountryWithBbox, readonly Bbox[]> = {
   // Penisola + isole maggiori (Sicilia, Sardegna).
   IT: [[6.6, 35.3, 18.8, 47.1]],
   // Penisola iberica + Baleari, e a parte le Isole Canarie.
@@ -55,39 +95,57 @@ function inBbox(lon: number, lat: number, box: Bbox): boolean {
   return lon >= box[0] && lon <= box[2] && lat >= box[1] && lat <= box[3];
 }
 
+/**
+ * True se del paese conosciamo il bounding box, quindi il cross-check spaziale è
+ * possibile. È il guardiano che separa "verificato fuori" da "non verificabile".
+ */
+export function hasCountryBbox(
+  code: CountryCode | null | undefined,
+): code is CountryWithBbox {
+  return (
+    code != null && (COUNTRIES_WITH_BBOX as readonly string[]).includes(code)
+  );
+}
+
 /** True se il punto (lon, lat) cade in uno qualsiasi dei riquadri del paese. */
 export function pointInCountry(
   lon: number,
   lat: number,
-  code: Exclude<CountryCode, "EU">,
+  code: CountryWithBbox,
 ): boolean {
   return COUNTRY_BBOXES[code].some((box) => inBbox(lon, lat, box));
 }
 
 /**
  * Paese il cui bounding box contiene il punto (lon, lat), o `null` se nessuno
- * dei paesi supportati lo contiene. In caso di sovrapposizione vince l'ordine di
- * {@link SUPPORTED_COUNTRIES} (deterministico).
+ * dei paesi noti lo contiene. In caso di sovrapposizione vince l'ordine di
+ * {@link COUNTRIES_WITH_BBOX} (deterministico).
  */
 export function detectCountryAtPoint(
   lon: number,
   lat: number,
-): Exclude<CountryCode, "EU"> | null {
-  for (const code of SUPPORTED_COUNTRIES) {
-    if (code !== "EU" && pointInCountry(lon, lat, code)) return code;
+): CountryWithBbox | null {
+  for (const code of COUNTRIES_WITH_BBOX) {
+    if (pointInCountry(lon, lat, code)) return code;
   }
   return null;
 }
 
-/** Normalizza una stringa paese (alpha-2, name o vuoto) in {@link CountryCode}. */
+/**
+ * Normalizza una stringa paese (alpha-2, name o vuoto) in {@link CountryCode}.
+ * Accetta qualunque codice ISO assegnato; gli alias per esteso restano solo per
+ * i paesi con adapter nazionale dedicato, dove l'anagrafica storica può portare
+ * il name scritto a mano. Ritorna `null` per ciò che non è un paese: stringa
+ * vuota, refusi, codici user-assigned (`ZZ`, `AA`, `XA`–`XZ`).
+ */
 export function normalizeCountryCode(raw: string | null | undefined): CountryCode | null {
   if (!raw) return null;
   const v = raw.trim().toUpperCase();
-  if (v === "IT" || v === "ITALIA" || v === "ITALY") return "IT";
-  if (v === "ES" || v === "ESPAÑA" || v === "ESPANA" || v === "SPAIN") return "ES";
-  if (v === "FR" || v === "FRANCIA" || v === "FRANCE") return "FR";
+  if (v === "ITALIA" || v === "ITALY") return "IT";
+  if (v === "ESPAÑA" || v === "ESPANA" || v === "SPAIN") return "ES";
+  if (v === "FRANCIA" || v === "FRANCE") return "FR";
   if (v === "EU" || v === "INT" || v === "INTERNATIONAL") return "EU";
-  return null;
+  return isIsoAlpha2(v) ? v : null;
 }
 
 /** Sorgente che ha determinato il codice paese risolto. */
@@ -98,8 +156,14 @@ export interface PlotCountryCheck {
   /** Identificativo opaco dell'appezzamento (passato dal chiamante). */
   plotId: string;
   /** Paese rilevato dalle coordinate, o `null` se fuori dai paesi noti. */
-  detected: Exclude<CountryCode, "EU"> | null;
-  /** True se il punto cade dentro il paese dichiarato in anagrafica. */
+  detected: CountryWithBbox | null;
+  /**
+   * True se il punto cade dentro il paese dichiarato in anagrafica. Resta
+   * `false` anche quando la verifica non è POSSIBILE (paese dichiarato di cui
+   * non conosciamo il riquadro): significa "non verificato dentro", mai
+   * "verificato fuori". Chi ne deriva un avviso deve prima interrogare
+   * {@link hasCountryBbox} — vedi {@link resolveCountry}.
+   */
   matchesDeclared: boolean;
   /**
    * True se le coordinate sembrano invertite (lat/lon scambiate): il punto è
@@ -143,21 +207,23 @@ export interface CountryWarning {
   params?: Record<string, string | number>;
 }
 
-/** Cross-check di un singolo plot contro il paese dichiarato. */
+/**
+ * Cross-check di un singolo plot contro il paese dichiarato. Se del paese
+ * dichiarato non conosciamo il riquadro, la verifica non viene tentata: entrambi
+ * i flag restano `false` (nessuna conclusione), esattamente come quando non c'è
+ * alcun paese dichiarato.
+ */
 export function checkPlotCountry(
   plot: PlotGeometry,
   declared: CountryCode | null,
 ): PlotCountryCheck {
   const [lon, lat] = centroid(plot.geometria);
   const detected = detectCountryAtPoint(lon, lat);
-  const matchesDeclared =
-    declared != null && declared !== "EU" && pointInCountry(lon, lat, declared);
+  const verifiable = hasCountryBbox(declared);
+  const matchesDeclared = verifiable && pointInCountry(lon, lat, declared);
   // Inversione assi: fuori così com'è, ma dentro scambiando lon<->lat.
   const swappedCoordinates =
-    !matchesDeclared &&
-    declared != null &&
-    declared !== "EU" &&
-    pointInCountry(lat, lon, declared);
+    verifiable && !matchesDeclared && pointInCountry(lat, lon, declared);
   return { plotId: plot.plotId, detected, matchesDeclared, swappedCoordinates };
 }
 
@@ -190,7 +256,7 @@ export function resolveCountry(
   const warnings: CountryWarning[] = [];
 
   // Conteggio dei paesi rilevati dalle coordinate (per il voto di maggioranza).
-  const tally = new Map<Exclude<CountryCode, "EU">, number>();
+  const tally = new Map<CountryWithBbox, number>();
   for (const c of checks) {
     if (c.detected) tally.set(c.detected, (tally.get(c.detected) ?? 0) + 1);
   }
@@ -204,7 +270,10 @@ export function resolveCountry(
       params: { count: swapped.length },
     });
   }
-  if (declared && declared !== "EU") {
+  // Solo per i paesi di cui conosciamo il riquadro: senza bounding box non
+  // possiamo affermare che un field sia "fuori", e l'avviso sarebbe un falso
+  // positivo su OGNI azienda di un paese non ancora mappato.
+  if (hasCountryBbox(declared)) {
     const outside = checks.filter(
       (c) => !c.matchesDeclared && !c.swappedCoordinates,
     );

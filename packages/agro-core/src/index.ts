@@ -220,10 +220,12 @@ export {
   type DeclarativeSystem,
 } from "./compliance/sian-campaign";
 export {
+  COUNTRIES_WITH_BBOX,
   DEFAULT_COUNTRY,
   SUPPORTED_COUNTRIES,
   checkPlotCountry,
   detectCountryAtPoint,
+  hasCountryBbox,
   normalizeCountryCode,
   pointInCountry,
   plotsBoundingBox,
@@ -233,6 +235,12 @@ export {
   type CountryResolution,
   type CountrySource,
   type CountryWarning,
+  type CountryWithBbox,
   type PlotCountryCheck,
   type PlotGeometry,
 } from "./compliance/country-resolution";
+export {
+  ISO_3166_1_ALPHA_2,
+  isIsoAlpha2,
+  type IsoAlpha2,
+} from "./compliance/iso-3166";
