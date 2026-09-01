@@ -19,7 +19,7 @@
     "dev:standalone": "npm run dev:standalone -w agro-field-suite",
     "build": "npm run build -w agro-field-suite",
     "build:standalone": "npm run build:standalone -w agro-field-suite",
-    "typecheck": "tsc -p apps/agro-field-suite/tsconfig.json --noEmit",
+    "typecheck": "tsc -p apps/agro-field-suite/tsconfig.json --noEmit && tsc -p packages/agro-parcel/tsconfig.json --noEmit",
     "lint": "eslint apps packages plugins tests",
     "test": "node --import tsx --test tests/agro-*.test.ts",
     "licenses:agro": "node scripts/gen-third-party-licenses.mjs",

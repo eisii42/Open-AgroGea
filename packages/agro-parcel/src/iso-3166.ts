@@ -1,11 +1,15 @@
 /**
  * ISO 3166-1 alpha-2 — i codici paese ufficialmente assegnati, come DATO.
  *
- * Serve a {@link ../compliance/country-resolution} per accettare qualunque paese
- * reale in `Company.country`, senza che aggiungere un mercato significhi
- * modificare un'unione di tipi a mano. L'elenco è volutamente "stupido": nessun
- * name, nessuna traduzione, nessun raggruppamento: solo i codici. I nomi per
- * esteso (e le loro varianti localizzate) restano un fatto di UI/i18n.
+ * Due consumatori, in due pacchetti: il `country` del contratto {@link ./parcel}
+ * e dei record di catalogo, e il `CountryCode` della Country Resolution in
+ * `@agrogea/core`. Sta nel pacchetto FOGLIA perché entrambi possano leggerlo
+ * senza dipendenze incrociate, e perché aggiungere un mercato non significhi
+ * modificare a mano un'unione di tipi.
+ *
+ * L'elenco è volutamente "stupido": nessun name, nessuna traduzione, nessun
+ * raggruppamento, solo i codici. I nomi per esteso (e le loro varianti
+ * localizzate) restano un fatto di UI/i18n.
  *
  * Nota su `EU`: NON è un codice ufficialmente assegnato — è "exceptionally
  * reserved" in ISO 3166-1 — e proprio per questo resta libero come sentinella

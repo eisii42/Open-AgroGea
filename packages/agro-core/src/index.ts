@@ -239,8 +239,10 @@ export {
   type PlotCountryCheck,
   type PlotGeometry,
 } from "./compliance/country-resolution";
+// Ri-esportati da `@agrogea/parcel` (pacchetto foglia del contratto): chi
+// consuma `@agrogea/core` continua a trovarli qui, dove sono sempre stati.
 export {
   ISO_3166_1_ALPHA_2,
   isIsoAlpha2,
   type IsoAlpha2,
-} from "./compliance/iso-3166";
+} from "@agrogea/parcel";

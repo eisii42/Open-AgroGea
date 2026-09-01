@@ -9,10 +9,7 @@ import {
   resolvePerPlotCountry,
   type PlotGeometry,
 } from "../packages/agro-core/src/compliance/country-resolution";
-import {
-  ISO_3166_1_ALPHA_2,
-  isIsoAlpha2,
-} from "../packages/agro-core/src/compliance/iso-3166";
+import { ISO_3166_1_ALPHA_2, isIsoAlpha2 } from "@agrogea/parcel";
 
 /** Quadratino ~0.02° attorno a [lon, lat]: il suo centroid è [lon, lat]. */
 function squareAt(lon: number, lat: number): Polygon {

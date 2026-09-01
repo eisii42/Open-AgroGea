@@ -34,9 +34,9 @@
  * avviso "campi fuori dal paese dichiarato" solo perché non abbiamo (ancora) il
  * riquadro dei Paesi Bassi.
  */
+import { type IsoAlpha2, isIsoAlpha2 } from "@agrogea/parcel";
 import type { MultiPolygon, Polygon } from "geojson";
 import { boundingBox, centroid } from "../geo/area";
-import { type IsoAlpha2, isIsoAlpha2 } from "./iso-3166";
 
 /**
  * Paese di un'azienda: qualunque codice ISO 3166-1 alpha-2 assegnato, più `EU`

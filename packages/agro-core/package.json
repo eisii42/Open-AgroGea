@@ -9,6 +9,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@agrogea/parcel": "*",
     "@electric-sql/pglite": "^0.2.0",
     "@turf/area": "^7.3.5",
     "@turf/bbox": "^7.3.5",
