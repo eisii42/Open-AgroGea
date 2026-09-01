@@ -646,7 +646,9 @@
     "descriptionStandalone": "Esporta un'istantanea completa dei dati locali in GeoJSON, o ripristina lo stato da un file di backup.",
     "exportSuccess": "Dati aziendali esportati.",
     "titleCloud": "Trasferimento dati azienda",
-    "titleStandalone": "Sicurezza dati (backup/ripristino)"
+    "titleStandalone": "Sicurezza dati (backup/ripristino)",
+    "confirmParcelConflict": "La particella è già in azienda come “{{name}}”. Vuoi sovrascriverla? Le registrazioni del quaderno resterebbero, ma i suoi dati verrebbero sostituiti. Scegli Annulla per lasciarla com’è.",
+    "importSuccessWithSkips": "{{plots}} appezzamenti ripristinati, {{skipped}} saltati perché già presenti in azienda."
   },
   "confirmDeleteOperation": {
     "confirmDelete": "Sì, elimina definitivamente",
@@ -2355,6 +2357,28 @@
       "farmer_parcel": "Appezzamento dichiarato dall’agricoltore all’organismo pagatore.",
       "agricultural_parcel": "Unità colturale — è già un singolo appezzamento coltivato.",
       "manual": "Disegnata a mano."
+    }
+  },
+  "onboarding": {
+    "title": "Benvenuto in AgroGea",
+    "intro": "Tutto resta su questo dispositivo. Crea una nuova azienda, o ripristinane una da un backup.",
+    "newCompany": "Nuova azienda",
+    "businessName": "Ragione sociale",
+    "country": "Paese",
+    "countryPlaceholder": "Scegli un paese…",
+    "countryHint": "Decide quali fonti ufficiali di particelle vengono proposte e quali regole si applicano.",
+    "city": "Comune o località (facoltativo)",
+    "cityHint": "Serve solo a inquadrare la mappa. I tuoi campi possono essere ovunque, anche oltreconfine.",
+    "vatNumber": "Partita IVA (facoltativa)",
+    "start": "Comincia",
+    "or": "oppure",
+    "restore": "Ripristina da un backup",
+    "restoreHint": "Un file GeoJSON di AgroGea. I backup più vecchi vengono aggiornati da soli.",
+    "pickBackup": "Scegli un file…",
+    "restoredCompany": "Azienda ripristinata",
+    "error": {
+      "nameRequired": "Dai un nome all’azienda.",
+      "countryInvalid": "Scegli un paese."
     }
   }
 }

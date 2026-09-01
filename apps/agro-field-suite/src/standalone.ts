@@ -13,11 +13,7 @@
  * sotto popola senza alcuna dipendenza dal control plane.
  */
 
-import {
-  LOCAL_COMPANY_DEFAULT,
-  localTenantClaims,
-  useAgroStore,
-} from "@agrogea/core";
+import { localTenantClaims, useAgroStore } from "@agrogea/core";
 
 /** true nelle build standalone/OSS (`VITE_STANDALONE_MODE=true`). */
 export const STANDALONE = import.meta.env.VITE_STANDALONE_MODE === "true";
@@ -26,7 +22,19 @@ let bootstrapPromise: Promise<void> | null = null;
 
 /**
  * Avvia la sessione locale standalone: claims sintetiche (licenza attiva,
- * storage `local`), poi garantisce un'azienda di default come tenant active.
+ * storage `local`) e apertura dell'azienda esistente.
+ *
+ * **Non crea più un'azienda di default.** Finché l'unica cosa che si poteva
+ * fare era disegnare poligoni a mano, inventare una "Company locale" con paese
+ * `IT` era un'innocua scorciatoia per saltare una schermata. Ora il paese
+ * decide quali fonti di particelle vengono proposte, e sceglierlo al posto
+ * dell'utente significa mostrargli il catalogo sbagliato senza che lo sappia.
+ * Se non c'è alcuna azienda, `activeCompanyId` resta `null` e il router mostra
+ * l'onboarding.
+ *
+ * Chi ha già un'installazione non se ne accorge: la sua azienda esiste, viene
+ * aperta come sempre.
+ *
  * Idempotente: una sessione già aperta non viene reinizializzata, e chiamate
  * concorrenti condividono la stessa promise (evita doppi bootstrap in StrictMode).
  */
@@ -41,14 +49,11 @@ export function bootstrapStandalone(): Promise<void> {
       offlineUnlocked: true,
     });
 
-    // Apre l'azienda esistente o crea quella di default. `createCompany` e
-    // `switchTenant` impostano da sé `activeCompanyId`, sbloccando la dashboard.
+    // `switchTenant` imposta da sé `activeCompanyId`, sbloccando la dashboard.
     const companies = useAgroStore.getState().companies;
-    const before = companies.find((a) => a.deleted_at == null) ?? companies[0];
-    if (before) {
-      await useAgroStore.getState().switchTenant(before.id);
-    } else {
-      await useAgroStore.getState().createCompany(LOCAL_COMPANY_DEFAULT);
+    const existing = companies.find((a) => a.deleted_at == null) ?? companies[0];
+    if (existing) {
+      await useAgroStore.getState().switchTenant(existing.id);
     }
   })();
   return bootstrapPromise;

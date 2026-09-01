@@ -11,7 +11,6 @@
  * di field in modalità standalone sia, in futuro, dalla shell OSS.
  */
 
-import type { NewCompanyInput } from "./store";
 import type { TenantClaims } from "./types";
 
 /**
@@ -37,12 +36,14 @@ export function localTenantClaims(): TenantClaims {
   };
 }
 
-/**
- * Company di default creata al primo avvio standalone, così la dashboard ha un
- * `activeCompanyId` valido (chiave di filtro PGlite dei moduli agronomici)
- * senza passare dalla schermata di selezione workspace.
+/*
+ * Qui viveva `LOCAL_COMPANY_DEFAULT`, l'azienda "Company locale" con paese `IT`
+ * che il primo avvio creava da sola per saltare la schermata iniziale.
+ *
+ * È stata rimossa, non spostata. Finché l'unica cosa che si poteva fare era
+ * disegnare poligoni a mano, quel paese non serviva a nulla e la scorciatoia
+ * era innocua. Ora governa quali fonti pubbliche di particelle vengono
+ * proposte: sceglierlo al posto dell'utente significa mostrargli il catalogo di
+ * un altro paese senza che lo sappia. Il primo avvio lo chiede — vedi
+ * `modules/onboarding` nella field suite.
  */
-export const LOCAL_COMPANY_DEFAULT: NewCompanyInput = {
-  business_name: "Company locale",
-  country: "IT",
-};

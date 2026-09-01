@@ -646,7 +646,9 @@
     "descriptionStandalone": "Export a complete snapshot of the local data as GeoJSON, or restore the state from a backup file.",
     "exportSuccess": "Company data exported.",
     "titleCloud": "Company data transfer",
-    "titleStandalone": "Data safety (backup/restore)"
+    "titleStandalone": "Data safety (backup/restore)",
+    "confirmParcelConflict": "The parcel is already in this farm as “{{name}}”. Overwrite it? Its logbook entries would be kept, but its details would be replaced. Choose Cancel to keep it as it is.",
+    "importSuccessWithSkips": "{{plots}} plots restored, {{skipped}} skipped because they were already in the farm."
   },
   "confirmDeleteOperation": {
     "confirmDelete": "Yes, delete permanently",
@@ -2355,6 +2357,28 @@
       "farmer_parcel": "Farmer parcel as declared to the paying agency.",
       "agricultural_parcel": "Agricultural parcel — already a single cropped unit.",
       "manual": "Drawn by hand."
+    }
+  },
+  "onboarding": {
+    "title": "Welcome to AgroGea",
+    "intro": "Everything stays on this device. Start a new farm, or restore one from a backup.",
+    "newCompany": "New farm",
+    "businessName": "Farm name",
+    "country": "Country",
+    "countryPlaceholder": "Choose a country…",
+    "countryHint": "It decides which official parcel sources are offered and which rules apply.",
+    "city": "Municipality or locality (optional)",
+    "cityHint": "Only used to frame the map. Your fields can be anywhere, including across a border.",
+    "vatNumber": "VAT number (optional)",
+    "start": "Start",
+    "or": "or",
+    "restore": "Restore from a backup",
+    "restoreHint": "An AgroGea GeoJSON file. Older backups are upgraded automatically.",
+    "pickBackup": "Choose a file…",
+    "restoredCompany": "Restored farm",
+    "error": {
+      "nameRequired": "Give the farm a name.",
+      "countryInvalid": "Choose a country."
     }
   }
 }

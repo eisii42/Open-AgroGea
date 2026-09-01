@@ -646,7 +646,9 @@
     "descriptionStandalone": "Exporta una instantánea completa de los datos locales en GeoJSON, o restaura el estado desde un archivo de copia de seguridad.",
     "exportSuccess": "Datos de la empresa exportados.",
     "titleCloud": "Transferencia de datos de la empresa",
-    "titleStandalone": "Seguridad de datos (copia de seguridad/restauración)"
+    "titleStandalone": "Seguridad de datos (copia de seguridad/restauración)",
+    "confirmParcelConflict": "La parcela ya está en la explotación como “{{name}}”. ¿Quieres sobrescribirla? Sus registros del cuaderno se mantendrían, pero sus datos se sustituirían. Elige Cancelar para dejarla como está.",
+    "importSuccessWithSkips": "{{plots}} parcelas restauradas, {{skipped}} omitidas por estar ya en la explotación."
   },
   "confirmDeleteOperation": {
     "confirmDelete": "Sí, eliminar definitivamente",
@@ -2355,6 +2357,28 @@
       "farmer_parcel": "Parcela declarada por el agricultor al organismo pagador.",
       "agricultural_parcel": "Unidad de cultivo: ya es una sola parcela cultivada.",
       "manual": "Dibujada a mano."
+    }
+  },
+  "onboarding": {
+    "title": "Bienvenido a AgroGea",
+    "intro": "Todo se queda en este dispositivo. Crea una explotación nueva o restaura una desde una copia de seguridad.",
+    "newCompany": "Nueva explotación",
+    "businessName": "Razón social",
+    "country": "País",
+    "countryPlaceholder": "Elige un país…",
+    "countryHint": "Determina qué fuentes oficiales de parcelas se ofrecen y qué normas se aplican.",
+    "city": "Municipio o localidad (opcional)",
+    "cityHint": "Solo sirve para encuadrar el mapa. Tus parcelas pueden estar en cualquier sitio, incluso al otro lado de la frontera.",
+    "vatNumber": "NIF/CIF (opcional)",
+    "start": "Empezar",
+    "or": "o",
+    "restore": "Restaurar desde una copia",
+    "restoreHint": "Un archivo GeoJSON de AgroGea. Las copias antiguas se actualizan solas.",
+    "pickBackup": "Elige un archivo…",
+    "restoredCompany": "Explotación restaurada",
+    "error": {
+      "nameRequired": "Ponle un nombre a la explotación.",
+      "countryInvalid": "Elige un país."
     }
   }
 }

@@ -64,11 +64,7 @@ export {
   PULL_PAGE_SIZE,
   type SyncTarget,
 } from "./sync/targets";
-export {
-  LOCAL_TENANT_ID,
-  LOCAL_COMPANY_DEFAULT,
-  localTenantClaims,
-} from "./standalone";
+export { LOCAL_TENANT_ID, localTenantClaims } from "./standalone";
 export {
   COMPANY_TRANSFER_FORMAT,
   COMPANY_TRANSFER_VERSION,

@@ -646,7 +646,9 @@
     "descriptionStandalone": "Exportez un instantané complet des données locales au format GeoJSON, ou restaurez l'état à partir d'un fichier de sauvegarde.",
     "exportSuccess": "Données de l'entreprise exportées.",
     "titleCloud": "Transfert des données de l'entreprise",
-    "titleStandalone": "Sécurité des données (sauvegarde/restauration)"
+    "titleStandalone": "Sécurité des données (sauvegarde/restauration)",
+    "confirmParcelConflict": "La parcelle est déjà dans l’exploitation sous le nom “{{name}}”. Voulez-vous l’écraser ? Ses enregistrements de carnet seraient conservés, mais ses données seraient remplacées. Choisissez Annuler pour la laisser telle quelle.",
+    "importSuccessWithSkips": "{{plots}} parcelles restaurées, {{skipped}} ignorées car déjà présentes dans l’exploitation."
   },
   "confirmDeleteOperation": {
     "confirmDelete": "Oui, supprimer définitivement",
@@ -2355,6 +2357,28 @@
       "farmer_parcel": "Parcelle déclarée par l’agriculteur à l’organisme payeur.",
       "agricultural_parcel": "Unité culturale — déjà une seule parcelle cultivée.",
       "manual": "Dessinée à la main."
+    }
+  },
+  "onboarding": {
+    "title": "Bienvenue dans AgroGea",
+    "intro": "Tout reste sur cet appareil. Créez une nouvelle exploitation, ou restaurez-en une depuis une sauvegarde.",
+    "newCompany": "Nouvelle exploitation",
+    "businessName": "Raison sociale",
+    "country": "Pays",
+    "countryPlaceholder": "Choisissez un pays…",
+    "countryHint": "Il détermine quelles sources officielles de parcelles sont proposées et quelles règles s’appliquent.",
+    "city": "Commune ou lieu-dit (facultatif)",
+    "cityHint": "Sert uniquement à cadrer la carte. Vos parcelles peuvent être n’importe où, y compris de l’autre côté d’une frontière.",
+    "vatNumber": "Numéro de TVA (facultatif)",
+    "start": "Commencer",
+    "or": "ou",
+    "restore": "Restaurer depuis une sauvegarde",
+    "restoreHint": "Un fichier GeoJSON AgroGea. Les sauvegardes anciennes sont mises à jour automatiquement.",
+    "pickBackup": "Choisir un fichier…",
+    "restoredCompany": "Exploitation restaurée",
+    "error": {
+      "nameRequired": "Donnez un nom à l’exploitation.",
+      "countryInvalid": "Choisissez un pays."
     }
   }
 }

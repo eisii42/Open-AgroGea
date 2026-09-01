@@ -68,7 +68,18 @@ export function CompanyDataIo() {
     setStatus({ kind: "busy", op: "import" });
     try {
       const raw = JSON.parse(await file.text());
-      const s = await importCompanyData(dal, raw, activeCompanyId);
+      // La stessa particella pubblica già presente sotto un altro record: si
+      // CHIEDE, una per una. Sovrascrivere di iniziativa butterebbe via il
+      // quaderno di campagna di un campo che l'utente ha già lavorato, ed è il
+      // danno peggiore che un ripristino possa fare. Rispondere "no" salta
+      // l'appezzamento e lascia intatto quello esistente.
+      const s = await importCompanyData(dal, raw, activeCompanyId, ({ existing }) =>
+        window.confirm(
+          t("companyDataIo.confirmParcelConflict", {
+            name: existing.user_plot_name,
+          }),
+        ),
+      );
       setStatus({
         kind: "ok",
         msg: t("companyDataIo.importSuccess", {
@@ -82,6 +93,15 @@ export function CompanyDataIo() {
           scouting: s.scouting,
         }),
       });
+      if (s.plotsSkipped > 0) {
+        setStatus({
+          kind: "ok",
+          msg: t("companyDataIo.importSuccessWithSkips", {
+            plots: s.plots,
+            skipped: s.plotsSkipped,
+          }),
+        });
+      }
     } catch (e) {
       setStatus({
         kind: "error",

@@ -1,5 +1,5 @@
 import { type AppView, isTauriRuntime, useAgroStore } from "@agrogea/core";
-import { lazy, Suspense, useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { UpdateNotice } from "./components/UpdateNotice";
 import { InFieldDashboard } from "./modules/field-mode/InFieldDashboard";
 import { PostOperationSummary } from "./modules/field-mode/PostOperationSummary";
@@ -13,6 +13,13 @@ const CommandCenter = lazy(() =>
 const CalendarScreen = lazy(() =>
   import("./modules/calendar/CalendarScreen").then((m) => ({
     default: m.CalendarScreen,
+  })),
+);
+// Primo avvio: si carica solo quando serve davvero, cioè una volta nella vita
+// dell'installazione.
+const OnboardingScreen = lazy(() =>
+  import("./modules/onboarding/OnboardingScreen").then((m) => ({
+    default: m.OnboardingScreen,
   })),
 );
 
@@ -57,9 +64,12 @@ export function App() {
   const calendarVisited = useRef(false);
   if (activeView === "calendar") calendarVisited.current = true;
 
-  // Bootstrap locale al primo render (idempotente).
+  // Bootstrap locale al primo render (idempotente). `booted` distingue i due
+  // motivi per cui non c'è ancora un'azienda: il bootstrap in corso (attesa di
+  // frazioni di secondo) e l'installazione nuova (onboarding).
+  const [booted, setBooted] = useState(false);
   useEffect(() => {
-    void bootstrapStandalone();
+    void bootstrapStandalone().finally(() => setBooted(true));
   }, []);
 
   // Frecce ←/→ (senza modificatori): scorrono le tre viste nell'ordine
@@ -89,7 +99,17 @@ export function App() {
 
   // Finché il bootstrap non ha impostato l'azienda locale: schermata vuota
   // (frazioni di secondo, tutto in locale).
-  if (!activeCompanyId) return null;
+  if (!activeCompanyId) {
+    // Bootstrap concluso e nessuna azienda: è la prima accensione. L'onboarding
+    // si congeda da solo — creando l'azienda o ripristinando un backup imposta
+    // `activeCompanyId`, e questo ramo smette di valere.
+    if (!booted) return null;
+    return (
+      <Suspense fallback={null}>
+        <OnboardingScreen />
+      </Suspense>
+    );
+  }
 
   const mapActive = activeView === "map";
 
