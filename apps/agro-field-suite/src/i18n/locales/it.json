@@ -141,7 +141,8 @@
     "toolExport": "Esporta (CSV)…",
     "toolProfile": "Anagrafica",
     "toolWeather": "Fonte meteo & variabili",
-    "toolGeoCompliance": "GeoCompliance"
+    "toolGeoCompliance": "GeoCompliance",
+    "toolParcelAdoption": "Particelle pubbliche"
   },
   "help": {
     "menu": "Aiuto",
@@ -2331,5 +2332,29 @@
       "water": "Stress idrico"
     },
     "showAll": "Mostra tutto"
+  },
+  "parcelAdoption": {
+    "title": "Particelle pubbliche",
+    "intro": "Scegli una fonte ufficiale, poi cerca nella zona che stai guardando o clicca un punto sulla mappa. Niente viene aggiunto finché non lo scegli tu.",
+    "sourceLabel": "Fonte",
+    "attribution": "Dati: {{attribution}} — licenza {{license}}",
+    "searchHere": "Cerca in questa zona",
+    "pickPoint": "Clicca un punto",
+    "pickingPoint": "Clicca sulla mappa…",
+    "zoomIn": "L’area visibile è troppo ampia: avvicinati prima di cercare.",
+    "noResults": "Nessuna particella trovata qui.",
+    "noReference": "Nessun identificativo nativo",
+    "declaredArea": "{{value}} ha dichiarati",
+    "cropCode": "coltura {{code}}",
+    "plotNameLabel": "Nome dell’appezzamento",
+    "adopt": "Aggiungi all’azienda",
+    "alreadyAdopted": "Questa particella è già in azienda come “{{name}}”.",
+    "unitType": {
+      "cadastral_parcel": "Particella catastale — può ospitare più colture.",
+      "physical_block": "Blocco fisico — può contenere più appezzamenti coltivati.",
+      "farmer_parcel": "Appezzamento dichiarato dall’agricoltore all’organismo pagatore.",
+      "agricultural_parcel": "Unità colturale — è già un singolo appezzamento coltivato.",
+      "manual": "Disegnata a mano."
+    }
   }
 }

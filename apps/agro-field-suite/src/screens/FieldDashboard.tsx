@@ -92,6 +92,11 @@ const PrintComposer = lazy(() =>
     default: m.PrintComposer,
   })),
 );
+const ParcelAdoptionPanel = lazy(() =>
+  import("../modules/parcel-adoption/ParcelAdoptionPanel").then((m) => ({
+    default: m.ParcelAdoptionPanel,
+  })),
+);
 const DataEntrySheet = lazy(() =>
   import("../components/DataEntrySheet").then((m) => ({
     default: m.DataEntrySheet,
@@ -413,6 +418,14 @@ export function FieldDashboard() {
           {openPanels.includes("stampa") && (
             <PrintComposer
               onClose={() => togglePanel("stampa")}
+              mapControllerRef={mapControllerRef}
+            />
+          )}
+          {/* Adozione di particelle da fonti pubbliche: riceve la mappa per
+              leggere il riquadro visibile e per il click puntuale. */}
+          {openPanels.includes("parcel-adoption") && (
+            <ParcelAdoptionPanel
+              onClose={() => togglePanel("parcel-adoption")}
               mapControllerRef={mapControllerRef}
             />
           )}

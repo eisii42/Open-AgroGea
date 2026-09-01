@@ -163,9 +163,34 @@
  *   `drop table vegetation_index_rasters, vegetation_index_scenes` (in
  *   quest'ordine per la FK). Nessun dato pre-v21 è toccato e la sola
  *   conseguenza è che il module Suolo torna a ricalcolare ogni volta.
+ *
+ * v22 — additiva: provenienza delle particelle adottate da fonti pubbliche
+ * (LPIS, catasto, INSPIRE). Quattro columns su `plots_registry`:
+ *   * `source_id` — identificativo NATIVO nella fonte (codice catastale, FLIK,
+ *     id RPG, localId INSPIRE). È la metà della chiave di deduplica;
+ *   * `nuts_code` — nodo NUTS di provenienza, l'altra metà. La granularità del
+ *     catalogo è il nodo, non lo Stato: `source_id` da solo non basta perché
+ *     due nodi diversi possono usare numerazioni sovrapposte;
+ *   * `reference_unit_type` — che cosa rappresenta la geometria adottata
+ *     (`cadastral_parcel` | `physical_block` | `farmer_parcel` |
+ *     `agricultural_parcel` | `manual`). Non è decorativo: un Feldblock può
+ *     contenere più appezzamenti coltivati, e l'interfaccia deve poterlo dire
+ *     all'utente PRIMA che adotti;
+ *   * `validity_year` — annata del dato di origine.
+ *   Più l'indice unico parziale `plots_registry_source_unq` che impedisce di
+ *   adottare due volte la stessa particella (vedi le sue condizioni in loco).
+ *   Il resto della provenienza — nome della fonte, URL, licenza con
+ *   attribuzione, `retrievedAt`, CRS e geometria originali non riproiettate —
+ *   vive sotto la chiave `parcel` di `plots_registry.metadata`: non ci si
+ *   interroga sopra, e tenerla in JSONB evita sei columns che nessuno filtra.
+ *   Gli appezzamenti pre-v22 (disegnati a mano o importati dal Fascicolo) hanno
+ *   le quattro columns a null e continuano a funzionare invariati.
+ *   Rollback logico v22: `drop index if exists plots_registry_source_unq` e
+ *   `alter table plots_registry drop column source_id, nuts_code,
+ *   reference_unit_type, validity_year`. Nessun dato pre-v22 è toccato.
  */
 
-export const AGRO_LOCAL_SCHEMA_VERSION = 21;
+export const AGRO_LOCAL_SCHEMA_VERSION = 22;
 
 export const AGRO_LOCAL_SCHEMA_SQL = `
 create table if not exists agro_meta (
@@ -249,6 +274,29 @@ create table if not exists plots_registry (
 
 create index if not exists plots_registry_company_idx
   on plots_registry (company_id);
+
+-- v22 — provenienza dell'appezzamento adottato da una fonte pubblica.
+-- Colonne (e non chiavi JSONB) perché su queste si DEDUPLICA e si filtra: la
+-- licenza, gli URL e la geometria originale restano invece in metadata, dove
+-- nessuno interroga.
+alter table plots_registry add column if not exists source_id text;
+alter table plots_registry add column if not exists nuts_code text;
+alter table plots_registry add column if not exists reference_unit_type text;
+alter table plots_registry add column if not exists validity_year smallint;
+
+-- Chiave di deduplica: la stessa particella pubblica non può entrare due volte
+-- nello stesso portafoglio. Indice PARZIALE, e ognuna delle tre condizioni ha
+-- una ragione:
+--   * source_id is not null — gli appezzamenti disegnati a mano non hanno
+--     provenienza e devono poter essere quanti si vuole;
+--   * deleted_at is null — una particella cancellata deve poter essere
+--     riadottata, altrimenti il tombstone la vieterebbe per sempre;
+--   * ambito company_id — è il confine di proprietà reale. Un agronomo che
+--     segue due companies può legittimamente ritrovarsi la stessa particella
+--     in due portafogli distinti.
+create unique index if not exists plots_registry_source_unq
+  on plots_registry (company_id, source_id, nuts_code)
+  where source_id is not null and deleted_at is null;
 
 -- plots_campaign — status BUROCRATICO annuale del field per Campagna Agraria,
 -- LPIS/IACS compliant. Associa un plot fisico a una crop (crops) per

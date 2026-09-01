@@ -17,6 +17,7 @@ import {
   Droplets,
   FileDown,
   Grid3x3,
+  LandPlot,
   Leaf,
   List,
   ListChecks,
@@ -211,6 +212,15 @@ export function ModuleSidebar({
       labelKey: "nav.moduleDraw",
       Icon: PencilRuler,
       tools: [
+        // Primo della lista perché è il flusso PRINCIPALE: in gran parte
+        // d'Europa le particelle sono già pubblicate come dato aperto, e
+        // ridisegnarle a mano è il ripiego, non la norma.
+        {
+          id: "parcel-adoption",
+          labelKey: "nav.toolParcelAdoption",
+          Icon: LandPlot,
+          action: { kind: "panel", panel: "parcel-adoption" },
+        },
         {
           id: "draw-appezzamento",
           labelKey: "nav.toolDrawPlot",

@@ -141,7 +141,8 @@
     "toolWeather": "Fuente meteo y variables",
     "toolGeoCompliance": "GeoCompliance",
     "toolMachinery": "Parque de maquinaria",
-    "toolRefill": "Repostaje"
+    "toolRefill": "Repostaje",
+    "toolParcelAdoption": "Parcelas públicas"
   },
   "help": {
     "menu": "Ayuda",
@@ -2331,5 +2332,29 @@
       "water": "Estrés hídrico"
     },
     "showAll": "Mostrar todo"
+  },
+  "parcelAdoption": {
+    "title": "Parcelas públicas",
+    "intro": "Elige una fuente oficial y busca en la zona que estás viendo o haz clic en un punto del mapa. Nada se añade hasta que lo elijas.",
+    "sourceLabel": "Fuente",
+    "attribution": "Datos: {{attribution}} — licencia {{license}}",
+    "searchHere": "Buscar en esta zona",
+    "pickPoint": "Haz clic en un punto",
+    "pickingPoint": "Haz clic en el mapa…",
+    "zoomIn": "El área visible es demasiado amplia: acércate antes de buscar.",
+    "noResults": "No se han encontrado parcelas aquí.",
+    "noReference": "Sin identificador nativo",
+    "declaredArea": "{{value}} ha declaradas",
+    "cropCode": "cultivo {{code}}",
+    "plotNameLabel": "Nombre de la parcela",
+    "adopt": "Añadir a la explotación",
+    "alreadyAdopted": "Esta parcela ya está en la explotación como “{{name}}”.",
+    "unitType": {
+      "cadastral_parcel": "Parcela catastral: puede albergar más de un cultivo.",
+      "physical_block": "Bloque físico: puede contener varias parcelas cultivadas.",
+      "farmer_parcel": "Parcela declarada por el agricultor al organismo pagador.",
+      "agricultural_parcel": "Unidad de cultivo: ya es una sola parcela cultivada.",
+      "manual": "Dibujada a mano."
+    }
   }
 }

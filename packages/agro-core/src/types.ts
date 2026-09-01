@@ -223,6 +223,36 @@ export interface Plot {
   planting_year: number | null;
   /** Note storiche del field come entità FISICA immutabile (ex note_storiche). */
   historical_notes?: string | null;
+  /**
+   * Identificativo NATIVO nella fonte pubblica da cui la particella è stata
+   * adottata (codice catastale, FLIK, id RPG, localId INSPIRE). `null` per gli
+   * appezzamenti disegnati a mano o importati da un fascicolo.
+   * Con {@link Plot.nuts_code} forma la chiave di deduplica.
+   */
+  source_id: string | null;
+  /**
+   * Nodo NUTS di provenienza. Serve INSIEME a `source_id` perché la granularità
+   * del catalogo è il nodo e non lo Stato: due nodi possono usare numerazioni
+   * sovrapposte, e il solo identificativo nativo non sarebbe univoco.
+   */
+  nuts_code: string | null;
+  /**
+   * Che cosa rappresenta la geometria adottata (valori di
+   * `ReferenceUnitType` in `@agrogea/parcel`). Va conservato perché cambia il
+   * significato dell'appezzamento: un `physical_block` può contenere più
+   * colture diverse, una `agricultural_parcel` è già l'unità colturale.
+   */
+  reference_unit_type: string | null;
+  /** Annata del dato di origine (campagna LPIS della fonte). */
+  validity_year: number | null;
+  /**
+   * Metadata estensibili. Chiavi persistite note:
+   *   * `suolo` — parametri pedologici inseriti a mano;
+   *   * `parcel` — provenienza estesa della particella adottata (nome e URL
+   *     della fonte, licenza con attribuzione, istante di acquisizione, CRS e
+   *     geometria originali non riproiettati). Vedi `ParcelProvenance` in
+   *     `@agrogea/core`.
+   */
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -1337,7 +1367,10 @@ export type FieldPanel =
   | "geocompliance"
   | "profile"
   | "scouting"
-  | "tasks";
+  | "tasks"
+  // Nuovo id in inglese: i valori italiani sopra sono storici e restano come
+  // sono (sono accoppiati a UI e persistenza), ma non si aggiungono più.
+  | "parcel-adoption";
 
 /** Rilievo GPS in field, sincronizzato via outbox come le altre tabelle. */
 export interface ScoutingObservation {

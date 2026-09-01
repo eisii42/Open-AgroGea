@@ -141,7 +141,8 @@
     "toolWeather": "Source météo et variables",
     "toolGeoCompliance": "GeoCompliance",
     "toolMachinery": "Parc matériel",
-    "toolRefill": "Plein carburant"
+    "toolRefill": "Plein carburant",
+    "toolParcelAdoption": "Parcelles publiques"
   },
   "help": {
     "menu": "Aide",
@@ -2331,5 +2332,29 @@
       "water": "Stress hydrique"
     },
     "showAll": "Tout afficher"
+  },
+  "parcelAdoption": {
+    "title": "Parcelles publiques",
+    "intro": "Choisissez une source officielle, puis cherchez dans la zone affichée ou cliquez un point sur la carte. Rien n’est ajouté tant que vous ne l’avez pas choisi.",
+    "sourceLabel": "Source",
+    "attribution": "Données : {{attribution}} — licence {{license}}",
+    "searchHere": "Chercher dans cette zone",
+    "pickPoint": "Cliquer un point",
+    "pickingPoint": "Cliquez sur la carte…",
+    "zoomIn": "La zone visible est trop large : rapprochez-vous avant de chercher.",
+    "noResults": "Aucune parcelle trouvée ici.",
+    "noReference": "Aucun identifiant natif",
+    "declaredArea": "{{value}} ha déclarés",
+    "cropCode": "culture {{code}}",
+    "plotNameLabel": "Nom de la parcelle",
+    "adopt": "Ajouter à l’exploitation",
+    "alreadyAdopted": "Cette parcelle est déjà dans l’exploitation sous le nom “{{name}}”.",
+    "unitType": {
+      "cadastral_parcel": "Parcelle cadastrale — elle peut porter plusieurs cultures.",
+      "physical_block": "Îlot physique — il peut contenir plusieurs parcelles cultivées.",
+      "farmer_parcel": "Parcelle déclarée par l’agriculteur à l’organisme payeur.",
+      "agricultural_parcel": "Unité culturale — déjà une seule parcelle cultivée.",
+      "manual": "Dessinée à la main."
+    }
   }
 }

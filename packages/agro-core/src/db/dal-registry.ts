@@ -142,9 +142,30 @@ export class AgroDalRegistry extends AgroDalBase {
   async upsertPlot(
     input: Omit<
       Plot,
-      "tenant_id" | "created_at" | "updated_at" | "deleted_at" | "area_ha"
+      | "tenant_id"
+      | "created_at"
+      | "updated_at"
+      | "deleted_at"
+      | "area_ha"
+      // La provenienza (v22) è opzionale in ingresso: gli appezzamenti
+      // disegnati a mano e quelli importati dal Fascicolo non ne hanno, e non
+      // devono essere costretti a dichiararla nulla a ogni chiamata.
+      | "source_id"
+      | "nuts_code"
+      | "reference_unit_type"
+      | "validity_year"
     > &
-      Partial<Pick<Plot, "created_at" | "area_ha">>,
+      Partial<
+        Pick<
+          Plot,
+          | "created_at"
+          | "area_ha"
+          | "source_id"
+          | "nuts_code"
+          | "reference_unit_type"
+          | "validity_year"
+        >
+      >,
   ): Promise<Plot> {
     const ts = nowIso();
     // Geometria normalizzata PRIMA di persistere: il GeoEditor può emettere un
@@ -157,6 +178,13 @@ export class AgroDalRegistry extends AgroDalBase {
     const areaHa = areaHectares(geometry);
     const row: Plot = {
       created_at: ts,
+      // Esplicitamente null e non assenti: la riga deve portare SEMPRE tutte le
+      // colonne, altrimenti l'upsert non le toccherebbe e un aggiornamento
+      // potrebbe lasciare in piedi una provenienza vecchia.
+      source_id: null,
+      nuts_code: null,
+      reference_unit_type: null,
+      validity_year: null,
       ...input,
       geometry,
       area_ha: areaHa,

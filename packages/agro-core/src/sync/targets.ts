@@ -84,7 +84,8 @@ export const PULL_TABLES: { tabella: SyncTable; columns: string }[] = [
     columns:
       "id,tenant_id,company_id,user_plot_name,cadastral_sheet,cadastral_parcel," +
       "geometry,irrigation_type,planting_year,area_ha,last_ndvi_mean," +
-      "historical_notes,metadata,created_at,updated_at,deleted_at",
+      "historical_notes,metadata,source_id,nuts_code,reference_unit_type," +
+      "validity_year,created_at,updated_at,deleted_at",
   },
   {
     tabella: "plots_campaign",

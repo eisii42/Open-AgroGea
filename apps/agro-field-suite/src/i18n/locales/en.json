@@ -141,7 +141,8 @@
     "toolExport": "Export (CSV)…",
     "toolProfile": "Company profile",
     "toolWeather": "Weather source & variables",
-    "toolGeoCompliance": "GeoCompliance"
+    "toolGeoCompliance": "GeoCompliance",
+    "toolParcelAdoption": "Public parcels"
   },
   "help": {
     "menu": "Help",
@@ -2331,5 +2332,29 @@
       "water": "Water stress"
     },
     "showAll": "Show all"
+  },
+  "parcelAdoption": {
+    "title": "Public parcels",
+    "intro": "Pick an official source, then search the area you are looking at or click a point on the map. Nothing is added until you choose it.",
+    "sourceLabel": "Source",
+    "attribution": "Data: {{attribution}} — licence {{license}}",
+    "searchHere": "Search this area",
+    "pickPoint": "Click a point",
+    "pickingPoint": "Click on the map…",
+    "zoomIn": "The visible area is too wide: zoom in before searching.",
+    "noResults": "No parcels found here.",
+    "noReference": "No native identifier",
+    "declaredArea": "{{value}} ha declared",
+    "cropCode": "crop {{code}}",
+    "plotNameLabel": "Plot name",
+    "adopt": "Add to the farm",
+    "alreadyAdopted": "This parcel is already in the farm as “{{name}}”.",
+    "unitType": {
+      "cadastral_parcel": "Cadastral parcel — it may hold more than one crop.",
+      "physical_block": "Physical block — it may contain several cultivated plots.",
+      "farmer_parcel": "Farmer parcel as declared to the paying agency.",
+      "agricultural_parcel": "Agricultural parcel — already a single cropped unit.",
+      "manual": "Drawn by hand."
+    }
   }
 }

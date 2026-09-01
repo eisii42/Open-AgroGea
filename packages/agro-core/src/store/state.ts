@@ -1,3 +1,4 @@
+import type { Parcel } from "@agrogea/parcel";
 import type { Feature, Geometry } from "geojson";
 import type { StoreApi } from "zustand";
 import type { AgroDal } from "../db/dal";
@@ -941,6 +942,17 @@ export interface GeometrySlice {
   saveDrawnPlot: (
     geometria: Plot["geometry"],
     attrs?: PlotDrawAttrs,
+  ) => Promise<Plot | null>;
+  /**
+   * Adotta una particella scelta dall'utente da una fonte pubblica: la converte
+   * in appezzamento e la persiste con la sua provenienza. Ritorna `null` se
+   * manca il contesto company; lancia se la particella è già stata adottata,
+   * perché sovrascrivere in silenzio un appezzamento con i suoi dati
+   * agronomici sarebbe una perdita.
+   */
+  adoptParcel: (
+    parcel: Parcel,
+    attrs: { name: string; cadastralSheet?: string | null; cadastralParcel?: string | null },
   ) => Promise<Plot | null>;
   saveDrawnAsset: (
     geometria: Geometry,

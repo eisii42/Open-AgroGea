@@ -225,6 +225,18 @@ export {
   createProj4Reprojector,
 } from "./geo/reproject";
 export {
+  PARCEL_METADATA_KEY,
+  ParcelAlreadyAdoptedError,
+  attributionLine,
+  findAdoptedPlot,
+  parcelProvenance,
+  parcelToPlotDraft,
+  plotProvenance,
+  type AdoptedPlotDraft,
+  type AdoptionInput,
+  type ParcelProvenance,
+} from "./parcel/adoption";
+export {
   COUNTRIES_WITH_BBOX,
   DEFAULT_COUNTRY,
   SUPPORTED_COUNTRIES,
