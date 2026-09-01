@@ -20,9 +20,10 @@ import { useTenantCountry } from "../../hooks/useTenantCountry";
 import {
   boundsToBBox,
   candidateSummary,
-  isViewportTooWide,
+  INTERACTIVE_MAX_FEATURES,
   orderSourcesForCountry,
   suggestedPlotName,
+  zoomBlock,
 } from "./parcel-adoption";
 
 /**
@@ -111,14 +112,19 @@ export function ParcelAdoptionPanel({
   function searchInViewport() {
     const map = mapControllerRef.current?.getMap();
     if (!map) return;
-    const bbox: BBox = boundsToBBox(map.getBounds());
-    if (isViewportTooWide(bbox)) {
-      setError(t("parcelAdoption.zoomIn"));
+    const block = zoomBlock(map.getZoom());
+    if (block) {
+      setError(
+        t(block === "tooFar" ? "parcelAdoption.zoomIn" : "parcelAdoption.zoomOut"),
+      );
       setParcelCandidates([]);
       return;
     }
+    const bbox: BBox = boundsToBBox(map.getBounds());
     void runQuery((record) =>
-      createParcelSource(record, depsRef.current).queryByBbox(bbox),
+      createParcelSource(record, depsRef.current).queryByBbox(bbox, {
+        maxFeatures: INTERACTIVE_MAX_FEATURES,
+      }),
     );
   }
 
@@ -131,10 +137,10 @@ export function ParcelAdoptionPanel({
     const onClick = (event: { lngLat: { lng: number; lat: number } }) => {
       setPickingPoint(false);
       void runQuery((record) =>
-        createParcelSource(record, depsRef.current).queryByPoint([
-          event.lngLat.lng,
-          event.lngLat.lat,
-        ]),
+        createParcelSource(record, depsRef.current).queryByPoint(
+          [event.lngLat.lng, event.lngLat.lat],
+          { maxFeatures: INTERACTIVE_MAX_FEATURES },
+        ),
       );
     };
     map.on("click", onClick);

@@ -18,12 +18,21 @@ packages/
   agro-core                @agrogea/core — domain: types, Zustand store, PGlite
                              DAL, Sync Engine, control-plane adapter
   agro-ui                  @agrogea/ui — Quaderno di Campagna components
+  agro-parcel              @agrogea/parcel — LEAF package, zero runtime deps:
+                             the Parcel contract, the source catalogue (JSON,
+                             one file per source) and the WFS/OGC API/manual
+                             adapters. Never depends on @agrogea/core
 plugins/agro-tools         @agrogea/tools — pure calculation engines (spectral
                              indices, FAO 56/66 water balance, phenology,
                              phytopathology, Saxton-Rawls soil, VRA zoning)
 docs/                      Contributor & user documentation
 tests/                     Node test runner suites (tests/agro-*.test.ts)
 ```
+
+`@agrogea/parcel` is the only package other repositories are expected to
+consume on its own (the DSS/disciplinari plugins read the `Parcel` contract),
+which is why it carries no runtime dependencies and why the dependency arrow
+only ever points *from* `@agrogea/core` *to* it — never back.
 
 `@agrogea/core` is the **domain + data layer** (the app's `data/` and `domain/`
 rolled into a package). `@agrogea/tools` holds **pure, framework-free** math and
@@ -178,6 +187,32 @@ Non-obvious constraints, each with a reason:
    to the `sync_outbox` allow-list in the sync target.
 4. UI strings go through i18n (`src/i18n/locales/*.json`) — never hard-coded.
 5. Add a `tests/agro-<feature>.test.ts` suite for any pure logic.
+
+### … a new parcel source (a new country or region)
+
+This must stay **data, not code**. If adding a source ever requires writing a
+module, the abstraction is wrong and should be fixed instead.
+
+1. Drop a JSON record in `packages/agro-parcel/src/catalog/<id>.json` (copy an
+   existing one; `source.schema.json` next to it drives editor completion) and
+   add one `import` line to `catalog.ts`. One file per source so the live
+   verification can stamp `lastVerified` on it without rewriting the catalogue.
+2. `nuts` lists the nodes covered, and coverage is inherited downwards: `"NL"`
+   answers for `"NL32"`. The granularity is the **NUTS node, not the state** —
+   real endpoints are sub-national (a German Land, a Spanish comunidad, an
+   Italian comune for the cadastre).
+3. `attributeMap` is where the differences between portals live. Each field is
+   either an attribute name or `{ attribute, pattern }` when the value must be
+   extracted — INSPIRE-harmonised services publish the crop code as the last
+   segment of a codelist URI, and that is the whole reason the extended form
+   exists.
+4. `license.attribution` is mandatory and travels with every adopted parcel
+   into `plots_registry.metadata` and into the exchange file. It is an
+   obligation, not a caption.
+5. Leave `lastVerified: null` and run `npm run verify:sources`. It queries the
+   real endpoint and checks that the mapped attributes still exist — the only
+   check that can catch a portal renaming a column, which breaks nothing at
+   compile time and everything on a farmer's device.
 
 ### … a new crop DSS module
 

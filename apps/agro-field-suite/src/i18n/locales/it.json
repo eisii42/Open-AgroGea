@@ -2363,7 +2363,8 @@
       "agricultural_parcel": "Unità colturale — è già un singolo appezzamento coltivato.",
       "manual": "Disegnata a mano."
     },
-    "foundHint": "{{count}} particelle disegnate sulla mappa. Passaci sopra per vederne i dati, cliccane una per aggiungerla."
+    "foundHint": "{{count}} particelle disegnate sulla mappa. Passaci sopra per vederne i dati, cliccane una per aggiungerla.",
+    "zoomOut": "Sei troppo vicino: allontanati un poco prima di cercare."
   },
   "onboarding": {
     "title": "Benvenuto in AgroGea",

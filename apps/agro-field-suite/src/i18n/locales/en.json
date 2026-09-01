@@ -2363,7 +2363,8 @@
       "agricultural_parcel": "Agricultural parcel — already a single cropped unit.",
       "manual": "Drawn by hand."
     },
-    "foundHint": "{{count}} parcels drawn on the map. Hover one to see its details, click it to add it."
+    "foundHint": "{{count}} parcels drawn on the map. Hover one to see its details, click it to add it.",
+    "zoomOut": "You are too close: zoom out a little before searching."
   },
   "onboarding": {
     "title": "Welcome to AgroGea",

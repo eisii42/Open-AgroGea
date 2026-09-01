@@ -6,6 +6,12 @@ da questo repository.
 ## ✅ Disponibile oggi
 
 - Mappa GIS completa (ortofoto Esri, overlay Catasto WMS, Wayback imagery storica, import Shapefile/GeoJSON/OSM/GeoParquet)
+- Particelle da fonti pubbliche: si sceglie una fonte ufficiale dal catalogo, si
+  cercano le particelle nella zona inquadrata (o si clicca un punto), si vedono
+  sulla mappa con i loro dati e si adottano una alla volta — provenienza, annata
+  e licenza restano su ogni appezzamento. Paesi Bassi (BRP/PDOK) e Francia
+  (RPG/IGN) verificati contro i servizi vivi
+- Primo avvio guidato: nuova azienda, oppure ripristino da un backup
 - Quaderno di Campagna Digitale con validazione PAN (trattamenti fitosanitari, fertilizzazioni, Tempo di Carenza)
 - Harvest & Analytics (registrazione raccolte, grafici, Field Calculator)
 - DSS & Bilancio Idrico (mappa colorata del rischio, evapotraspirazione FAO-56, riduzione di resa Ky FAO-33/66)

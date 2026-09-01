@@ -69,6 +69,16 @@ describe("catalogo particelle / il catalogo spedito è valido", () => {
     assert.ok(nl?.attributeMap.sourceId);
   });
 
+  it("contiene la fonte francese, con la sua licenza aperta", () => {
+    const fr = sourceById("fr-rpg-parcelles");
+    assert.ok(fr, "atteso il record fr-rpg-parcelles");
+    assert.equal(fr?.featureType, "RPG.LATEST:parcelles_graphiques");
+    // Il RPG pubblica la parcella DICHIARATA dall'agricoltore, non l'îlot
+    // fisico: cambia che cosa l'utente sta adottando.
+    assert.equal(fr?.referenceUnitType, "farmer_parcel");
+    assert.equal(fr?.license.id, "etalab-2.0");
+  });
+
   it("nessuna fonte si dichiara già verificata senza esserlo stata", () => {
     // lastVerified lo scrive la verifica live: a mano resta null.
     for (const source of PARCEL_SOURCE_CATALOG) {
@@ -110,8 +120,16 @@ describe("catalogo particelle / copertura per nodo NUTS", () => {
     );
   });
 
-  it("un nodo di un altro paese non trova nulla", () => {
-    assert.deepEqual(sourcesCovering("FRK2"), []);
+  it("la fonte francese risponde per i suoi nodi", () => {
+    const found = sourcesCovering("FRK2");
+    assert.ok(found.some((s) => s.id === "fr-rpg-parcelles"));
+  });
+
+  it("un nodo di un paese non ancora coperto non trova nulla", () => {
+    // Va aggiornato quando il catalogo crescerà fino a questi paesi: è il
+    // promemoria che serve, non un ostacolo.
+    assert.deepEqual(sourcesCovering("PL21"), []);
+    assert.deepEqual(sourcesCovering("SE11"), []);
   });
 });
 

@@ -16,11 +16,12 @@
  * malformato la CI si ferma. L'asserzione dichiara un fatto verificato altrove,
  * non lo dà per scontato.
  */
+import frRpgParcelles from "./catalog/fr-rpg-parcelles.json";
 import nlBrpGewaspercelen from "./catalog/nl-brp-gewaspercelen.json";
 import type { ParcelSourceRecord } from "./source-record";
 
 /** Record grezzi, nell'ordine in cui il catalogo li propone. */
-const RECORDS: readonly unknown[] = [nlBrpGewaspercelen];
+const RECORDS: readonly unknown[] = [nlBrpGewaspercelen, frRpgParcelles];
 
 /**
  * Il catalogo completo. Validato da `validateCatalog` nella suite di test —

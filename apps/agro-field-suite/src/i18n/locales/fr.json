@@ -2363,7 +2363,8 @@
       "agricultural_parcel": "Unité culturale — déjà une seule parcelle cultivée.",
       "manual": "Dessinée à la main."
     },
-    "foundHint": "{{count}} parcelles dessinées sur la carte. Survolez-en une pour voir ses données, cliquez pour l’ajouter."
+    "foundHint": "{{count}} parcelles dessinées sur la carte. Survolez-en une pour voir ses données, cliquez pour l’ajouter.",
+    "zoomOut": "Vous êtes trop près : dézoomez un peu avant de chercher."
   },
   "onboarding": {
     "title": "Bienvenue dans AgroGea",

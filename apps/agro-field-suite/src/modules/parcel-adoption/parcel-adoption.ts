@@ -44,15 +44,40 @@ export function boundsToBBox(bounds: ViewportBounds): BBox {
 }
 
 /**
- * True se il riquadro è troppo ampio per un'interrogazione sensata. Una vista
- * continentale produrrebbe centinaia di migliaia di geometrie: meglio chiedere
- * all'utente di avvicinarsi che scaricare mezzo paese e troncare.
+ * Zoom minimo per interrogare una fonte. Sotto questo livello si guarda una
+ * provincia intera: in una zona agricola densa sono decine di migliaia di
+ * geometrie, che nessuno sceglierebbe col mouse e che intanto tengono occupato
+ * un portale pubblico.
  */
-export const MAX_QUERY_SPAN_DEG = 0.5;
+export const PARCEL_QUERY_MIN_ZOOM = 13;
 
-export function isViewportTooWide(bbox: BBox): boolean {
-  const [minLon, minLat, maxLon, maxLat] = bbox;
-  return maxLon - minLon > MAX_QUERY_SPAN_DEG || maxLat - minLat > MAX_QUERY_SPAN_DEG;
+/**
+ * Zoom massimo. Oltre si inquadra poco più di un campo: l'interrogazione
+ * costerebbe quanto le altre per restituire quasi nulla, e conviene cercare
+ * un po' più larghi e poi avvicinarsi.
+ */
+export const PARCEL_QUERY_MAX_ZOOM = 17;
+
+/**
+ * Numero di particelle raccolte da una ricerca interattiva. Molto sotto al
+ * tetto di sicurezza dell'adapter (che difende il dispositivo): qui il vincolo
+ * è diverso e più stringente — sono geometrie che una persona deve guardare e
+ * fra cui deve scegliere.
+ */
+export const INTERACTIVE_MAX_FEATURES = 200;
+
+/** Perché lo zoom corrente non consente di cercare, o `null` se consente. */
+export type ZoomBlock = "tooFar" | "tooClose";
+
+/**
+ * Verifica lo zoom prima di interrogare. Il controllo è sullo zoom e non
+ * sull'ampiezza del riquadro in gradi perché è ciò che l'utente governa
+ * direttamente: il messaggio può dirgli "avvicinati", e lui sa come farlo.
+ */
+export function zoomBlock(zoom: number): ZoomBlock | null {
+  if (zoom < PARCEL_QUERY_MIN_ZOOM) return "tooFar";
+  if (zoom > PARCEL_QUERY_MAX_ZOOM) return "tooClose";
+  return null;
 }
 
 /** Riepilogo di una candidata, pronto per la lista. */

@@ -161,7 +161,8 @@ async function main(): Promise<void> {
     for (const issue of structural) {
       console.error(`  ${issue.path}: ${issue.message}`);
     }
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
 
   console.log(`Verifica di ${PARCEL_SOURCE_CATALOG.length} fonti…\n`);
@@ -191,7 +192,9 @@ async function main(): Promise<void> {
   if (write) {
     console.log("lastVerified aggiornato per le fonti verificate.");
   }
-  process.exit(failed.length > 0 ? 1 : 0);
+  // `exitCode` invece di `process.exit`: uscire mentre restano handle aperti
+  // fa abortire libuv su Windows con un assert, sporcando un report riuscito.
+  process.exitCode = failed.length > 0 ? 1 : 0;
 }
 
 await main();

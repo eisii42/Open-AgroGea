@@ -2363,7 +2363,8 @@
       "agricultural_parcel": "Unidad de cultivo: ya es una sola parcela cultivada.",
       "manual": "Dibujada a mano."
     },
-    "foundHint": "{{count}} parcelas dibujadas en el mapa. Pasa por encima para ver sus datos y haz clic en una para añadirla."
+    "foundHint": "{{count}} parcelas dibujadas en el mapa. Pasa por encima para ver sus datos y haz clic en una para añadirla.",
+    "zoomOut": "Estás demasiado cerca: aléjate un poco antes de buscar."
   },
   "onboarding": {
     "title": "Bienvenido a AgroGea",
