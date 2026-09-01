@@ -3,12 +3,16 @@ import { describe, it } from "node:test";
 import {
   DASHBOARD_MODULE_IDS,
   DEFAULT_DASHBOARD_LAYOUT,
+  DEFAULT_MAP_ZOOM_LIMITS,
+  MAP_ZOOM_CEILING,
+  MAP_ZOOM_FLOOR,
   type DashboardModuleId,
   formatArea,
   formatYield,
   loadDashboardLayout,
   loadUnits,
   mergeDashboardLayout,
+  normalizeMapZoomLimits,
 } from "../packages/agro-core/src/field/settings";
 
 describe("mergeDashboardLayout", () => {
@@ -94,5 +98,43 @@ describe("load* fallbacks without localStorage", () => {
   });
   it("loadUnits falls back to the metric default", () => {
     assert.deepEqual(loadUnits(), { area: "ha", yield: "q", water: "mm" });
+  });
+});
+
+/**
+ * Limiti di zoom della mappa (default 13–17, modificabili in Impostazioni):
+ * l'invariante `min <= max` non è cosmetica — un intervallo invertito farebbe
+ * alzare `minZoom` sopra `maxZoom` e la vista resterebbe incastrata.
+ */
+describe("normalizeMapZoomLimits", () => {
+  it("senza preferenze salvate usa il default 13–17", () => {
+    assert.deepEqual(normalizeMapZoomLimits(null), DEFAULT_MAP_ZOOM_LIMITS);
+    assert.deepEqual(normalizeMapZoomLimits(undefined), { min: 13, max: 17 });
+    assert.deepEqual(normalizeMapZoomLimits({}), { min: 13, max: 17 });
+  });
+
+  it("clampa agli estremi ammessi e arrotonda a interi", () => {
+    assert.deepEqual(normalizeMapZoomLimits({ min: -5, max: 99 }), {
+      min: MAP_ZOOM_FLOOR,
+      max: MAP_ZOOM_CEILING,
+    });
+    assert.deepEqual(normalizeMapZoomLimits({ min: 12.4, max: 18.6 }), {
+      min: 12,
+      max: 19,
+    });
+  });
+
+  it("raddrizza un intervallo invertito invece di lasciarlo passare", () => {
+    assert.deepEqual(normalizeMapZoomLimits({ min: 18, max: 14 }), {
+      min: 14,
+      max: 18,
+    });
+  });
+
+  it("un valore non numerico ricade sul suo default, senza toccare l'altro", () => {
+    assert.deepEqual(normalizeMapZoomLimits({ min: "abc", max: 20 }), {
+      min: 13,
+      max: 20,
+    });
   });
 });

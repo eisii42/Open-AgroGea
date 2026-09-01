@@ -188,9 +188,26 @@
  *   Rollback logico v22: `drop index if exists plots_registry_source_unq` e
  *   `alter table plots_registry drop column source_id, nuts_code,
  *   reference_unit_type, validity_year`. Nessun dato pre-v22 è toccato.
+ *
+ * v23 — additiva: magazzini MULTIPLI e georeferenziati. Una tabella e una
+ * colonna:
+ *   * `warehouses` — il luogo fisico in cui la merce sta (capannone, deposito
+ *     agrofarmaci, cisterna, silos). Ha una `geometry` GeoJSON puntuale
+ *     OPZIONALE: valorizzata, il magazzino diventa un POI cliccabile sulla
+ *     mappa che apre la propria scheda; nulla, resta un magazzino "logico"
+ *     raggiungibile solo dal modulo. Sincronizzata via outbox;
+ *   * `product_lots.warehouse_id` — dove si trova QUEL lotto. La giacenza vive
+ *     nel lotto, non nell'anagrafica: è quindi il lotto (e non il prodotto) a
+ *     stare in un magazzino, ed è ciò che rende naturale avere lo stesso
+ *     prodotto in due depositi con scadenze e quantità diverse. Nullable: i
+ *     lotti caricati prima della v23 restano "non assegnati" e continuano a
+ *     contare nella giacenza complessiva, senza migrazione di dati.
+ *   Rollback logico v23: 1) `delete from sync_outbox where table_name =
+ *   'warehouses'`; 2) `alter table product_lots drop column warehouse_id`;
+ *   3) `drop table warehouses`. Nessun dato pre-v23 è toccato.
  */
 
-export const AGRO_LOCAL_SCHEMA_VERSION = 22;
+export const AGRO_LOCAL_SCHEMA_VERSION = 23;
 
 export const AGRO_LOCAL_SCHEMA_SQL = `
 create table if not exists agro_meta (
@@ -1129,4 +1146,37 @@ create table if not exists vegetation_index_rasters (
   values_base64   text not null,
   primary key (scene_row_id, index_name)
 );
+
+-- v23 — Magazzini multipli e georeferenziati -----------------------------------
+
+-- warehouses — luogo fisico in cui la merce sta. La geometria puntuale è
+-- OPZIONALE: valorizzata, il magazzino compare come POI cliccabile sulla mappa
+-- (icona dedicata) e apre la propria scheda; nulla, resta un magazzino logico
+-- raggiungibile dal modulo. Il tipo di deposito è testo libero come asset_type
+-- degli asset (nessun CHECK: le tipologie sono aziendali, non normative).
+create table if not exists warehouses (
+  id             uuid primary key,
+  tenant_id      uuid not null,
+  company_id     uuid not null references companies (id),
+  name           text not null,
+  warehouse_type text not null default 'general',
+  geometry       jsonb,
+  address        text,
+  notes          text,
+  metadata       jsonb not null default '{}',
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  deleted_at     timestamptz
+);
+
+create index if not exists warehouses_company_idx
+  on warehouses (company_id);
+
+-- La giacenza vive nel LOTTO: è il lotto ad avere una collocazione, non
+-- l'anagrafica prodotto. Nullable = lotto non assegnato (tutti quelli pre-v23).
+alter table product_lots
+  add column if not exists warehouse_id uuid references warehouses (id);
+
+create index if not exists product_lots_warehouse_idx
+  on product_lots (warehouse_id);
 `;

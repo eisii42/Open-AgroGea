@@ -1657,6 +1657,14 @@
       "area": "Superficie",
       "yield": "Rendimiento / cantidad",
       "water": "Aporte de agua"
+    },
+    "map": {
+      "title": "Vista del mapa",
+      "subtitle": "Intervalo de zoom dentro del cual puede moverse el mapa de campo.",
+      "minZoom": "Zoom mínimo",
+      "minZoomHint": "Cuánto puede alejarse la vista (13 = explotación o comarca).",
+      "maxZoom": "Zoom máximo",
+      "maxZoomHint": "Cuánto puede acercarse la vista (17 = hilera o planta individual)."
     }
   },
   "operationDetailCard": {
@@ -2386,6 +2394,50 @@
     "error": {
       "nameRequired": "Ponle un nombre a la explotación.",
       "countryInvalid": "Elige un país."
+    }
+  },
+  "warehouseSheet": {
+    "title": "Almacenes",
+    "manage": "Almacenes",
+    "selectorLabel": "Almacén",
+    "allWarehouses": "Todos los almacenes",
+    "unassigned": "Sin asignar",
+    "lotWarehouse": "Almacén de destino",
+    "lotsInStock_one": "{{count}} lote en existencias",
+    "lotsInStock_other": "{{count}} lotes en existencias",
+    "backToProducts": "‹ Volver a los productos",
+    "empty": "Ningún almacén: crea uno para ubicar las existencias y verlo en el mapa.",
+    "emptyWarehouse": "Ningún producto en este almacén.",
+    "newWarehouse": "Nuevo almacén",
+    "edit": "Editar almacén",
+    "delete": "Eliminar almacén",
+    "deleteNotice": "Al eliminar un almacén sus lotes no se pierden: pasan a «sin asignar».",
+    "name": "Nombre",
+    "namePlaceholder": "P. ej. Nave Norte",
+    "type": "Tipo",
+    "address": "Dirección",
+    "position": "Posición en el mapa",
+    "noPosition": "Sin posición",
+    "tapMap": "Toca el mapa",
+    "tapMapEllipsis": "Toca el mapa…",
+    "clearPosition": "Quitar posición",
+    "save": "Guardar almacén",
+    "kind": {
+      "general": "Genérico",
+      "phytosanitary": "Depósito de fitosanitarios",
+      "fertilizer": "Depósito de abonos",
+      "seed": "Depósito de semillas",
+      "fuel": "Depósito de combustible",
+      "machinery": "Nave de maquinaria"
+    }
+  },
+  "plotAlerts": {
+    "tasksPending_one": "{{count}} tarea prevista",
+    "tasksPending_other": "{{count}} tareas previstas",
+    "gap": {
+      "soil_texture": "Falta la textura del suelo",
+      "declarative_fields": "Datos declarativos de campaña incompletos",
+      "incomplete_records": "Registros del Cuaderno incompletos"
     }
   }
 }

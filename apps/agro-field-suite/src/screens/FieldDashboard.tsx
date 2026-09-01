@@ -27,6 +27,8 @@ import { MapSearchControl } from "../components/MapSearchControl";
 import { MapTooltip } from "../components/MapTooltip";
 import { OperationMarkers } from "../components/OperationMarkers";
 import { HarvestMarkers } from "../components/HarvestMarkers";
+import { WarehouseMarkers } from "../components/WarehouseMarkers";
+import { PlotAlertMarkers } from "../components/PlotAlertMarkers";
 import { ModuleSidebar } from "../components/ModuleSidebar";
 import { TransferTagsFeed } from "../components/TransferTagsFeed";
 import { useReadOnly } from "@agrogea/core";
@@ -40,6 +42,7 @@ import { useHoverTooltips } from "../hooks/useHoverTooltips";
 import { useIndexRefreshJob } from "../hooks/useIndexRefreshJob";
 import { useCompassNorth } from "../hooks/useCompassNorth";
 import { useMapStyleEpoch } from "../hooks/useMapStyleEpoch";
+import { useMapZoomLimits } from "../hooks/useMapZoomLimits";
 import { useNativeMapI18n } from "../hooks/useNativeMapI18n";
 
 /**
@@ -233,6 +236,9 @@ export function FieldDashboard() {
   // basemap (Modulo 1 §FIX: scomparsa dei vettori al cambio basemap).
   const styleEpoch = useMapStyleEpoch(mapControllerRef, mapReady);
 
+  // Limiti di zoom (preferenza utente + tetto tecnico della basemap attiva).
+  useMapZoomLimits();
+
   useFieldPlugins(mapControllerRef, mapReady);
   usePlotsLayer(mapControllerRef, styleEpoch);
   // Particelle proposte dall'adozione: sopra gli appezzamenti, così durante la
@@ -365,6 +371,17 @@ export function FieldDashboard() {
         <OperationMarkers mapControllerRef={mapControllerRef} mapReady={mapReady} />
         <HarvestMarkers mapControllerRef={mapControllerRef} mapReady={mapReady} />
 
+        {/* POI dei magazzini: permanenti (non dipendono da un toggle) — un
+            deposito è un elemento stabile dell'azienda. Il click apre la sua
+            scheda nel modulo Magazzino. */}
+        <WarehouseMarkers mapControllerRef={mapControllerRef} mapReady={mapReady} />
+
+        {/* Segnali di attenzione sugli appezzamenti: "!" dove c'è lavoro
+            previsto, triangolo dove mancano dati (tessitura, dichiarativi,
+            record incompleti). Anch'essi permanenti: sono l'eccezione, quindi
+            compaiono solo sui campi che hanno davvero qualcosa da segnalare. */}
+        <PlotAlertMarkers mapControllerRef={mapControllerRef} mapReady={mapReady} />
+
         {/* Tooltip hover (Modulo UI §2). */}
         <MapTooltip hover={hover} />
 
@@ -406,7 +423,10 @@ export function FieldDashboard() {
             <HarvestPanel onClose={() => togglePanel("raccolta")} />
           )}
           {openPanels.includes("magazzino") && (
-            <WarehousePanel onClose={() => togglePanel("magazzino")} />
+            <WarehousePanel
+              onClose={() => togglePanel("magazzino")}
+              mapControllerRef={mapControllerRef}
+            />
           )}
           {/* Refill carburante: pannello a sé (staccato dal Magazzino), aperto
               solo dal FAB rapido a bordo campo (§6.2). */}

@@ -26,6 +26,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
     memberships: [],
     products: [],
     lots: [],
+    warehouses: [],
     machines: [],
     equipment: [],
     maintenanceSchedules: [],
@@ -51,6 +52,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         memberships: [],
         products: [],
         lots: [],
+        warehouses: [],
         machines: [],
         equipment: [],
         maintenanceSchedules: [],
@@ -247,6 +249,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         memberships,
         products,
         lots,
+        warehouses,
         machines,
         equipment,
         maintenanceSchedules,
@@ -268,6 +271,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         dal.listMemberships(),
         dal.listProducts(activeCompanyId),
         dal.listLotti(activeCompanyId),
+        dal.listWarehouses(activeCompanyId),
         dal.listMachines(activeCompanyId),
         dal.listEquipment(activeCompanyId),
         dal.listMaintenanceSchedules(activeCompanyId),
@@ -291,6 +295,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         memberships,
         products,
         lots,
+        warehouses,
         machines,
         equipment,
         maintenanceSchedules,
@@ -606,6 +611,43 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
       if (!dal) return;
       await dal.deleteLot(id);
       set((s) => ({ lots: s.lots.filter((l) => l.id !== id) }));
+      syncRouter?.notifyLocalWrite();
+    },
+
+    // -- Magazzini fisici (v23) -----------------------------------------------
+
+    saveWarehouse: async (input) => {
+      assertWritable(get);
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return null;
+      const record = await dal.upsertWarehouse({
+        ...input,
+        company_id: activeCompanyId,
+      });
+      set((s) => ({
+        warehouses: [
+          ...s.warehouses.filter((w) => w.id !== record.id),
+          record,
+        ].sort((a, b) => a.name.localeCompare(b.name)),
+      }));
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    deleteWarehouse: async (id) => {
+      assertWritable(get);
+      const { dal, activeCompanyId, syncRouter } = get();
+      if (!dal || !activeCompanyId) return;
+      await dal.deleteWarehouse(id);
+      // I lots vi restano, senza collocazione: si riidratano per non mostrare
+      // un riferimento a un deposito che non esiste più.
+      const lots = await dal.listLotti(activeCompanyId);
+      set((s) => ({
+        warehouses: s.warehouses.filter((w) => w.id !== id),
+        lots,
+        activeWarehouseId:
+          s.activeWarehouseId === id ? null : s.activeWarehouseId,
+      }));
       syncRouter?.notifyLocalWrite();
     },
 

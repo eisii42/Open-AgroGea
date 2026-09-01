@@ -6,11 +6,15 @@ import {
   DEFAULT_UNITS,
   type DashboardLayoutConfig,
   type DashboardModuleId,
+  type MapZoomLimits,
   type UnitSystem,
   loadDashboardLayout,
+  loadMapZoomLimits,
   loadUnits,
   mergeDashboardLayout,
+  normalizeMapZoomLimits,
   persistDashboardLayout,
+  persistMapZoomLimits,
   persistUnits,
 } from "./settings";
 
@@ -34,6 +38,12 @@ export type PreferencesSyncState = "idle" | "saving" | "saved" | "error" | "offl
 export interface SettingsState {
   dashboardLayout: DashboardLayoutConfig;
   units: UnitSystem;
+  /**
+   * Intervallo di zoom della mappa di campo (default 13–17). È l'unica fonte
+   * di verità della preferenza: chi la applica a MapLibre è l'app
+   * (`useMapZoomLimits`), che vi somma i tetti tecnici della basemap attiva.
+   */
+  mapZoomLimits: MapZoomLimits;
   /** Esito dell'ultima sincronizzazione cross-device (UI feedback). */
   remoteSync: PreferencesSyncState;
 
@@ -43,6 +53,11 @@ export interface SettingsState {
   /** Ripristina il layout di default (tutti i moduli ai valori iniziali). */
   resetLayout: () => void;
   setUnits: (patch: Partial<UnitSystem>) => void;
+  /**
+   * Aggiorna l'intervallo di zoom (parziale). La normalizzazione garantisce
+   * `min <= max`: un intervallo invertito incastrerebbe la vista.
+   */
+  setMapZoomLimits: (patch: Partial<MapZoomLimits>) => void;
   /**
    * Idrata le preferenze dal profile remoto (al login), se presenti: il control
    * plane vince per garantire la coerenza cross-device. Persiste anche in
@@ -79,6 +94,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
   return {
     dashboardLayout: loadDashboardLayout(),
     units: loadUnits(),
+    mapZoomLimits: loadMapZoomLimits(),
     remoteSync: "idle",
 
     setModuleEnabled: (id, enabled) => {
@@ -108,6 +124,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
       scheduleRemotePush();
     },
 
+    setMapZoomLimits: (patch) => {
+      const next = normalizeMapZoomLimits({ ...get().mapZoomLimits, ...patch });
+      persistMapZoomLimits(next);
+      set({ mapZoomLimits: next });
+      scheduleRemotePush();
+    },
+
     hydrateFromProfile: (profile) => {
       if (!profile) return;
       const updates: Partial<SettingsState> = {};
@@ -125,6 +148,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
         };
         persistUnits(units);
         updates.units = units;
+      }
+      const remoteZoom = profile.preferences?.mapZoom;
+      if (remoteZoom) {
+        const limits = normalizeMapZoomLimits(remoteZoom);
+        persistMapZoomLimits(limits);
+        updates.mapZoomLimits = limits;
       }
       if (Object.keys(updates).length > 0) set(updates);
     },
@@ -148,7 +177,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
       try {
         await updatePreferences({
           dashboard_layout_config: get().dashboardLayout,
-          preferences: { units: get().units, locale: loadLocale() },
+          preferences: {
+            units: get().units,
+            locale: loadLocale(),
+            mapZoom: get().mapZoomLimits,
+          },
         });
         set({ remoteSync: "saved" });
       } catch {

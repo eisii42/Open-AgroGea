@@ -121,3 +121,71 @@ describe("schema v12 / installazione nuova", () => {
     assert.equal(n.rows[0].n, 1);
   });
 });
+
+/**
+ * v23 — magazzini multipli. La migrazione è ADDITIVA: `warehouses` nasce nuova
+ * e `product_lots.warehouse_id` si aggiunge nullable, così i lotti già caricati
+ * sui dispositivi restano validi senza migrazione di dati.
+ */
+describe("schema v23 / magazzini multipli", () => {
+  it("crea warehouses e la colonna nullable product_lots.warehouse_id", async () => {
+    const db = new PGlite();
+    await db.exec(AGRO_LOCAL_SCHEMA_SQL);
+    await db.exec(AGRO_LOCAL_SCHEMA_SQL); // idempotente anche con la ALTER
+
+    assert.ok((await tableNames(db)).includes("warehouses"));
+    assert.deepEqual(await columnNames(db, "warehouses"), [
+      "address",
+      "company_id",
+      "created_at",
+      "deleted_at",
+      "geometry",
+      "id",
+      "metadata",
+      "name",
+      "notes",
+      "tenant_id",
+      "updated_at",
+      "warehouse_type",
+    ]);
+    assert.ok((await columnNames(db, "product_lots")).includes("warehouse_id"));
+
+    const nullable = await db.query<{ is_nullable: string }>(
+      `select is_nullable from information_schema.columns
+       where table_name = 'product_lots' and column_name = 'warehouse_id'`,
+    );
+    assert.equal(nullable.rows[0].is_nullable, "YES");
+  });
+
+  it("un lotto può stare in un magazzino o restare senza collocazione", async () => {
+    const db = new PGlite();
+    await db.exec(AGRO_LOCAL_SCHEMA_SQL);
+    const tenant = "11111111-1111-1111-1111-111111111111";
+    const company = await db.query<{ id: string }>(
+      "insert into companies (id, tenant_id, business_name) values (gen_random_uuid(),$1,'Az') returning id",
+      [tenant],
+    );
+    const cid = company.rows[0].id;
+    const warehouse = await db.query<{ id: string }>(
+      "insert into warehouses (id, tenant_id, company_id, name) values (gen_random_uuid(),$1,$2,'Capannone') returning id",
+      [tenant, cid],
+    );
+    const product = await db.query<{ id: string }>(
+      "insert into products (id, tenant_id, company_id, category, name) values (gen_random_uuid(),$1,$2,'other','Materiale') returning id",
+      [tenant, cid],
+    );
+    await db.query(
+      "insert into product_lots (id, tenant_id, product_id, warehouse_id, initial_quantity, quantity_on_hand) values (gen_random_uuid(),$1,$2,$3,10,10)",
+      [tenant, product.rows[0].id, warehouse.rows[0].id],
+    );
+    await db.query(
+      "insert into product_lots (id, tenant_id, product_id, initial_quantity, quantity_on_hand) values (gen_random_uuid(),$1,$2,5,5)",
+      [tenant, product.rows[0].id],
+    );
+
+    const rows = await db.query<{ n: number }>(
+      "select count(*)::int n from product_lots where warehouse_id is null",
+    );
+    assert.equal(rows.rows[0].n, 1);
+  });
+});

@@ -317,3 +317,82 @@ export function persistUnits(units: UnitSystem): void {
     /* no-op */
   }
 }
+
+// ---------------------------------------------------------------------------
+// Limiti di zoom della mappa
+// ---------------------------------------------------------------------------
+
+/**
+ * Intervallo di zoom entro cui l'utente può muovere la mappa di campo. È una
+ * preferenza d'UTENTE (stesso ciclo di vita di unità e layout): la vista
+ * agronomica utile vive fra la scala aziendale e il dettaglio del filare, e
+ * lasciare la mappa libera fino allo zoom 0/24 produce solo viste inutilizzabili
+ * (il mondo intero, o pixel di ortofoto sovracampionati).
+ */
+export interface MapZoomLimits {
+  min: number;
+  max: number;
+}
+
+/**
+ * Default: 13 (azienda/comprensorio) → 17 (filare/pianta singola). Sono i due
+ * estremi in cui il lavoro di campo si svolge davvero; chi ha bisogno di uscire
+ * dall'intervallo lo allarga dalle Impostazioni del profilo.
+ */
+export const DEFAULT_MAP_ZOOM_LIMITS: MapZoomLimits = { min: 13, max: 17 };
+
+/** Estremi assoluti ammessi dallo slider/selettore (limiti di MapLibre). */
+export const MAP_ZOOM_FLOOR = 3;
+export const MAP_ZOOM_CEILING = 22;
+
+/** Valori proposti dal selettore delle Impostazioni (interi nell'intervallo utile). */
+export const MAP_ZOOM_CHOICES: readonly number[] = Array.from(
+  { length: MAP_ZOOM_CEILING - MAP_ZOOM_FLOOR + 1 },
+  (_, i) => MAP_ZOOM_FLOOR + i,
+);
+
+function clampZoom(value: unknown, fallback: number): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(MAP_ZOOM_CEILING, Math.max(MAP_ZOOM_FLOOR, Math.round(n)));
+}
+
+/**
+ * Normalizza una coppia (parziale, legacy o corrotta) contro i default,
+ * garantendo l'invariante `min <= max`: un intervallo invertito bloccherebbe la
+ * mappa (MapLibre alza `minZoom` sopra `maxZoom` e la vista resta incastrata).
+ */
+export function normalizeMapZoomLimits(
+  partial: { min?: unknown; max?: unknown } | null | undefined,
+): MapZoomLimits {
+  if (!partial || typeof partial !== "object") {
+    return { ...DEFAULT_MAP_ZOOM_LIMITS };
+  }
+  const min = clampZoom(partial.min, DEFAULT_MAP_ZOOM_LIMITS.min);
+  const max = clampZoom(partial.max, DEFAULT_MAP_ZOOM_LIMITS.max);
+  return min <= max ? { min, max } : { min: max, max: min };
+}
+
+const MAP_ZOOM_KEY = "agrogea.mapZoomLimits";
+
+export function loadMapZoomLimits(): MapZoomLimits {
+  try {
+    const raw = globalThis.localStorage?.getItem(MAP_ZOOM_KEY);
+    if (raw) {
+      return normalizeMapZoomLimits(
+        JSON.parse(raw) as { min?: unknown; max?: unknown },
+      );
+    }
+  } catch {
+    /* storage non disponibile o JSON corrotto: si ricade sui default */
+  }
+  return { ...DEFAULT_MAP_ZOOM_LIMITS };
+}
+
+export function persistMapZoomLimits(limits: MapZoomLimits): void {
+  try {
+    globalThis.localStorage?.setItem(MAP_ZOOM_KEY, JSON.stringify(limits));
+  } catch {
+    /* no-op */
+  }
+}

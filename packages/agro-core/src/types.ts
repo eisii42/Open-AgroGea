@@ -92,6 +92,11 @@ export interface UserPreferences {
   };
   /** Lingua dell'interfaccia (codice {@link AppLocale}: "it"|"en"|"es"|"fr"). */
   locale?: string;
+  /**
+   * Intervallo di zoom entro cui la mappa di campo può muoversi
+   * ({@link MapZoomLimits}, default 13–17).
+   */
+  mapZoom?: { min: number; max: number };
 }
 
 /**
@@ -690,11 +695,67 @@ export interface Product {
   deleted_at: string | null;
 }
 
+/**
+ * Magazzino fisico dell'azienda (`warehouses`): il LUOGO in cui la merce sta.
+ * Un'azienda può averne quanti ne servono (capannone, deposito agrofarmaci,
+ * cisterna carburante, silos), ciascuno con il proprio contenuto — sono i
+ * {@link ProductLot} a portare la collocazione, non l'anagrafica prodotto.
+ */
+export interface Warehouse {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  /** Denominazione d'uso ("Capannone Nord", "Deposito fitofarmaci"). */
+  name: string;
+  /** Tipologia di deposito ({@link WarehouseKind}); guida icona e filtri. */
+  warehouse_type: string;
+  /**
+   * Posizione sulla mappa (Point GeoJSON) o null. Valorizzata, il magazzino
+   * compare come POI con icona dedicata e il click apre la sua scheda.
+   */
+  geometry: import("geojson").Point | null;
+  address: string | null;
+  notes: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/**
+ * Tipologie di deposito proposte dal form. È testo libero a DB (`warehouse_type`
+ * non ha CHECK: le tipologie sono aziendali, non normative), ma l'elenco
+ * canonico guida l'icona sulla mappa e il selettore.
+ */
+export type WarehouseKind =
+  | "general"
+  | "phytosanitary"
+  | "fertilizer"
+  | "seed"
+  | "fuel"
+  | "machinery";
+
+/** Elenco canonico delle tipologie proposte (ordine del selettore). */
+export const WAREHOUSE_KINDS: readonly WarehouseKind[] = [
+  "general",
+  "phytosanitary",
+  "fertilizer",
+  "seed",
+  "fuel",
+  "machinery",
+];
+
 /** Lotto di warehouse (`product_lots`): scadenza, stock e costo di carico. */
 export interface ProductLot {
   id: string;
   tenant_id: string;
   product_id: string;
+  /**
+   * Magazzino in cui il lot è collocato, o null se non assegnato (lots
+   * caricati prima dei magazzini multipli). La giacenza vive nel lot: è
+   * questo campo a permettere lo STESSO product in depositi diversi.
+   */
+  warehouse_id: string | null;
   /** Numero lot di produzione. */
   lot_number: string | null;
   /** Data di scadenza (ISO "YYYY-MM-DD"), null se non deperibile. */
@@ -1275,6 +1336,7 @@ export type SyncTable =
   | "harvest_logs"
   | "scouting_observations"
   | "tenant_memberships"
+  | "warehouses"
   | "products"
   | "product_lots"
   | "activity_products"

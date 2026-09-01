@@ -90,6 +90,8 @@ export function useFeatureSelection(
       // Durante il posizionamento di una nota scouting il click serve a posarla:
       // non deve aprire Quaderno/dettaglio dell'appezzamento sottostante.
       if (s.scoutingPlacing) return;
+      // Stessa ragione per il punto di un magazzino in corso di posizionamento.
+      if (s.warehousePlacing) return;
 
       const present = LAYER_KINDS.filter((l) => map.getLayer(l.id));
       const scoutingPresent = map.getLayer(SCOUTING_LAYER);

@@ -138,6 +138,12 @@ export const PULL_TABLES: { tabella: SyncTable; columns: string }[] = [
       "created_at,updated_at,deleted_at",
   },
   {
+    tabella: "warehouses",
+    columns:
+      "id,tenant_id,company_id,name,warehouse_type,geometry,address,notes," +
+      "metadata,created_at,updated_at,deleted_at",
+  },
+  {
     tabella: "products",
     columns:
       "id,tenant_id,company_id,category,name,unit,registration_number," +
@@ -147,8 +153,9 @@ export const PULL_TABLES: { tabella: SyncTable; columns: string }[] = [
   {
     tabella: "product_lots",
     columns:
-      "id,tenant_id,product_id,lot_number,expires_at,initial_quantity," +
-      "quantity_on_hand,unit_cost,created_at,updated_at,deleted_at",
+      "id,tenant_id,product_id,warehouse_id,lot_number,expires_at," +
+      "initial_quantity,quantity_on_hand,unit_cost,created_at,updated_at," +
+      "deleted_at",
   },
   {
     tabella: "activity_products",

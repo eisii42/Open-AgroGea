@@ -1657,6 +1657,14 @@
       "area": "Surface",
       "yield": "Rendement / quantité",
       "water": "Apport en eau"
+    },
+    "map": {
+      "title": "Vue de la carte",
+      "subtitle": "Plage de zoom dans laquelle la carte de terrain peut se déplacer.",
+      "minZoom": "Zoom minimal",
+      "minZoomHint": "Jusqu'où la vue peut s'élargir (13 = exploitation ou territoire).",
+      "maxZoom": "Zoom maximal",
+      "maxZoomHint": "Jusqu'où la vue peut se resserrer (17 = rang ou plante isolée)."
     }
   },
   "operationDetailCard": {
@@ -2386,6 +2394,50 @@
     "error": {
       "nameRequired": "Donnez un nom à l’exploitation.",
       "countryInvalid": "Choisissez un pays."
+    }
+  },
+  "warehouseSheet": {
+    "title": "Entrepôts",
+    "manage": "Entrepôts",
+    "selectorLabel": "Entrepôt",
+    "allWarehouses": "Tous les entrepôts",
+    "unassigned": "Non affecté",
+    "lotWarehouse": "Entrepôt de destination",
+    "lotsInStock_one": "{{count}} lot en stock",
+    "lotsInStock_other": "{{count}} lots en stock",
+    "backToProducts": "‹ Retour aux produits",
+    "empty": "Aucun entrepôt : créez-en un pour situer les stocks et le voir sur la carte.",
+    "emptyWarehouse": "Aucun produit dans cet entrepôt.",
+    "newWarehouse": "Nouvel entrepôt",
+    "edit": "Modifier l'entrepôt",
+    "delete": "Supprimer l'entrepôt",
+    "deleteNotice": "Supprimer un entrepôt ne perd pas ses lots : ils deviennent « non affectés ».",
+    "name": "Nom",
+    "namePlaceholder": "Ex. Hangar Nord",
+    "type": "Type",
+    "address": "Adresse",
+    "position": "Position sur la carte",
+    "noPosition": "Aucune position",
+    "tapMap": "Touchez la carte",
+    "tapMapEllipsis": "Touchez la carte…",
+    "clearPosition": "Retirer la position",
+    "save": "Enregistrer l'entrepôt",
+    "kind": {
+      "general": "Général",
+      "phytosanitary": "Local phytosanitaire",
+      "fertilizer": "Dépôt d'engrais",
+      "seed": "Dépôt de semences",
+      "fuel": "Cuve à carburant",
+      "machinery": "Hangar à matériel"
+    }
+  },
+  "plotAlerts": {
+    "tasksPending_one": "{{count}} tâche prévue",
+    "tasksPending_other": "{{count}} tâches prévues",
+    "gap": {
+      "soil_texture": "Texture du sol manquante",
+      "declarative_fields": "Données déclaratives de campagne incomplètes",
+      "incomplete_records": "Enregistrements du carnet incomplets"
     }
   }
 }

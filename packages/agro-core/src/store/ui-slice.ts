@@ -23,6 +23,9 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
     mapHarvestIds: null,
     scoutingPlacing: false,
     warehouseTab: "products",
+    activeWarehouseId: null,
+    warehouseFocusToken: 0,
+    warehousePlacing: false,
     quickRefillPending: false,
     geofenceDetection: null,
     geofenceDismissedPlotId: null,
@@ -75,6 +78,27 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
               ? s.openPanels
               : [...s.openPanels, "magazzino"],
       })),
+
+    // Click sul POI magazzino: apre il modulo già puntato su QUEL deposito.
+    // La scheda dettaglio è un drawer come il Magazzino: la si chiude.
+    openWarehouse: (warehouseId) =>
+      set((s) => ({
+        warehouseTab: "products",
+        activeWarehouseId: warehouseId,
+        warehouseFocusToken: s.warehouseFocusToken + 1,
+        selectedFeature: null,
+        openPanels:
+          s.panelMode === "docked"
+            ? ["magazzino"]
+            : s.openPanels.includes("magazzino")
+              ? s.openPanels
+              : [...s.openPanels, "magazzino"],
+      })),
+
+    setActiveWarehouseId: (warehouseId) =>
+      set({ activeWarehouseId: warehouseId }),
+
+    setWarehousePlacing: (placing) => set({ warehousePlacing: placing }),
 
     openRefillPanel: (options) =>
       set((s) => ({

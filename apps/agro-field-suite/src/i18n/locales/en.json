@@ -1873,6 +1873,14 @@
       "area": "Area",
       "yield": "Yield / quantity",
       "water": "Water input"
+    },
+    "map": {
+      "title": "Map view",
+      "subtitle": "Zoom range the field map is allowed to move within.",
+      "minZoom": "Minimum zoom",
+      "minZoomHint": "How far out the view can go (13 = farm or district).",
+      "maxZoom": "Maximum zoom",
+      "maxZoomHint": "How far in the view can go (17 = row or single plant)."
     }
   },
   "operationDetailCard": {
@@ -2386,6 +2394,50 @@
     "error": {
       "nameRequired": "Give the farm a name.",
       "countryInvalid": "Choose a country."
+    }
+  },
+  "warehouseSheet": {
+    "title": "Warehouses",
+    "manage": "Warehouses",
+    "selectorLabel": "Warehouse",
+    "allWarehouses": "All warehouses",
+    "unassigned": "Unassigned",
+    "lotWarehouse": "Destination warehouse",
+    "lotsInStock_one": "{{count}} lot in stock",
+    "lotsInStock_other": "{{count}} lots in stock",
+    "backToProducts": "‹ Back to products",
+    "empty": "No warehouse yet: create one to place your stock and see it on the map.",
+    "emptyWarehouse": "No product in this warehouse.",
+    "newWarehouse": "New warehouse",
+    "edit": "Edit warehouse",
+    "delete": "Delete warehouse",
+    "deleteNotice": "Deleting a warehouse does not lose its lots: they become “unassigned”.",
+    "name": "Name",
+    "namePlaceholder": "E.g. North shed",
+    "type": "Type",
+    "address": "Address",
+    "position": "Position on the map",
+    "noPosition": "No position",
+    "tapMap": "Tap the map",
+    "tapMapEllipsis": "Tap the map…",
+    "clearPosition": "Clear position",
+    "save": "Save warehouse",
+    "kind": {
+      "general": "General",
+      "phytosanitary": "Plant protection store",
+      "fertilizer": "Fertiliser store",
+      "seed": "Seed store",
+      "fuel": "Fuel tank",
+      "machinery": "Machinery shed"
+    }
+  },
+  "plotAlerts": {
+    "tasksPending_one": "{{count}} task planned",
+    "tasksPending_other": "{{count}} tasks planned",
+    "gap": {
+      "soil_texture": "Missing soil texture",
+      "declarative_fields": "Incomplete campaign declaration data",
+      "incomplete_records": "Incomplete logbook records"
     }
   }
 }

@@ -1873,6 +1873,14 @@
       "area": "Superficie",
       "yield": "Resa / quantità",
       "water": "Apporti irrigui"
+    },
+    "map": {
+      "title": "Vista della mappa",
+      "subtitle": "Intervallo di zoom entro cui la mappa di campo può muoversi.",
+      "minZoom": "Zoom minimo",
+      "minZoomHint": "Quanto si può allargare la vista (13 = azienda o comprensorio).",
+      "maxZoom": "Zoom massimo",
+      "maxZoomHint": "Quanto si può stringere la vista (17 = filare o pianta singola)."
     }
   },
   "operationDetailCard": {
@@ -2386,6 +2394,50 @@
     "error": {
       "nameRequired": "Dai un nome all’azienda.",
       "countryInvalid": "Scegli un paese."
+    }
+  },
+  "warehouseSheet": {
+    "title": "Magazzini",
+    "manage": "Magazzini",
+    "selectorLabel": "Magazzino",
+    "allWarehouses": "Tutti i magazzini",
+    "unassigned": "Non assegnato",
+    "lotWarehouse": "Magazzino di destinazione",
+    "lotsInStock_one": "{{count}} lotto in giacenza",
+    "lotsInStock_other": "{{count}} lotti in giacenza",
+    "backToProducts": "‹ Torna ai prodotti",
+    "empty": "Nessun magazzino: creane uno per collocare le giacenze e vederlo sulla mappa.",
+    "emptyWarehouse": "Nessun prodotto in questo magazzino.",
+    "newWarehouse": "Nuovo magazzino",
+    "edit": "Modifica magazzino",
+    "delete": "Elimina magazzino",
+    "deleteNotice": "Eliminando un magazzino i suoi lotti non vengono persi: tornano «non assegnati».",
+    "name": "Nome",
+    "namePlaceholder": "Es. Capannone Nord",
+    "type": "Tipologia",
+    "address": "Indirizzo",
+    "position": "Posizione sulla mappa",
+    "noPosition": "Nessuna posizione",
+    "tapMap": "Tocca la mappa",
+    "tapMapEllipsis": "Tocca la mappa…",
+    "clearPosition": "Rimuovi posizione",
+    "save": "Salva magazzino",
+    "kind": {
+      "general": "Generico",
+      "phytosanitary": "Deposito fitosanitari",
+      "fertilizer": "Deposito concimi",
+      "seed": "Deposito sementi",
+      "fuel": "Cisterna carburante",
+      "machinery": "Rimessa mezzi"
+    }
+  },
+  "plotAlerts": {
+    "tasksPending_one": "{{count}} task prevista",
+    "tasksPending_other": "{{count}} task previste",
+    "gap": {
+      "soil_texture": "Tessitura del suolo mancante",
+      "declarative_fields": "Dati dichiarativi di campagna incompleti",
+      "incomplete_records": "Record del Quaderno incompleti"
     }
   }
 }

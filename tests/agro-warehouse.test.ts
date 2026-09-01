@@ -512,3 +512,139 @@ describe("Definition of Done §6 / flusso end-to-end", () => {
     assert.equal(legacyDischarges.length, 0);
   });
 });
+
+/**
+ * Magazzini MULTIPLI (schema v23): il deposito è un luogo con una posizione
+ * opzionale, e la collocazione vive nel LOTTO — è ciò che permette lo stesso
+ * prodotto in due magazzini con scadenze e giacenze diverse.
+ */
+describe("DAL warehouse / magazzini multipli (v23)", () => {
+  it("colloca i lots nei rispettivi depositi e li filtra per magazzino", async () => {
+    const dal = await TestDal.create();
+    const companyId = await seedCompany(dal);
+
+    const nord = await dal.upsertWarehouse({
+      company_id: companyId,
+      name: "Capannone Nord",
+      warehouse_type: "phytosanitary",
+      geometry: { type: "Point", coordinates: [11.25, 43.77] },
+    });
+    const sud = await dal.upsertWarehouse({
+      company_id: companyId,
+      name: "Deposito Sud",
+    });
+
+    // Il tipo e la posizione sono facoltativi: il default non deve sparire.
+    assert.equal(sud.warehouse_type, "general");
+    assert.equal(sud.geometry, null);
+    assert.deepEqual(nord.geometry, {
+      type: "Point",
+      coordinates: [11.25, 43.77],
+    });
+
+    const product = await dal.upsertProduct({
+      company_id: companyId,
+      category: "phytosanitary",
+      name: "Poltiglia bordolese",
+      unit: "kg",
+      registration_number: "12345",
+      npk_n: null,
+      npk_p: null,
+      npk_k: null,
+      uma_code: null,
+      notes: null,
+    });
+    await dal.receiveLot({
+      product_id: product.id,
+      warehouse_id: nord.id,
+      lot_number: "N-1",
+      expires_at: null,
+      initial_quantity: 100,
+      unit_cost: 1,
+    });
+    await dal.receiveLot({
+      product_id: product.id,
+      warehouse_id: sud.id,
+      lot_number: "S-1",
+      expires_at: null,
+      initial_quantity: 40,
+      unit_cost: 1,
+    });
+    // Lotto senza collocazione: resta valido e conta nella giacenza totale.
+    await dal.receiveLot({
+      product_id: product.id,
+      lot_number: "X-1",
+      expires_at: null,
+      initial_quantity: 10,
+      unit_cost: 1,
+    });
+
+    const all = await dal.listLotti(companyId);
+    assert.equal(all.length, 3);
+
+    const inNord = await dal.listLotti(companyId, { warehouseId: nord.id });
+    assert.deepEqual(
+      inNord.map((l) => l.lot_number),
+      ["N-1"],
+    );
+
+    const unassigned = await dal.listLotti(companyId, { warehouseId: null });
+    assert.deepEqual(
+      unassigned.map((l) => l.lot_number),
+      ["X-1"],
+    );
+
+    const warehouses = await dal.listWarehouses(companyId);
+    assert.deepEqual(
+      warehouses.map((w) => w.name),
+      ["Capannone Nord", "Deposito Sud"],
+    );
+  });
+
+  it("eliminare un magazzino non perde i lots: tornano non assegnati", async () => {
+    const dal = await TestDal.create();
+    const companyId = await seedCompany(dal);
+    const warehouse = await dal.upsertWarehouse({
+      company_id: companyId,
+      name: "Deposito da chiudere",
+    });
+    const product = await dal.upsertProduct({
+      company_id: companyId,
+      category: "other",
+      name: "Materiale di consumo",
+      unit: "pz",
+      registration_number: null,
+      npk_n: null,
+      npk_p: null,
+      npk_k: null,
+      uma_code: null,
+      notes: null,
+    });
+    await dal.receiveLot({
+      product_id: product.id,
+      warehouse_id: warehouse.id,
+      lot_number: "L-1",
+      expires_at: null,
+      initial_quantity: 7,
+      unit_cost: 2,
+    });
+
+    await dal.deleteWarehouse(warehouse.id);
+
+    assert.equal((await dal.listWarehouses(companyId)).length, 0);
+    const lots = await dal.listLotti(companyId);
+    assert.equal(lots.length, 1);
+    assert.equal(lots[0].warehouse_id, null);
+    assert.equal(Number(lots[0].quantity_on_hand), 7);
+  });
+
+  it("rifiuta un magazzino senza nome", async () => {
+    const dal = await TestDal.create();
+    const companyId = await seedCompany(dal);
+    await assert.rejects(
+      dal.upsertWarehouse({ company_id: companyId, name: "   " }),
+      (e: unknown) =>
+        e instanceof WarehouseError && e.code === "invalid_warehouse",
+    );
+  });
+});
