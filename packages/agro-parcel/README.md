@@ -41,6 +41,13 @@ per portale.
 Procedura completa in [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) →
 *How to add … a new parcel source*.
 
+## Non esiste un endpoint europeo unico
+
+Per un paese non ancora nel catalogo il flusso resta
+**disegna (o rettifica) la geometria e digita il codice di riferimento**, con le
+etichette generiche del paese. Non è un ripiego temporaneo in attesa di un
+endpoint europeo che arriverà: quell'endpoint non è previsto.
+
 ## Fonti verificate
 
 | id | nodi | tipo di unità | licenza |

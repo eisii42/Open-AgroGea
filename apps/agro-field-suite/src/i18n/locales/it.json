@@ -615,7 +615,6 @@
     "recentActivity": "Attività recenti",
     "sianImportResult": "Fascicolo {{year}}: {{created}} campi creati, {{updated}} aggiornati.",
     "sianImportResultSkipped": "Fascicolo {{year}}: {{created}} campi creati, {{updated}} aggiornati, {{skipped}} saltati.",
-    "sianModeDescription": "Importa il Fascicolo Aziendale Grafico (Shapefile .zip o CSV CAA). Crea/aggiorna i campi della Campagna Agraria {{year}}.",
     "unrecognizedFormat": "Formato non riconosciuto: {{name}}. Accettati GeoJSON, KML, KMZ, GPX, GeoPackage (.gpkg), Shapefile (.zip/.shp).",
     "uploadAnyway": "Carica comunque",
     "addData": "Aggiungi dati",
@@ -626,7 +625,16 @@
     "noReadableGeometries": "Il file non contiene geometrie leggibili.",
     "selectCompanyFirst": "Seleziona prima un'azienda attiva.",
     "mapLayer": "Layer mappa",
-    "sianFile": "Fascicolo SIAN"
+    "dossierFile": {
+      "SIAN": "Fascicolo SIAN",
+      "SIEX": "Fascicolo SIGPAC",
+      "generic": "Fascicolo grafico"
+    },
+    "dossierModeDescription": {
+      "SIAN": "Importa il Fascicolo Aziendale Grafico SIAN (Shapefile .zip o CSV CAA). Crea/aggiorna i campi della Campagna Agraria {{year}}.",
+      "SIEX": "Importa il fascicolo grafico SIGPAC (Shapefile .zip o CSV). Crea/aggiorna i campi della Campagna Agraria {{year}}.",
+      "generic": "Importa il fascicolo grafico ufficiale della tua azienda (Shapefile .zip o CSV). Crea/aggiorna i campi della Campagna Agraria {{year}}."
+    }
   },
   "basemapSwitcher": {
     "basemap": "Basemap",
@@ -1593,21 +1601,35 @@
     "sowingHint": "Registra l'operazione «Semina / Trapianto» nel Quaderno: la sua data guida i modelli a gradi-giorno del DSS.",
     "speciesFromCatalog": "Specie da catalogo · {{countryCode}}",
     "speciesLabel": "Specie · {{label}}",
-    "agriculturalParcel": "ID Appezzamento / Agricultural parcel",
     "commonName": "Nome comune",
-    "cropCode": "Codice coltura (SIAN/ministeriale)",
     "cropCodePlaceholder": "es. 060",
     "nextYear": "Annata successiva",
     "noActiveCompany": "Nessuna azienda attiva.",
     "previousYear": "Annata precedente",
-    "referenceParcel": "ID Isola / Reference parcel",
     "saveCrop": "Salva coltura",
     "scientificName": "Nome scientifico",
     "scientificNamePlaceholder": "es. Vitis vinifera",
     "updateCrop": "Aggiorna coltura",
     "varietyCode": "Codice varietà",
     "varietyFromCatalog": "Varietà da catalogo",
-    "varietyPlaceholder": "es. Sangiovese, Leccino"
+    "varietyPlaceholder": "es. Sangiovese, Leccino",
+    "parcelLabels": {
+      "SIAN": {
+        "referenceParcel": "ID Isola SIAN",
+        "agriculturalParcel": "ID Appezzamento SIAN",
+        "cropCode": "Codice coltura SIAN"
+      },
+      "SIEX": {
+        "referenceParcel": "Parcela de referencia SIGPAC",
+        "agriculturalParcel": "Recinto SIGPAC",
+        "cropCode": "Codice coltura SIEX"
+      },
+      "generic": {
+        "referenceParcel": "Codice particella di riferimento",
+        "agriculturalParcel": "Codice particella",
+        "cropCode": "Codice coltura"
+      }
+    }
   },
   "cropPanel": {
     "calculateModels": "Calcola Modelli",

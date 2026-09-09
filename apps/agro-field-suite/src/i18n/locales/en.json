@@ -615,7 +615,6 @@
     "recentActivity": "Recent activity",
     "sianImportResult": "Farm dossier {{year}}: {{created}} fields created, {{updated}} updated.",
     "sianImportResultSkipped": "Farm dossier {{year}}: {{created}} fields created, {{updated}} updated, {{skipped}} skipped.",
-    "sianModeDescription": "Import the Graphic Farm Dossier (Shapefile .zip or CAA CSV). Creates/updates fields for the {{year}} Agricultural Campaign.",
     "unrecognizedFormat": "Unrecognized format: {{name}}. Accepted: GeoJSON, KML, KMZ, GPX, GeoPackage (.gpkg), Shapefile (.zip/.shp).",
     "uploadAnyway": "Upload anyway",
     "addData": "Add data",
@@ -626,7 +625,16 @@
     "noReadableGeometries": "The file contains no readable geometries.",
     "selectCompanyFirst": "Select an active company first.",
     "mapLayer": "Map layer",
-    "sianFile": "SIAN dossier"
+    "dossierFile": {
+      "SIAN": "SIAN dossier",
+      "SIEX": "SIGPAC dossier",
+      "generic": "Graphic dossier"
+    },
+    "dossierModeDescription": {
+      "SIAN": "Import the SIAN graphic farm dossier (Shapefile .zip or CAA CSV). Creates/updates the {{year}} campaign parcels.",
+      "SIEX": "Import the SIGPAC graphic dossier (Shapefile .zip or CSV). Creates/updates the {{year}} campaign parcels.",
+      "generic": "Import your official graphic farm dossier (Shapefile .zip or CSV). Creates/updates the {{year}} campaign parcels."
+    }
   },
   "basemapSwitcher": {
     "basemap": "Basemap",
@@ -1593,21 +1601,35 @@
     "sowingHint": "Log the \"Sowing / Transplanting\" operation in the Logbook: its date drives the DSS growing-degree-day models.",
     "speciesFromCatalog": "Species from catalog · {{countryCode}}",
     "speciesLabel": "Species · {{label}}",
-    "agriculturalParcel": "Agricultural parcel ID",
     "commonName": "Common name",
-    "cropCode": "Crop code (SIAN/ministerial)",
     "cropCodePlaceholder": "e.g. 060",
     "nextYear": "Next year",
     "noActiveCompany": "No active company.",
     "previousYear": "Previous year",
-    "referenceParcel": "Reference parcel ID",
     "saveCrop": "Save crop",
     "scientificName": "Scientific name",
     "scientificNamePlaceholder": "e.g. Vitis vinifera",
     "updateCrop": "Update crop",
     "varietyCode": "Variety code",
     "varietyFromCatalog": "Variety from catalog",
-    "varietyPlaceholder": "e.g. Sangiovese, Leccino"
+    "varietyPlaceholder": "e.g. Sangiovese, Leccino",
+    "parcelLabels": {
+      "SIAN": {
+        "referenceParcel": "SIAN reference parcel ID (isola)",
+        "agriculturalParcel": "SIAN agricultural parcel ID",
+        "cropCode": "SIAN crop code"
+      },
+      "SIEX": {
+        "referenceParcel": "SIGPAC reference parcel",
+        "agriculturalParcel": "SIGPAC enclosure (recinto)",
+        "cropCode": "SIEX crop code"
+      },
+      "generic": {
+        "referenceParcel": "Reference parcel code",
+        "agriculturalParcel": "Parcel code",
+        "cropCode": "Crop code"
+      }
+    }
   },
   "cropPanel": {
     "calculateModels": "Calculate Models",

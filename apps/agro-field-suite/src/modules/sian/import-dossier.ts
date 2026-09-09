@@ -51,6 +51,12 @@ export async function importSianDossier(
 
   const outcome: SianImportResult = { creati: 0, aggiornati: 0, saltati: 0 };
 
+  // Nodo NUTS di provenienza. Il Fascicolo non lo dichiara — è un documento
+  // nazionale — quindi si usa il paese dell'azienda che lo sta importando, che
+  // è l'informazione più precisa disponibile senza inventare una regione.
+  const company = status.companies.find((a) => a.id === activeCompanyId);
+  const nutsCode = company?.country?.trim().toUpperCase() ?? "IT";
+
   // Cache delle crops (crops) create durante l'import: una specie per chiave
   // naturale (codice crop + codice varietà ministeriali), così rows diverse
   // della stessa crop condividono la stessa entità normalizzata.
@@ -102,6 +108,17 @@ export async function importSianDossier(
         irrigation_type: null,
         planting_year: null,
         historical_notes: null,
+        // Provenienza nelle colonne dedicate (schema v22), oltre che nei
+        // metadata: il Fascicolo È una fonte ufficiale, e un appezzamento che
+        // ne viene deve essere deduplicabile e riconoscibile come gli altri.
+        // Senza queste colonne il percorso italiano sarebbe l'unico a produrre
+        // appezzamenti senza provenienza interrogabile.
+        source_id: field.agricultural_parcel_external_id,
+        nuts_code: nutsCode,
+        // Il Fascicolo dichiara l'APPEZZAMENTO coltivato (non l'isola, che è il
+        // blocco fisico e vive in reference_parcel_external_id).
+        reference_unit_type: "agricultural_parcel",
+        validity_year: year,
         metadata: {
           origine: "sian-import",
           agricultural_parcel_external_id: field.agricultural_parcel_external_id,

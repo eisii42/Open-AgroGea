@@ -1,4 +1,5 @@
 import {
+  declarativeLabelSet,
   type Plot,
   type PlotCampaign,
   useAgroStore,
@@ -61,6 +62,11 @@ export function CropDataForm({
   // specie e varietà del registro nazionale per i quick-pick guidati. Se vuoti,
   // i campi restano a testo libero (l'utente non è bloccato).
   const { items: cropCatalog, countryCode } = useCountryCatalog("crop");
+  // I codici di riferimento della particella si chiamano in modo diverso in
+  // ogni sistema nazionale. "Isola" e "SIAN" sono termini italiani: a
+  // un'azienda di un altro paese vanno mostrati i termini generici, che restano
+  // veri ovunque.
+  const labelSet = declarativeLabelSet(countryCode);
   const { items: varietyCatalog } = useCountryCatalog("variety");
 
   // Tutte le campagne dell'appezzamento (ogni annata), per modifica + copia anno
@@ -473,7 +479,7 @@ export function CropDataForm({
                 />
               </div>
               <div>
-                <Label htmlFor="camp-cropcode">{t("cropDataForm.cropCode")}</Label>
+                <Label htmlFor="camp-cropcode">{t(`cropDataForm.parcelLabels.${labelSet}.cropCode`)}</Label>
                 <Input
                   id="camp-cropcode"
                   value={cropCode}
@@ -492,7 +498,7 @@ export function CropDataForm({
                 />
               </div>
               <div>
-                <Label htmlFor="camp-ref">{t("cropDataForm.referenceParcel")}</Label>
+                <Label htmlFor="camp-ref">{t(`cropDataForm.parcelLabels.${labelSet}.referenceParcel`)}</Label>
                 <Input
                   id="camp-ref"
                   value={refParcel}
@@ -501,7 +507,7 @@ export function CropDataForm({
                 />
               </div>
               <div>
-                <Label htmlFor="camp-agri">{t("cropDataForm.agriculturalParcel")}</Label>
+                <Label htmlFor="camp-agri">{t(`cropDataForm.parcelLabels.${labelSet}.agriculturalParcel`)}</Label>
                 <Input
                   id="camp-agri"
                   value={agriParcel}

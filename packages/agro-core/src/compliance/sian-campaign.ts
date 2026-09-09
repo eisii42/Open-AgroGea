@@ -51,6 +51,29 @@ export function declarativeSystem(
 }
 
 /**
+ * Insieme di etichette con cui chiamare i codici di riferimento della
+ * particella nell'interfaccia.
+ *
+ * Non è un dettaglio di traduzione: "Isola" e "SIAN" sono termini del sistema
+ * ITALIANO, e mostrarli a un'azienda olandese o tedesca è semplicemente
+ * sbagliato — quei codici lì non esistono con quel nome. Dove non c'è un
+ * sistema dichiarativo nazionale gateato si usano i termini generici, che
+ * restano veri ovunque.
+ */
+export type DeclarativeLabelSet = DeclarativeSystem | "generic";
+
+/**
+ * Quali etichette usare per il paese dato. `generic` non è un ripiego povero:
+ * è la forma corretta per tutti i paesi che non hanno (ancora) un adapter
+ * dichiarativo, e sarà la maggioranza finché il catalogo cresce.
+ */
+export function declarativeLabelSet(
+  countryCode: string | null | undefined,
+): DeclarativeLabelSet {
+  return declarativeSystem(countryCode) ?? "generic";
+}
+
+/**
  * Elenca i campi dichiarativi non compilati della campagna (vuoto = compliant
  * o paese senza sistema gateato). `variety_external_code` resta facoltativo
  * (non tutte le crops lo hanno).

@@ -234,6 +234,8 @@ export {
   sianComplete,
   missingSian,
   declarativeSystem,
+  declarativeLabelSet,
+  type DeclarativeLabelSet,
   type MissingDeclarativeField,
   type MissingSianField,
   type DeclarativeSystem,
