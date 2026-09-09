@@ -16,6 +16,9 @@ import {
   type CompanySnapshot,
   type CompanyTransferDocument,
   type FieldOperationSession,
+  type OperatorCertification,
+  type Plot,
+  type PlotCampaign,
   type Product,
   type ProductLot,
   type Warehouse,
@@ -30,7 +33,7 @@ import {
 
 const EXPORTED_AT = "2026-09-01T08:00:00.000Z";
 
-function company(): Company {
+function company(overrides: Partial<Company> = {}): Company {
   return {
     id: "company-1",
     tenant_id: "tenant-1",
@@ -49,10 +52,83 @@ function company(): Company {
     sdi_code: null,
     centroid: null,
     certifications: [],
+    operator_certifications: [],
     farm_file_id: null,
     paying_agency: null,
     contact_name: null,
     contact_role: null,
+    created_at: EXPORTED_AT,
+    updated_at: EXPORTED_AT,
+    deleted_at: null,
+    ...overrides,
+  };
+}
+
+/** Certificazione biologica dell'operatore (v24). */
+function organicCertification(): OperatorCertification {
+  return {
+    scheme: "organic",
+    operator_code: "IT-BIO-009-12345",
+    control_body: "Bioagricert",
+    certificate_number: "CERT-2026-77",
+    valid_from: "2026-01-01",
+    valid_to: "2026-12-31",
+  };
+}
+
+/** Campagna agraria con il regime di produzione dichiarato (v24). */
+function campaign(overrides: Partial<PlotCampaign> = {}): PlotCampaign {
+  return {
+    id: "campaign-1",
+    tenant_id: "tenant-1",
+    plot_id: "plot-1",
+    crop_id: "crop-1",
+    campaign_year: 2026,
+    reference_parcel_external_id: null,
+    agricultural_parcel_external_id: null,
+    crop_external_code: null,
+    variety_external_code: null,
+    declared_area_ha: 2.5,
+    production_regime: "in_conversion",
+    regime_since: "2025-04-01",
+    regime_notes: "Notifica all'organismo di controllo del 1° aprile 2025.",
+    closed_at: null,
+    created_at: EXPORTED_AT,
+    updated_at: EXPORTED_AT,
+    deleted_at: null,
+    ...overrides,
+  };
+}
+
+function plot(): Plot {
+  return {
+    id: "plot-1",
+    tenant_id: "tenant-1",
+    company_id: "company-1",
+    user_plot_name: "Campo 1",
+    cadastral_sheet: null,
+    cadastral_parcel: null,
+    area_ha: 2.5,
+    last_ndvi_mean: null,
+    geometry: {
+      type: "Polygon",
+      coordinates: [
+        [
+          [11, 43],
+          [11.01, 43],
+          [11.01, 43.01],
+          [11, 43],
+        ],
+      ],
+    },
+    irrigation_type: null,
+    planting_year: null,
+    historical_notes: null,
+    metadata: {},
+    source_id: null,
+    nuts_code: null,
+    reference_unit_type: null,
+    validity_year: null,
     created_at: EXPORTED_AT,
     updated_at: EXPORTED_AT,
     deleted_at: null,
@@ -253,6 +329,62 @@ describe("scambio v3 / dati non agronomici", () => {
     const reparsed = parseCompanyTransfer(JSON.parse(JSON.stringify(first)));
     const second = serializeCompanySnapshot(reparsed, { exportedAt: EXPORTED_AT });
     assert.equal(JSON.stringify(second), JSON.stringify(first));
+  });
+});
+
+describe("scambio v3 / certificazione dell'operatore e regime dell'annata", () => {
+  /**
+   * Sono i due dati nati con la v24 al posto del morto `certifications
+   * text[]`. Viaggiano su percorsi diversi — la certificazione nella riga
+   * company alla radice, il regime dentro la Feature dell'appezzamento — e un
+   * backup che ne perdesse uno solo sarebbe indistinguibile da un'azienda che
+   * non l'ha mai dichiarato.
+   */
+  function certifiedSnapshot(): CompanySnapshot {
+    const snap = emptyCompanySnapshot(
+      company({ operator_certifications: [organicCertification()] }),
+    );
+    snap.plots = [
+      {
+        plot: plot(),
+        campaigns: [campaign()],
+        treatments: [],
+        soilSamples: [],
+        harvests: [],
+      },
+    ];
+    return snap;
+  }
+
+  it("la certificazione dell'operatore sopravvive a export → file → rilettura", () => {
+    const doc = JSON.parse(
+      JSON.stringify(documentOf(certifiedSnapshot())),
+    ) as CompanyTransferDocument;
+    const restored = parseCompanyTransfer(doc).company;
+    assert.deepEqual(restored.operator_certifications, [organicCertification()]);
+  });
+
+  it("il regime di produzione viaggia con la campagna dentro la Feature", () => {
+    const doc = JSON.parse(
+      JSON.stringify(documentOf(certifiedSnapshot())),
+    ) as CompanyTransferDocument;
+    const feature = doc.features.find((f) => f.properties.kind === "plot");
+    assert.ok(feature);
+    const restored = parseCompanyTransfer(doc).plots[0].campaigns[0];
+    assert.equal(restored.production_regime, "in_conversion");
+    assert.equal(restored.regime_since, "2025-04-01");
+    assert.equal(
+      restored.regime_notes,
+      "Notifica all'organismo di controllo del 1° aprile 2025.",
+    );
+  });
+
+  it("un file senza i campi v24 non li inventa", () => {
+    // Un backup più vecchio non dichiarava né regime né certificazione:
+    // rileggerlo deve dare "non dichiarato", mai un valore di comodo.
+    const doc = documentOf();
+    const parsed = parseCompanyTransfer(JSON.parse(JSON.stringify(doc)));
+    assert.deepEqual(parsed.company.operator_certifications, []);
   });
 });
 

@@ -256,6 +256,19 @@ export {
   type DeclarativeSystem,
 } from "./compliance/sian-campaign";
 export {
+  CERTIFICATION_SCHEMES,
+  ORGANIC_CONVERSION_MONTHS,
+  PRODUCTION_REGIMES,
+  conversionEndsOn,
+  findOperatorCertification,
+  isCertificationValid,
+  isEmptyCertification,
+  isOrganicRegime,
+  isProductionRegime,
+  readOperatorCertifications,
+  withOperatorCertification,
+} from "./compliance/certifications";
+export {
   EPSG_DEFINITIONS,
   UnknownCrsError,
   createProj4Reprojector,

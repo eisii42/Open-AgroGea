@@ -5,6 +5,7 @@ import { AgroDal } from "../packages/agro-core/src/db/dal";
 import { AGRO_LOCAL_SCHEMA_SQL } from "../packages/agro-core/src/db/schema";
 import {
   fullTransferScope,
+  parseCompanyTransfer,
   serializeCompanySnapshot,
   type Company,
   type TransferScope,
@@ -33,11 +34,21 @@ class TestDal extends AgroDal {
   }
 }
 
+/** Certificazione biologica dell'operatore (v24), sull'azienda di origine. */
+const ORGANIC_CERTIFICATION = {
+  scheme: "organic",
+  operator_code: "IT-BIO-009-12345",
+  control_body: "Bioagricert",
+  certificate_number: "CERT-2026-77",
+  valid_from: "2026-01-01",
+  valid_to: "2026-12-31",
+};
+
 async function seedCompany(dal: TestDal, name = "Company Test"): Promise<Company> {
   const inserted = await dal.rawQuery<{ id: string }>(
-    `insert into companies (id, tenant_id, business_name, country)
-     values (gen_random_uuid(), $1, $2, 'IT') returning id`,
-    [TENANT, name],
+    `insert into companies (id, tenant_id, business_name, country, operator_certifications)
+     values (gen_random_uuid(), $1, $2, 'IT', $3::jsonb) returning id`,
+    [TENANT, name, JSON.stringify([ORGANIC_CERTIFICATION])],
   );
   const companies = await dal.listAziende();
   const company = companies.find((c) => c.id === inserted.rows[0].id);
@@ -98,6 +109,27 @@ async function seedFullCompany(dal: TestDal): Promise<{
 }> {
   const company = await seedCompany(dal);
   const plotId = await seedPlot(dal, company.id);
+
+  // Campagna agraria con il regime di produzione dichiarato (v24): è il dato
+  // che il ripristino deve rimettere dov'era, non ricalcolare.
+  const crop = await dal.rawQuery<{ id: string }>(
+    `insert into crops (id, tenant_id, common_name)
+     values (gen_random_uuid(), $1, 'Vite') returning id`,
+    [TENANT],
+  );
+  await dal.upsertCampoCampagna({
+    plot_id: plotId,
+    crop_id: crop.rows[0].id,
+    campaign_year: 2026,
+    declared_area_ha: 2.5,
+    reference_parcel_external_id: null,
+    agricultural_parcel_external_id: null,
+    crop_external_code: null,
+    variety_external_code: null,
+    production_regime: "in_conversion",
+    regime_since: "2025-04-01",
+    regime_notes: "Notifica del 1° aprile 2025.",
+  });
 
   const warehouse = await dal.upsertWarehouse({
     company_id: company.id,
@@ -296,6 +328,35 @@ describe("backup azienda / ripristino su un archivio vuoto", () => {
     const tasks = await target.listPlannedTasks(destination.id);
     assert.equal(tasks.length, 1);
     assert.equal(tasks[0].planned_date, "2026-06-01");
+  });
+
+  it("regime dell'annata e certificazione dell'operatore tornano dal file", async () => {
+    // I due dati della v24 viaggiano su percorsi diversi — il regime dentro la
+    // Feature dell'appezzamento, la certificazione nella riga company alla
+    // radice — e vanno verificati sull'archivio VUOTO, dove nulla può
+    // supplirli.
+    const source = await TestDal.create();
+    const { company } = await seedFullCompany(source);
+    const document = await exportDocument(source, company);
+
+    const target = await TestDal.create();
+    const destination = await seedCompany(target, "Azienda ripristinata");
+    await importCompanyData(target, document, destination.id);
+
+    const plots = await target.listPlots(destination.id);
+    const campaigns = await target.listCampiCampagna({ plotId: plots[0].id });
+    assert.equal(campaigns.length, 1);
+    assert.equal(campaigns[0].production_regime, "in_conversion");
+    assert.equal(campaigns[0].regime_since, "2025-04-01");
+    assert.equal(campaigns[0].regime_notes, "Notifica del 1° aprile 2025.");
+
+    // La certificazione è dell'azienda, e il ripristino ne CREA una nuova: nel
+    // file dev'esserci, perché è da lì che `companyInputFromSnapshot` la
+    // rimette sull'anagrafica ricostruita (vedi agro-onboarding.test.ts).
+    const parsed = parseCompanyTransfer(document);
+    assert.deepEqual(parsed.company.operator_certifications, [
+      ORGANIC_CERTIFICATION,
+    ]);
   });
 
   it("è idempotente: ripristinare due volte non duplica nulla", async () => {

@@ -89,6 +89,9 @@
       "plotsOutsideCountry": "{{count}} parcela(s) fuera de {{country}} (detectado: {{detected}}).",
       "swappedCoordinates": "{{count}} parcela(s) con coordenadas posiblemente invertidas (lat/lon).",
       "addressCoordsMismatch": "Sin país en la dirección legal; deducido {{detected}} de las coordenadas."
+    },
+    "badges": {
+      "regimeTitle": "Régimen declarado para la campaña {{year}}"
     }
   },
   "validation": {
@@ -523,6 +526,9 @@
       },
       "contact": {
         "label": "Referente"
+      },
+      "certifications": {
+        "label": "Certificaciones"
       }
     },
     "fields": {
@@ -550,6 +556,17 @@
       "contactName": "Nombre y apellidos",
       "contactRole": "Cargo",
       "contactRolePlaceholder": "ej. titular, agrónomo"
+    },
+    "certification": {
+      "organicTitle": "Agricultura ecológica",
+      "organicHint": "Certificación emitida a la empresa por el organismo de control (Regl. UE 2018/848). El régimen de cada parcela es por campaña y se declara en la ficha de cultivo.",
+      "controlBody": "Organismo de control",
+      "controlBodyPlaceholder": "ej. organismo de control acreditado",
+      "operatorCode": "Código de operador",
+      "operatorCodePlaceholder": "Código asignado por el organismo",
+      "certificateNumber": "Número de certificado",
+      "validFrom": "Válido desde",
+      "validTo": "Válido hasta"
     }
   },
   "harvestPanel": {
@@ -1470,6 +1487,19 @@
         "agriculturalParcel": "Código de parcela",
         "cropCode": "Código de cultivo"
       }
+    },
+    "productionRegimeLabel": "Régimen de producción",
+    "productionRegime": "Régimen declarado",
+    "regimeNotDeclared": "No declarado",
+    "regimeSince": "En este régimen desde",
+    "regimeNotes": "Notas sobre el régimen",
+    "regimeNotesPlaceholder": "Excepciones, notas del organismo de control",
+    "regimeHint": "El régimen se aplica a esta campaña: cambiarlo no reescribe el pasado. «En este régimen desde» es la fecha desde la que se cuentan los 24 meses (cultivos anuales) o 36 meses (perennes) de conversión a ecológico.",
+    "regimes": {
+      "conventional": "Convencional",
+      "in_conversion": "En conversión",
+      "organic": "Ecológico",
+      "integrated": "Producción integrada"
     }
   },
   "cropPanel": {

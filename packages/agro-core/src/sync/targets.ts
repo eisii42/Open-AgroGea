@@ -70,8 +70,10 @@ export const PULL_TABLES: { tabella: SyncTable; columns: string }[] = [
     columns:
       "id,tenant_id,business_name,national_company_id,vat_number,legal_form," +
       "address,city,province,region,postal_code,country,email,pec,sdi_code," +
-      "centroid,certifications,farm_file_id,paying_agency,contact_name," +
-      "contact_role,created_at,updated_at,deleted_at",
+      // `certifications` è deprecata (v24) ma resta nell'elenco: la colonna
+      // esiste ancora sui device e il pull non deve azzerarla.
+      "centroid,certifications,operator_certifications,farm_file_id," +
+      "paying_agency,contact_name,contact_role,created_at,updated_at,deleted_at",
   },
   {
     tabella: "crops",
@@ -92,7 +94,8 @@ export const PULL_TABLES: { tabella: SyncTable; columns: string }[] = [
     columns:
       "id,tenant_id,plot_id,crop_id,campaign_year,reference_parcel_external_id," +
       "agricultural_parcel_external_id,crop_external_code,variety_external_code," +
-      "declared_area_ha,closed_at,created_at,updated_at,deleted_at",
+      "declared_area_ha,production_regime,regime_since,regime_notes," +
+      "closed_at,created_at,updated_at,deleted_at",
   },
   {
     tabella: "treatment_logs",

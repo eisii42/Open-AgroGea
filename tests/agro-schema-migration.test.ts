@@ -189,3 +189,98 @@ describe("schema v23 / magazzini multipli", () => {
     assert.equal(rows.rows[0].n, 1);
   });
 });
+
+/**
+ * v24 — certificazione dell'OPERATORE e regime di produzione dell'ANNATA. La
+ * migrazione è ADDITIVA: `companies.certifications` (deprecata) non si tocca,
+ * `operator_certifications` nasce con default `[]` e le tre colonne di
+ * `plots_campaign` nascono nullable, così le campagne già sui dispositivi
+ * restano valide senza migrazione di dati e senza un regime inventato.
+ */
+describe("schema v24 / certificazione operatore e regime di produzione", () => {
+  it("aggiunge le colonne, è idempotente e non tocca certifications", async () => {
+    const db = new PGlite();
+    await db.exec(AGRO_LOCAL_SCHEMA_SQL);
+    await db.exec(AGRO_LOCAL_SCHEMA_SQL); // due volte: idempotente con le ALTER
+
+    const companyCols = await columnNames(db, "companies");
+    assert.ok(companyCols.includes("operator_certifications"));
+    // La colonna deprecata resta: sui device ci sono dati reali.
+    assert.ok(companyCols.includes("certifications"));
+
+    const campaignCols = await columnNames(db, "plots_campaign");
+    for (const c of ["production_regime", "regime_since", "regime_notes"]) {
+      assert.ok(campaignCols.includes(c), `plots_campaign manca ${c}`);
+    }
+    const nullable = await db.query<{ column_name: string; is_nullable: string }>(
+      `select column_name, is_nullable from information_schema.columns
+       where table_name = 'plots_campaign'
+         and column_name in ('production_regime','regime_since','regime_notes')`,
+    );
+    for (const row of nullable.rows) {
+      assert.equal(row.is_nullable, "YES", `${row.column_name} dovrebbe essere nullable`);
+    }
+  });
+
+  it("un'azienda già esistente parte da nessuna certificazione dichiarata", async () => {
+    // Applicare lo schema a un'istanza che ha già dati non deve produrre né un
+    // errore né un valore inventato: `[]` significa "non dichiarato".
+    const db = new PGlite();
+    await db.exec(AGRO_LOCAL_SCHEMA_SQL);
+    const tenant = "11111111-1111-1111-1111-111111111111";
+    await db.query(
+      "insert into companies (id, tenant_id, business_name) values (gen_random_uuid(),$1,'Az')",
+      [tenant],
+    );
+    await db.exec(AGRO_LOCAL_SCHEMA_SQL);
+
+    const row = await db.query<{
+      operator_certifications: unknown;
+      certifications: string[];
+    }>("select operator_certifications, certifications from companies");
+    assert.deepEqual(row.rows[0].operator_certifications, []);
+    assert.deepEqual(row.rows[0].certifications, []);
+  });
+
+  it("il regime è una colonna della CAMPAGNA: due annate, due regimi", async () => {
+    // È la ragione per cui non sta su plots_registry: lì "bio dal 2024" non si
+    // potrebbe scrivere senza sovrascrivere il 2023.
+    const db = new PGlite();
+    await db.exec(AGRO_LOCAL_SCHEMA_SQL);
+    const tenant = "11111111-1111-1111-1111-111111111111";
+    const company = await db.query<{ id: string }>(
+      "insert into companies (id, tenant_id, business_name) values (gen_random_uuid(),$1,'Az') returning id",
+      [tenant],
+    );
+    const crop = await db.query<{ id: string }>(
+      "insert into crops (id, tenant_id, common_name) values (gen_random_uuid(),$1,'Vite') returning id",
+      [tenant],
+    );
+    const plot = await db.query<{ id: string }>(
+      "insert into plots_registry (id, tenant_id, company_id, user_plot_name, geometry, area_ha) values (gen_random_uuid(),$1,$2,'P1','{\"type\":\"Polygon\",\"coordinates\":[]}'::jsonb, 1) returning id",
+      [tenant, company.rows[0].id],
+    );
+    await db.query(
+      `insert into plots_campaign
+         (tenant_id, plot_id, crop_id, campaign_year, declared_area_ha,
+          production_regime, regime_since, closed_at)
+       values ($1,$2,$3,2023,1,'conventional',null,'2023-11-01T00:00:00Z'),
+              ($1,$2,$3,2026,1,'in_conversion','2025-04-01',null)`,
+      [tenant, plot.rows[0].id, crop.rows[0].id],
+    );
+
+    const rows = await db.query<{
+      campaign_year: number;
+      production_regime: string;
+    }>(
+      "select campaign_year, production_regime from plots_campaign order by campaign_year",
+    );
+    assert.deepEqual(
+      rows.rows.map((r) => [r.campaign_year, r.production_regime]),
+      [
+        [2023, "conventional"],
+        [2026, "in_conversion"],
+      ],
+    );
+  });
+});

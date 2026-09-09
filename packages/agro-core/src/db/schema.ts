@@ -205,9 +205,41 @@
  *   Rollback logico v23: 1) `delete from sync_outbox where table_name =
  *   'warehouses'`; 2) `alter table product_lots drop column warehouse_id`;
  *   3) `drop table warehouses`. Nessun dato pre-v23 è toccato.
+ *
+ * v24 — additiva: certificazione dell'OPERATORE e regime di produzione
+ * dell'ANNATA. Sono due cose diverse, ed è il motivo per cui il vecchio
+ * `companies.certifications text[]` non ha mai funzionato: un array di stringhe
+ * libere sull'azienda non poteva reggere né l'una né l'altra.
+ *   * `companies.operator_certifications` jsonb (array, default `[]`) — è
+ *     l'organismo di controllo a certificare l'AZIENDA, e la certificazione ha
+ *     una struttura: schema, codice operatore, organismo, numero di
+ *     certificato, `valid_from`/`valid_to`. jsonb e non colonne tipizzate
+ *     perché le certificazioni sono PIÙ D'UNA per operatore (biologico +
+ *     GlobalGAP + SQNPI…), ognuna con la propria validità: colonne singole ne
+ *     reggerebbero una sola e ogni nuovo schema costerebbe una migrazione.
+ *     Su questo campo non si filtra e non si deduplica (si legge la riga
+ *     dell'azienda attiva, che è una), quindi il criterio della v22 —
+ *     "colonne dove si interroga, JSONB dove no" — porta qui a JSONB;
+ *   * `plots_campaign.production_regime` (`conventional` | `organic` |
+ *     `in_conversion` | `integrated`), `regime_since` date, `regime_notes` —
+ *     il regime è per ANNATA: su `plots_registry` non si potrebbe dire "bio
+ *     dal 2024" senza cancellare il passato. Niente CHECK sul valore (come
+ *     `plots_registry.reference_unit_type` della v22): un CHECK aggiunto a una
+ *     tabella esistente non è esprimibile in modo idempotente senza `DO $$`, e
+ *     l'insieme dei valori è già chiuso nel tipo TypeScript.
+ *     `null` = non dichiarato, e resta tale per le campagne pre-v24: nessun
+ *     modulo deve inferire "convenzionale" dal silenzio.
+ *   `companies.certifications text[]` è DEPRECATA da qui: non si droppa (dati
+ *   reali sui device) e nessun percorso la valorizza più; resta leggibile per
+ *   compatibilità. Vedi
+ *   `docs/technical/operator-certification-and-production-regime.md`.
+ *   Rollback logico v24: `alter table companies drop column
+ *   operator_certifications` e `alter table plots_campaign drop column
+ *   production_regime, regime_since, regime_notes`. Nessun dato pre-v24 è
+ *   toccato.
  */
 
-export const AGRO_LOCAL_SCHEMA_VERSION = 23;
+export const AGRO_LOCAL_SCHEMA_VERSION = 24;
 
 export const AGRO_LOCAL_SCHEMA_SQL = `
 create table if not exists agro_meta (
@@ -233,7 +265,13 @@ create table if not exists companies (
   pec                 varchar(255),
   sdi_code            varchar(20),
   centroid            jsonb,
+  -- DEPRECATA (v24): campo morto mai compilato da alcun form e mai letto da
+  -- alcun modulo. Non si droppa (dati reali sui device, migrazioni additive) e
+  -- nessun percorso la valorizza più: la certificazione dell'operatore vive in
+  -- operator_certifications, il regime dell'annata in plots_campaign.
   certifications      text[] not null default '{}',
+  -- v24: certificazioni dell'OPERATORE, una voce per schema certificato.
+  operator_certifications jsonb not null default '[]'::jsonb,
   farm_file_id        varchar(100),
   paying_agency       varchar(100),
   contact_name        varchar(255),
@@ -242,6 +280,12 @@ create table if not exists companies (
   updated_at          timestamptz not null default now(),
   deleted_at          timestamptz
 );
+
+-- v24: certificazione dell'operatore per le istanze già create. Additiva e con
+-- default: le aziende esistenti partono da "nessuna certificazione dichiarata",
+-- che è esattamente ciò che sapevamo di loro.
+alter table companies
+  add column if not exists operator_certifications jsonb not null default '[]'::jsonb;
 
 -- crops — specie/varietà coltivata, isolata dall'anagrafica fisica. Le
 -- proprietà di filiera (clone, sesto d'impianto, portainnesto…) vivono dentro
@@ -329,6 +373,14 @@ create table if not exists plots_campaign (
   crop_external_code              varchar(30),
   variety_external_code           varchar(30),
   declared_area_ha                numeric(10, 4) not null,
+  -- v24: regime di produzione DICHIARATO per l'annata (conventional | organic |
+  -- in_conversion | integrated). NULL = non dichiarato, e resta tale: nessun
+  -- modulo deve inferire "convenzionale" dal silenzio.
+  production_regime               text,
+  -- Inizio del regime: da qui si contano i 24/36 mesi di conversione al
+  -- biologico (Reg. UE 2018/848). Può precedere di anni la campagna.
+  regime_since                    date,
+  regime_notes                    text,
   -- v17: chiusura del ciclo colturale (raccolto delle annuali). NULL = aperta.
   closed_at                       timestamptz,
   created_at                      timestamptz not null default now(),
@@ -340,6 +392,14 @@ create table if not exists plots_campaign (
 -- pieno con l'unicità PARZIALE sulle campagne aperte (secondo raccolto possibile
 -- dopo la chiusura della before campagna dello stesso year).
 alter table plots_campaign add column if not exists closed_at timestamptz;
+
+-- v24: regime di produzione dell'annata per le istanze già create. Nessun CHECK
+-- sul valore, come per plots_registry.reference_unit_type (v22): l'insieme dei
+-- valori è chiuso nel tipo TypeScript e un CHECK aggiunto a una tabella
+-- esistente non è idempotente senza un blocco DO $$.
+alter table plots_campaign add column if not exists production_regime text;
+alter table plots_campaign add column if not exists regime_since date;
+alter table plots_campaign add column if not exists regime_notes text;
 alter table plots_campaign
   drop constraint if exists unique_plot_per_campaign;
 create unique index if not exists plots_campaign_open_unq

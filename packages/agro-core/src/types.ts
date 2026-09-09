@@ -131,6 +131,54 @@ export type CropType =
   | "frutticoltura"
   | (string & {});
 
+/**
+ * Schema di certificazione dell'OPERATORE (l'organismo certifica l'azienda, non
+ * il campo). Per ora l'unico implementato è il biologico; il tipo è un'unione
+ * aperta perché GlobalGAP, SQNPI e le altre arriveranno senza migrazione.
+ *
+ * VALORE persistito (dentro `companies.operator_certifications`): resta in
+ * inglese come gli altri discriminanti nuovi.
+ */
+export type CertificationScheme = "organic" | (string & {});
+
+/**
+ * Certificazione dell'operatore rilasciata da un organismo di controllo.
+ * Vive in `companies.operator_certifications` (jsonb, array): l'azienda può
+ * averne più d'una contemporaneamente (biologico + GlobalGAP + …) e ognuna ha
+ * la propria validità, quindi non sono colonne.
+ *
+ * Chiavi snake_case: sono un contratto PERSISTITO, come le chiavi di
+ * `planned_tasks.metadata`.
+ */
+export interface OperatorCertification {
+  /** Schema certificato (per ora solo `"organic"`). */
+  scheme: CertificationScheme;
+  /** Codice operatore assegnato dall'organismo di controllo. */
+  operator_code: string | null;
+  /** Organismo di controllo (es. "ICEA", "Suolo e Salute", "Bioagricert"). */
+  control_body: string | null;
+  /** Numero del certificato di conformità. */
+  certificate_number: string | null;
+  /** Inizio validità (`YYYY-MM-DD`). */
+  valid_from: string | null;
+  /** Fine validità (`YYYY-MM-DD`); `null` = senza scadenza dichiarata. */
+  valid_to: string | null;
+}
+
+/**
+ * Regime di produzione dichiarato per l'ANNATA (`plots_campaign`). È un dato
+ * per campagna e non per appezzamento: su `plots_registry` non si potrebbe dire
+ * "bio dal 2024" senza sovrascrivere il passato.
+ *
+ * VALORI persistiti e accoppiati alla UI: restano in inglese come gli altri
+ * discriminanti nuovi.
+ */
+export type ProductionRegime =
+  | "conventional"
+  | "organic"
+  | "in_conversion"
+  | "integrated";
+
 /** Company agricola (`companies`). */
 export interface Company {
   id: string;
@@ -165,8 +213,24 @@ export interface Company {
   sdi_code: string | null;
   /** Centroide dell'azienda (jsonb GeoJSON Point). */
   centroid: Point | null;
-  /** Certificazioni (ex certificazioni). */
-  certifications: string[];
+  /**
+   * @deprecated v24 — campo MORTO: nessun form lo compilava e nessun modulo lo
+   * leggeva; l'unico scrittore era `createCompany`, che ci metteva `[]`. La
+   * certificazione dell'operatore è strutturata e vive in
+   * {@link Company.operator_certifications}; il regime dell'appezzamento è per
+   * ANNATA e vive in {@link PlotCampaign.production_regime}.
+   *
+   * La colonna `certifications text[]` NON è stata droppata (sui device ci sono
+   * dati reali e le migrazioni sono solo additive) e resta leggibile per
+   * compatibilità: opzionale qui perché nessun nuovo codice deve valorizzarla.
+   * Vedi `docs/technical/operator-certification-and-production-regime.md`.
+   */
+  certifications?: string[];
+  /**
+   * Certificazioni dell'operatore (`operator_certifications` jsonb, array).
+   * Una voce per schema certificato; oggi la UI compila solo `"organic"`.
+   */
+  operator_certifications: OperatorCertification[];
   /** Numero del fascicolo aziendale (ex fascicolo_aziendale). */
   farm_file_id: string | null;
   /** Organismo pagatore di riferimento (ex organismo_pagatore). */
@@ -287,6 +351,20 @@ export interface PlotCampaign {
   variety_external_code: string | null;
   /** Superficie ufficiale dichiarata in ettari (IACS declared area, NUMERIC 10,4). */
   declared_area_ha: number;
+  /**
+   * Regime di produzione DICHIARATO per questa annata (v24). `null` = non
+   * dichiarato: le campagne create prima della v24 restano tali e nessun
+   * modulo deve inferire "convenzionale" dal silenzio.
+   */
+  production_regime: ProductionRegime | null;
+  /**
+   * Data d'inizio del regime (`YYYY-MM-DD`), da cui si contano i 24/36 mesi di
+   * conversione al biologico (Reg. UE 2018/848). Può precedere di anni la
+   * campagna: è la data dell'evento, non dell'annata.
+   */
+  regime_since: string | null;
+  /** Note libere sul regime (deroghe, note dell'organismo di controllo). */
+  regime_notes: string | null;
   /**
    * Chiusura del ciclo colturale (ISO): il raccolto di un'ANNUALE termina la
    * campagna e il field torna libero (mappa neutra, DSS spento, nuova semina

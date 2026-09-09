@@ -146,7 +146,10 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         pec: null,
         sdi_code: null,
         centroid: null,
-        certifications: [],
+        // `certifications` (deprecata v24) non si scrive più: la colonna resta
+        // al suo default. La certificazione dell'operatore arriva dal
+        // ripristino di un backup, o si compila dall'anagrafica.
+        operator_certifications: input.operator_certifications ?? [],
         farm_file_id: null,
         paying_agency: null,
         contact_name: null,

@@ -89,6 +89,9 @@
       "plotsOutsideCountry": "{{count}} plot(s) fall outside {{country}} (detected: {{detected}}).",
       "swappedCoordinates": "{{count}} plot(s) appear to have swapped coordinates (lat/lon).",
       "addressCoordsMismatch": "No legal address country set; derived {{detected}} from plot coordinates."
+    },
+    "badges": {
+      "regimeTitle": "Regime declared for campaign {{year}}"
     }
   },
   "validation": {
@@ -523,6 +526,9 @@
       },
       "contact": {
         "label": "Contact"
+      },
+      "certifications": {
+        "label": "Certifications"
       }
     },
     "fields": {
@@ -550,6 +556,17 @@
       "contactName": "Full name",
       "contactRole": "Role",
       "contactRolePlaceholder": "e.g. owner, agronomist"
+    },
+    "certification": {
+      "organicTitle": "Organic farming",
+      "organicHint": "Certification issued to the company by the control body (EU Reg. 2018/848). Each plot's production regime is per campaign year and is declared in the crop sheet.",
+      "controlBody": "Control body",
+      "controlBodyPlaceholder": "e.g. accredited control body",
+      "operatorCode": "Operator code",
+      "operatorCodePlaceholder": "Code assigned by the control body",
+      "certificateNumber": "Certificate number",
+      "validFrom": "Valid from",
+      "validTo": "Valid until"
     }
   },
   "harvestPanel": {
@@ -1686,6 +1703,19 @@
         "agriculturalParcel": "Parcel code",
         "cropCode": "Crop code"
       }
+    },
+    "productionRegimeLabel": "Production regime",
+    "productionRegime": "Declared regime",
+    "regimeNotDeclared": "Not declared",
+    "regimeSince": "Under this regime since",
+    "regimeNotes": "Regime notes",
+    "regimeNotesPlaceholder": "Derogations, notes from the control body",
+    "regimeHint": "The regime applies to this campaign year: changing it does not rewrite the past. “Under this regime since” is the date the 24-month (annual crops) or 36-month (perennials) organic conversion period is counted from.",
+    "regimes": {
+      "conventional": "Conventional",
+      "in_conversion": "In conversion",
+      "organic": "Organic",
+      "integrated": "Integrated production"
     }
   },
   "cropPanel": {

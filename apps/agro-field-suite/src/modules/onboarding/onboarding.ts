@@ -12,6 +12,7 @@
  * dell'utente — che per un olandese sarebbe pure quella sbagliata.
  */
 import { isIsoAlpha2 } from "@agrogea/parcel";
+import { readOperatorCertifications } from "@agrogea/core";
 import type { CompanySnapshot, NewCompanyInput } from "@agrogea/core";
 
 /** Dati che l'utente digita nel primo avvio. */
@@ -97,5 +98,10 @@ export function companyInputFromSnapshot(
     province: company.province ?? null,
     postal_code: company.postal_code ?? null,
     region: company.region ?? null,
+    // La certificazione dell'operatore viaggia nel file (riga company alla
+    // radice) ma il ripristino ricrea l'azienda da zero: senza riportarla qui
+    // si perderebbe proprio nel momento in cui serve. Lettura difensiva: il
+    // campo è jsonb e il file può venire da chiunque.
+    operator_certifications: readOperatorCertifications(company),
   };
 }

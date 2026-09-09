@@ -43,6 +43,7 @@ function company(overrides: Partial<Company> = {}): Company {
     sdi_code: null,
     centroid: null,
     certifications: [],
+    operator_certifications: [],
     farm_file_id: null,
     paying_agency: null,
     contact_name: null,
@@ -164,6 +165,34 @@ describe("primo avvio / ripristino da backup", () => {
     assert.equal(
       companyInputFromSnapshot(snapshot({ country: "nl" }), "Ripiego").country,
       "NL",
+    );
+  });
+
+  it("la certificazione dell'operatore torna sull'azienda ricostruita", () => {
+    // Il ripristino CREA una nuova azienda: se la certificazione non passa da
+    // qui, il file la contiene ma il device la perde — che è peggio di non
+    // averla mai esportata.
+    const certification = {
+      scheme: "organic",
+      operator_code: "IT-BIO-009-12345",
+      control_body: "Bioagricert",
+      certificate_number: "CERT-2026-77",
+      valid_from: "2026-01-01",
+      valid_to: "2026-12-31",
+    };
+    const input = companyInputFromSnapshot(
+      snapshot({ operator_certifications: [certification] }),
+      "Ripiego",
+    );
+    assert.deepEqual(input.operator_certifications, [certification]);
+  });
+
+  it("un backup più vecchio non porta certificazioni inventate", () => {
+    const senzaCampo = snapshot();
+    delete (senzaCampo.company as Partial<Company>).operator_certifications;
+    assert.deepEqual(
+      companyInputFromSnapshot(senzaCampo, "Ripiego").operator_certifications,
+      [],
     );
   });
 });

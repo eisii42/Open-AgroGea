@@ -105,6 +105,18 @@ UI (modules/*, components/*)
   duplicating the registry, and why deleting a store only unassigns its lots.
   The column is nullable: lots loaded before v23 need no data migration.
 
+- **Certification belongs to the operator, the production regime to the campaign
+  year** (v24). `companies.operator_certifications` (jsonb array) holds the
+  structured certification issued to the *company* by a control body — scheme,
+  operator code, certificate number, validity — while
+  `plots_campaign.production_regime` / `regime_since` / `regime_notes` record what
+  a *plot* was grown under **in a given year**: on `plots_registry` you could not
+  say "organic since 2024" without overwriting the past. `null` stays `null`: no
+  module infers "conventional" from silence. The old
+  `companies.certifications text[]` is **deprecated but not dropped** (real data on
+  device) and nothing writes it any more — see
+  [`operator-certification-and-production-regime.md`](technical/operator-certification-and-production-regime.md).
+
 The PGlite schema ([`db/schema.ts`](../packages/agro-core/src/db/schema.ts)) is
 **English** (tables/columns) and versioned (`AGRO_LOCAL_SCHEMA_VERSION`).
 Migrations are **additive and idempotent** — never rename/drop persisted columns

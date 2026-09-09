@@ -89,6 +89,9 @@
       "plotsOutsideCountry": "{{count}} parcelle(s) hors de {{country}} (détecté : {{detected}}).",
       "swappedCoordinates": "{{count}} parcelle(s) avec coordonnées peut-être inversées (lat/lon).",
       "addressCoordsMismatch": "Aucun pays dans l'adresse légale ; {{detected}} déduit des coordonnées."
+    },
+    "badges": {
+      "regimeTitle": "Régime déclaré pour la campagne {{year}}"
     }
   },
   "validation": {
@@ -523,6 +526,9 @@
       },
       "contact": {
         "label": "Contact"
+      },
+      "certifications": {
+        "label": "Certifications"
       }
     },
     "fields": {
@@ -550,6 +556,17 @@
       "contactName": "Nom et prénom",
       "contactRole": "Fonction",
       "contactRolePlaceholder": "ex. exploitant, agronome"
+    },
+    "certification": {
+      "organicTitle": "Agriculture biologique",
+      "organicHint": "Certification délivrée à l'exploitation par l'organisme de contrôle (Règl. UE 2018/848). Le régime de chaque parcelle est annuel et se déclare dans la fiche culture.",
+      "controlBody": "Organisme de contrôle",
+      "controlBodyPlaceholder": "ex. organisme de contrôle agréé",
+      "operatorCode": "Code opérateur",
+      "operatorCodePlaceholder": "Code attribué par l'organisme",
+      "certificateNumber": "Numéro de certificat",
+      "validFrom": "Valable à partir du",
+      "validTo": "Valable jusqu'au"
     }
   },
   "harvestPanel": {
@@ -1470,6 +1487,19 @@
         "agriculturalParcel": "Code de la parcelle",
         "cropCode": "Code culture"
       }
+    },
+    "productionRegimeLabel": "Régime de production",
+    "productionRegime": "Régime déclaré",
+    "regimeNotDeclared": "Non déclaré",
+    "regimeSince": "Sous ce régime depuis le",
+    "regimeNotes": "Notes sur le régime",
+    "regimeNotesPlaceholder": "Dérogations, notes de l'organisme de contrôle",
+    "regimeHint": "Le régime vaut pour cette campagne : le modifier ne réécrit pas le passé. « Sous ce régime depuis le » est la date à partir de laquelle se comptent les 24 mois (cultures annuelles) ou 36 mois (pérennes) de conversion en bio.",
+    "regimes": {
+      "conventional": "Conventionnel",
+      "in_conversion": "En conversion",
+      "organic": "Biologique",
+      "integrated": "Production intégrée"
     }
   },
   "cropPanel": {

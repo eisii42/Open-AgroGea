@@ -33,6 +33,7 @@ import type {
   TenantClaims,
   TenantMembership,
   LastOperation,
+  OperatorCertification,
   WarehouseTab,
   Warehouse,
   Machine,
@@ -160,6 +161,12 @@ export interface NewCompanyInput {
   region?: string | null;
   /** Paese ISO 3166-1 alpha-2 (sorgente primaria del Country Resolution). */
   country?: string | null;
+  /**
+   * Certificazioni dell'operatore (v24). Non si digitano nel primo avvio: le
+   * porta il RIPRISTINO da un backup, che ricrea l'azienda da zero e senza
+   * questo campo perderebbe la certificazione pur avendola nel file.
+   */
+  operator_certifications?: OperatorCertification[];
 }
 
 // ---------------------------------------------------------------------------
@@ -368,9 +375,22 @@ export interface DomainSlice {
   savePlotCampaign: (
     input: Omit<
       PlotCampaign,
-      "id" | "tenant_id" | "closed_at" | "created_at" | "updated_at" | "deleted_at"
+      | "id"
+      | "tenant_id"
+      | "closed_at"
+      | "production_regime"
+      | "regime_since"
+      | "regime_notes"
+      | "created_at"
+      | "updated_at"
+      | "deleted_at"
     > &
-      Partial<Pick<PlotCampaign, "closed_at">> & { id?: string },
+      Partial<
+        Pick<
+          PlotCampaign,
+          "closed_at" | "production_regime" | "regime_since" | "regime_notes"
+        >
+      > & { id?: string },
   ) => Promise<PlotCampaign | null>;
   /**
    * Chiude il ciclo colturale di una campagna (v17, raccolto delle annuali):

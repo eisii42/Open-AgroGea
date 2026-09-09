@@ -57,6 +57,7 @@ function company(): Company {
     sdi_code: null,
     centroid: null,
     certifications: [],
+    operator_certifications: [],
     farm_file_id: null,
     paying_agency: null,
     contact_name: null,

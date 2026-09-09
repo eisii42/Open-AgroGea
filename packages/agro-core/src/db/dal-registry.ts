@@ -18,13 +18,20 @@ export class AgroDalRegistry extends AgroDalBase {
   // -- companies -------------------------------------------------------------
 
   async upsertCompany(
-    input: Omit<Company, "tenant_id" | "created_at" | "updated_at" | "deleted_at"> &
-      Partial<Pick<Company, "created_at">>,
+    input: Omit<
+      Company,
+      "tenant_id" | "operator_certifications" | "created_at" | "updated_at" | "deleted_at"
+    > &
+      Partial<Pick<Company, "operator_certifications" | "created_at">>,
   ): Promise<Company> {
     const ts = nowIso();
+    // `certifications` (deprecata dalla v24) non compare qui: se il chiamante
+    // non la porta con sé — e nessun percorso nuovo lo fa — la colonna resta al
+    // suo default e ai valori già presenti sul device.
     const row: Company = {
       created_at: ts,
       ...input,
+      operator_certifications: input.operator_certifications ?? [],
       tenant_id: this.tenantId,
       updated_at: ts,
       deleted_at: null,
@@ -251,9 +258,22 @@ export class AgroDalRegistry extends AgroDalBase {
   async upsertCampoCampagna(
     input: Omit<
       PlotCampaign,
-      "id" | "tenant_id" | "closed_at" | "created_at" | "updated_at" | "deleted_at"
+      | "id"
+      | "tenant_id"
+      | "closed_at"
+      | "production_regime"
+      | "regime_since"
+      | "regime_notes"
+      | "created_at"
+      | "updated_at"
+      | "deleted_at"
     > &
-      Partial<Pick<PlotCampaign, "closed_at">> & {
+      Partial<
+        Pick<
+          PlotCampaign,
+          "closed_at" | "production_regime" | "regime_since" | "regime_notes"
+        >
+      > & {
         id?: string;
         created_at?: string;
       },
@@ -282,6 +302,22 @@ export class AgroDalRegistry extends AgroDalBase {
       crop_external_code: input.crop_external_code ?? null,
       variety_external_code: input.variety_external_code ?? null,
       declared_area_ha: input.declared_area_ha,
+      // v24 — il regime si CONSERVA se il chiamante non lo porta: l'import del
+      // Fascicolo e il ripristino da un backup più vecchio non lo conoscono, e
+      // senza questa distinzione fra "non passato" e "passato a null" ogni
+      // riscrittura della campagna lo cancellerebbe.
+      production_regime:
+        input.production_regime !== undefined
+          ? input.production_regime
+          : current?.production_regime ?? null,
+      regime_since:
+        input.regime_since !== undefined
+          ? input.regime_since
+          : current?.regime_since ?? null,
+      regime_notes:
+        input.regime_notes !== undefined
+          ? input.regime_notes
+          : current?.regime_notes ?? null,
       closed_at: input.closed_at ?? current?.closed_at ?? null,
       created_at: input.created_at ?? current?.created_at ?? ts,
       updated_at: ts,
