@@ -1,4 +1,60 @@
 {
+  "backupScopeDialog": {
+    "title": "Cosa mettere nel backup",
+    "completeHint": "Backup completo: tutti i dati dell'azienda, tutto lo storico.",
+    "partialHint": "Backup parziale: nel file finirà solo ciò che hai selezionato.",
+    "timeRange": "Periodo di riferimento",
+    "allHistory": "Tutto lo storico",
+    "currentYear": "Anno corrente",
+    "last12Months": "Ultimi 12 mesi",
+    "from": "Dal",
+    "to": "Al",
+    "periodNote": "Il periodo filtra le registrazioni datate (operazioni, raccolte, analisi, rilievi, manutenzioni, sessioni). Anagrafiche e giacenze di magazzino restano complete: senza, il file non sarebbe ripristinabile.",
+    "content": "Contenuto",
+    "selectAll": "Tutto",
+    "selectNone": "Solo anagrafiche",
+    "alwaysIncluded": "sempre incluso",
+    "exportComplete": "Esporta backup completo",
+    "exportSelection": "Esporta {{count}} sezioni",
+    "sections": {
+      "plots": {
+        "label": "Appezzamenti, colture e campagne",
+        "hint": "Anagrafica dei campi con geometrie, colture e campagne agrarie."
+      },
+      "treatments": {
+        "label": "Quaderno di campagna (operazioni)",
+        "hint": "Trattamenti, concimazioni, irrigazioni, lavorazioni e semine registrate."
+      },
+      "harvests": {
+        "label": "Raccolte",
+        "hint": "Registrazioni di raccolta con rese e destinazioni."
+      },
+      "soilSamples": {
+        "label": "Analisi del suolo",
+        "hint": "Campionamenti e referti pedologici."
+      },
+      "scouting": {
+        "label": "Rilievi di campo (scouting)",
+        "hint": "Osservazioni georeferenziate raccolte a bordo campo."
+      },
+      "assets": {
+        "label": "Infrastrutture e POI",
+        "hint": "Pozzi, trappole, sensori, fabbricati e geometrie tecniche."
+      },
+      "warehouse": {
+        "label": "Magazzino",
+        "hint": "Depositi, prodotti, lotti con giacenza e scarichi verso le operazioni."
+      },
+      "machinery": {
+        "label": "Parco macchine",
+        "hint": "Mezzi, attrezzi, impieghi, manutenzioni, documenti e rifornimenti."
+      },
+      "planning": {
+        "label": "Pianificazione e Modalità Campo",
+        "hint": "Ricette, lavorazioni programmate e sessioni eseguite con tracciato GPS."
+      }
+    }
+  },
   "language": {
     "label": "Lingua"
   },
@@ -647,7 +703,7 @@
   "companyDataIo": {
     "exportCompanyData": "Esporta dati azienda (GeoJSON)",
     "importData": "Importa dati",
-    "importSuccess": "Importati {{crops}} colture, {{plots}} appezzamenti, {{campaigns}} campagne, {{treatments}} trattamenti, {{soilSamples}} analisi suolo, {{harvests}} raccolte, {{assets}} infrastrutture, {{scouting}} rilievi.",
+    "importSuccess": "Importati {{crops}} colture, {{plots}} appezzamenti, {{campaigns}} campagne, {{treatments}} trattamenti, {{soilSamples}} analisi suolo, {{harvests}} raccolte, {{assets}} infrastrutture, {{scouting}} rilievi, {{warehouse}} record di magazzino, {{machinery}} record del parco macchine, {{planning}} record di pianificazione.",
     "confirmImport": "I dati del file verranno importati nell'azienda attiva: eventuali record con lo stesso identificativo saranno sovrascritti. Continuare?",
     "confirmRestoreLocal": "Ripristino dati locali: l'operazione SOVRASCRIVE lo stato corrente della mappa (appezzamenti e Quaderno di Campagna) con i dati del file. Continuare?",
     "descriptionCloud": "Esporta o importa i dati dell'azienda attiva (appezzamenti + Quaderno di Campagna) in formato GeoJSON Esteso.",
@@ -656,7 +712,8 @@
     "titleCloud": "Trasferimento dati azienda",
     "titleStandalone": "Sicurezza dati (backup/ripristino)",
     "confirmParcelConflict": "La particella è già in azienda come “{{name}}”. Vuoi sovrascriverla? Le registrazioni del quaderno resterebbero, ma i suoi dati verrebbero sostituiti. Scegli Annulla per lasciarla com’è.",
-    "importSuccessWithSkips": "{{plots}} appezzamenti ripristinati, {{skipped}} saltati perché già presenti in azienda."
+    "importSuccessWithSkips": "{{plots}} appezzamenti ripristinati, {{skipped}} saltati perché già presenti in azienda.",
+    "importSuccessWithUnlinked": "Ripristino completato. {{skipped}} righe collegate sono state saltate: il record a cui si agganciavano non è né nel file né in archivio (tipico di un backup parziale)."
   },
   "confirmDeleteOperation": {
     "confirmDelete": "Sì, elimina definitivamente",

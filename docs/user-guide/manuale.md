@@ -354,7 +354,9 @@ L'export CSV copre l'**intero Quaderno di Campagna Agraria**: comprende sia i tr
 
 **Export delle geometrie** — appezzamenti e layer in **GeoJSON, KML, GPX, CSV, Shapefile**.
 
-**Backup completo** — un'istantanea dell'intera azienda (anagrafica, appezzamenti, colture, Quaderno, raccolte, infrastrutture) in un unico file **GeoJSON Esteso**, e la relativa **importazione/ripristino**.
+**Backup completo** — un'istantanea dell'intera azienda in un unico file **GeoJSON Esteso**, e la relativa **importazione/ripristino**. Prima di generarlo scegli **cosa mettere nel backup**: il dialog si apre già su *backup completo* (tutte le sezioni, tutto lo storico), e chi vuole un estratto può restringere il **periodo di riferimento** (anno corrente, ultimi 12 mesi, date libere) e togliere le sezioni che non gli servono — Quaderno, raccolte, analisi del suolo, rilievi, infrastrutture, **magazzino**, **parco macchine**, **pianificazione e Modalità Campo**. Appezzamenti, colture e campagne restano sempre nel file: tutto il resto ci si aggancia, e senza non sarebbe ripristinabile.
+
+Il periodo filtra le registrazioni **datate** (operazioni, raccolte, analisi, rilievi, manutenzioni, rifornimenti, sessioni); anagrafiche e giacenze di magazzino restano complete. Il file dichiara al proprio interno il perimetro con cui è stato generato, così anche fra un anno si distingue un magazzino *vuoto* da un magazzino *non incluso nel backup*.
 
 > Ogni import/export viene annotato in un **giornale dei trasferimenti** locale: hai sempre lo storico di cosa è entrato e uscito.
 

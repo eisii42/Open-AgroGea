@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { Company, CompanySnapshot } from "@agrogea/core";
+import { emptyCompanySnapshot, type Company, type CompanySnapshot } from "@agrogea/core";
 import {
   companyInputFromDraft,
   companyInputFromSnapshot,
@@ -55,14 +55,7 @@ function company(overrides: Partial<Company> = {}): Company {
 }
 
 function snapshot(overrides: Partial<Company> = {}): CompanySnapshot {
-  return {
-    company: company(overrides),
-    crops: [],
-    plots: [],
-    assets: [],
-    scouting: [],
-    unassigned: { treatments: [], soilSamples: [], harvests: [] },
-  };
+  return emptyCompanySnapshot(company(overrides));
 }
 
 describe("primo avvio / validazione", () => {

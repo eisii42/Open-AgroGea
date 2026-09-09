@@ -1,4 +1,60 @@
 {
+  "backupScopeDialog": {
+    "title": "Que mettre dans la sauvegarde",
+    "completeHint": "Sauvegarde complète : toutes les données de l'exploitation, tout l'historique.",
+    "partialHint": "Sauvegarde partielle : le fichier ne contiendra que votre sélection.",
+    "timeRange": "Période de référence",
+    "allHistory": "Tout l'historique",
+    "currentYear": "Année en cours",
+    "last12Months": "12 derniers mois",
+    "from": "Du",
+    "to": "Au",
+    "periodNote": "La période filtre les enregistrements datés (opérations, récoltes, analyses, observations, entretiens, sessions). Les référentiels et les stocks restent complets : sans eux, le fichier ne serait pas restaurable.",
+    "content": "Contenu",
+    "selectAll": "Tout",
+    "selectNone": "Référentiels seuls",
+    "alwaysIncluded": "toujours inclus",
+    "exportComplete": "Exporter la sauvegarde complète",
+    "exportSelection": "Exporter {{count}} sections",
+    "sections": {
+      "plots": {
+        "label": "Parcelles, cultures et campagnes",
+        "hint": "Référentiel des parcelles avec géométries, cultures et campagnes."
+      },
+      "treatments": {
+        "label": "Cahier de culture (opérations)",
+        "hint": "Traitements, fertilisations, irrigations, travaux du sol et semis enregistrés."
+      },
+      "harvests": {
+        "label": "Récoltes",
+        "hint": "Enregistrements de récolte avec rendements et destinations."
+      },
+      "soilSamples": {
+        "label": "Analyses de sol",
+        "hint": "Prélèvements et rapports pédologiques."
+      },
+      "scouting": {
+        "label": "Observations au champ",
+        "hint": "Observations géoréférencées relevées sur le terrain."
+      },
+      "assets": {
+        "label": "Infrastructures et POI",
+        "hint": "Puits, pièges, capteurs, bâtiments et géométries techniques."
+      },
+      "warehouse": {
+        "label": "Magasin",
+        "hint": "Dépôts, produits, lots avec stock et sorties vers les opérations."
+      },
+      "machinery": {
+        "label": "Parc matériel",
+        "hint": "Engins, outils, utilisations, entretiens, documents et carburant."
+      },
+      "planning": {
+        "label": "Planification et Mode Terrain",
+        "hint": "Recettes, travaux planifiés et sessions exécutées avec trace GPS."
+      }
+    }
+  },
   "language": {
     "label": "Langue"
   },
@@ -647,7 +703,7 @@
   "companyDataIo": {
     "exportCompanyData": "Exporter les données de l'exploitation (GeoJSON)",
     "importData": "Importer des données",
-    "importSuccess": "Importé : {{crops}} cultures, {{plots}} parcelles, {{campaigns}} campagnes, {{treatments}} traitements, {{soilSamples}} analyses de sol, {{harvests}} récoltes, {{assets}} infrastructures, {{scouting}} relevés.",
+    "importSuccess": "Importés : {{crops}} cultures, {{plots}} parcelles, {{campaigns}} campagnes, {{treatments}} traitements, {{soilSamples}} analyses de sol, {{harvests}} récoltes, {{assets}} infrastructures, {{scouting}} observations, {{warehouse}} enregistrements de magasin, {{machinery}} enregistrements de parc matériel, {{planning}} enregistrements de planification.",
     "confirmImport": "Les données du fichier seront importées dans l'entreprise active : les enregistrements portant le même identifiant seront écrasés. Continuer ?",
     "confirmRestoreLocal": "Restauration des données locales : cette opération ÉCRASE l'état actuel de la carte (parcelles et Cahier de Culture) avec les données du fichier. Continuer ?",
     "descriptionCloud": "Exportez ou importez les données de l'entreprise active (parcelles + Cahier de Culture) au format GeoJSON étendu.",
@@ -656,7 +712,8 @@
     "titleCloud": "Transfert des données de l'entreprise",
     "titleStandalone": "Sécurité des données (sauvegarde/restauration)",
     "confirmParcelConflict": "La parcelle est déjà dans l’exploitation sous le nom “{{name}}”. Voulez-vous l’écraser ? Ses enregistrements de carnet seraient conservés, mais ses données seraient remplacées. Choisissez Annuler pour la laisser telle quelle.",
-    "importSuccessWithSkips": "{{plots}} parcelles restaurées, {{skipped}} ignorées car déjà présentes dans l’exploitation."
+    "importSuccessWithSkips": "{{plots}} parcelles restaurées, {{skipped}} ignorées car déjà présentes dans l’exploitation.",
+    "importSuccessWithUnlinked": "Restauration terminée. {{skipped}} lignes liées ont été ignorées : l'enregistrement auquel elles se rattachent n'est ni dans le fichier ni dans la base (typique d'une sauvegarde partielle)."
   },
   "confirmDeleteOperation": {
     "confirmDelete": "Oui, supprimer définitivement",

@@ -1,4 +1,60 @@
 {
+  "backupScopeDialog": {
+    "title": "Qué incluir en la copia de seguridad",
+    "completeHint": "Copia completa: todos los datos de la empresa, todo el histórico.",
+    "partialHint": "Copia parcial: el archivo contendrá solo lo que has seleccionado.",
+    "timeRange": "Periodo de referencia",
+    "allHistory": "Todo el histórico",
+    "currentYear": "Año actual",
+    "last12Months": "Últimos 12 meses",
+    "from": "Desde",
+    "to": "Hasta",
+    "periodNote": "El periodo filtra los registros fechados (operaciones, cosechas, análisis, observaciones, mantenimientos, sesiones). Los maestros y las existencias del almacén se mantienen completos: sin ellos el archivo no sería restaurable.",
+    "content": "Contenido",
+    "selectAll": "Todo",
+    "selectNone": "Solo maestros",
+    "alwaysIncluded": "siempre incluido",
+    "exportComplete": "Exportar copia completa",
+    "exportSelection": "Exportar {{count}} secciones",
+    "sections": {
+      "plots": {
+        "label": "Parcelas, cultivos y campañas",
+        "hint": "Maestro de parcelas con geometrías, cultivos y campañas agrarias."
+      },
+      "treatments": {
+        "label": "Cuaderno de campo (operaciones)",
+        "hint": "Tratamientos, abonados, riegos, labores y siembras registrados."
+      },
+      "harvests": {
+        "label": "Cosechas",
+        "hint": "Registros de cosecha con rendimientos y destinos."
+      },
+      "soilSamples": {
+        "label": "Análisis de suelo",
+        "hint": "Muestreos e informes edafológicos."
+      },
+      "scouting": {
+        "label": "Observaciones de campo",
+        "hint": "Observaciones georreferenciadas tomadas a pie de campo."
+      },
+      "assets": {
+        "label": "Infraestructuras y POI",
+        "hint": "Pozos, trampas, sensores, edificios y geometrías técnicas."
+      },
+      "warehouse": {
+        "label": "Almacén",
+        "hint": "Depósitos, productos, lotes con existencias y salidas hacia las operaciones."
+      },
+      "machinery": {
+        "label": "Parque de maquinaria",
+        "hint": "Máquinas, aperos, usos, mantenimientos, documentos y repostajes."
+      },
+      "planning": {
+        "label": "Planificación y Modo Campo",
+        "hint": "Recetas, labores planificadas y sesiones ejecutadas con traza GPS."
+      }
+    }
+  },
   "language": {
     "label": "Idioma"
   },
@@ -647,7 +703,7 @@
   "companyDataIo": {
     "exportCompanyData": "Exportar datos de la explotación (GeoJSON)",
     "importData": "Importar datos",
-    "importSuccess": "Importados {{crops}} cultivos, {{plots}} parcelas, {{campaigns}} campañas, {{treatments}} tratamientos, {{soilSamples}} análisis de suelo, {{harvests}} cosechas, {{assets}} infraestructuras, {{scouting}} inspecciones.",
+    "importSuccess": "Importados {{crops}} cultivos, {{plots}} parcelas, {{campaigns}} campañas, {{treatments}} tratamientos, {{soilSamples}} análisis de suelo, {{harvests}} cosechas, {{assets}} infraestructuras, {{scouting}} observaciones, {{warehouse}} registros de almacén, {{machinery}} registros de maquinaria, {{planning}} registros de planificación.",
     "confirmImport": "Los datos del archivo se importarán a la empresa activa: los registros con el mismo identificador se sobrescribirán. ¿Continuar?",
     "confirmRestoreLocal": "Restauración de datos locales: esta operación SOBRESCRIBE el estado actual del mapa (parcelas y Cuaderno de Campo) con los datos del archivo. ¿Continuar?",
     "descriptionCloud": "Exporta o importa los datos de la empresa activa (parcelas + Cuaderno de Campo) en formato GeoJSON Extendido.",
@@ -656,7 +712,8 @@
     "titleCloud": "Transferencia de datos de la empresa",
     "titleStandalone": "Seguridad de datos (copia de seguridad/restauración)",
     "confirmParcelConflict": "La parcela ya está en la explotación como “{{name}}”. ¿Quieres sobrescribirla? Sus registros del cuaderno se mantendrían, pero sus datos se sustituirían. Elige Cancelar para dejarla como está.",
-    "importSuccessWithSkips": "{{plots}} parcelas restauradas, {{skipped}} omitidas por estar ya en la explotación."
+    "importSuccessWithSkips": "{{plots}} parcelas restauradas, {{skipped}} omitidas por estar ya en la explotación.",
+    "importSuccessWithUnlinked": "Restauración completada. Se han omitido {{skipped}} filas vinculadas: el registro al que se enganchaban no está ni en el archivo ni en el almacén (típico de una copia parcial)."
   },
   "confirmDeleteOperation": {
     "confirmDelete": "Sí, eliminar definitivamente",

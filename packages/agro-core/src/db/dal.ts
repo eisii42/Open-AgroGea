@@ -1,4 +1,4 @@
-import { AgroDalLocal } from "./dal-local";
+import { AgroDalBackup } from "./dal-backup";
 import { getDeviceId } from "./write";
 import { openTenantDb } from "./tenant-db";
 
@@ -27,9 +27,11 @@ import { openTenantDb } from "./tenant-db";
  *                               sessioni a bordo campo — avvio atomico dalla
  *                               task programmata);
  *   - {@link AgroDalLocal}    — moduli local-only (meteo, DSS, bilancio
- *                               idrico, trasferimenti, cataloghi).
+ *                               idrico, trasferimenti, cataloghi);
+ *   - {@link AgroDalBackup}   — backup dell'azienda (letture d'insieme del
+ *                               perimetro e ripristino di rows già formate).
  */
-export class AgroDal extends AgroDalLocal {
+export class AgroDal extends AgroDalBackup {
   static async open(tenantId: string): Promise<AgroDal> {
     const db = await openTenantDb(tenantId);
     return new AgroDal(db, tenantId, getDeviceId());

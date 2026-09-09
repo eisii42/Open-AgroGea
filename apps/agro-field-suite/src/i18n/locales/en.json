@@ -1,4 +1,60 @@
 {
+  "backupScopeDialog": {
+    "title": "What to put in the backup",
+    "completeHint": "Complete backup: all of the farm's data, the whole history.",
+    "partialHint": "Partial backup: the file will only contain what you selected.",
+    "timeRange": "Reference period",
+    "allHistory": "Whole history",
+    "currentYear": "Current year",
+    "last12Months": "Last 12 months",
+    "from": "From",
+    "to": "To",
+    "periodNote": "The period filters dated records (operations, harvests, analyses, scouting, maintenance, sessions). Registries and warehouse stock are always kept in full: without them the file could not be restored.",
+    "content": "Content",
+    "selectAll": "Everything",
+    "selectNone": "Registries only",
+    "alwaysIncluded": "always included",
+    "exportComplete": "Export complete backup",
+    "exportSelection": "Export {{count}} sections",
+    "sections": {
+      "plots": {
+        "label": "Plots, crops and campaigns",
+        "hint": "Field registry with geometries, crops and growing campaigns."
+      },
+      "treatments": {
+        "label": "Field logbook (operations)",
+        "hint": "Recorded treatments, fertilisations, irrigations, tillage and sowing."
+      },
+      "harvests": {
+        "label": "Harvests",
+        "hint": "Harvest records with yields and destinations."
+      },
+      "soilSamples": {
+        "label": "Soil analyses",
+        "hint": "Soil sampling and laboratory reports."
+      },
+      "scouting": {
+        "label": "Field scouting",
+        "hint": "Georeferenced observations collected in the field."
+      },
+      "assets": {
+        "label": "Infrastructure and POIs",
+        "hint": "Wells, traps, sensors, buildings and technical geometries."
+      },
+      "warehouse": {
+        "label": "Warehouse",
+        "hint": "Stores, products, lots with stock on hand and issues to operations."
+      },
+      "machinery": {
+        "label": "Machinery fleet",
+        "hint": "Machines, equipment, usage, maintenance, documents and refuelling."
+      },
+      "planning": {
+        "label": "Planning and Field Mode",
+        "hint": "Recipes, planned tasks and executed sessions with GPS track."
+      }
+    }
+  },
   "language": {
     "label": "Language"
   },
@@ -647,7 +703,7 @@
   "companyDataIo": {
     "exportCompanyData": "Export farm data (GeoJSON)",
     "importData": "Import data",
-    "importSuccess": "Imported {{crops}} crops, {{plots}} plots, {{campaigns}} campaigns, {{treatments}} treatments, {{soilSamples}} soil analyses, {{harvests}} harvests, {{assets}} assets, {{scouting}} scouting records.",
+    "importSuccess": "Imported {{crops}} crops, {{plots}} plots, {{campaigns}} campaigns, {{treatments}} treatments, {{soilSamples}} soil analyses, {{harvests}} harvests, {{assets}} assets, {{scouting}} scouting records, {{warehouse}} warehouse records, {{machinery}} machinery records, {{planning}} planning records.",
     "confirmImport": "The file's data will be imported into the active company: any records with the same identifier will be overwritten. Continue?",
     "confirmRestoreLocal": "Restore local data: this operation OVERWRITES the current state of the map (plots and Field Logbook) with the data from the file. Continue?",
     "descriptionCloud": "Export or import the active company's data (plots + Field Logbook) in Extended GeoJSON format.",
@@ -656,7 +712,8 @@
     "titleCloud": "Company data transfer",
     "titleStandalone": "Data safety (backup/restore)",
     "confirmParcelConflict": "The parcel is already in this farm as “{{name}}”. Overwrite it? Its logbook entries would be kept, but its details would be replaced. Choose Cancel to keep it as it is.",
-    "importSuccessWithSkips": "{{plots}} plots restored, {{skipped}} skipped because they were already in the farm."
+    "importSuccessWithSkips": "{{plots}} plots restored, {{skipped}} skipped because they were already in the farm.",
+    "importSuccessWithUnlinked": "Restore complete. {{skipped}} linked rows were skipped: the record they hang from is neither in the file nor in the archive (typical of a partial backup)."
   },
   "confirmDeleteOperation": {
     "confirmDelete": "Yes, delete permanently",

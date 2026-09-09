@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   COMPANY_TRANSFER_FORMAT,
+  COMPANY_TRANSFER_VERSION,
   CompanyTransferError,
   TRANSFER_SCHEMA_VERSION,
   documentSchemaVersion,
+  emptyCompanySnapshot,
   migrateTransferDocument,
   parseCompanyTransfer,
   planPlotImport,
@@ -109,14 +111,7 @@ function bundle(overrides: Partial<Plot> = {}): PlotBundle {
 }
 
 function snapshot(): CompanySnapshot {
-  return {
-    company: company(),
-    crops: [],
-    plots: [bundle()],
-    assets: [],
-    scouting: [],
-    unassigned: { treatments: [], soilSamples: [], harvests: [] },
-  };
+  return { ...emptyCompanySnapshot(company()), plots: [bundle()] };
 }
 
 /** Documento v1: nessun `schemaVersion`, nessun campo di provenienza. */
@@ -162,7 +157,7 @@ describe("scambio v2 / versione dichiarata", () => {
     // Radice e non dentro `agrogea`: è una proprietà del FILE, e chi legge deve
     // poter decidere se sa leggerlo prima di interpretarne il contenuto.
     assert.equal(doc.schemaVersion, TRANSFER_SCHEMA_VERSION);
-    assert.equal(doc.agrogea.version, 2);
+    assert.equal(doc.agrogea.version, COMPANY_TRANSFER_VERSION);
   });
 
   it("riconosce la versione di un file v1 che non la dichiarava", () => {

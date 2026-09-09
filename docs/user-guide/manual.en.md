@@ -354,7 +354,9 @@ The CSV export covers the **whole Field Logbook (QDCA)**: it includes both treat
 
 **Geometry export** — parcels and layers in **GeoJSON, KML, GPX, CSV, Shapefile**.
 
-**Full backup** — a snapshot of the entire farm (registry, parcels, crops, Logbook, harvests, infrastructure) in a single **Extended GeoJSON** file, plus the related **import/restore**.
+**Full backup** — a snapshot of the entire farm in a single **Extended GeoJSON** file, plus the related **import/restore**. Before generating it you choose **what goes into the backup**: the dialog opens on *complete backup* (every section, the whole history), and anyone who wants an extract can narrow the **reference period** (current year, last 12 months, free dates) and drop the sections they do not need — Logbook, harvests, soil analyses, scouting, infrastructure, **warehouse**, **machinery fleet**, **planning and Field Mode**. Parcels, crops and campaigns always stay in the file: everything else hangs from them, and without them it could not be restored.
+
+The period filters **dated** records (operations, harvests, analyses, scouting, maintenance, refuelling, sessions); registries and warehouse stock are always kept in full. The file states its own scope, so even a year later an *empty* warehouse is still distinguishable from a warehouse that was *not included in the backup*.
 
 > Every import/export is logged in a local **transfer journal**: you always have the history of what came in and out.
 
