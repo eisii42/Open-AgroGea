@@ -27,7 +27,7 @@ const PROFILES_VAULT_PREFIX: &str = "agrogea-pg-profile-";
 // contratto del wire format dell'outbox. Le tabelle local-only (weather_config,
 // dss_results, soil_water_indices, data_transfer_logs, product_catalogs) NON
 // si sincronizzano per definizione.
-const TABELLE_SYNC: [&str; 11] = [
+const TABELLE_SYNC: [&str; 12] = [
     "companies",
     "crops",
     "plots_registry",
@@ -39,6 +39,8 @@ const TABELLE_SYNC: [&str; 11] = [
     "harvest_logs",
     "scouting_observations",
     "tenant_memberships",
+    // v25: soglie dei parametri di compliance spostate dall'utente.
+    "compliance_parameter_overrides",
 ];
 
 // ---------------------------------------------------------------------------

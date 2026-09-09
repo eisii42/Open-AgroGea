@@ -34,6 +34,7 @@ import type {
   TenantMembership,
   LastOperation,
   OperatorCertification,
+  ComplianceGroup,
   WarehouseTab,
   Warehouse,
   Machine,
@@ -821,6 +822,23 @@ export interface UiSlice {
    */
   warehouseTab: WarehouseTab;
   /**
+   * Famiglia di schede su cui il modulo Normativa è puntato (Ammissibilità,
+   * Condizionalità, Eco-schemi, Trasversali, Biologico). Come
+   * {@link warehouseTab}, vive nello store perché è la sidebar ad aprire il
+   * pannello già sulla voce giusta.
+   */
+  complianceGroup: ComplianceGroup;
+  /**
+   * Appezzamento su cui il modulo Normativa lavora.
+   *
+   * È DISTINTO da {@link selectedPlotId}, e deliberatamente: il click sulla
+   * mappa apre il Quaderno di Campagna, e deve continuare a farlo. La
+   * valutazione normativa si sceglie il proprio appezzamento dal pannello,
+   * insieme alla coltura dichiarata per l'annata — che è l'informazione che
+   * rende sensata la scelta.
+   */
+  compliancePlotId: string | null;
+  /**
    * Magazzino su cui il modulo Magazzino è puntato: `null` = vista aggregata
    * (tutti i depositi). È il valore che il click su un POI magazzino imposta,
    * ed è quindi ciò che rende la mappa una via d'accesso al modulo.
@@ -923,6 +941,14 @@ export interface UiSlice {
   setWarehouseTab: (tab: WarehouseTab) => void;
   /** Apre il modulo Magazzino puntando una sotto-scheda (nav Prodotti/Mezzi). */
   openWarehouseTab: (tab: WarehouseTab) => void;
+  /**
+   * Apre il modulo Normativa su una famiglia di schede. Non tocca
+   * {@link selectedPlotId}: l'appezzamento della valutazione è il suo, scelto
+   * dal pannello.
+   */
+  openComplianceGroup: (group: ComplianceGroup) => void;
+  /** Punta il modulo Normativa su un appezzamento (`null` = nessuno scelto). */
+  setCompliancePlotId: (plotId: string | null) => void;
   /**
    * Apre la SCHEDA di un magazzino (click sul suo POI in mappa): punta il
    * modulo sulla sotto-scheda Prodotti filtrata su quel deposito.

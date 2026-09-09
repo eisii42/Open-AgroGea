@@ -284,3 +284,88 @@ describe("schema v24 / certificazione operatore e regime di produzione", () => {
     );
   });
 });
+
+/**
+ * v25 — modulo Compliance. La migrazione è ADDITIVA e, soprattutto, aggiunge
+ * UNA sola tabella: gli esiti delle schede non si persistono, perché sono
+ * ricalcolabili dalle scene e dal Quaderno. Ciò che si persiste sono gli
+ * override dei parametri, che sono una SCELTA dell'utente.
+ */
+describe("schema v25 / override dei parametri di compliance", () => {
+  it("crea la tabella degli override ed è idempotente", async () => {
+    const db = new PGlite();
+    await db.exec(AGRO_LOCAL_SCHEMA_SQL);
+    await db.exec(AGRO_LOCAL_SCHEMA_SQL);
+
+    assert.ok((await tableNames(db)).includes("compliance_parameter_overrides"));
+    assert.deepEqual(await columnNames(db, "compliance_parameter_overrides"), [
+      "check_id",
+      "company_id",
+      "created_at",
+      "deleted_at",
+      "id",
+      "parameter_id",
+      "tenant_id",
+      "updated_at",
+      "value",
+    ]);
+  });
+
+  it("NON crea una tabella per gli esiti: si ricalcolano, non si conservano", async () => {
+    // È la decisione motivata della fase 2: una cache ricalcolabile non
+    // appartiene né all'outbox né al backup.
+    const db = new PGlite();
+    await db.exec(AGRO_LOCAL_SCHEMA_SQL);
+    const tables = await tableNames(db);
+    for (const t of ["compliance_results", "compliance_checks", "check_results"]) {
+      assert.ok(!tables.includes(t), `la tabella ${t} non dovrebbe esistere`);
+    }
+  });
+
+  it("un solo override vivo per azienda, scheda e parametro", async () => {
+    const db = new PGlite();
+    await db.exec(AGRO_LOCAL_SCHEMA_SQL);
+    const tenant = "11111111-1111-1111-1111-111111111111";
+    const company = await db.query<{ id: string }>(
+      "insert into companies (id, tenant_id, business_name) values (gen_random_uuid(),$1,'Az') returning id",
+      [tenant],
+    );
+    const cid = company.rows[0].id;
+    const insert = `insert into compliance_parameter_overrides
+        (id, tenant_id, company_id, check_id, parameter_id, value)
+      values (gen_random_uuid(), $1, $2, 'b3_gaec6_soil_cover', 'coverNdviThreshold', $3)`;
+    await db.query(insert, [tenant, cid, 0.45]);
+    await assert.rejects(() => db.query(insert, [tenant, cid, 0.5]));
+
+    // L'indice è PARZIALE sulle righe vive: dopo un tombstone lo stesso
+    // parametro può essere ri-personalizzato.
+    await db.query(
+      "update compliance_parameter_overrides set deleted_at = now() where company_id = $1",
+      [cid],
+    );
+    await db.query(insert, [tenant, cid, 0.5]);
+    const alive = await db.query<{ n: number }>(
+      "select count(*)::int n from compliance_parameter_overrides where deleted_at is null",
+    );
+    assert.equal(alive.rows[0].n, 1);
+  });
+
+  it("il formato json è ammesso nel giornale dei trasferimenti", async () => {
+    // Il report di autovalutazione è un JSON: il CHECK va allargato, e lo si fa
+    // con lo stesso pattern idempotente della v13 e della v14.
+    const db = new PGlite();
+    await db.exec(AGRO_LOCAL_SCHEMA_SQL);
+    await db.exec(AGRO_LOCAL_SCHEMA_SQL);
+    const tenant = "11111111-1111-1111-1111-111111111111";
+    await db.query(
+      `insert into data_transfer_logs
+         (id, tenant_id, operation_type, file_format, file_name, executed_at)
+       values (gen_random_uuid(), $1, 'export', 'json', 'report.json', now())`,
+      [tenant],
+    );
+    const rows = await db.query<{ n: number }>(
+      "select count(*)::int n from data_transfer_logs where file_format = 'json'",
+    );
+    assert.equal(rows.rows[0].n, 1);
+  });
+});

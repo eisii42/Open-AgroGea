@@ -240,6 +240,12 @@ export const PULL_TABLES: { tabella: SyncTable; columns: string }[] = [
       "path,path_length_m,area_worked_ha,status,audio_notes,treatment_log_ids," +
       "operator_name,notes,created_at,updated_at,deleted_at",
   },
+  {
+    tabella: "compliance_parameter_overrides",
+    columns:
+      "id,tenant_id,company_id,check_id,parameter_id,value," +
+      "created_at,updated_at,deleted_at",
+  },
 ];
 
 /**

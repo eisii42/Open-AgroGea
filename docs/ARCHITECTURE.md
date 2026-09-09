@@ -117,6 +117,17 @@ UI (modules/*, components/*)
   device) and nothing writes it any more — see
   [`operator-certification-and-production-regime.md`](technical/operator-certification-and-production-regime.md).
 
+- **Compliance monitoring stores choices, not verdicts** (v25). The regulatory
+  cards produce **self-assessment**, never an official verdict — area monitoring
+  (AMS, EU Reg. 2021/2116 art. 66) belongs to the Paying Agency. Card *outcomes*
+  have no table at all: they are recomputable from the cached scenes and the
+  logbook, like `dss_results`. What is persisted and synced is
+  `compliance_parameter_overrides` — the thresholds the user moved away from the
+  regulatory defaults — because losing those in a restore would silently change
+  the outcomes. Pure engines live in
+  [`@agrogea/tools/compliance`](../plugins/agro-tools/src/compliance/); see
+  [`compliance-monitoring.md`](technical/compliance-monitoring.md).
+
 The PGlite schema ([`db/schema.ts`](../packages/agro-core/src/db/schema.ts)) is
 **English** (tables/columns) and versioned (`AGRO_LOCAL_SCHEMA_VERSION`).
 Migrations are **additive and idempotent** — never rename/drop persisted columns

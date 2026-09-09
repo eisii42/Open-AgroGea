@@ -247,6 +247,16 @@ export async function buildCompanySnapshot(
     };
   }
 
+  if (has("compliance")) {
+    // Solo gli override dei parametri: gli esiti delle schede non si esportano
+    // perché si ricalcolano dalle scene e dal Quaderno, e un giudizio
+    // congelato in un file invecchierebbe senza dirlo. Nessun filtro temporale:
+    // una soglia non è un fatto datato, è una configurazione in vigore.
+    snapshot.compliance = {
+      parameterOverrides: await dal.listComplianceOverrides(id),
+    };
+  }
+
   return snapshot;
 }
 
@@ -287,6 +297,8 @@ export interface ImportSummary {
   machinery: number;
   /** Ricette, task programmate e sessioni di campo. */
   planning: number;
+  /** Soglie dei parametri di compliance spostate dall'utente. */
+  compliance: number;
   /**
    * Appezzamenti saltati perché la loro particella pubblica è già nel
    * portafoglio sotto un altro record, e l'utente non ha scelto di
@@ -342,6 +354,7 @@ export async function importCompanyData(
     warehouse: 0,
     machinery: 0,
     planning: 0,
+    compliance: 0,
     plotsSkipped: 0,
     linksSkipped: 0,
   };
@@ -586,6 +599,18 @@ export async function importCompanyData(
         (session.machine_id == null || machineIds.has(session.machine_id)) &&
         (session.equipment_id == null || equipmentIds.has(session.equipment_id)),
     ),
+  );
+
+  // Override dei parametri di compliance: non dipendono da nulla (nessuna FK
+  // oltre l'azienda), quindi non c'è niente da agganciare e niente da saltare.
+  // La riga porta `company_id` dell'azienda di origine: va riscritta su quella
+  // di destinazione come per gli appezzamenti e le infrastrutture.
+  summary.compliance += await dal.restoreRows(
+    "compliance_parameter_overrides",
+    snapshot.compliance.parameterOverrides.map((override) => ({
+      ...override,
+      company_id: targetCompanyId,
+    })),
   );
 
   useAgroStore.getState().syncRouter?.notifyLocalWrite();

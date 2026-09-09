@@ -613,6 +613,75 @@ export class AgroDalWarehouse extends AgroDalLogbook {
     });
   }
 
+  /**
+   * Scarichi di TUTTE le attività dell'azienda, con l'anagrafica del prodotto
+   * accanto. È ciò che serve al motore del biologico: le quantità VERE uscite
+   * dal magazzino (non quelle pianificate), più i titoli del prodotto — rame,
+   * azoto — senza i quali una dose non si converte in kg di sostanza.
+   *
+   * Una sola query invece di una per operazione: un quaderno di dieci anni ha
+   * migliaia di righe, e interrogare a una a una renderebbe l'analisi
+   * inutilizzabile proprio sulle aziende che ne hanno più bisogno.
+   */
+  async listCompanyIssuesWithProducts(
+    companyId: string,
+    options: { from?: string; to?: string } = {},
+  ): Promise<
+    Array<
+      ActivityProduct & {
+        treatment_log_id: string;
+        product_id: string;
+        product_name: string;
+        category: string;
+        unit: string;
+        active_substance: string | null;
+        registration_number: string | null;
+        npk_n: number | null;
+        metadata: Record<string, unknown>;
+      }
+    >
+  > {
+    const conditions = [
+      "t.company_id = $1",
+      "a.deleted_at is null",
+      "t.deleted_at is null",
+    ];
+    const params: unknown[] = [companyId];
+    if (options.from) {
+      params.push(options.from);
+      conditions.push(`t.executed_at >= $${params.length}`);
+    }
+    if (options.to) {
+      params.push(options.to);
+      conditions.push(`t.executed_at <= $${params.length}`);
+    }
+    const result = await this.db.query<
+      ActivityProduct & {
+        treatment_log_id: string;
+        product_id: string;
+        product_name: string;
+        category: string;
+        unit: string;
+        active_substance: string | null;
+        registration_number: string | null;
+        npk_n: number | null;
+        metadata: Record<string, unknown>;
+      }
+    >(
+      `select a.*, p.id as product_id, p.name as product_name, p.category,
+              p.unit, p.active_substance, p.registration_number, p.npk_n,
+              p.metadata
+       from activity_products a
+       join product_lots l on l.id = a.product_lot_id
+       join products p on p.id = l.product_id
+       join treatment_logs t on t.id = a.treatment_log_id
+       where ${conditions.join(" and ")}
+       order by t.executed_at`,
+      params,
+    );
+    return result.rows;
+  }
+
   /** Scarichi (con lot e product) di una singola attività del Quaderno. */
   async listScarichiAttivita(
     treatmentLogId: string,

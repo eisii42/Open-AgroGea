@@ -237,9 +237,32 @@
  *   operator_certifications` e `alter table plots_campaign drop column
  *   production_regime, regime_since, regime_notes`. Nessun dato pre-v24 è
  *   toccato.
+ *
+ * v25 — additiva: modulo Compliance (monitoraggio normativo). Una sola tabella,
+ * e la scelta di che cosa NON persistere conta quanto quella di che cosa
+ * persistere:
+ *   * `compliance_parameter_overrides` — le soglie che l'utente ha cambiato
+ *     rispetto ai default normativi di ciascuna scheda (soglia di copertura del
+ *     suolo, periodo sensibile della propria regione, massimale di rame…).
+ *     Sincronizzata via outbox e inclusa nel backup, perché è una SCELTA
+ *     dell'utente: perderla in un ripristino cambierebbe gli esiti in silenzio.
+ *     Unicità su `(company_id, check_id, parameter_id)` fra le righe vive;
+ *   * gli **esiti** delle schede NON hanno tabella. Sono interamente
+ *     ricalcolabili dalle scene STAC e dal Quaderno — come `dss_results`,
+ *     `soil_water_indices` e la cache degli indici — e una cache ricalcolabile
+ *     non appartiene né all'outbox né al backup. Se un domani il ricalcolo
+ *     diventasse costoso al punto da giustificare una cache, quella cache
+ *     nascerebbe local-only, non sincronizzata.
+ *   Più il formato `json` nel CHECK di `data_transfer_logs.file_format` (il
+ *   report di autovalutazione), allargato con lo stesso pattern idempotente
+ *   già usato dalla v13 e dalla v14: drop del vincolo e riaggiunta.
+ *   Rollback logico v25: 1) `delete from sync_outbox where table_name =
+ *   'compliance_parameter_overrides'`; 2) `drop table
+ *   compliance_parameter_overrides`. Nessun dato pre-v25 è toccato e la sola
+ *   conseguenza è che le schede tornano ai default normativi.
  */
 
-export const AGRO_LOCAL_SCHEMA_VERSION = 24;
+export const AGRO_LOCAL_SCHEMA_VERSION = 25;
 
 export const AGRO_LOCAL_SCHEMA_SQL = `
 create table if not exists agro_meta (
@@ -570,6 +593,30 @@ create index if not exists sync_outbox_pending_idx
   on sync_outbox (sync_status, created_at)
   where sync_status in ('pending', 'error');
 
+-- compliance_parameter_overrides (v25) — le soglie che l'utente ha spostato
+-- rispetto ai default normativi di una scheda di compliance. Sincronizzata:
+-- è una SCELTA, non un derivato, e perderla in un ripristino cambierebbe gli
+-- esiti in silenzio. Gli esiti delle schede, al contrario, non hanno tabella:
+-- sono ricalcolabili dalle scene e dal Quaderno.
+create table if not exists compliance_parameter_overrides (
+  id           uuid primary key default gen_random_uuid(),
+  tenant_id    uuid not null,
+  company_id   uuid not null references companies (id),
+  check_id     text not null,
+  parameter_id text not null,
+  value        numeric not null,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now(),
+  deleted_at   timestamptz
+);
+
+-- Un solo override vivo per (azienda, scheda, parametro): l'indice è PARZIALE
+-- sulle righe non cancellate, così un parametro riportato al default (tombstone)
+-- può essere ri-personalizzato in seguito.
+create unique index if not exists compliance_overrides_unq
+  on compliance_parameter_overrides (company_id, check_id, parameter_id)
+  where deleted_at is null;
+
 -- weather_config — configurazione per-company della fonte weather. Tabella
 -- LOCAL-ONLY: non transita dall'outbox (la api_key non lascia il device, ed è
 -- status di installazione). Una row per company.
@@ -648,7 +695,9 @@ alter table data_transfer_logs
   drop constraint if exists data_transfer_logs_file_format_check;
 alter table data_transfer_logs
   add constraint data_transfer_logs_file_format_check
-  check (file_format in ('csv', 'geojson', 'isoxml', 'shapefile', 'gpkg', 'kml', 'gpx'));
+  check (file_format in ('csv', 'geojson', 'isoxml', 'shapefile', 'gpkg', 'kml', 'gpx',
+                         -- v25: report di autovalutazione del modulo Compliance.
+                         'json'));
 
 -- v14: rimuove 'survey' dal CHECK di treatment_logs (ora gestito da scouting_observations).
 alter table treatment_logs

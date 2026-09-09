@@ -23,6 +23,8 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
     mapHarvestIds: null,
     scoutingPlacing: false,
     warehouseTab: "products",
+    complianceGroup: "eligibility",
+    compliancePlotId: null,
     activeWarehouseId: null,
     warehouseFocusToken: 0,
     warehousePlacing: false,
@@ -78,6 +80,23 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
               ? s.openPanels
               : [...s.openPanels, "magazzino"],
       })),
+
+    // Modulo Normativa: la sidebar apre il pannello già sulla famiglia di
+    // schede scelta. `selectedPlotId` NON si tocca — l'appezzamento della
+    // valutazione è quello del modulo, e il click sulla mappa resta il
+    // Quaderno di Campagna.
+    openComplianceGroup: (group) =>
+      set((s) => ({
+        complianceGroup: group,
+        openPanels:
+          s.panelMode === "docked"
+            ? ["compliance-monitor"]
+            : s.openPanels.includes("compliance-monitor")
+              ? s.openPanels
+              : [...s.openPanels, "compliance-monitor"],
+      })),
+
+    setCompliancePlotId: (plotId) => set({ compliancePlotId: plotId }),
 
     // Click sul POI magazzino: apre il modulo già puntato su QUEL deposito.
     // La scheda dettaglio è un drawer come il Magazzino: la si chiude.

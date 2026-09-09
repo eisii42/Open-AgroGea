@@ -298,3 +298,75 @@ describe("DAL / la colonna deprecata certifications non si scrive più", () => {
     assert.deepEqual(stored?.operator_certifications, [certification()]);
   });
 });
+
+describe("DAL / override dei parametri di compliance (v25)", () => {
+  it("una soglia spostata si conserva e si può riportare al default", async () => {
+    // Gli esiti si ricalcolano, gli override no: sono una scelta dell'utente, e
+    // perderli cambierebbe gli esiti in silenzio.
+    const dal = await TestDal.create();
+    const company = await dal.rawQuery<{ id: string }>(
+      `insert into companies (id, tenant_id, business_name)
+       values (gen_random_uuid(), $1, 'Azienda Test') returning id`,
+      [TENANT],
+    );
+    const companyId = company.rows[0].id;
+
+    await dal.setComplianceOverride({
+      company_id: companyId,
+      check_id: "b3_gaec6_soil_cover",
+      parameter_id: "coverNdviThreshold",
+      value: 0.45,
+    });
+    let stored = await dal.listComplianceOverrides(companyId);
+    assert.equal(stored.length, 1);
+    assert.equal(Number(stored[0].value), 0.45);
+
+    // Ritoccare la stessa soglia aggiorna la riga, non ne accumula una nuova.
+    await dal.setComplianceOverride({
+      company_id: companyId,
+      check_id: "b3_gaec6_soil_cover",
+      parameter_id: "coverNdviThreshold",
+      value: 0.5,
+    });
+    stored = await dal.listComplianceOverrides(companyId);
+    assert.equal(stored.length, 1);
+    assert.equal(Number(stored[0].value), 0.5);
+
+    await dal.clearComplianceOverride(
+      companyId,
+      "b3_gaec6_soil_cover",
+      "coverNdviThreshold",
+    );
+    assert.deepEqual(await dal.listComplianceOverrides(companyId), []);
+
+    // Dopo il tombstone lo stesso parametro si può ri-personalizzare: l'indice
+    // unico è parziale sulle righe vive proprio per questo.
+    await dal.setComplianceOverride({
+      company_id: companyId,
+      check_id: "b3_gaec6_soil_cover",
+      parameter_id: "coverNdviThreshold",
+      value: 0.6,
+    });
+    assert.equal((await dal.listComplianceOverrides(companyId)).length, 1);
+  });
+
+  it("l'override viaggia nell'outbox come ogni altra scelta di dominio", async () => {
+    const dal = await TestDal.create();
+    const company = await dal.rawQuery<{ id: string }>(
+      `insert into companies (id, tenant_id, business_name)
+       values (gen_random_uuid(), $1, 'Azienda Test') returning id`,
+      [TENANT],
+    );
+    await dal.setComplianceOverride({
+      company_id: company.rows[0].id,
+      check_id: "organic_inputs",
+      parameter_id: "copperLimitKgHa",
+      value: 24,
+    });
+    const outbox = await dal.rawQuery<{ table_name: string }>(
+      `select table_name from sync_outbox
+       where table_name = 'compliance_parameter_overrides'`,
+    );
+    assert.equal(outbox.rows.length, 1);
+  });
+});

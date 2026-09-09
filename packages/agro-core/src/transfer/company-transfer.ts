@@ -45,6 +45,8 @@ import type {
   ActivityMachine,
   ActivityProduct,
   Company,
+
+  ComplianceParameterOverride,
   CounterAdjustment,
   Crop,
   Equipment,
@@ -79,7 +81,7 @@ export const COMPANY_TRANSFER_FORMAT = "agrogea.company-transfer" as const;
  * campi additivi che un lettore vecchio può ignorare; PATCH = nulla che cambi
  * la lettura.
  */
-export const TRANSFER_SCHEMA_VERSION = "3.0.0";
+export const TRANSFER_SCHEMA_VERSION = "3.1.0";
 
 /**
  * Mirror intero dentro `agrogea.version`, mantenuto per i file già in
@@ -116,7 +118,8 @@ export type TransferSection =
   | "assets"
   | "warehouse"
   | "machinery"
-  | "planning";
+  | "planning"
+  | "compliance";
 
 /** Tutte le sezioni, nell'ordine in cui la UI le presenta. */
 export const TRANSFER_SECTIONS: readonly TransferSection[] = [
@@ -129,6 +132,7 @@ export const TRANSFER_SECTIONS: readonly TransferSection[] = [
   "warehouse",
   "machinery",
   "planning",
+  "compliance",
 ];
 
 /** Sezioni che un file v2 poteva contenere (usata dalla migrazione v2 → v3). */
@@ -246,6 +250,22 @@ export function emptyPlanningBundle(): PlanningBundle {
 }
 
 /**
+ * Compliance: SOLO gli override dei parametri delle schede. Gli esiti non ci
+ * sono, ed è una decisione: sono interamente ricalcolabili dalle scene e dal
+ * Quaderno, e una cache ricalcolabile in un backup invecchia male — al
+ * ripristino sembrerebbe un giudizio dato oggi su dati di ieri. Gli override
+ * invece sono una SCELTA dell'utente, e perderli cambierebbe gli esiti in
+ * silenzio.
+ */
+export interface ComplianceBundle {
+  parameterOverrides: ComplianceParameterOverride[];
+}
+
+export function emptyComplianceBundle(): ComplianceBundle {
+  return { parameterOverrides: [] };
+}
+
+/**
  * Un plot con i suoi log e le campagne agrarie (unità di una Feature
  * "plot"). `campaigns` (`plots_campaign`) lega l'appezzamento alle COLTURE per
  * annata: senza queste rows l'associazione plot↔crop andrebbe persa.
@@ -271,6 +291,7 @@ export interface CompanySnapshot {
   warehouse: WarehouseBundle;
   machinery: MachineryBundle;
   planning: PlanningBundle;
+  compliance: ComplianceBundle;
   /** Cosa contiene questo snapshot: sezioni scelte e periodo di riferimento. */
   scope: TransferScope;
 }
@@ -287,6 +308,7 @@ export function emptyCompanySnapshot(company: Company): CompanySnapshot {
     warehouse: emptyWarehouseBundle(),
     machinery: emptyMachineryBundle(),
     planning: emptyPlanningBundle(),
+    compliance: emptyComplianceBundle(),
     scope: fullTransferScope(),
   };
 }
@@ -310,6 +332,8 @@ export interface CompanyTransferMeta {
   machinery: MachineryBundle;
   /** Pianificazione, meno le sessioni con tracciato (che sono Feature). */
   planning: PlanningBundle;
+  /** Override dei parametri delle schede di compliance (v3.1). */
+  compliance: ComplianceBundle;
 }
 
 /** Properties di una Feature plot: anagrafica + campagne + log annidati. */
@@ -548,6 +572,7 @@ export function serializeCompanySnapshot(
       machinery: snapshot.machinery,
       // Idem per le sessioni, che portano il tracciato.
       planning: { ...snapshot.planning, sessions: [] },
+      compliance: snapshot.compliance,
     },
     features,
   };
@@ -705,6 +730,7 @@ function migrateV2ToV3(doc: Record<string, unknown>): Record<string, unknown> {
       warehouse: emptyWarehouseBundle(),
       machinery: emptyMachineryBundle(),
       planning: emptyPlanningBundle(),
+      compliance: emptyComplianceBundle(),
     },
   };
 }
@@ -838,6 +864,7 @@ export function parseCompanyTransfer(input: unknown): CompanySnapshot {
   const warehouse = meta.warehouse as Partial<WarehouseBundle> | undefined;
   const machinery = meta.machinery as Partial<MachineryBundle> | undefined;
   const planning = meta.planning as Partial<PlanningBundle> | undefined;
+  const compliance = meta.compliance as Partial<ComplianceBundle> | undefined;
 
   return {
     company: meta.company as Company,
@@ -871,6 +898,11 @@ export function parseCompanyTransfer(input: unknown): CompanySnapshot {
       recipes: asArray<Recipe>(planning?.recipes),
       plannedTasks: asArray<PlannedTask>(planning?.plannedTasks),
       sessions,
+    },
+    compliance: {
+      parameterOverrides: asArray<ComplianceParameterOverride>(
+        compliance?.parameterOverrides,
+      ),
     },
     scope: readScope(meta.scope),
   };

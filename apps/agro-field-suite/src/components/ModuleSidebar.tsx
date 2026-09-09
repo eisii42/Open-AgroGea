@@ -30,6 +30,7 @@ import {
   Satellite,
   Settings,
   Shapes,
+  ScanEye,
   ShieldCheck,
   Sprout,
   Tractor,
@@ -39,7 +40,6 @@ import {
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useReadOnly } from "@agrogea/core";
-import { STANDALONE } from "../standalone";
 import { SianExportDialog } from "../modules/sian/SianExportDialog";
 import { buildTaskCompletenessEntries } from "../modules/tasks/task-completeness-view";
 
@@ -64,8 +64,6 @@ interface ToolDef {
   action: ToolAction;
   /** Flag del layout che ne governa la visibilità; assente = sempre visibile. */
   flag?: DashboardModuleId;
-  /** Strumento proprietario/cloud: nascosto nelle build standalone/OSS. */
-  cloudOnly?: boolean;
 }
 
 interface ModuleDef {
@@ -90,6 +88,7 @@ export function ModuleSidebar({
   const openPanels = useAgroStore((s) => s.openPanels);
   const togglePanel = useAgroStore((s) => s.togglePanel);
   const openWarehouseTab = useAgroStore((s) => s.openWarehouseTab);
+  const openComplianceGroup = useAgroStore((s) => s.openComplianceGroup);
   const openLogbookAllOperations = useAgroStore(
     (s) => s.openLogbookAllOperations,
   );
@@ -333,13 +332,64 @@ export function ModuleSidebar({
           action: { kind: "panel", panel: "impostazioni" },
           flag: "panelMeteo",
         },
+      ],
+    },
+    {
+      // Normativa: modulo a sé, non una voce delle Impostazioni. La
+      // conformità PAC è lavoro agronomico ricorrente — si consulta durante la
+      // campagna, non quando si configura l'applicazione — e stava sotto
+      // "Impostazioni Azienda" solo perché lì era finita la geo-compliance
+      // delle origini, che è un'altra cosa (marcare i layer vincolanti).
+      id: "normativa",
+      labelKey: "nav.moduleCompliance",
+      Icon: ScanEye,
+      tools: [
+        // Una voce per famiglia di schede: l'utente sceglie l'ambito e il
+        // pannello si apre già lì, come il Magazzino fa con Prodotti/Mezzi.
         {
+          id: "compliance-eligibility",
+          labelKey: "compliance.group.eligibility",
+          Icon: LandPlot,
+          action: { kind: "run", run: () => openComplianceGroup("eligibility") },
+          flag: "panelGeoCompliance",
+        },
+        {
+          id: "compliance-conditionality",
+          labelKey: "compliance.group.conditionality",
+          Icon: ShieldCheck,
+          action: { kind: "run", run: () => openComplianceGroup("conditionality") },
+          flag: "panelGeoCompliance",
+        },
+        {
+          id: "compliance-eco-schemes",
+          labelKey: "compliance.group.ecoSchemes",
+          Icon: Sprout,
+          action: { kind: "run", run: () => openComplianceGroup("ecoSchemes") },
+          flag: "panelGeoCompliance",
+        },
+        {
+          id: "compliance-transversal",
+          labelKey: "compliance.group.transversal",
+          Icon: Satellite,
+          action: { kind: "run", run: () => openComplianceGroup("transversal") },
+          flag: "panelGeoCompliance",
+        },
+        {
+          id: "compliance-organic",
+          labelKey: "compliance.group.organic",
+          Icon: Leaf,
+          action: { kind: "run", run: () => openComplianceGroup("organic") },
+          flag: "panelGeoCompliance",
+        },
+        {
+          // Marcatura dei layer vincolanti (ZVN, SIC/ZPS, EUDR, reticolo
+          // idrografico, zone umide): è il presupposto delle schede
+          // geometriche, e sta quindi qui e non fra le impostazioni.
           id: "geocompliance",
           labelKey: "nav.toolGeoCompliance",
-          Icon: ShieldCheck,
+          Icon: Shapes,
           action: { kind: "panel", panel: "geocompliance" },
           flag: "panelGeoCompliance",
-          cloudOnly: true,
         },
       ],
     },
@@ -367,9 +417,7 @@ export function ModuleSidebar({
         // I tool disattivati nel layout dell'utente spariscono; un module senza
         // più tool visibili viene nascosto del tutto (UI pulita).
         const visibleTools = mod.tools.filter(
-          (tool) =>
-            (!tool.flag || flags[tool.flag]) &&
-            !(tool.cloudOnly && STANDALONE),
+          (tool) => !tool.flag || flags[tool.flag],
         );
         if (visibleTools.length === 0) return null;
         const isOpen = expanded[mod.id] ?? false;

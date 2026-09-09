@@ -131,6 +131,15 @@ async function seedFullCompany(dal: TestDal): Promise<{
     regime_notes: "Notifica del 1° aprile 2025.",
   });
 
+  // Soglia di compliance spostata dall'utente (v25): è una SCELTA, e il
+  // ripristino deve rimetterla dov'era. Gli esiti no: si ricalcolano.
+  await dal.setComplianceOverride({
+    company_id: company.id,
+    check_id: "b3_gaec6_soil_cover",
+    parameter_id: "coverNdviThreshold",
+    value: 0.45,
+  });
+
   const warehouse = await dal.upsertWarehouse({
     company_id: company.id,
     name: "Deposito agrofarmaci",
@@ -357,6 +366,35 @@ describe("backup azienda / ripristino su un archivio vuoto", () => {
     assert.deepEqual(parsed.company.operator_certifications, [
       ORGANIC_CERTIFICATION,
     ]);
+  });
+
+  it("le soglie di compliance spostate tornano, gli esiti no (si ricalcolano)", async () => {
+    const source = await TestDal.create();
+    const { company } = await seedFullCompany(source);
+    const document = await exportDocument(source, company);
+
+    const target = await TestDal.create();
+    const destination = await seedCompany(target, "Azienda ripristinata");
+    const summary = await importCompanyData(target, document, destination.id);
+
+    assert.equal(summary.compliance, 1);
+    const overrides = await target.listComplianceOverrides(destination.id);
+    assert.equal(overrides.length, 1);
+    assert.equal(overrides[0].check_id, "b3_gaec6_soil_cover");
+    assert.equal(Number(overrides[0].value), 0.45);
+    // La riga è riagganciata all'azienda di destinazione, non a quella d'origine.
+    assert.equal(overrides[0].company_id, destination.id);
+  });
+
+  it("la sezione compliance si può escludere, e il file lo dichiara", async () => {
+    const source = await TestDal.create();
+    const { company } = await seedFullCompany(source);
+    const snapshot = await buildCompanySnapshot(source, company, {
+      sections: ["plots", "treatments"],
+      period: null,
+    });
+    assert.deepEqual(snapshot.compliance.parameterOverrides, []);
+    assert.ok(!snapshot.scope.sections.includes("compliance"));
   });
 
   it("è idempotente: ripristinare due volte non duplica nulla", async () => {

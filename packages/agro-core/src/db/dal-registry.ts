@@ -3,6 +3,7 @@ import { areaHectares, normalizeGeometry } from "../geo/area";
 import type {
   Plot,
   Company,
+  ComplianceParameterOverride,
   PlotCampaign,
   Crop,
   TenantMembership,
@@ -397,5 +398,86 @@ export class AgroDalRegistry extends AgroDalBase {
       [this.tenantId],
     );
     return result.rows.map((r) => r.year);
+  }
+
+  // -- override dei parametri di compliance (v25) -----------------------------
+
+  /**
+   * Soglie che l'utente ha spostato rispetto ai default normativi di una
+   * scheda. Sono una SCELTA e non un derivato: si sincronizzano e finiscono nel
+   * backup, a differenza degli esiti, che si ricalcolano.
+   */
+  async listComplianceOverrides(
+    companyId: string,
+  ): Promise<ComplianceParameterOverride[]> {
+    const result = await this.db.query<ComplianceParameterOverride>(
+      `select * from compliance_parameter_overrides
+       where company_id = $1 and deleted_at is null
+       order by check_id, parameter_id`,
+      [companyId],
+    );
+    return result.rows;
+  }
+
+  /**
+   * Imposta (o aggiorna) l'override di un parametro. Riusa la riga viva della
+   * stessa terna (azienda, scheda, parametro) per restare idempotente e non
+   * accumulare doppioni a ogni ritocco della soglia.
+   */
+  async setComplianceOverride(
+    input: Pick<
+      ComplianceParameterOverride,
+      "company_id" | "check_id" | "parameter_id" | "value"
+    >,
+  ): Promise<ComplianceParameterOverride> {
+    const ts = nowIso();
+    const existing = await this.db.query<ComplianceParameterOverride>(
+      `select * from compliance_parameter_overrides
+       where company_id = $1 and check_id = $2 and parameter_id = $3
+         and deleted_at is null
+       limit 1`,
+      [input.company_id, input.check_id, input.parameter_id],
+    );
+    const current = existing.rows[0];
+    const row: ComplianceParameterOverride = {
+      id: current?.id ?? uuidv4(),
+      tenant_id: this.tenantId,
+      company_id: input.company_id,
+      check_id: input.check_id,
+      parameter_id: input.parameter_id,
+      value: input.value,
+      created_at: current?.created_at ?? ts,
+      updated_at: ts,
+      deleted_at: null,
+    };
+    await this.writeWithOutbox(
+      "compliance_parameter_overrides",
+      "update",
+      row as unknown as Row & { id: string },
+    );
+    return row;
+  }
+
+  /**
+   * Riporta un parametro al default normativo. Tombstone e non cancellazione
+   * fisica, come ogni altra entità sincronizzata: l'indice unico è parziale
+   * sulle righe vive, quindi lo stesso parametro può essere ri-personalizzato
+   * più avanti senza inciampare nel proprio passato.
+   */
+  async clearComplianceOverride(
+    companyId: string,
+    checkId: string,
+    parameterId: string,
+  ): Promise<void> {
+    const existing = await this.db.query<{ id: string }>(
+      `select id from compliance_parameter_overrides
+       where company_id = $1 and check_id = $2 and parameter_id = $3
+         and deleted_at is null
+       limit 1`,
+      [companyId, checkId, parameterId],
+    );
+    const id = existing.rows[0]?.id;
+    if (!id) return;
+    await this.softDelete("compliance_parameter_overrides", id);
   }
 }

@@ -665,7 +665,9 @@ export type FileFormat =
   | "shapefile"
   | "gpkg"
   | "kml"
-  | "gpx";
+  | "gpx"
+  /** Report di autovalutazione del modulo Compliance (v25). */
+  | "json";
 
 /** Voce del registro dei trasferimenti dati (`data_transfer_logs`, LOCAL-ONLY). */
 export interface DataTransferLog {
@@ -1402,6 +1404,34 @@ export interface TenantMembership {
 // Outbox / sync
 // ---------------------------------------------------------------------------
 
+/**
+ * Override di un parametro di una scheda di compliance
+ * (`compliance_parameter_overrides`, v25).
+ *
+ * Gli ESITI delle schede non si persistono: sono interamente ricalcolabili
+ * dalle scene e dal Quaderno, e come `dss_results` o la cache degli indici non
+ * appartengono a una coda di mutazioni. Gli **override** sì: sono una scelta
+ * dell'utente — la soglia di copertura che il suo Organismo Pagatore applica,
+ * il periodo sensibile della sua regione — e perderli in un ripristino
+ * cambierebbe gli esiti in silenzio, che è il modo peggiore in cui un backup
+ * può fallire. Per questo la tabella è sincronizzata e sta nel formato di
+ * scambio, sezione `compliance`.
+ */
+export interface ComplianceParameterOverride {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  /** Id della scheda (`CheckSpec.id`, es. `"b3_gaec6_soil_cover"`). */
+  check_id: string;
+  /** Id del parametro dentro la scheda (es. `"coverNdviThreshold"`). */
+  parameter_id: string;
+  /** Valore scelto dall'utente. Fuori dagli estremi della scheda viene ignorato. */
+  value: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
 export type SyncTable =
   | "companies"
   | "crops"
@@ -1428,7 +1458,8 @@ export type SyncTable =
   | "fuel_refills"
   | "recipes"
   | "planned_tasks"
-  | "field_operation_sessions";
+  | "field_operation_sessions"
+  | "compliance_parameter_overrides";
 
 export type MutationOperation = "insert" | "update" | "delete";
 
@@ -1484,6 +1515,19 @@ export type PanelMode = "floating" | "docked";
  */
 export type WarehouseTab = "products" | "machines";
 
+/**
+ * Famiglia di schede del modulo Normativa, cioè la voce con cui il modulo si
+ * apre dalla sidebar. Rispecchia `CheckGroup` di `@agrogea/tools`: il core non
+ * dipende dal pacchetto dei motori, e i due tipi sono allineati
+ * strutturalmente come già avviene per gli id degli indici vegetazionali.
+ */
+export type ComplianceGroup =
+  | "eligibility"
+  | "conditionality"
+  | "ecoSchemes"
+  | "transversal"
+  | "organic";
+
 export type FieldPanel =
   | "quaderno"
   | "plot-sheet"
@@ -1510,7 +1554,9 @@ export type FieldPanel =
   | "tasks"
   // Nuovo id in inglese: i valori italiani sopra sono storici e restano come
   // sono (sono accoppiati a UI e persistenza), ma non si aggiungono più.
-  | "parcel-adoption";
+  | "parcel-adoption"
+  /** Monitoraggio normativo (v25): autovalutazione delle schede PAC. */
+  | "compliance-monitor";
 
 /** Rilievo GPS in field, sincronizzato via outbox come le altre tabelle. */
 export interface ScoutingObservation {

@@ -134,6 +134,11 @@ const GeoCompliancePanel = lazy(() =>
     default: m.GeoCompliancePanel,
   })),
 );
+const CompliancePanel = lazy(() =>
+  import("../modules/compliance/CompliancePanel").then((m) => ({
+    default: m.CompliancePanel,
+  })),
+);
 const UserProfileSettingsPage = lazy(() =>
   import("./UserProfileSettingsPage").then((m) => ({
     default: m.UserProfileSettingsPage,
@@ -473,6 +478,9 @@ export function FieldDashboard() {
           )}
           {openPanels.includes("geocompliance") && (
             <GeoCompliancePanel onClose={() => togglePanel("geocompliance")} />
+          )}
+          {openPanels.includes("compliance-monitor") && (
+            <CompliancePanel onClose={() => togglePanel("compliance-monitor")} />
           )}
           {/* Impostazioni Profilo: pagina a tutto schermo (non un drawer), sopra
               mappa e pannelli. Raggiunta dal menù profile e dalla Command Palette. */}
