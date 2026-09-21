@@ -414,6 +414,7 @@ describe("biologico / scheda completa", () => {
       operations: [operation()],
       layers: { available: [], intersects: [], minDistanceToWaterM: null },
       terrain: null,
+      orthophoto: null,
       parameters: resolveParameters(organicInputsCheck),
       now: NOW,
       ...overrides,

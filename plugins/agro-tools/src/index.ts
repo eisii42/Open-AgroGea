@@ -236,6 +236,7 @@ export {
   type ParameterOverrides,
   type RegulatoryReference,
   type SceneProvenance,
+  type OrthophotoSummary,
   type TerrainSummary,
 } from "./compliance/check-types";
 export {
@@ -285,13 +286,19 @@ export {
 } from "./compliance/runner";
 export { CheckRegistry } from "./compliance/registry";
 export {
+  DEFAULT_EXG_THRESHOLD,
+  excessGreen,
+  resolvesFeature,
+  vegetatedShare,
+} from "./compliance/orthophoto";
+export {
   CORE_CHECKS,
   coreCheckRegistry,
   a1AgriculturalActivity,
   a2CropCoherence,
   a3DeclaredArea,
   b1Gaec4BufferStrips,
-  b2Gaec5SlopeTillage,
+  b2Gaec5ErosionScope,
   b3Gaec6SoilCover,
   b4Gaec7CropRotation,
   b5Gaec8NonProductive,
@@ -303,7 +310,6 @@ export {
   c3CatchCrops,
   d1MowingGrazing,
   d2SowingHarvestDates,
-  d3Deforestation,
   d4Irrigation,
   organicInputsCheck,
   profileDistance,

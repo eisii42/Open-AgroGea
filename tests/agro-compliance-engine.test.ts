@@ -82,6 +82,7 @@ function input(
     operations: [],
     layers: { available: [], intersects: [], minDistanceToWaterM: null },
     terrain: null,
+    orthophoto: null,
     parameters: resolveParameters(spec),
     now: NOW,
     ...overrides,
@@ -500,7 +501,7 @@ describe("compliance / catalogo completo", () => {
 
   it("copre ammissibilità, condizionalità, eco-schemi, trasversali e biologico", () => {
     const ids = CORE_CHECKS.map((s) => s.id);
-    for (const prefix of ["a1_", "a2_", "a3_", "b1_", "b2_", "b3_", "b4_", "b5_", "b6_", "b7_", "b8_", "c1_", "c2_", "c3_", "d1_", "d2_", "d3_", "d4_"]) {
+    for (const prefix of ["a1_", "a2_", "a3_", "b1_", "b2_", "b3_", "b4_", "b5_", "b6_", "b7_", "b8_", "c1_", "c2_", "c3_", "d1_", "d2_", "d4_"]) {
       assert.ok(
         ids.some((id) => id.startsWith(prefix)),
         `manca la scheda ${prefix}`,
@@ -556,7 +557,11 @@ describe("compliance / catalogo completo", () => {
     assert.ok(indices.includes("ndvi"));
     assert.ok(indices.includes("ndmi"));
     assert.ok(indices.includes("nbr"), "la B8 richiede NBR, e quindi B12");
-    assert.equal(registry.requiredArchiveYears() >= 6, true, "la EUDR risale al 2020");
+    // Tolta la EUDR, che risaliva al 2020, le schede più esigenti sono la
+    // rotazione colturale (BCAA 7) e i prati permanenti (BCAA 9): due annate di
+    // archivio come MINIMO per pronunciarsi, anche se la rotazione ne guarda
+    // volentieri tre quando ci sono.
+    assert.equal(registry.requiredArchiveYears(), 2);
   });
 
   it("la B8 è l'unica a chiedere B12, e lo dichiara", () => {
@@ -576,14 +581,16 @@ describe("compliance / catalogo completo", () => {
 describe("compliance / le schede che dichiarano di non poter decidere", () => {
   const points = series("2026-03-01T00:00:00.000Z", [0.8, 0.78, 0.3, 0.6, 0.7, 0.72, 0.7, 0.68]);
 
-  it("B5 — gli elementi non produttivi non si risolvono a 10 m, e lo dice", () => {
-    // Non è un fallimento: sapere quale controllo NON si può anticipare vale
-    // quanto sapere gli altri.
+  it("B5 — senza ortofoto non decide, e dice quale risoluzione serve", () => {
+    // A 10 m una siepe non si risolve: la scheda non tenta il satellite, chiede
+    // l'immagine giusta. Sapere quale controllo NON si può anticipare con
+    // Sentinel-2 vale quanto sapere gli altri.
     const result = runCheck(b5Gaec8NonProductive, input(points, b5Gaec8NonProductive));
     assert.equal(result.outcome, "undecidable");
     assert.equal(result.observability, "low");
-    assert.ok(result.missing.some((m) => m.what.id === "missing.resolutionTooCoarse"));
-    assert.equal(result.missing[0].where, "pipeline");
+    assert.ok(result.missing.some((m) => m.what.id === "missing.orthophoto"));
+    // 2 m di larghezza / 3 pixel = ~67 cm di risoluzione necessaria.
+    assert.equal(result.explanation.values?.requiredGsdCm, 67);
   });
 
   it("D4 — l'irrigazione richiederebbe SAR o termico, non l'ottico", () => {

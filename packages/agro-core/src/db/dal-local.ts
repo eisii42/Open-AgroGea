@@ -526,6 +526,52 @@ export class AgroDalLocal extends AgroDalTasks {
    * copre due annate agrarie, quindi i confronti anno-su-anno). I raster
    * seguono per FK `on delete cascade`. Ritorna quante scene sono state tolte.
    */
+  /**
+   * Svuota la cache degli indici: tutto l'archivio, o quello di un solo
+   * appezzamento. I raster seguono per FK `on delete cascade`.
+   *
+   * Serve al pulsante di pulizia del modulo Normativa, e la sua sicurezza sta
+   * tutta nel fatto che questa cache è **ricomputabile**: le scene si
+   * riscaricano dal catalogo, nessun dato inserito dall'utente vive qui. È
+   * local-only, quindi non genera voci di outbox e non si propaga a nessuno.
+   */
+  async clearVegetationIndexCache(plotId?: string): Promise<number> {
+    const result = plotId
+      ? await this.db.query(
+          `delete from vegetation_index_scenes where plot_id = $1`,
+          [plotId],
+        )
+      : await this.db.query(`delete from vegetation_index_scenes`);
+    return result.affectedRows ?? 0;
+  }
+
+  /** Quante scene ci sono in cache, e quanto occupano i loro raster. */
+  async vegetationIndexCacheStats(
+    plotId?: string,
+  ): Promise<{ scenes: number; rasters: number; approximateBytes: number }> {
+    const result = await this.db.query<{
+      scenes: number;
+      rasters: number;
+      bytes: number;
+    }>(
+      `select
+         count(distinct s.id)::int                  as scenes,
+         count(r.scene_row_id)::int                 as rasters,
+         coalesce(sum(length(r.values_base64)), 0)::bigint as bytes
+       from vegetation_index_scenes s
+       left join vegetation_index_rasters r on r.scene_row_id = s.id
+       where ($1::uuid is null or s.plot_id = $1::uuid)`,
+      [plotId ?? null],
+    );
+    const row = result.rows[0];
+    return {
+      scenes: Number(row?.scenes ?? 0),
+      rasters: Number(row?.rasters ?? 0),
+      // base64 è 4/3 dei byte reali: si riporta la dimensione del dato.
+      approximateBytes: Math.round((Number(row?.bytes ?? 0) * 3) / 4),
+    };
+  }
+
   async pruneVegetationIndexScenes(
     options: { retentionMonths?: number; now?: Date } = {},
   ): Promise<number> {

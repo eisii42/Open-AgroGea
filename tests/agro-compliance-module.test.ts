@@ -165,6 +165,7 @@ describe("modulo compliance / report esportabile", () => {
       operations: [],
       layers: { available: [], intersects: [], minDistanceToWaterM: null },
       terrain: null,
+      orthophoto: null,
       parameters: resolveParameters(a1AgriculturalActivity),
       now: NOW,
     };

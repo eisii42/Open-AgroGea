@@ -4,7 +4,7 @@ import { a1AgriculturalActivity } from "./a1-agricultural-activity";
 import { a2CropCoherence } from "./a2-crop-coherence";
 import { a3DeclaredArea } from "./a3-declared-area";
 import { b1Gaec4BufferStrips } from "./b1-gaec4-buffer-strips";
-import { b2Gaec5SlopeTillage } from "./b2-gaec5-slope-tillage";
+import { b2Gaec5ErosionScope } from "./b2-gaec5-erosion-scope";
 import { b3Gaec6SoilCover } from "./b3-gaec6-soil-cover";
 import { b4Gaec7CropRotation } from "./b4-gaec7-crop-rotation";
 import { b5Gaec8NonProductive } from "./b5-gaec8-non-productive";
@@ -13,7 +13,7 @@ import { b7Gaec2Wetlands } from "./b7-gaec2-wetlands";
 import { b8Gaec3StubbleBurning } from "./b8-gaec3-stubble-burning";
 import { c1OrchardGroundCover, c2ExtensiveForage, c3CatchCrops } from "./c-eco-schemes";
 import { d1MowingGrazing } from "./d1-mowing-grazing";
-import { d2SowingHarvestDates, d3Deforestation, d4Irrigation } from "./d-transversal";
+import { d2SowingHarvestDates, d4Irrigation } from "./d-transversal";
 import { organicInputsCheck } from "./organic-inputs";
 
 /**
@@ -36,7 +36,7 @@ export const CORE_CHECKS: readonly CheckSpec[] = [
   a2CropCoherence,
   a3DeclaredArea,
   b1Gaec4BufferStrips,
-  b2Gaec5SlopeTillage,
+  b2Gaec5ErosionScope,
   b3Gaec6SoilCover,
   b4Gaec7CropRotation,
   b5Gaec8NonProductive,
@@ -48,7 +48,6 @@ export const CORE_CHECKS: readonly CheckSpec[] = [
   c3CatchCrops,
   d1MowingGrazing,
   d2SowingHarvestDates,
-  d3Deforestation,
   d4Irrigation,
   organicInputsCheck,
 ];
@@ -62,7 +61,7 @@ export { a1AgriculturalActivity } from "./a1-agricultural-activity";
 export { a2CropCoherence } from "./a2-crop-coherence";
 export { a3DeclaredArea } from "./a3-declared-area";
 export { b1Gaec4BufferStrips } from "./b1-gaec4-buffer-strips";
-export { b2Gaec5SlopeTillage } from "./b2-gaec5-slope-tillage";
+export { b2Gaec5ErosionScope } from "./b2-gaec5-erosion-scope";
 export { b3Gaec6SoilCover } from "./b3-gaec6-soil-cover";
 export { b4Gaec7CropRotation, profileDistance } from "./b4-gaec7-crop-rotation";
 export { b5Gaec8NonProductive } from "./b5-gaec8-non-productive";
@@ -71,5 +70,5 @@ export { b7Gaec2Wetlands } from "./b7-gaec2-wetlands";
 export { b8Gaec3StubbleBurning } from "./b8-gaec3-stubble-burning";
 export { c1OrchardGroundCover, c2ExtensiveForage, c3CatchCrops } from "./c-eco-schemes";
 export { d1MowingGrazing } from "./d1-mowing-grazing";
-export { d2SowingHarvestDates, d3Deforestation, d4Irrigation } from "./d-transversal";
+export { d2SowingHarvestDates, d4Irrigation } from "./d-transversal";
 export { organicInputsCheck } from "./organic-inputs";

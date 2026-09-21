@@ -112,7 +112,7 @@ precedente.
 
 ## Il catalogo
 
-Diciannove schede, `data-driven` per paese: `reference.countries` è `"*"` per
+Diciotto schede, `data-driven` per paese: `reference.countries` è `"*"` per
 gli obblighi unionali e un elenco ISO per quelli nazionali. `CheckRegistry.list({
 country })` filtra — gli eco-schemi italiani e i periodi sensibili della BCAA 6
 spariscono da un'installazione francese invece di dare un esito sbagliato con
@@ -120,22 +120,53 @@ l'aria di essere giusto.
 
 **A — Ammissibilità**: A1 attività agricola · A2 coerenza colturale ·
 A3 superficie dichiarata.
-**B — Condizionalità**: B1 GAEC 4 fasce tampone · B2 GAEC 5 pendenza ·
+**B — Condizionalità**: B1 GAEC 4 fasce tampone · B2 GAEC 5 ambito pendenza ·
 B3 GAEC 6 copertura del suolo · B4 GAEC 7 rotazione · B5 GAEC 8 elementi non
 produttivi · B6 GAEC 9 prati permanenti · B7 GAEC 2 zone umide · B8 GAEC 3
 bruciatura stoppie.
 **C — Eco-schemi (IT)**: C1 inerbimento arboree · C2 foraggeri estensivi ·
 C3 colture intercalari.
-**D — Trasversali**: D1 sfalci · D2 date di semina e raccolta · D3 EUDR ·
+**D — Trasversali**: D1 sfalci · D2 date di semina e raccolta ·
 D4 irrigazione.
 **Biologico**: `organic_inputs` (non satellitare).
 
-Due schede dichiarano di **non poter decidere** quasi sempre, e restano nel
-catalogo di proposito: **B5** (siepi e margini sono sotto il pixel da 10 m:
-servono ortofoto o VHR) e **D4** (l'irrigazione richiederebbe SAR o termico).
-Sapere quale controllo non si può anticipare vale quanto sapere gli altri, e
-toglierle dall'elenco lascerebbe l'utente col dubbio che ce ne siamo
-dimenticati.
+**D3 (EUDR, deforestazione dopo il cut-off 2020) è stata tolta**: richiedeva
+sei annate di archivio — da sola, più della metà del traffico dell'intero
+catalogo — per una verifica che la parte layer-based di `due-diligence.ts`
+copre già nella sostanza. Il codice della scheda è nella storia del repository
+e si riprende quando il recupero storico sarà meno costoso.
+
+**D4** dichiara di **non poter decidere** quasi sempre, e resta nel catalogo di
+proposito: l'irrigazione richiederebbe SAR o termico. Sapere quale controllo non
+si può anticipare vale quanto sapere gli altri, e toglierla lascerebbe l'utente
+col dubbio che ce ne siamo dimenticati.
+
+### Tre schede non guardano il cielo, e si procurano il dato da sole
+
+Sono quelle che prima restavano mute perché il dato doveva portarlo l'utente:
+
+* **B1 — GAEC 4, fasce tampone.** Il reticolo idrografico si estrae da
+  **OpenStreetMap** via Overpass sul perimetro dell'appezzamento, senza upload.
+  OSM è cartografia volontaria e non il reticolo ufficiale: la provenienza e
+  l'attribuzione ODbL viaggiano con il dato, e un layer regionale caricato
+  dall'utente ha comunque la precedenza.
+* **B2 — GAEC 5, pendenza.** La pendenza viene dal **Copernicus DEM GLO-30**
+  (algoritmo di Horn, lo stesso di `gdaldem slope`), scaricato dallo stesso
+  catalogo STAC degli indici. La scheda risponde a una sola domanda —
+  *l'appezzamento rientra nell'ambito della BCAA 5?* — e non produce mai «non
+  conforme»: la **rilevazione della lavorazione da NDVI è stata rimossa**,
+  perché ciò che la norma disciplina è la direzione dei solchi, che a 10 m non
+  è osservabile. Un indizio che non discrimina è rumore con accanto un
+  riferimento normativo, ed è peggio del silenzio.
+* **B5 — GAEC 8, elementi non produttivi.** Accetta un'**ortofoto GeoTIFF**
+  caricata dall'utente (AGEA, volo regionale, drone): è la stessa risoluzione su
+  cui controlla l'Organismo Pagatore. Senza, o con una risoluzione insufficiente
+  per l'elemento dichiarato, l'esito resta `undecidable` **dicendo quanti
+  centimetri servirebbero**. Con un'ortofoto adeguata a colori misura la quota
+  vegetata con Excess Green — che separa il verde dal non-verde ma **non
+  distingue una siepe da un'infestante**, e per questo una quota sotto soglia
+  non produce mai «non conforme». Il file resta in memoria: non si persiste, non
+  si sincronizza, non entra nel backup.
 
 Ogni scheda porta in testa al proprio file un commento che dice **che cosa dice
 la norma, che cosa si osserva davvero e perché il metodo è difendibile**, più i
@@ -152,14 +183,48 @@ perché attivarlo aggiunge una banda allo scarico di ogni scena. Se le scene in
 cache non portano il NBR — perché elaborate prima — l'esito è `undecidable` con
 l'indicazione che serve una rielaborazione: non un silenzio.
 
-## Il costo dell'analisi si dice prima
+## Le scene mancanti: verifica, costo, recupero
 
-La cache locale tiene **24 mesi** di scene (`CACHE_RETENTION_MONTHS`). Le schede
-pluriennali chiedono di più: la D3 (EUDR) risale al cut-off del 2020, cioè sei
-annate. `estimateAnalysisCost` calcola quante scene servirebbero e il pannello
-lo mostra **prima** di lanciare il recupero: su una connessione a consumo,
-scaricare centinaia di scene senza chiedere sarebbe far spendere soldi
-all'utente a sua insaputa.
+Ogni scheda satellitare ha il proprio pulsante **Verifica scene**: interroga il
+catalogo (gratuito, nessuna immagine scaricata), mostra quante scene esistono
+per la **propria** finestra, quante sono già in cache e quante mancano, con i
+megabyte. Poi si scarica, se si vuole.
+
+Il numero è sempre quello **residuo**: la cache è per `(plot_id, scene_id)` con
+le medie degli indici fuse, quindi una scena presa da una scheda è già pronta
+per ogni altra che la tocchi. Dodici schede che guardano l'NDVI della stessa
+annata pagano una volta sola — ed è il motivo per cui conviene verificare invece
+di scaricare in blocco.
+
+### Il costo, misurato e non stimato
+
+I COG del Planetary Computer hanno tile **512×512** da ~440 KB: a 10 m una tile
+copre **2621 ha**, quindi un appezzamento normale ne tocca una sola per banda.
+Misurato contando i byte su scene reali: **~0,45 MB per banda per scena**, e il
+totale **non dipende dalla superficie** — un campo da mezzo ettaro costa quanto
+uno da cinquecento. In Toscana, con il filtro nuvole al 20%, le scene utili sono
+~27 l'anno: un'annata di NDVI è **~25 MB** e serve a dodici schede.
+
+`searchSceneSeries` ora **pagina** (`maxPages`): il catalogo ne restituisce al
+massimo `limit` per pagina, e senza paginazione una finestra pluriennale ne
+avrebbe perse la maggior parte in silenzio.
+
+### La potatura è a 36 mesi, non a 24
+
+`CACHE_RETENTION_MONTHS` è passata a **36**. La rotazione colturale (BCAA 7)
+confronta tre annate: con la ritenzione a due, la potatura di fine run avrebbe
+cancellato a ogni giro lo storico appena scaricato per valutarla — un ciclo di
+scarica-e-butta invisibile, pagato in rete dall'utente a ogni analisi.
+
+### Svuotare la cache
+
+In fondo al pannello. Si può fare senza timore perché la cache è **interamente
+ricomputabile**: medie e raster derivati da scene pubbliche, nessun dato inserito
+dall'utente, niente outbox, niente backup. Serve quando si cambia la soglia di
+nuvolosità, quando si ridisegna un appezzamento (le medie zonali vecchie sono
+calcolate su un poligono che non esiste più) e quando lo spazio su un dispositivo
+da campo finisce: tre casi che la potatura per età non intercetta, perché guarda
+l'anzianità e non la pertinenza.
 
 ## Dove sta il calcolo pesante
 

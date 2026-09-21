@@ -325,6 +325,33 @@ export interface LayerFindings {
   minDistanceToWaterM: number | null;
 }
 
+/**
+ * Ortofoto caricata dall'utente e ritagliata sull'appezzamento.
+ *
+ * Esiste per un motivo solo: Sentinel-2 a 10 m **non risolve** siepi, filari e
+ * margini di campo (BCAA 8). Un'ortofoto a 20–50 cm sì, ed è ciò che usa
+ * l'Organismo Pagatore. Caricandola, l'utente porta nel modulo la stessa
+ * risoluzione su cui verrà controllato.
+ */
+export interface OrthophotoSummary {
+  /** Nome del file, per la provenienza dell'esito. */
+  fileName: string;
+  /** Risoluzione al suolo in metri (es. 0.2 per 20 cm). */
+  gsdM: number;
+  /** Numero di bande disponibili: da 3 in su si può stimare il verde. */
+  bandCount: number;
+  /** Data di ripresa dichiarata dal file, se presente. */
+  capturedAt: string | null;
+  /** Pixel dell'ortofoto interni al poligono. */
+  pixelsInPlot: number;
+  /**
+   * Quota di pixel classificati come vegetazione da Excess Green, o `null` se
+   * le bande non bastano. È una stima RGB **indicativa**, non una
+   * classificazione: lo dichiara la scheda che la usa.
+   */
+  vegetatedShare: number | null;
+}
+
 /** Sintesi morfologica dell'appezzamento (da DEM), quando disponibile. */
 export interface TerrainSummary {
   /** Pendenza media in gradi. */
@@ -352,6 +379,8 @@ export interface CheckInput {
   operations: readonly DeclaredOperation[];
   layers: LayerFindings;
   terrain: TerrainSummary | null;
+  /** Ortofoto caricata per questo appezzamento, se presente. */
+  orthophoto: OrthophotoSummary | null;
   /** Parametri risolti (default + override), per id. */
   parameters: Readonly<Record<string, CheckParameter>>;
   /** Istante del calcolo, iniettato: le funzioni pure non leggono l'orologio. */

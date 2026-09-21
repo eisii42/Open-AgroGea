@@ -409,34 +409,60 @@ export async function searchSceneSeries(
     fetchImpl?: typeof fetch;
     apiUrl?: string;
     attesaBaseMs?: number;
+    /**
+     * Pagine da seguire oltre la prima. Il catalogo restituisce al massimo
+     * `limit` item per pagina: su una finestra di più annate le scene sono
+     * molte di più, e senza paginazione ne tornerebbero solo le più recenti —
+     * in silenzio, il che è il modo peggiore di perderle.
+     */
+    maxPages?: number;
   },
 ): Promise<IndicesScene[]> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const apiUrl = options.apiUrl ?? STAC_API_URL;
   const bandeNecessarie = requiredBandsForIndices(options.indices);
-  const body = buildStacSearchBody(bbox, {
+  const maxPages = Math.max(1, options.maxPages ?? 1);
+  let body: Record<string, unknown> | null = buildStacSearchBody(bbox, {
     cloudCoverMax: options.cloudCoverMax,
     giorniIndietro: options.giorniIndietro,
     datetimeRange: options.datetimeRange,
     // Serie temporale: alza il limite di default per coprire più passaggi.
     limit: options.limit ?? 50,
     ora: options.ora,
-  });
-  const res = await fetchConBackoff(
-    fetchImpl,
-    `${apiUrl}/search`,
-    { attesaBaseMs: options.attesaBaseMs },
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    },
-  );
-  if (!res.ok) {
-    throw new Error(`STAC search fallita: HTTP ${res.status}`);
+  }) as Record<string, unknown>;
+
+  const scene: IndicesScene[] = [];
+  const visti = new Set<string>();
+  for (let page = 0; page < maxPages && body; page++) {
+    const res = await fetchConBackoff(
+      fetchImpl,
+      `${apiUrl}/search`,
+      { attesaBaseMs: options.attesaBaseMs },
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
+    if (!res.ok) {
+      throw new Error(`STAC search fallita: HTTP ${res.status}`);
+    }
+    const collection = (await res.json()) as StacItemCollection & {
+      links?: { rel: string; body?: Record<string, unknown> }[];
+    };
+    const pagina = extractSceneSeries(collection, bandeNecessarie);
+    for (const s of pagina) {
+      if (visti.has(s.itemId)) continue;
+      visti.add(s.itemId);
+      scene.push(s);
+    }
+    // STAC API: il link `next` porta il corpo della richiesta successiva
+    // (token di paginazione). Senza `next`, o senza item, si è alla fine.
+    const next = collection.links?.find((l) => l.rel === "next");
+    body = pagina.length > 0 && next?.body ? { ...body, ...next.body } : null;
   }
-  const collection = (await res.json()) as StacItemCollection;
-  return extractSceneSeries(collection, bandeNecessarie);
+  // `extractSceneSeries` ordina per pagina: unite, vanno riordinate.
+  return scene.sort((a, b) => Date.parse(b.datetime) - Date.parse(a.datetime));
 }
 
 /**

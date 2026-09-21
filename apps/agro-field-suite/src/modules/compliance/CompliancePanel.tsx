@@ -1,12 +1,14 @@
 import { useAgroStore, useReadOnly, type ComplianceGroup } from "@agrogea/core";
-import type { CheckOutcome, CheckSpec } from "@agrogea/tools";
+import type { CheckOutcome } from "@agrogea/tools";
 import { FieldSheet } from "@agrogea/ui";
 import { Button, Label, Select } from "@geolibre/ui";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
 import { CheckResultCard } from "./CheckResultCard";
-import type { AnalysisCost } from "./check-inputs";
+import { ComplianceSourcesSection } from "./ComplianceSourcesSection";
+import { IndexCacheSection } from "./IndexCacheSection";
+import { PendingCheckRow } from "./PendingCheckRow";
+import { useComplianceSources } from "./useComplianceSources";
 import { buildComplianceReport, reportFilename } from "./compliance-report";
 import { useComplianceChecks } from "./useComplianceChecks";
 
@@ -47,11 +49,23 @@ export function CompliancePanel({ onClose }: { onClose: () => void }) {
   const setCompliancePlotId = useAgroStore((s) => s.setCompliancePlotId);
   const readOnly = useReadOnly(activeCompanyId);
   const [saving, setSaving] = useState(false);
+  // Le scene appena scaricate cambiano l'ingresso delle schede: il token forza
+  // il hook a ricostruirlo invece di lavorare sulla serie di prima.
+  const [cacheToken, setCacheToken] = useState(0);
 
   const plot = plots.find((p) => p.id === compliancePlotId) ?? null;
-  const { running, error, results, costs, run, specs } = useComplianceChecks(
+  // DEM, reticolo OSM e ortofoto: le schede non satellitari se li procurano da
+  // sé, e senza di essi dicono "non decidibile" invece di tacere.
+  const sources = useComplianceSources(plot);
+  const { running, error, results, run, specs } = useComplianceChecks(
     plot,
     activeCampaign,
+    {
+      terrain: sources.terrain,
+      waterNetwork: sources.waterNetwork,
+      orthophoto: sources.orthophoto,
+      cacheToken,
+    },
   );
 
   /** Appezzamenti con la coltura dichiarata per l'annata attiva, se c'è. */
@@ -226,6 +240,8 @@ export function CompliancePanel({ onClose }: { onClose: () => void }) {
         </p>
       )}
 
+      <ComplianceSourcesSection plot={plot} sources={sources} />
+
       {/* Sintesi della famiglia: conta solo le schede già valutate. */}
       {evaluated.length > 0 && (
         <div className="mb-3 grid grid-cols-4 gap-1.5">
@@ -280,96 +296,19 @@ export function CompliancePanel({ onClose }: { onClose: () => void }) {
               <PendingCheckRow
                 key={spec.id}
                 spec={spec}
-                cost={costs[spec.id]}
+                plot={plot}
+                campaignYear={activeCampaign}
                 busy={running === spec.id}
                 disabled={running != null}
                 onRun={() => run(spec.id)}
-                t={t}
+                onScenesFetched={() => setCacheToken((n) => n + 1)}
               />
             );
           })}
         </div>
       )}
+      <IndexCacheSection plotId={plot?.id ?? null} />
     </FieldSheet>
-  );
-}
-
-/**
- * Una scheda non ancora valutata: che cosa osserva, quanto è osservabile e
- * **che cosa le serve** per pronunciarsi. È l'informazione che permette di
- * decidere se valutarla adesso — soprattutto quando l'archivio locale non basta
- * e la valutazione comporterebbe di andare in rete.
- */
-function PendingCheckRow({
-  spec,
-  cost,
-  busy,
-  disabled,
-  onRun,
-  t,
-}: {
-  spec: CheckSpec;
-  cost: AnalysisCost | undefined;
-  busy: boolean;
-  disabled: boolean;
-  onRun: () => void;
-  t: TFunction;
-}) {
-  return (
-    <article className="flex flex-col gap-2 rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] p-3">
-      <header className="flex flex-col gap-1">
-        <h3 className="text-sm font-semibold text-[var(--ink-1)]">
-          {t(`compliance.messages.${spec.subject.id}`)}
-        </h3>
-        <p className="text-[11px] text-[var(--ink-4)]">
-          {spec.reference.act}
-          {spec.reference.provision ? ` · ${spec.reference.provision}` : ""}
-        </p>
-      </header>
-
-      <dl className="grid grid-cols-2 gap-2 text-[11px]">
-        <div>
-          <dt className="text-[var(--ink-4)]">
-            {t("compliance.card.observability")}
-          </dt>
-          <dd className="font-medium text-[var(--ink-2)]">
-            {t(`compliance.observability.${spec.observability}`)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-[var(--ink-4)]">{t("compliance.card.needs")}</dt>
-          <dd className="font-medium text-[var(--ink-2)]">
-            {spec.requires.indices.length === 0
-              ? t("compliance.card.needsNoImagery")
-              : t("compliance.card.needsImagery", {
-                  indices: spec.requires.indices.join(", ").toUpperCase(),
-                  years: spec.requires.archiveYears,
-                })}
-          </dd>
-        </div>
-      </dl>
-
-      {/* Il costo si dice PRIMA: valutare questa scheda comporta andare in rete? */}
-      {cost?.needsNetwork && (
-        <p className="rounded-[var(--r-2)] border border-[var(--warn)] bg-[var(--warn-l)] px-2 py-1.5 text-[11px] text-[var(--warn)]">
-          {t("compliance.panel.historyCost", {
-            years: cost.requiredYears,
-            cached: cost.cachedYears,
-            scenes: cost.scenesToFetch,
-            indices: cost.indices.join(", ").toUpperCase(),
-          })}
-        </p>
-      )}
-
-      <Button
-        className="min-h-[var(--touch-min)] self-start"
-        variant="outline"
-        disabled={disabled}
-        onClick={onRun}
-      >
-        {busy ? t("compliance.panel.running") : t("compliance.panel.runOne")}
-      </Button>
-    </article>
   );
 }
 

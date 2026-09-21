@@ -1,5 +1,6 @@
 import type { CheckSpec, CheckVerdict } from "../check-types";
 import { resolutionFitFactor } from "../confidence";
+import { resolvesFeature } from "../orthophoto";
 import { calendarYearWindow } from "../series";
 import { parameterValue } from "../runner";
 
@@ -13,27 +14,32 @@ import { parameterValue } from "../runner";
  * alberi isolati, margini di campo, fossi, stagni, muretti a secco — e divieto
  * di potatura di siepi e alberi nel periodo di nidificazione.
  *
- * ## Che cosa si osserva davvero: quasi nulla, ed è l'informazione utile
+ * ## Il problema, e come si risolve
  *
  * **Sentinel-2 non risolve questi elementi.** Una siepe è larga 1–3 metri, un
- * albero isolato ha una chioma di 4–8 metri, un margine di campo raramente
- * supera i 2 metri: tutti sotto il pixel da 10 m. Ciò che si vedrebbe è un
- * pixel misto — un po' di siepe, un po' di campo, un po' di strada — il cui
- * valore non permette né di contare gli elementi né di misurarne la superficie.
+ * margine di campo raramente supera i 2: tutti sotto il pixel da 10 m. Ciò che
+ * si leggerebbe è un pixel misto — un po' di siepe, un po' di campo, un po' di
+ * strada — da cui non si contano gli elementi né se ne misura la superficie.
  *
- * La scheda esiste comunque, e restituisce quasi sempre **non decidibile**. Non
- * è un fallimento: è l'informazione che serve. Un agricoltore che vede venti
- * schede tutte con un esito e questa senza capisce, senza doverlo chiedere a
- * nessuno, che per la BCAA 8 il monitoraggio satellitare ottico non basta e che
- * l'Organismo Pagatore userà **ortofoto o immagini ad altissima risoluzione**.
- * Sapere quale controllo NON si può anticipare vale quanto sapere gli altri.
+ * La soluzione non è un algoritmo più furbo: è **un'immagine migliore**. È
+ * anche ciò che fa l'Organismo Pagatore, che per la BCAA 8 usa ortofoto ad
+ * altissima risoluzione e non il satellite ottico. La scheda accetta quindi
+ * un'**ortofoto caricata dall'utente** (AGEA, regionale, o un volo proprio) e
+ * lavora su quella:
  *
- * ## Che cosa farebbe la differenza
+ *   * senza ortofoto → `undecidable`, dicendo che serve e perché;
+ *   * con ortofoto a risoluzione insufficiente → `undecidable`, dicendo quale
+ *     risoluzione servirebbe per l'elemento dichiarato;
+ *   * con ortofoto adeguata → misura la quota di superficie vegetata con
+ *     Excess Green e la confronta con la soglia.
  *
- * Ortofoto AGEA (20–50 cm) o VHR commerciali (Pléiades, WorldView, 30–50 cm), su
- * cui gli elementi lineari si misurano davvero. Finché la pipeline lavora su
- * Sentinel-2, questa scheda dichiara il proprio limite invece di simulare un
- * risultato.
+ * ## Il limite che resta, e che va detto
+ *
+ * ExG separa il verde dal non-verde: **non distingue una siepe da un'infestante
+ * o da un prato**. La quota misurata è quindi un'indicazione di superficie
+ * vegetata, non un conteggio di elementi caratteristici. Per questo una quota
+ * sotto soglia non produce mai "non conforme": potrebbe essere un errore di
+ * classificazione, e accusare su un'euristica RGB sarebbe sproporzionato.
  */
 export const b5Gaec8NonProductive: CheckSpec = {
   id: "b5_gaec8_non_productive",
@@ -48,9 +54,11 @@ export const b5Gaec8NonProductive: CheckSpec = {
   method: { id: "method.b5NonProductiveAreas" },
   observability: "low",
   requires: {
-    indices: ["ndvi"],
+    // Nessun indice satellitare: l'unica immagine che serve è l'ortofoto, e
+    // non si scarica — la carica l'utente.
+    indices: [],
     archiveYears: 1,
-    minUsableScenes: 4,
+    minUsableScenes: 0,
     declared: [],
   },
   parameters: [
@@ -82,24 +90,94 @@ export const b5Gaec8NonProductive: CheckSpec = {
 
   run(input): CheckVerdict {
     const featureWidth = parameterValue(input.parameters, "featureWidthM", 2);
-    const gsd = input.series.points[0]?.gsdM ?? 10;
+    const requiredShare = parameterValue(input.parameters, "nonProductiveSharePct", 4);
+    const ortho = input.orthophoto;
 
-    // Il confronto è esplicito e mostrato all'utente: larghezza dell'oggetto
-    // contro dimensione del pixel. Non c'è nulla da elaborare, c'è da dire.
-    return {
-      outcome: "undecidable",
-      explanation: { id: "explain.b5NotResolvable", values: { featureWidth, gsd } },
-      factors: [resolutionFitFactor(featureWidth, gsd)],
-      missing: [
-        {
-          what: {
-            id: "missing.resolutionTooCoarse",
-            values: { featureWidth, gsd },
-          },
-          where: "pipeline",
-          howToFix: { id: "missing.resolutionTooCoarseFix" },
+    // 1. Nessuna ortofoto: si dice che cosa serve, non si tenta il satellite.
+    if (!ortho) {
+      return {
+        outcome: "undecidable",
+        explanation: {
+          id: "explain.b5NeedsOrthophoto",
+          values: { featureWidth, requiredGsdCm: Math.round((featureWidth / 3) * 100) },
         },
-      ],
+        factors: [resolutionFitFactor(featureWidth, 10)],
+        missing: [
+          {
+            what: { id: "missing.orthophoto", values: { featureWidth } },
+            where: "layers",
+            howToFix: {
+              id: "missing.orthophotoFix",
+              values: { requiredGsdCm: Math.round((featureWidth / 3) * 100) },
+            },
+          },
+        ],
+      };
+    }
+
+    const factors = [resolutionFitFactor(featureWidth, ortho.gsdM)];
+
+    // 2. Ortofoto troppo grossolana per l'elemento dichiarato.
+    if (!resolvesFeature(ortho.gsdM, featureWidth)) {
+      return {
+        outcome: "undecidable",
+        explanation: {
+          id: "explain.b5OrthophotoTooCoarse",
+          values: {
+            gsdCm: Math.round(ortho.gsdM * 100),
+            featureWidth,
+            requiredGsdCm: Math.round((featureWidth / 3) * 100),
+          },
+        },
+        factors,
+        missing: [
+          {
+            what: { id: "missing.orthophotoResolution", values: { gsdCm: Math.round(ortho.gsdM * 100) } },
+            where: "layers",
+            howToFix: {
+              id: "missing.orthophotoFix",
+              values: { requiredGsdCm: Math.round((featureWidth / 3) * 100) },
+            },
+          },
+        ],
+      };
+    }
+
+    // 3. Bande insufficienti per stimare il verde: l'ortofoto serve comunque
+    // alla verifica visiva, ma una quota non si può calcolare.
+    if (ortho.vegetatedShare == null) {
+      return {
+        outcome: "undecidable",
+        explanation: {
+          id: "explain.b5OrthophotoNoBands",
+          values: { bandCount: ortho.bandCount, fileName: ortho.fileName },
+        },
+        factors,
+        missing: [
+          {
+            what: { id: "missing.orthophotoBands", values: { bandCount: ortho.bandCount } },
+            where: "layers",
+            howToFix: { id: "missing.orthophotoBandsFix" },
+          },
+        ],
+      };
+    }
+
+    const sharePct = ortho.vegetatedShare * 100;
+    const values = {
+      sharePct: Number(sharePct.toFixed(1)),
+      requiredShare,
+      gsdCm: Math.round(ortho.gsdM * 100),
+      fileName: ortho.fileName,
+      pixels: ortho.pixelsInPlot,
     };
+
+    // Sopra soglia si può dire "conforme", ma la spiegazione porta con sé che la
+    // classificazione è RGB e indicativa. Sotto soglia mai "non conforme": ExG
+    // non distingue una siepe da un'infestante, e su quell'euristica non si
+    // accusa nessuno.
+    return sharePct >= requiredShare
+      ? { outcome: "compliant", explanation: { id: "explain.b5Sufficient", values }, factors }
+      : { outcome: "attention", explanation: { id: "explain.b5Insufficient", values }, factors };
   },
 };

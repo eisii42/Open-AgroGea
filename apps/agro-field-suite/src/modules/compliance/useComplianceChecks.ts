@@ -6,18 +6,14 @@ import {
   type CheckResult,
   type CheckSpec,
   type LayerFindings,
+  type OrthophotoSummary,
   type ParameterOverrides,
   type TerrainSummary,
 } from "@agrogea/tools";
 import { useAppStore } from "@geolibre/core";
 import type { FeatureCollection } from "geojson";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  buildCheckInput,
-  estimateAnalysisCost,
-  loadParameterOverrides,
-  type AnalysisCost,
-} from "./check-inputs";
+import { buildCheckInput, loadParameterOverrides } from "./check-inputs";
 import { complianceRegistry } from "./compliance-registry";
 import {
   CONSTRAINT_LABELS,
@@ -118,14 +114,26 @@ function layerFindingsFor(plot: Plot, layers: TaggedLayer[]): LayerFindings {
   };
 }
 
+/**
+ * Aggiunge il reticolo recuperato da OpenStreetMap ai layer della mappa. Se
+ * l'utente ha già caricato un reticolo proprio, quello VINCE: è cartografia
+ * ufficiale, e OSM serve solo a non lasciare la scheda senza dato.
+ */
+function withWaterNetwork(
+  layers: TaggedLayer[],
+  osm: FeatureCollection | null,
+): TaggedLayer[] {
+  if (!osm) return layers;
+  if (layers.some((l) => l.type === "water_network")) return layers;
+  return [...layers, { type: "water_network", fc: osm }];
+}
+
 export interface ComplianceChecksState {
   /** Id della scheda in esecuzione, o `null`. */
   running: string | null;
   error: string | null;
   /** Esiti già calcolati, per `checkId`. */
   results: Record<string, CheckResult>;
-  /** Costo stimato per scheda: che cosa comporta valutarla ORA. */
-  costs: Record<string, AnalysisCost>;
   /** Override attivi, per la UI dei parametri. */
   overrides: ParameterOverrides;
   /** Valuta (o rivaluta) una singola scheda. */
@@ -137,8 +145,18 @@ export interface ComplianceChecksState {
 export function useComplianceChecks(
   plot: Plot | null,
   campaignYear: number,
-  terrain: TerrainSummary | null = null,
+  sources: {
+    terrain?: TerrainSummary | null;
+    waterNetwork?: FeatureCollection | null;
+    orthophoto?: OrthophotoSummary | null;
+    /** Cambia quando la cache delle scene si arricchisce: forza la ricostruzione. */
+    cacheToken?: number;
+  } = {},
 ): ComplianceChecksState {
+  const terrain = sources.terrain ?? null;
+  const orthophoto = sources.orthophoto ?? null;
+  const waterNetwork = sources.waterNetwork ?? null;
+  const cacheToken = sources.cacheToken ?? 0;
   const dal = useAgroStore((s) => s.dal);
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const companies = useAgroStore((s) => s.companies);
@@ -148,7 +166,6 @@ export function useComplianceChecks(
   const [running, setRunning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, CheckResult>>({});
-  const [costs, setCosts] = useState<Record<string, AnalysisCost>>({});
   const [overrides, setOverrides] = useState<ParameterOverrides>({});
 
   const country =
@@ -175,14 +192,12 @@ export function useComplianceChecks(
   useEffect(() => {
     inputRef.current = null;
     setResults({});
-    setCosts({});
     setError(null);
     setRunning(null);
   }, [plot?.id, campaignYear]);
 
-  // Stima del costo di ciascuna scheda: quante annate chiede e quante ne ha in
-  // cache. Si calcola SENZA eseguire nulla, perché è ciò che l'utente guarda
-  // per decidere se valutarla ora.
+  // Ingresso condiviso delle schede: Quaderno, campagne, layer e serie in
+  // cache. Si costruisce una volta per appezzamento, non una per scheda.
   useEffect(() => {
     let alive = true;
     if (!dal || !plot || !activeCompanyId) return;
@@ -195,8 +210,9 @@ export function useComplianceChecks(
             country,
             campaigns: await dal.listCampiCampagna({ plotId: plot.id }),
             crops,
-            layers: layerFindingsFor(plot, layers),
+            layers: layerFindingsFor(plot, withWaterNetwork(layers, waterNetwork)),
             terrain,
+            orthophoto,
             now: new Date().toISOString(),
           }),
           loadParameterOverrides(dal, activeCompanyId),
@@ -204,15 +220,6 @@ export function useComplianceChecks(
         if (!alive) return;
         inputRef.current = { key: `${plot.id}:${campaignYear}`, value: input };
         setOverrides(loaded);
-        const estimated: Record<string, AnalysisCost> = {};
-        for (const spec of specs) {
-          estimated[spec.id] = estimateAnalysisCost(
-            input.series,
-            spec.requires.archiveYears,
-            spec.requires.indices,
-          );
-        }
-        setCosts(estimated);
       } catch (e) {
         if (alive) setError(e instanceof Error ? e.message : String(e));
       }
@@ -220,7 +227,20 @@ export function useComplianceChecks(
     return () => {
       alive = false;
     };
-  }, [dal, plot, activeCompanyId, campaignYear, country, crops, layers, terrain, specs]);
+  }, [
+    dal,
+    plot,
+    activeCompanyId,
+    campaignYear,
+    country,
+    crops,
+    layers,
+    terrain,
+    orthophoto,
+    waterNetwork,
+    cacheToken,
+    specs,
+  ]);
 
   const run = useCallback(
     (checkId: string) => {
@@ -253,5 +273,5 @@ export function useComplianceChecks(
     [dal, plot, activeCompanyId],
   );
 
-  return { running, error, results, costs, overrides, run, specs };
+  return { running, error, results, overrides, run, specs };
 }

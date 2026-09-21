@@ -17,7 +17,7 @@ export type SubjectMessageId =
   | "subject.a2CropCoherence"
   | "subject.a3DeclaredArea"
   | "subject.b1BufferStrips"
-  | "subject.b2SlopeTillage"
+  | "subject.b2SlopeScope"
   | "subject.b3SoilCover"
   | "subject.b4CropRotation"
   | "subject.b5NonProductiveAreas"
@@ -29,7 +29,6 @@ export type SubjectMessageId =
   | "subject.c3CatchCrops"
   | "subject.d1MowingGrazing"
   | "subject.d2SowingHarvestDates"
-  | "subject.d3Deforestation"
   | "subject.d4Irrigation"
   | "subject.organicInputs";
 
@@ -39,7 +38,7 @@ export type MethodMessageId =
   | "method.a2CropCoherence"
   | "method.a3DeclaredArea"
   | "method.b1BufferStrips"
-  | "method.b2SlopeTillage"
+  | "method.b2SlopeScope"
   | "method.b3SoilCover"
   | "method.b4CropRotation"
   | "method.b5NonProductiveAreas"
@@ -51,7 +50,6 @@ export type MethodMessageId =
   | "method.c3CatchCrops"
   | "method.d1MowingGrazing"
   | "method.d2SowingHarvestDates"
-  | "method.d3Deforestation"
   | "method.d4Irrigation"
   | "method.organicInputs";
 
@@ -67,14 +65,18 @@ export type ExplanationMessageId =
   | "explain.a3VegetatedShortfall"
   | "explain.b1Compliant"
   | "explain.b1TooClose"
-  | "explain.b2NoTillageOnSlope"
-  | "explain.b2TillageOnSlope"
+  | "explain.b2NotInScope"
+  | "explain.b2InScope"
   | "explain.b3Covered"
   | "explain.b3PartiallyCovered"
   | "explain.b3Bare"
   | "explain.b4Rotated"
   | "explain.b4Monoculture"
-  | "explain.b5NotResolvable"
+  | "explain.b5NeedsOrthophoto"
+  | "explain.b5OrthophotoTooCoarse"
+  | "explain.b5OrthophotoNoBands"
+  | "explain.b5Sufficient"
+  | "explain.b5Insufficient"
   | "explain.b6Stable"
   | "explain.b6Converted"
   | "explain.b7NoSignal"
@@ -91,8 +93,6 @@ export type ExplanationMessageId =
   | "explain.d1NoEvents"
   | "explain.d2Consistent"
   | "explain.d2Divergent"
-  | "explain.d3NoChange"
-  | "explain.d3ChangeAfterCutoff"
   | "explain.d4NotObservable"
   | "explain.organicCompliant"
   | "explain.organicAttention"
@@ -144,7 +144,12 @@ export type MissingMessageId =
   | "missing.resolutionTooCoarse"
   | "missing.resolutionTooCoarseFix"
   | "missing.sensorNotAvailable"
-  | "missing.sensorNotAvailableFix";
+  | "missing.sensorNotAvailableFix"
+  | "missing.orthophoto"
+  | "missing.orthophotoFix"
+  | "missing.orthophotoResolution"
+  | "missing.orthophotoBands"
+  | "missing.orthophotoBandsFix";
 
 /** Descrizione dei parametri (che cosa cambia muovendo la soglia). */
 export type ParameterMessageId =
@@ -160,14 +165,12 @@ export type ParameterMessageId =
   | "parameter.mowingMinEvents"
   | "parameter.mowingRecoveryDays"
   | "parameter.slopeThresholdDeg"
-  | "parameter.tillageNdviDrop"
   | "parameter.bufferWidthM"
   | "parameter.rotationSimilarityMax"
   | "parameter.grasslandConversionDrop"
   | "parameter.burnNbrDrop"
   | "parameter.catchCropMinDays"
   | "parameter.phenologyToleranceDays"
-  | "parameter.deforestationNdviDrop"
   | "parameter.copperLimitKgHa"
   | "parameter.copperWindowYears"
   | "parameter.nitrogenLimitKgHa"
@@ -183,8 +186,7 @@ export type ParameterMessageId =
   | "parameter.forageCoverThreshold"
   | "parameter.forageMinCoverShare"
   | "parameter.catchCropNdviThreshold"
-  | "parameter.harvestDropDelta"
-  | "parameter.cutOffYear";
+  | "parameter.harvestDropDelta";
 
 /** Esiti del motore biologico, che non è satellitare. */
 export type OrganicMessageId =

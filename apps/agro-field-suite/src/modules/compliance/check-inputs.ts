@@ -7,6 +7,7 @@ import type {
   IndexSeries,
   IndexSeriesPoint,
   LayerFindings,
+  OrthophotoSummary,
   ParameterOverrides,
   TerrainSummary,
   VegetationIndex,
@@ -179,50 +180,6 @@ export async function loadParameterOverrides(
   return out;
 }
 
-/**
- * Costo di un'analisi, da mostrare **prima** di lanciarla.
- *
- * La cache locale tiene 24 mesi di scene: tutto ciò che una scheda pluriennale
- * chiede oltre quel limite è recupero in rete, con lo scarico dei COG e
- * l'elaborazione di ogni scena. Su una scheda come la EUDR, che risale al 2020,
- * possono essere centinaia di scene. Lanciare un'analisi del genere senza dirlo
- * significa lasciare l'utente davanti a una barra di avanzamento che non sa
- * spiegare — e, su una connessione a consumo, fargli spendere soldi senza
- * chiedere.
- */
-export interface AnalysisCost {
-  /** Annate richieste dal set di schede scelto. */
-  requiredYears: number;
-  /** Annate già coperte dalla cache locale. */
-  cachedYears: number;
-  /** Scene stimate da recuperare (rivisita ~5 giorni). */
-  scenesToFetch: number;
-  /** Indici (e quindi bande) da elaborare. */
-  indices: string[];
-  /** `true` se serve andare in rete: è la condizione che richiede conferma. */
-  needsNetwork: boolean;
-}
-
-/** Rivisita nominale di Sentinel-2, in giorni. */
-const REVISIT_DAYS = 5;
-
-export function estimateAnalysisCost(
-  series: IndexSeries,
-  requiredYears: number,
-  indices: readonly string[],
-): AnalysisCost {
-  const years = new Set(series.points.map((p) => p.date.slice(0, 4)));
-  const cachedYears = years.size;
-  const missingYears = Math.max(0, requiredYears - cachedYears);
-  return {
-    requiredYears,
-    cachedYears,
-    scenesToFetch: Math.round((missingYears * 365) / REVISIT_DAYS),
-    indices: [...indices],
-    needsNetwork: missingYears > 0,
-  };
-}
-
 export interface CheckInputContext {
   plot: Plot;
   campaignYear: number;
@@ -231,6 +188,7 @@ export interface CheckInputContext {
   crops: readonly Crop[];
   layers: LayerFindings;
   terrain: TerrainSummary | null;
+  orthophoto: OrthophotoSummary | null;
   now: string;
 }
 
@@ -257,6 +215,7 @@ export async function buildCheckInput(
     operations,
     layers: context.layers,
     terrain: context.terrain,
+    orthophoto: context.orthophoto,
     now: context.now,
   };
 }
