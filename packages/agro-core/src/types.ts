@@ -667,7 +667,9 @@ export type FileFormat =
   | "kml"
   | "gpx"
   /** Report di autovalutazione del modulo Compliance (v25). */
-  | "json";
+  | "json"
+  /** Ortofoto GeoTIFF caricata come sovrapposizione cartografica (v25). */
+  | "geotiff";
 
 /** Voce del registro dei trasferimenti dati (`data_transfer_logs`, LOCAL-ONLY). */
 export interface DataTransferLog {

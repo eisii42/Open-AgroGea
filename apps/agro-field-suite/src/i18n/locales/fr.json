@@ -356,7 +356,9 @@
       "orthophotoReady": "{{fileName}} · {{gsdCm}} cm · {{bands}} bandes",
       "fetch": "Récupérer",
       "upload": "Charger",
-      "replace": "Remplacer"
+      "replace": "Remplacer",
+      "orthophotoFromMap": "Utiliser « {{name}} » déjà chargée",
+      "orthophotoFromMapHint": "Chargée depuis Ajouter des données : relue en pleine résolution, découpée sur cette parcelle."
     },
     "scenes": {
       "hint": "Vérifiez combien de scènes cette fiche demande et combien manquent.",
@@ -993,6 +995,21 @@
       "SIAN": "Importez le dossier graphique SIAN (Shapefile .zip ou CSV). Crée/met à jour les parcelles de la campagne {{year}}.",
       "SIEX": "Importez le dossier graphique SIGPAC (Shapefile .zip ou CSV). Crée/met à jour les parcelles de la campagne {{year}}.",
       "generic": "Importez le dossier graphique officiel de votre exploitation (Shapefile .zip ou CSV). Crée/met à jour les parcelles de la campagne {{year}}."
+    },
+    "raster": {
+      "title": "Cartographie raster",
+      "wms": "Service WMS",
+      "orthophoto": "Orthophoto (.tif)",
+      "wmsHint": "Collez l'adresse du service : les couches disponibles en sont lues.",
+      "wmsPlaceholder": "https://service.exemple.fr/wms",
+      "loadLayers": "Lire les couches disponibles",
+      "layersFound": "{{count}} couches · WMS {{version}}",
+      "addToMap": "Ajouter à la carte",
+      "wmsAdded": "Couche WMS « {{name}} » ajoutée à la carte.",
+      "orthophotoHint": "GeoTIFF géoréférencé (UTM ou WGS84). Il reste sur l'appareil et fonctionne hors ligne ; la fiche BCAE 8 peut y mesurer sans second chargement.",
+      "chooseTif": "Choisir le fichier .tif",
+      "orthophotoAdded": "Orthophoto « {{name}} » ajoutée ({{gsdCm}} cm).",
+      "orthophotoAddedScaled": "Orthophoto « {{name}} » ajoutée ({{gsdCm}} cm). Sur la carte elle est réduite à {{side}} px de côté ; les mesures BCAE 8 utilisent le fichier d'origine."
     }
   },
   "basemapSwitcher": {

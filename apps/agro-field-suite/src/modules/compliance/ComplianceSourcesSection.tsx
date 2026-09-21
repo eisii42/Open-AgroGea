@@ -87,6 +87,22 @@ export function ComplianceSourcesSection({
         }
         onAction={() => fileInput.current?.click()}
       />
+      {/* Ortofoto già sulla mappa: si riusa il file, non si ricarica. */}
+      {!sources.orthophoto &&
+        sources.fromMap.map((entry) => (
+          <button
+            key={entry.layerId}
+            type="button"
+            className="rounded-[var(--r-2)] border border-[var(--accent-bd)] bg-[var(--accent-l)] px-2 py-1.5 text-left text-[11px] text-[var(--accent)]"
+            onClick={() => sources.loadOrthophotoFile(entry.file)}
+          >
+            {t("compliance.sources.orthophotoFromMap", { name: entry.file.name })}
+            <span className="mt-0.5 block text-[10px] opacity-80">
+              {t("compliance.sources.orthophotoFromMapHint")}
+            </span>
+          </button>
+        ))}
+
       <input
         ref={fileInput}
         type="file"

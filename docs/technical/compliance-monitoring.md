@@ -168,6 +168,15 @@ Sono quelle che prima restavano mute perché il dato doveva portarlo l'utente:
   non produce mai «non conforme». Il file resta in memoria: non si persiste, non
   si sincronizza, non entra nel backup.
 
+  L'ortofoto si carica **una volta sola**: se è già stata aggiunta alla mappa da
+  *Aggiungi dati → Cartografia raster*, la scheda la ripropone e riusa lo stesso
+  file. Il registro di sessione
+  ([`orthophoto-registry.ts`](../../apps/agro-field-suite/src/modules/add-data/orthophoto-registry.ts))
+  tiene l'oggetto `File`, che è un riferimento ai byte su disco e non i byte:
+  la mappa lo rilegge ridimensionato per la texture, la BCAA 8 a piena
+  risoluzione e ritagliato sull'appezzamento, e nessuno dei due paga il lavoro
+  dell'altro.
+
 Ogni scheda porta in testa al proprio file un commento che dice **che cosa dice
 la norma, che cosa si osserva davvero e perché il metodo è difendibile**, più i
 limiti dichiarati. Chi legge fra un anno deve poter contestare il metodo, non

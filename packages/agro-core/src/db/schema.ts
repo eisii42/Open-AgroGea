@@ -253,9 +253,10 @@
  *     non appartiene né all'outbox né al backup. Se un domani il ricalcolo
  *     diventasse costoso al punto da giustificare una cache, quella cache
  *     nascerebbe local-only, non sincronizzata.
- *   Più il formato `json` nel CHECK di `data_transfer_logs.file_format` (il
- *   report di autovalutazione), allargato con lo stesso pattern idempotente
- *   già usato dalla v13 e dalla v14: drop del vincolo e riaggiunta.
+ *   Più i formati `json` e `geotiff` nel CHECK di
+ *   `data_transfer_logs.file_format` — il report di autovalutazione e le
+ *   ortofoto caricate da "Aggiungi dati" — allargato con lo stesso pattern
+ *   idempotente già usato dalla v13 e dalla v14: drop del vincolo e riaggiunta.
  *   Rollback logico v25: 1) `delete from sync_outbox where table_name =
  *   'compliance_parameter_overrides'`; 2) `drop table
  *   compliance_parameter_overrides`. Nessun dato pre-v25 è toccato e la sola
@@ -696,8 +697,9 @@ alter table data_transfer_logs
 alter table data_transfer_logs
   add constraint data_transfer_logs_file_format_check
   check (file_format in ('csv', 'geojson', 'isoxml', 'shapefile', 'gpkg', 'kml', 'gpx',
-                         -- v25: report di autovalutazione del modulo Compliance.
-                         'json'));
+                         -- v25: report di autovalutazione del modulo Compliance
+                         -- e ortofoto caricate come sovrapposizione raster.
+                         'json', 'geotiff'));
 
 -- v14: rimuove 'survey' dal CHECK di treatment_logs (ora gestito da scouting_observations).
 alter table treatment_logs

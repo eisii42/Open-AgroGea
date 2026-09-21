@@ -18,6 +18,7 @@ const FORMAT_LABEL: Record<FileFormat, string> = {
   kml: "KML",
   gpx: "GPX",
   json: "JSON",
+  geotiff: "GeoTIFF",
 };
 
 const COLOR: Record<DataTransferLog["operation_type"], string> = {

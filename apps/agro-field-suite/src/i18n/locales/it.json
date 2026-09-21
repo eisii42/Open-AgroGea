@@ -356,7 +356,9 @@
       "orthophotoReady": "{{fileName}} · {{gsdCm}} cm · {{bands}} bande",
       "fetch": "Scarica",
       "upload": "Carica",
-      "replace": "Sostituisci"
+      "replace": "Sostituisci",
+      "orthophotoFromMap": "Usa «{{name}}» già caricata",
+      "orthophotoFromMapHint": "Caricata da Aggiungi dati: si rilegge a piena risoluzione, ritagliata su questo appezzamento."
     },
     "scenes": {
       "hint": "Verifica quante scene servono a questa scheda e quante ne manchino.",
@@ -993,6 +995,21 @@
       "SIAN": "Importa il Fascicolo Aziendale Grafico SIAN (Shapefile .zip o CSV CAA). Crea/aggiorna i campi della Campagna Agraria {{year}}.",
       "SIEX": "Importa il fascicolo grafico SIGPAC (Shapefile .zip o CSV). Crea/aggiorna i campi della Campagna Agraria {{year}}.",
       "generic": "Importa il fascicolo grafico ufficiale della tua azienda (Shapefile .zip o CSV). Crea/aggiorna i campi della Campagna Agraria {{year}}."
+    },
+    "raster": {
+      "title": "Cartografia raster",
+      "wms": "Servizio WMS",
+      "orthophoto": "Ortofoto (.tif)",
+      "wmsHint": "Incolla l'indirizzo del servizio: i layer disponibili si leggono da lì.",
+      "wmsPlaceholder": "https://servizio.regione.it/wms",
+      "loadLayers": "Leggi i layer disponibili",
+      "layersFound": "{{count}} layer · WMS {{version}}",
+      "addToMap": "Aggiungi alla mappa",
+      "wmsAdded": "Layer WMS «{{name}}» aggiunto alla mappa.",
+      "orthophotoHint": "GeoTIFF georeferenziato (UTM o WGS84). Resta sul dispositivo e funziona offline; la scheda BCAA 8 può misurarci sopra senza ricaricarlo.",
+      "chooseTif": "Scegli il file .tif",
+      "orthophotoAdded": "Ortofoto «{{name}}» aggiunta ({{gsdCm}} cm).",
+      "orthophotoAddedScaled": "Ortofoto «{{name}}» aggiunta ({{gsdCm}} cm). Sulla mappa è ridimensionata a {{side}} px di lato; le misure della BCAA 8 usano comunque il file originale."
     }
   },
   "basemapSwitcher": {

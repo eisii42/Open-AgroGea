@@ -1,7 +1,12 @@
 import { useAgroStore, type Plot } from "@agrogea/core";
 import type { OrthophotoSummary, TerrainSummary } from "@agrogea/tools";
 import type { FeatureCollection } from "geojson";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import {
+  listOrthophotos,
+  subscribeOrthophotos,
+  type RegisteredOrthophoto,
+} from "../add-data/orthophoto-registry";
 import { loadOrthophoto } from "./orthophoto-loader";
 import { fetchWaterNetwork, OSM_ATTRIBUTION } from "./osm-water-network";
 import { fetchTerrainSummary } from "./terrain-dem";
@@ -29,6 +34,12 @@ export interface ComplianceSourcesState {
   loadWaterNetwork: () => void;
   loadOrthophotoFile: (file: File) => void;
   clearOrthophoto: () => void;
+  /**
+   * Ortofoto già caricate da "Aggiungi dati". Sono lo stesso file: qui si
+   * rilegge a piena risoluzione e ritagliato sull'appezzamento, mentre sulla
+   * mappa la texture è ridimensionata e non servirebbe a misurare.
+   */
+  fromMap: RegisteredOrthophoto[];
   attribution: string;
 }
 
@@ -102,6 +113,10 @@ export function useComplianceSources(plot: Plot | null): ComplianceSourcesState 
 
   const clearOrthophoto = useCallback(() => setOrthophoto(null), []);
 
+  // Il registro è di sessione e cambia quando l'utente carica da "Aggiungi
+  // dati": si sottoscrive invece di rileggerlo a ogni render.
+  const fromMap = useSyncExternalStore(subscribeOrthophotos, listOrthophotos);
+
   return {
     terrain,
     waterNetwork,
@@ -113,6 +128,7 @@ export function useComplianceSources(plot: Plot | null): ComplianceSourcesState 
     loadWaterNetwork,
     loadOrthophotoFile,
     clearOrthophoto,
+    fromMap,
     attribution: OSM_ATTRIBUTION,
   };
 }

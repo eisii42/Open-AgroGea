@@ -30,6 +30,7 @@ import {
   downloadArtifact,
   serializzaVettoriale,
 } from "../services/gis/geo-export";
+import { AddRasterSection } from "./AddRasterSection";
 import { TransferTagsFeed } from "./TransferTagsFeed";
 
 type ModoImport = "mappa" | "sian";
@@ -389,6 +390,9 @@ export function AddDataControl() {
             <p className="mt-2 text-xs text-[var(--danger)]">{errore}</p>
           )}
           {outcome && <p className="mt-2 text-xs text-[var(--ok)]">{outcome}</p>}
+
+          {/* Cartografia raster: WMS da indirizzo, ortofoto da file. */}
+          <AddRasterSection />
 
           {/* Export in blocco della configurazione cartografica aziendale */}
           <div className="mt-3 border-t border-[var(--line)] pt-2.5">

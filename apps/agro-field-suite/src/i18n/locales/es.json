@@ -356,7 +356,9 @@
       "orthophotoReady": "{{fileName}} · {{gsdCm}} cm · {{bands}} bandas",
       "fetch": "Descargar",
       "upload": "Subir",
-      "replace": "Sustituir"
+      "replace": "Sustituir",
+      "orthophotoFromMap": "Usar «{{name}}» ya cargada",
+      "orthophotoFromMapHint": "Cargada desde Añadir datos: se relee a resolución completa, recortada a esta parcela."
     },
     "scenes": {
       "hint": "Comprueba cuántas escenas necesita esta ficha y cuántas faltan.",
@@ -993,6 +995,21 @@
       "SIAN": "Importa el expediente gráfico SIAN (Shapefile .zip o CSV). Crea/actualiza las parcelas de la campaña {{year}}.",
       "SIEX": "Importa el expediente gráfico SIGPAC (Shapefile .zip o CSV). Crea/actualiza las parcelas de la campaña {{year}}.",
       "generic": "Importa el expediente gráfico oficial de tu explotación (Shapefile .zip o CSV). Crea/actualiza las parcelas de la campaña {{year}}."
+    },
+    "raster": {
+      "title": "Cartografía ráster",
+      "wms": "Servicio WMS",
+      "orthophoto": "Ortofoto (.tif)",
+      "wmsHint": "Pega la dirección del servicio: las capas disponibles se leen de ahí.",
+      "wmsPlaceholder": "https://servicio.ejemplo.es/wms",
+      "loadLayers": "Leer las capas disponibles",
+      "layersFound": "{{count}} capas · WMS {{version}}",
+      "addToMap": "Añadir al mapa",
+      "wmsAdded": "Capa WMS «{{name}}» añadida al mapa.",
+      "orthophotoHint": "GeoTIFF georreferenciado (UTM o WGS84). Se queda en el dispositivo y funciona sin conexión; la ficha BCAM 8 puede medir sobre ella sin volver a subirla.",
+      "chooseTif": "Elegir el archivo .tif",
+      "orthophotoAdded": "Ortofoto «{{name}}» añadida ({{gsdCm}} cm).",
+      "orthophotoAddedScaled": "Ortofoto «{{name}}» añadida ({{gsdCm}} cm). En el mapa se reduce a {{side}} px de lado; las medidas de la BCAM 8 usan el archivo original."
     }
   },
   "basemapSwitcher": {

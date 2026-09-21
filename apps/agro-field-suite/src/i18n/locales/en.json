@@ -356,7 +356,9 @@
       "orthophotoReady": "{{fileName}} · {{gsdCm}} cm · {{bands}} bands",
       "fetch": "Fetch",
       "upload": "Upload",
-      "replace": "Replace"
+      "replace": "Replace",
+      "orthophotoFromMap": "Use “{{name}}” already loaded",
+      "orthophotoFromMapHint": "Loaded from Add data: it is re-read at full resolution, clipped to this plot."
     },
     "scenes": {
       "hint": "Check how many scenes this card needs and how many are missing.",
@@ -993,6 +995,21 @@
       "SIAN": "Import the SIAN graphic farm dossier (Shapefile .zip or CAA CSV). Creates/updates the {{year}} campaign parcels.",
       "SIEX": "Import the SIGPAC graphic dossier (Shapefile .zip or CSV). Creates/updates the {{year}} campaign parcels.",
       "generic": "Import your official graphic farm dossier (Shapefile .zip or CSV). Creates/updates the {{year}} campaign parcels."
+    },
+    "raster": {
+      "title": "Raster maps",
+      "wms": "WMS service",
+      "orthophoto": "Orthophoto (.tif)",
+      "wmsHint": "Paste the service address: the available layers are read from it.",
+      "wmsPlaceholder": "https://service.example.org/wms",
+      "loadLayers": "Read the available layers",
+      "layersFound": "{{count}} layers · WMS {{version}}",
+      "addToMap": "Add to the map",
+      "wmsAdded": "WMS layer “{{name}}” added to the map.",
+      "orthophotoHint": "Georeferenced GeoTIFF (UTM or WGS84). It stays on the device and works offline; the GAEC 8 card can measure on it without a second upload.",
+      "chooseTif": "Choose the .tif file",
+      "orthophotoAdded": "Orthophoto “{{name}}” added ({{gsdCm}} cm).",
+      "orthophotoAddedScaled": "Orthophoto “{{name}}” added ({{gsdCm}} cm). On the map it is downscaled to {{side}} px per side; GAEC 8 measurements still use the original file."
     }
   },
   "basemapSwitcher": {
