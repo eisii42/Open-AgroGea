@@ -175,7 +175,7 @@ Sono quelle che prima restavano mute perché il dato doveva portarlo l'utente:
   tiene l'oggetto `File`, che è un riferimento ai byte su disco e non i byte:
   la mappa lo rilegge ridimensionato per la texture, la BCAA 8 a piena
   risoluzione e ritagliato sull'appezzamento, e nessuno dei due paga il lavoro
-  dell'altro.
+  dell'altro. Dettagli in [`raster-sources.md`](raster-sources.md).
 
 Ogni scheda porta in testa al proprio file un commento che dice **che cosa dice
 la norma, che cosa si osserva davvero e perché il metodo è difendibile**, più i

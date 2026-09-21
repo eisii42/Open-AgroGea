@@ -127,6 +127,10 @@ UI (modules/*, components/*)
   the outcomes. Pure engines live in
   [`@agrogea/tools/compliance`](../plugins/agro-tools/src/compliance/); see
   [`compliance-monitoring.md`](technical/compliance-monitoring.md).
+- **Raster sources** — WMS layers added by URL and user-supplied GeoTIFF
+  orthophotos share one loading path in *Add data*; the orthophoto is read once
+  and reused by the GAEC 8 card. See
+  [`raster-sources.md`](technical/raster-sources.md).
 
 The PGlite schema ([`db/schema.ts`](../packages/agro-core/src/db/schema.ts)) is
 **English** (tables/columns) and versioned (`AGRO_LOCAL_SCHEMA_VERSION`).

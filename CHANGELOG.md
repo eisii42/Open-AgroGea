@@ -8,9 +8,51 @@ Gli installer nativi di ogni versione rilasciata sono su [GitHub Releases](https
 
 ## [Non rilasciato]
 
-Tre aree: il magazzino diventa un insieme di **luoghi** con una posizione sulla mappa, la vista cartografica viene vincolata alla scala in cui il lavoro di campo si svolge davvero, e gli appezzamenti segnalano da sé che cosa manca.
+Quattro aree: nasce il modulo **Normativa** (autovalutazione PAC e biologico), la certificazione dell'azienda e il regime di produzione diventano dati veri, il magazzino diventa un insieme di **luoghi** con una posizione sulla mappa, e la vista cartografica viene vincolata alla scala in cui il lavoro di campo si svolge davvero.
 
-Storage: **migrazione additiva PGlite v23** (una tabella nuova e una colonna nullable). Nessuna colonna esistente cambia, nessun dato va migrato a mano; il rollback logico è documentato in testa a `packages/agro-core/src/db/schema.ts`.
+Storage: **migrazioni additive PGlite v23, v24 e v25**. Nessuna colonna esistente cambia di significato, nessun dato va migrato a mano; i rollback logici sono documentati in testa a `packages/agro-core/src/db/schema.ts`.
+
+### Aggiunto — Modulo Normativa (monitoraggio normativo)
+
+Modulo di **primo livello** nella sidebar, con una voce per famiglia: Ammissibilità, Condizionalità (BCAA), Eco-schemi, Trasversali, Biologico, Layer vincolanti. Documentazione tecnica in [`docs/technical/compliance-monitoring.md`](docs/technical/compliance-monitoring.md), guida utente al §4.17 del manuale.
+
+- **È autovalutazione, e lo dice ovunque.** Il controllo ufficiale è l'AMS dell'Organismo Pagatore (Reg. (UE) 2021/2116 art. 66); per il biologico l'organismo di controllo. Il disclaimer sta in testa al pannello, accanto a ogni esito, nel campo `assessment` di **ogni** risultato — scritto dal runner, non dalle schede, così nessuna può ometterlo — e nel report esportato.
+- **Diciotto schede** data-driven per paese: il catalogo si filtra su `reference.countries`, così gli eco-schemi italiani e i periodi sensibili della BCAA 6 spariscono da un'installazione francese invece di dare un esito sbagliato con l'aria di essere giusto.
+- **Quattro esiti, mai tre**: conforme, attenzione, non conforme e **non decidibile**. L'ultimo è una porta, non un punteggio basso: i presupposti mancanti (scene insufficienti, pixel puri sotto soglia, archivio corto, dati dichiarati assenti) fermano la scheda **prima** che il metodo giri, e la scheda dice che cosa manca e dove completarlo. Due schede restano "non decidibili" quasi sempre di proposito — sapere quale controllo il satellite non può anticipare vale quanto sapere gli altri.
+- **Nessun numero senza provenienza**: ogni esito porta le scene realmente usate (id STAC, data, nuvolosità, pixel validi), la finestra osservata, il metodo, i parametri applicati e la **serie grezza ispezionabile**. Chi legge fra un anno deve poter contestare il metodo, non indovinarlo.
+- **Le soglie sono parametri, non costanti**: valore, default, estremi, unità e riferimento normativo accanto. Gli override dell'utente vivono in `compliance_parameter_overrides` (sincronizzata, nel backup): sono una SCELTA, e perderli in un ripristino cambierebbe gli esiti in silenzio. Gli **esiti** invece non si salvano — si ricalcolano.
+- **L'incertezza è un dato di prima classe**: sette fattori con score, peso e frase leggibile; la confidenza è la media pesata, ma `limitedBy` nomina i fattori che la stanno limitando, così la UI dice *«confidenza 55%, limitata da nuvolosità e numero di scene»* invece di un numero nudo. L'osservabilità dichiarata dalla scheda mette un tetto: una scheda che osserva un oggetto più piccolo del pixel non può risultare confidente solo perché quel giorno il cielo era sereno.
+- **Una valutazione alla volta**, attivata dall'utente: aprire un pannello non è chiedere un giudizio. L'appezzamento si sceglie **nel modulo** (con la coltura dichiarata accanto), non sulla mappa — il tocco sul poligono continua ad aprire il Quaderno di Campagna.
+- **Verifica e recupero delle scene per scheda**: si interroga il catalogo (gratis, nessuna immagine) e si vede quante scene esistono per *quella* finestra, quante sono già in cache e quanti megabyte mancano. Il numero è sempre il **residuo**: una scena presa da una scheda serve già a tutte le altre. Costo misurato sui COG del Planetary Computer: ~0,45 MB per banda per scena, **indipendente dalla superficie** dell'appezzamento (una tile da 512×512 copre 2621 ha a 10 m).
+- **Tre schede si procurano il dato da sole**, e prima restavano mute: BCAA 4 estrae il reticolo idrografico da **OpenStreetMap** (attribuzione ODbL inclusa, un layer regionale dell'utente ha la precedenza); BCAA 5 legge la pendenza dal **Copernicus DEM GLO-30** con l'algoritmo di Horn; BCAA 8 accetta un'**ortofoto GeoTIFF** caricata dall'utente e misura la quota vegetata con Excess Green, dichiarando che la classificazione RGB non distingue una siepe da un'infestante.
+- **Il biologico non è satellitare**: si calcola dai registri — i lotti realmente scaricati, non le dosi pianificate. Sostanze ammesse su **reference data versionato** (Reg. (UE) 2021/1165, con atto e data di versione nell'esito), rame in finestra mobile di 7 anni con conversione a rame metallo, azoto organico 170 kg/ha/anno, periodo di conversione 24/36 mesi. Una sostanza fuori elenco è **sconosciuta, non vietata**: l'elenco è parziale, e trattarne l'assenza come divieto significherebbe accusare l'agricoltore della nostra incompletezza.
+- **Punto di innesto per i plugin** (`registerComplianceCheck`): i disciplinari DOP/DOCG/IGP vivranno in plugin esterni, sulla giuntura GeoLibre già esistente (`GeoLibreExternalPluginManifest`, `isAllowedPluginManifestUrl`). In questa fase **non si carica alcun plugin**: un sistema di plugin a metà è peggio di nessun sistema.
+- **Pulizia della cache** in fondo al pannello, per appezzamento o totale. La ritenzione passa da 24 a **36 mesi**: con tre annate richieste dalla rotazione colturale, la potatura di fine run avrebbe cancellato a ogni giro lo storico appena scaricato.
+- Test in `tests/agro-compliance-engine.test.ts`, `agro-compliance-organic.test.ts`, `agro-compliance-module.test.ts`, `agro-compliance-sources.test.ts`, `agro-add-data-raster.test.ts`.
+
+### Aggiunto — Certificazione dell'operatore e regime di produzione (v24)
+
+- `companies.operator_certifications` (jsonb): schema, codice operatore, organismo di controllo, numero di certificato e validità. **jsonb e non colonne** perché le certificazioni di un operatore sono più d'una, ognuna con la propria validità, e su questo campo non si filtra. Si compila da **Anagrafica Azienda → Certificazioni**.
+- `plots_campaign.production_regime` / `regime_since` / `regime_notes`: il regime è per **ANNATA**, non per appezzamento — su `plots_registry` non si potrebbe dire "bio dal 2024" senza cancellare il 2023. Si compila dalla scheda coltura e compare nei badge di compliance.
+- `upsertCampoCampagna` distingue **campo non passato** (conserva) da **passato a null** (azzera): senza, il re-import del Fascicolo e il ripristino di un backup più vecchio avrebbero cancellato il regime in silenzio.
+- `companies.certifications text[]` è **deprecata**: campo morto che nessun form compilava e nessun modulo leggeva. Non si droppa (dati reali sui device) e nessun percorso la valorizza più. Vedi [`docs/technical/operator-certification-and-production-regime.md`](docs/technical/operator-certification-and-production-regime.md).
+
+### Aggiunto — Cartografia raster in "Aggiungi dati"
+
+- **Servizio WMS da indirizzo**: si incolla l'URL, AgroGea interroga il GetCapabilities e presenta i layer con il **titolo leggibile** invece del codice tecnico. Gestite le versioni 1.3.0 e 1.1.1, che cambiano il nome del parametro del sistema di riferimento (`CRS` contro `SRS`) — l'errore che fa rispondere al server in un modo che nessuno collega alla versione del protocollo.
+- **Ortofoto GeoTIFF**: sovrapposizione georeferenziata che resta sul dispositivo e funziona offline. Un sistema di riferimento diverso da UTM o WGS84 viene **rifiutato citando il codice EPSG**, invece di essere disegnato nel posto sbagliato: un'ortofoto fuori registro sembra funzionare, ed è peggio di una che non si carica.
+- **Un solo caricamento per due usi**: l'ortofoto aggiunta alla mappa resta disponibile alla scheda BCAA 8, che la rilegge a piena risoluzione e ritagliata sull'appezzamento senza chiedere di ricaricarla.
+
+### Modificato
+
+- **BCAA 5** non tenta più di rilevare la lavorazione dall'NDVI: ciò che la norma disciplina è la direzione dei solchi, che a 10 m non è osservabile. La scheda ora delimita l'**ambito** — l'appezzamento rientra o no nell'obbligo — sulla pendenza da DEM. È meno di prima ed è più utile: un indizio che non discrimina è rumore con accanto un riferimento normativo.
+- `searchSceneSeries` **pagina** il catalogo STAC: senza, una finestra pluriennale ne perdeva in silenzio la maggior parte.
+- Dipendenze aggiornate alle versioni in-range (Vite 8.3, React 19.3, ESLint 10.11, deck.gl 9.4, Radix, Turf 7.4, Tauri CLI 2.11.5) con i range dei `package.json` allineati. I pacchetti `@geolibre/*` restano al fork vendorizzato 1.4.0 e non si aggiornano dal registro.
+
+### Rimosso
+
+- **Scheda EUDR (deforestazione dopo il cut-off 2020)**: richiedeva sei annate di archivio — da sola, più della metà del traffico dell'intero catalogo — per una verifica che la parte layer-based di `due-diligence.ts` copre già nella sostanza. Il codice è nella storia del repository e si riprende quando il recupero storico sarà meno costoso.
+- Il gating di edizione `cloudOnly` nella sidebar dei moduli, rimasto senza usi.
 
 ### Aggiunto — Magazzini multipli e georeferenziati
 - **Tabella `warehouses`** (sincronizzata via `sync_outbox` come le altre tabelle di dominio): nome, tipologia, indirizzo, note e una **`geometry` puntuale FACOLTATIVA**. Un'azienda può quindi avere tanti depositi quanti ne servono — capannone, deposito fitofarmaci, cisterna, silos — invece di un unico magazzino implicito.

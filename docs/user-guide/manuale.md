@@ -38,6 +38,7 @@
    - [4.14 Magazzino — depositi, prodotti, lotti e giacenze](#414-magazzino--depositi-prodotti-lotti-e-giacenze)
    - [4.15 Parco macchine — mezzi, manutenzione e carburante](#415-parco-macchine--mezzi-manutenzione-e-carburante)
    - [4.16 Pianificazione Task e Modalità Campo — il flusso senza digitazioni](#416-pianificazione-task-e-modalità-campo--il-flusso-senza-digitazioni)
+   - [4.17 Normativa — autovalutazione PAC e biologico](#417-normativa--autovalutazione-pac-e-biologico)
 5. [Scorciatoie e produttività](#5-scorciatoie-e-produttività)
 6. [Il flusso consigliato di una stagione](#6-il-flusso-consigliato-di-una-stagione)
 
@@ -279,6 +280,13 @@ Per portare dati esterni nella mappa:
 1. Header → **Add Data** (oppure **trascina** il file nella finestra).
 2. Formati supportati: **Shapefile** (con `.dbf`/`.shx`/`.prj`), **GeoJSON**, estratti **OSM**, **GeoParquet**.
 3. Il file viene caricato nel motore di analisi locale e mostrato come nuovo layer sovrapponibile (utile anche come **mappa del suolo** per il bilancio idrico, §4.5).
+
+**Cartografia raster** (in fondo al pannello) aggiunge immagini invece di geometrie, in due modi:
+
+- **Servizio WMS**: incolli l'indirizzo del servizio e premi *Leggi i layer disponibili*. AgroGea interroga il servizio e ti presenta l'elenco dei layer con il **nome leggibile**, così non devi conoscerne il codice tecnico. Scegli e aggiungi. Il layer resta sul server di chi lo pubblica: è sempre aggiornato, ma richiede la rete.
+- **Ortofoto (.tif)**: un GeoTIFF georeferenziato dal tuo computer. Resta sul dispositivo e **funziona offline**. Sulla mappa viene ridimensionato per poterlo disegnare; la scheda BCAA 8 del modulo Normativa (§4.17) può però misurarci sopra a piena risoluzione, **senza chiederti di ricaricarlo**.
+
+> L'ortofoto deve essere in **UTM o WGS84**. Con un altro sistema di riferimento AgroGea si rifiuta di caricarla e ti dice quale: meglio che disegnartela spostata di qualche centinaio di metri, che sembrerebbe funzionare.
 
 Puoi anche attivare la **timeline storica "Esri Wayback"** per confrontare lo stesso terreno in epoche diverse.
 
@@ -545,6 +553,44 @@ Non è una scorciatoia che salta i controlli: apre la stessa scheda del rilevame
 La mappa continua a mostrare la tua posizione col suo pulsante GPS abituale, in alto a destra: quello è indipendente dal rilevamento.
 
 ---
+
+### 4.17 Normativa — autovalutazione PAC e biologico
+
+Il modulo **Normativa** ti dice, appezzamento per appezzamento, come te la passeresti se arrivasse un controllo. Sta nella sidebar come modulo a sé, con una voce per famiglia: **Ammissibilità**, **Condizionalità (BCAA)**, **Eco-schemi**, **Trasversali**, **Biologico** e **Layer vincolanti**.
+
+> **Non è un controllo ufficiale.** Il controllo è l'AMS dell'Organismo Pagatore (Reg. UE 2021/2116 art. 66); per il biologico è il tuo organismo di controllo. Qui c'è un'**autovalutazione** fatta con dati pubblici, e lo trovi scritto in testa al pannello, su ogni scheda e dentro il report che esporti.
+
+**Come si usa**
+
+1. Apri una famiglia dalla sidebar.
+2. Scegli **appezzamento e coltura** dal menù in cima: la scelta si fa qui, non sulla mappa (il tocco sulla mappa continua ad aprire il Quaderno).
+3. Ogni scheda mostra *prima* che cosa osserva, quanto è osservabile e che cosa le serve. Premi **Valuta questa scheda** quando vuoi tu: le valutazioni non partono da sole.
+4. Se una scheda dice che mancano delle immagini, premi **Verifica scene**: AgroGea interroga il catalogo satellitare — gratis, senza scaricare nulla — e ti dice quante scene esistono per quella scheda, quante hai già e quanti megabyte servono. Poi decidi se scaricarle.
+
+**Quattro esiti, non tre**
+
+Conforme · Attenzione · Non conforme · **Non decidibile**. L'ultimo non è un errore: vuol dire che i dati non bastano per dirlo, e la scheda ti spiega *che cosa* manca e *dove* completarlo. Alcune schede sono "non decidibili" quasi sempre, ed è un'informazione utile — sapere quale controllo il satellite non può anticipare vale quanto sapere gli altri.
+
+**Le soglie sono tue**
+
+Ogni numero che decide un esito — la soglia di copertura del suolo, il periodo sensibile della tua regione, il massimale di rame — è un **parametro modificabile**, con il riferimento normativo accanto. Se lo cambi, quella scheda si rivaluta da sola e il tuo valore viaggia nel backup: non lo perdi al ripristino.
+
+**Che cosa ti serve, e che cosa AgroGea si procura da solo**
+
+| Scheda | Dato necessario | Da dove arriva |
+|---|---|---|
+| BCAA 4 — fasce tampone | reticolo idrografico | **OpenStreetMap**, premendo *Scarica* (o un tuo layer regionale, che ha la precedenza) |
+| BCAA 5 — pendenza | modello del terreno | **Copernicus DEM**, premendo *Scarica* |
+| BCAA 8 — elementi non produttivi | ortofoto ad alta risoluzione | la carichi tu (§4.8); serve almeno ~67 cm per una siepe di 2 m |
+| Biologico | Quaderno e magazzino | i tuoi registri: qui il satellite non serve |
+
+**Il biologico non si verifica da satellite**
+
+Un campo bio e uno convenzionale hanno lo stesso aspetto dall'alto. La scheda **Biologico** legge quello che hai distribuito davvero — i lotti scaricati dal magazzino, non le dosi pianificate — e controlla sostanze ammesse, rame (28 kg/ha in 7 anni), azoto organico (170 kg/ha/anno) e periodo di conversione. Una sostanza che non è nel nostro elenco **non** viene dichiarata vietata: l'elenco è parziale e l'esito è "non decidibile", con l'invito a verificarla sull'atto.
+
+**Report e pulizia**
+
+Da *Esporta il report* ottieni un file con tutte le schede valutate, le scene usate, le soglie applicate e il disclaimer: è pensato per essere allegato e riletto fra due anni. In fondo al pannello c'è la **pulizia della cache** delle scene, che puoi svuotare senza timore — si riscaricano — quando cambi le soglie, ridisegni un appezzamento o lo spazio sul dispositivo finisce.
 
 ## 5. Scorciatoie e produttività
 
