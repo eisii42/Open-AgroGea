@@ -20,6 +20,9 @@ import { Colorbar } from "../modules/colorbar/Colorbar";
 import { CommandPalette } from "../modules/command-palette/CommandPalette";
 import { MapControls } from "../components/MapControls";
 import { MapSearchControl } from "../components/MapSearchControl";
+import { MobileMapFabs } from "../components/MobileMapFabs";
+import { MobileMapTools } from "../components/MobileMapTools";
+import { PlotPeekCard } from "../modules/plot-sheet/PlotPeekCard";
 import { MapTooltip } from "../components/MapTooltip";
 import { OperationMarkers } from "../components/OperationMarkers";
 import { HarvestMarkers } from "../components/HarvestMarkers";
@@ -241,7 +244,21 @@ export function FieldDashboard() {
   // Sfondo WMS salvato dell'azienda: torna com'era alla riapertura.
   useWmsBasemapRestore(mapControllerRef, mapReady);
   const hover = useHoverTooltips(mapControllerRef, mapReady);
-  useFeatureSelection(mapControllerRef, mapReady);
+  // Telefono: il tocco su un appezzamento apre la scheda compatta in basso
+  // (PlotPeekCard) invece della scheda completa; un tocco a vuoto la chiude.
+  const [peekPlotId, setPeekPlotId] = useState<string | null>(null);
+  useFeatureSelection(
+    mapControllerRef,
+    mapReady,
+    platform.isMobile
+      ? { onPlotTap: setPeekPlotId, onEmptyTap: () => setPeekPlotId(null) }
+      : {},
+  );
+  // Un pannello aperto (Quaderno, Moduli, scheda completa…) prende il posto
+  // della scheda compatta: non restano due fogli impilati.
+  useEffect(() => {
+    if (openPanels.length > 0) setPeekPlotId(null);
+  }, [openPanels.length]);
   // Righello e gestore livelli sono controlli di terze parti con le etichette
   // cablate in inglese: si traducono a valle sul DOM della mappa.
   useNativeMapI18n(mapContainerRef);
@@ -270,6 +287,9 @@ export function FieldDashboard() {
           ref={mapContainerRef}
           className="agro-field-map absolute inset-0"
           data-sidebar={sidebarCollapsed ? "collapsed" : "open"}
+          // Telefono: il CSS sfoltisce la colonna dei controlli nativi (vedi
+          // index.css, sezione "Mappa su telefono").
+          data-mobile={platform.isMobile ? "true" : undefined}
         >
           <MapCanvas
             controllerRef={mapControllerRef}
@@ -284,21 +304,39 @@ export function FieldDashboard() {
             (in fondo, sotto il gestore livelli) — vedi MapSearchControl. */}
         <MapSearchControl mapControllerRef={mapControllerRef} />
 
-        {/* Sidebar moduli: overlay che scorre fuori schermo via transform. */}
-        <div
-          className={cn(
-            "absolute inset-y-0 left-0 z-20 transition-transform duration-300 ease-in-out",
-            sidebarCollapsed ? "-translate-x-full" : "translate-x-0",
-          )}
-        >
-          <ModuleSidebar />
-        </div>
+        {/* Telefono: una sola colonna di controlli (a destra, nella colonna
+            nativa) più le azioni rapide in basso; niente colonna di sinistra,
+            le sue funzioni stanno in Livelli, Moduli e nei pulsanti rotondi. */}
+        {platform.isMobile && (
+          <>
+            <MobileMapTools mapControllerRef={mapControllerRef} />
+            {mapReady && !peekPlotId && <MobileMapFabs />}
+            {/* Durante l'editing geometrico gli strumenti di modifica restano. */}
+            <div className="absolute left-3 top-3 z-30 flex flex-col gap-2">
+              <GeometryEditToolbar />
+            </div>
+          </>
+        )}
 
-        {/* Colonna fluttuante: toggle sidebar + controlli mappa nativi.
+        {/* Sidebar moduli: overlay che scorre fuori schermo via transform.
+            Solo desktop: su telefono i moduli sono nel foglio della barra in basso. */}
+        {!platform.isMobile && (
+          <div
+            className={cn(
+              "absolute inset-y-0 left-0 z-20 transition-transform duration-300 ease-in-out",
+              sidebarCollapsed ? "-translate-x-full" : "translate-x-0",
+            )}
+          >
+            <ModuleSidebar />
+          </div>
+        )}
+
+        {!platform.isMobile && (
+        /* Colonna fluttuante: toggle sidebar + controlli mappa nativi.
             La transizione è sulla SOLA posizione: con `transition-all` veniva
             animata anche la visibility ereditata, e uscendo dalla vista mappa
             (nascosta con visibility:hidden) i bottoni restavano a schermo per
-            tutta la durata dell’animazione. */}
+            tutta la durata dell’animazione. */
         <div
           className={cn(
             "absolute top-3 z-30 flex flex-col gap-2 transition-[left] duration-300 ease-in-out",
@@ -359,6 +397,7 @@ export function FieldDashboard() {
               l'editing geometrico, con i soli tool di modifica (non di disegno). */}
           <GeometryEditToolbar />
         </div>
+        )}
 
         {/* Simboli operazioni del Quaderno e harvests (toggle "Mostra sulla
             mappa"): marker HTML on-demand, creati solo quando il toggle è
@@ -377,8 +416,19 @@ export function FieldDashboard() {
             compaiono solo sui campi che hanno davvero qualcosa da segnalare. */}
         <PlotAlertMarkers mapControllerRef={mapControllerRef} mapReady={mapReady} />
 
-        {/* Tooltip hover (Modulo UI §2). */}
-        <MapTooltip hover={hover} />
+        {/* Tooltip hover (Modulo UI §2). Su touch non c'è passaggio del mouse:
+            al suo posto la scheda compatta dell'appezzamento toccato. */}
+        {platform.isMobile ? (
+          peekPlotId &&
+          openPanels.length === 0 && (
+            <PlotPeekCard
+              plotId={peekPlotId}
+              onClose={() => setPeekPlotId(null)}
+            />
+          )
+        ) : (
+          <MapTooltip hover={hover} />
+        )}
 
         {/* Legenda a gradiente degli indici: compare con gli overlay attivi. */}
         <Colorbar />
@@ -396,11 +446,23 @@ export function FieldDashboard() {
 
         {/* Feed attività: tag temporali degli ultimi import/export (FIX 2).
             Si nasconde quando non c'è nulla da mostrare. */}
-        <div className="pointer-events-none absolute bottom-3 right-3 z-20 flex max-w-[min(20rem,70vw)] flex-col items-end gap-1">
+        {/* Su telefono in alto a sinistra: in basso a destra ci sono le azioni
+            rapide, e il feed ci finirebbe sopra. */}
+        <div
+          className={cn(
+            "pointer-events-none absolute z-20 flex max-w-[min(20rem,70vw)] flex-col gap-1",
+            platform.isMobile
+              ? "left-3 top-3 items-start"
+              : "bottom-3 right-3 items-end",
+          )}
+        >
           <TransferTagsFeed
             limit={3}
             autoHideMs={10000}
-            className="flex flex-col items-end gap-1"
+            className={cn(
+              "flex flex-col gap-1",
+              platform.isMobile ? "items-start" : "items-end",
+            )}
           />
         </div>
 

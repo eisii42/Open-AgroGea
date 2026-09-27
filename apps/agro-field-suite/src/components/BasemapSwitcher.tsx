@@ -1,22 +1,9 @@
-import { useSettingsStore } from "@agrogea/core";
-import { useAppStore } from "@geolibre/core";
 import type { MapController } from "@geolibre/map";
 import { cn } from "@geolibre/ui";
 import { Check, Globe, Layers, Map as MapIcon, Satellite } from "lucide-react";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  CADASTRE_LAYER_ID,
-  SATELLITE_LAYER_ID,
-  addBasemap,
-  cadastreLayer,
-  isWmsBasemapLayer,
-  satelliteLayer,
-} from "../lib/basemaps";
-import {
-  selectWmsBasemap,
-  useSavedWmsBasemaps,
-} from "../modules/add-data/wms-basemap-store";
+import { useBasemapControls } from "../hooks/useBasemapControls";
 
 /**
  * Selettore basemap di field (Modulo 1 §FIX, esteso). Apre un menù con:
@@ -29,13 +16,10 @@ import {
  * L'imagery storica Esri Wayback NON è qui: è un controllo nativo di GeoLibre
  * (con selettore di release) montato on-demand dal flag `mapBasemapWayback`.
  *
- * La disponibilità di satellite / catasto è governata dai flag del layout
- * dell'utente (`useSettingsStore`): se un flag è spento l'opzione sparisce dal
- * menù e l'eventuale layer active viene rimosso. Resta sempre available lo
- * stradario di base. Si scrive solo nello store GeoLibre, mai su MapLibre.
+ * La logica (flag del layout, esclusività, catasto) sta in `useBasemapControls`,
+ * condivisa col foglio Livelli del telefono. Solo desktop: su telefono lo
+ * sfondo si sceglie da `MapLayersSheet`.
  */
-
-type BaseChoice = "stradario" | "satellite";
 
 export function BasemapSwitcher({
   mapControllerRef,
@@ -43,35 +27,21 @@ export function BasemapSwitcher({
   mapControllerRef: RefObject<MapController | null>;
 }) {
   const { t } = useTranslation();
-  const layers = useAppStore((s) => s.layers);
-  const removeLayer = useAppStore((s) => s.removeLayer);
-  const flags = useSettingsStore((s) => s.dashboardLayout);
-
-  const savedWms = useSavedWmsBasemaps();
-
-  const satelliteOn = layers.some((l) => l.id === SATELLITE_LAYER_ID);
-  const cadastreOn = layers.some((l) => l.id === CADASTRE_LAYER_ID);
-  const activeWmsId = layers.some(isWmsBasemapLayer) ? savedWms.activeId : null;
-  const current: BaseChoice | null = activeWmsId
-    ? null
-    : satelliteOn
-      ? "satellite"
-      : "stradario";
-
-  // Il tetto di zoom dell'ortofoto (oltre SATELLITE_MAX_ZOOM Esri non ha
-  // copertura e la vista si "buca") NON si applica più da qui: è composto con
-  // la preferenza di zoom dell'utente in `useMapZoomLimits`, unico punto che
-  // scrive `preferences.map`.
+  const {
+    baseOptions,
+    current,
+    savedWms,
+    activeWmsId,
+    satelliteOn,
+    cadastreOn,
+    showCadastre,
+    selectBase,
+    selectWms,
+    toggleCadastre,
+  } = useBasemapControls(mapControllerRef);
 
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-
-  // Se un flag viene disattivato mentre il relativo layer è active, lo si toglie
-  // (la UI non avrebbe più il controllo per rimuoverlo).
-  useEffect(() => {
-    if (!flags.mapBasemapSatellite && satelliteOn) removeLayer(SATELLITE_LAYER_ID);
-    if (!flags.mapBasemapCadastre && cadastreOn) removeLayer(CADASTRE_LAYER_ID);
-  }, [flags, satelliteOn, cadastreOn, removeLayer]);
 
   useEffect(() => {
     if (!open) return;
@@ -86,39 +56,6 @@ export function BasemapSwitcher({
       window.removeEventListener("keydown", onEsc);
     };
   }, [open]);
-
-  const selectBase = (choice: BaseChoice) => {
-    // Basemap mutuamente esclusivi: rimuovi gli altri raster di sfondo (anche
-    // un WMS salvato, che resta in elenco ma smette di essere lo sfondo).
-    selectWmsBasemap(null);
-    if (satelliteOn) removeLayer(SATELLITE_LAYER_ID);
-    if (choice === "satellite") {
-      addBasemap(satelliteLayer(), { map: mapControllerRef.current?.getMap() });
-    }
-  };
-
-  // Un WMS salvato prende il posto del satellite come sfondo.
-  const selectWms = (id: string) =>
-    selectWmsBasemap(id, { map: mapControllerRef.current?.getMap() });
-
-  const toggleCadastre = () => {
-    if (cadastreOn) removeLayer(CADASTRE_LAYER_ID);
-    else {
-      addBasemap(cadastreLayer(), {
-        map: mapControllerRef.current?.getMap(),
-        asOverlay: true,
-      });
-    }
-  };
-
-  const baseOptions: { id: BaseChoice; labelKey: string; show: boolean }[] = [
-    { id: "stradario", labelKey: "basemapSwitcher.streetMap", show: true },
-    {
-      id: "satellite",
-      labelKey: "basemapSwitcher.satellite",
-      show: flags.mapBasemapSatellite,
-    },
-  ];
 
   const anyActive = satelliteOn || cadastreOn || activeWmsId !== null;
 
@@ -149,9 +86,7 @@ export function BasemapSwitcher({
           <p className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-4)]">
             {t("basemapSwitcher.basemap")}
           </p>
-          {baseOptions
-            .filter((o) => o.show)
-            .map((o) => (
+          {baseOptions.map((o) => (
               <button
                 key={o.id}
                 type="button"
@@ -167,7 +102,7 @@ export function BasemapSwitcher({
               </button>
             ))}
           {/* WMS salvati da "Aggiungi dati": alternative al satellite. */}
-          {savedWms.items.map((item) => (
+          {savedWms.map((item) => (
             <button
               key={item.id}
               type="button"
@@ -188,7 +123,7 @@ export function BasemapSwitcher({
             </button>
           ))}
 
-          {flags.mapBasemapCadastre && (
+          {showCadastre && (
             <>
               <div className="my-1 border-t border-[var(--line)]" />
               <p className="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-4)]">

@@ -75,8 +75,12 @@ export function Colorbar() {
   return (
     <div
       className={cn(
-        "pointer-events-none absolute right-3 z-30 flex flex-col gap-2",
-        platform.isMobile && timelineOpen ? "bottom-[8rem]" : "bottom-10",
+        "pointer-events-none absolute z-30 flex flex-col gap-2",
+        // Telefono: a sinistra, sopra la scala — a destra ci sono le azioni
+        // rapide (Rilievo GPS). Desktop invariato.
+        platform.isMobile
+          ? cn("left-3", timelineOpen ? "bottom-[8rem]" : "bottom-9")
+          : "bottom-10 right-3",
       )}
     >
       {crops.map((crop) => (

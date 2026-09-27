@@ -2876,5 +2876,14 @@
     "back": "Retour",
     "weather": "Météo",
     "theme": "Thème"
+  },
+  "mapLayers": {
+    "title": "Couches",
+    "dataLayers": "Couches de l'exploitation",
+    "empty": "Aucune couche à afficher."
+  },
+  "plotPeek": {
+    "openSheet": "Ouvrir la fiche",
+    "noCrop": "Aucune culture"
   }
 }

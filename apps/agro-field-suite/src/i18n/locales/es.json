@@ -2876,5 +2876,14 @@
     "back": "Atrás",
     "weather": "Tiempo",
     "theme": "Tema"
+  },
+  "mapLayers": {
+    "title": "Capas",
+    "dataLayers": "Capas de la explotación",
+    "empty": "No hay capas que mostrar."
+  },
+  "plotPeek": {
+    "openSheet": "Abrir la ficha",
+    "noCrop": "Sin cultivo"
   }
 }

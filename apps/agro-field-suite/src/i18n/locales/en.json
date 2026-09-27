@@ -2876,5 +2876,14 @@
     "back": "Back",
     "weather": "Weather",
     "theme": "Theme"
+  },
+  "mapLayers": {
+    "title": "Layers",
+    "dataLayers": "Farm layers",
+    "empty": "No layers to show."
+  },
+  "plotPeek": {
+    "openSheet": "Open plot sheet",
+    "noCrop": "No crop"
   }
 }

@@ -2876,5 +2876,14 @@
     "back": "Indietro",
     "weather": "Meteo",
     "theme": "Tema"
+  },
+  "mapLayers": {
+    "title": "Livelli",
+    "dataLayers": "Livelli dell'azienda",
+    "empty": "Nessun livello da mostrare."
+  },
+  "plotPeek": {
+    "openSheet": "Apri la scheda",
+    "noCrop": "Nessuna coltura"
   }
 }

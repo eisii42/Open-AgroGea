@@ -294,6 +294,31 @@ html.dark .agro-field-map .geolibre-measure-control {
   visibility: hidden !important;
 }
 
+/* Mappa su telefono (`data-mobile` su .agro-field-map, FieldDashboard): una
+   sola colonna di controlli a destra. Via +/− (si zooma col pizzico), schermo
+   intero, terreno 3D e Gestore livelli (sostituito dal foglio Livelli di
+   MobileMapTools); la bussola compare solo a mappa ruotata, quando serve a
+   rimettere il nord in alto. Restano Livelli, Misura e Cerca luogo. */
+.agro-field-map[data-mobile="true"] .maplibregl-ctrl-zoom-in,
+.agro-field-map[data-mobile="true"] .maplibregl-ctrl-zoom-out,
+.agro-field-map[data-mobile="true"]
+  .maplibregl-ctrl-group:has(> .maplibregl-ctrl-compass.agro-compass-north),
+.agro-field-map[data-mobile="true"]
+  .maplibregl-ctrl-group:has(> .maplibregl-ctrl-fullscreen),
+.agro-field-map[data-mobile="true"]
+  .maplibregl-ctrl-group:has(> .maplibregl-ctrl-shrink),
+.agro-field-map[data-mobile="true"]
+  .maplibregl-ctrl-group:has(> .maplibregl-ctrl-terrain),
+.agro-field-map[data-mobile="true"]
+  .maplibregl-ctrl-group:has(> .maplibregl-ctrl-terrain-enabled),
+.agro-field-map[data-mobile="true"] .maplibregl-ctrl-layer-control {
+  display: none;
+}
+/* Senza colonna di sinistra il pannello Misura si apre dal bordo. */
+.agro-field-map[data-mobile="true"] .geolibre-measure-control {
+  margin-left: 0;
+}
+
 /* Toolbar del GeoEditor: l'icona SVG dei pulsanti deve riempire il bottone e
    restare centrata (allineato al desktop GeoLibre). Senza queste regole — anche
    con lo style.css del pacchetto importato — alcune icone collassano a 0px. */
