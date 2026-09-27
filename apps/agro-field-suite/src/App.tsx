@@ -75,6 +75,13 @@ export function App() {
   // Foglio "Moduli" del telefono: vive qui, accanto alla barra in basso, perché
   // si apre da qualunque vista (non solo dalla mappa).
   const [modulesOpen, setModulesOpen] = useState(false);
+  // Scelto uno strumento, il foglio sparisce subito e il pannello sale al suo
+  // posto (un solo movimento); chiuso a mano, scivola via come sempre.
+  const [modulesCloseAnimated, setModulesCloseAnimated] = useState(true);
+  const changeModulesOpen = (open: boolean) => {
+    setModulesCloseAnimated(true);
+    setModulesOpen(open);
+  };
   // Command Center e Calendario si montano alla prima visita e poi restano vivi
   // (lazy + keep-alive): anche i loro filters/stato sopravvivono al cambio vista.
   const ccVisited = useRef(false);
@@ -210,14 +217,16 @@ export function App() {
             {views}
             <BottomSheet
               open={modulesOpen}
-              onClose={() => setModulesOpen(false)}
+              onClose={() => changeModulesOpen(false)}
               title={t("nav.modulesHeading")}
               maxHeight="75dvh"
+              animateClose={modulesCloseAnimated}
             >
               <div className="px-2 pb-4">
                 <ModuleSidebar
                   embedded
                   onToolSelected={() => {
+                    setModulesCloseAnimated(false);
                     setModulesOpen(false);
                     useAgroStore.getState().setActiveView("map");
                   }}
@@ -227,7 +236,7 @@ export function App() {
           </div>
           <MobileBottomNav
             modulesOpen={modulesOpen}
-            onModulesOpenChange={setModulesOpen}
+            onModulesOpenChange={changeModulesOpen}
           />
           {fieldOverlays}
         </div>

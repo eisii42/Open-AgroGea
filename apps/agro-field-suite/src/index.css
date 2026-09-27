@@ -314,6 +314,44 @@ html.dark .agro-field-map .geolibre-measure-control {
 .agro-field-map[data-mobile="true"] .maplibregl-ctrl-layer-control {
   display: none;
 }
+/* Telefono: rifinitura tipografica e di tocco, valida solo sotto i 768 px (il
+   desktop resta com'è).
+   - I testi da 9–11 px salgono a 12 px: sotto non si leggono a braccio, in
+     campo, alla luce del sole. Restano esclusi la mappa (marker, controlli), la
+     legenda degli indici e il time slider, dove lo spazio è misurato al pixel
+     (classe `agro-keep-size`).
+   - I campi dei moduli hanno 44 px d'altezza e testo a 16 px: sotto i 16 px
+     iOS ingrandisce la pagina a ogni focus, e il modulo "salta".
+   - Caselle di spunta e radio più grandi, centrabili col pollice. */
+@media (max-width: 767px) {
+  :is(.text-\[9px\], .text-\[10px\], .text-\[11px\]):not(
+      .agro-field-map *,
+      .agro-keep-size,
+      .agro-keep-size *
+    ) {
+    font-size: 12px;
+  }
+  :is(
+      input:not(
+          [type="checkbox"],
+          [type="radio"],
+          [type="range"],
+          [type="file"],
+          [type="color"],
+          [type="hidden"]
+        ),
+      select,
+      textarea
+    ):not(.agro-field-map *) {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  input:is([type="checkbox"], [type="radio"]):not(.agro-field-map *) {
+    width: 20px;
+    height: 20px;
+  }
+}
+
 /* Righe di filtri a scorrimento orizzontale (telefono): si scorrono col dito,
    la barra di scorrimento non aggiunge nulla e ruba altezza. */
 .no-scrollbar {

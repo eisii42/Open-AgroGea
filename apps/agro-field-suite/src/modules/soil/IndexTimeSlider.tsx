@@ -286,7 +286,8 @@ export function IndexTimeSlider() {
   return (
     <div
       className={cn(
-        "pointer-events-none absolute z-30 flex justify-center",
+        // agro-keep-size: striscia misurata al pixel, esclusa dalla scala mobile.
+        "agro-keep-size pointer-events-none absolute z-30 flex justify-center",
         // Mobile: in fondo alla mappa, a tutta larghezza (la barra di
         // navigazione ora sta sotto la mappa, non sopra). Desktop: allineato
         // alla colonna dei moduli e libero dalla colorbar (che sta a destra).

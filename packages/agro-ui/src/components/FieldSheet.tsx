@@ -136,6 +136,8 @@ export function FieldSheet({
               // Telefono: le altezze arrivano dallo style; si anima il cambio di
               // scatto, non il trascinamento (il foglio deve seguire il dito).
               sheetMode && !drag.dragging && "transition-[height,max-height] duration-200 ease-out",
+              // Telefono: all'apertura il foglio sale dal basso (tokens.css).
+              sheetMode && "agro-sheet-enter",
               // ≥ md: drawer docked a destra, altezza piena.
               "md:inset-x-auto md:inset-y-0 md:right-0 md:max-h-none md:w-[380px]",
               "md:rounded-none md:rounded-l-[var(--r-3)] md:border-y-0 md:border-r-0",

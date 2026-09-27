@@ -75,7 +75,8 @@ export function Colorbar() {
   return (
     <div
       className={cn(
-        "pointer-events-none absolute z-30 flex flex-col gap-2",
+        // agro-keep-size: tacche misurate al pixel, escluse dalla scala mobile.
+        "agro-keep-size pointer-events-none absolute z-30 flex flex-col gap-2",
         // Telefono: a sinistra, sopra la scala — a destra ci sono le azioni
         // rapide (Rilievo GPS). Desktop invariato.
         platform.isMobile

@@ -130,7 +130,9 @@ export function AppHeader({
   // al menu "⋯". Il desktop resta com'è.
   if (isMobile) {
     return (
-      <header className="flex h-[56px] shrink-0 items-center gap-2 border-b border-[var(--line)] bg-[var(--panel)] pl-3 pr-1">
+      // Margine per la barra di stato/notch (Android edge-to-edge, iPhone):
+      // con viewport-fit=cover l'header vi sale sotto; altrove vale 0.
+      <header className="flex h-[calc(56px+env(safe-area-inset-top))] shrink-0 items-center gap-2 border-b border-[var(--line)] bg-[var(--panel)] pl-3 pr-1 pt-[env(safe-area-inset-top)]">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--r-2)] bg-[var(--accent)] text-white">
           <img src={agrogeaLogo} alt="AgroGea" className="h-6 w-6 object-contain" />
         </span>

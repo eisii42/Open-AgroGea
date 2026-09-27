@@ -8,7 +8,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { type ComponentType, lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useGeofenceWatch } from "../modules/field-mode/useGeofenceWatch";
 import { usePlatform } from "../hooks/usePlatform";
@@ -52,110 +52,125 @@ import { useWmsBasemapRestore } from "../hooks/useWmsBasemapRestore";
  * Suolo, moduli crop, export logbook). Lazy → fuori dal chunk iniziale,
  * caricati solo all'apertura del relativo strumento.
  */
-const LogbookPanel = lazy(() =>
+
+/**
+ * Caricatori di tutti i pannelli pigri. Sul telefono si chiamano quando l'app
+ * è inattiva (vedi l'effetto di precarico in FieldDashboard): il browser mette
+ * in cache il modulo, e la prima apertura di un pannello non lascia più la
+ * mappa vuota per il tempo del download mentre il foglio Moduli si chiude.
+ */
+const panelLoaders: Array<() => Promise<unknown>> = [];
+
+function lazyPanel<T extends ComponentType<any>>(
+  load: () => Promise<{ default: T }>,
+) {
+  panelLoaders.push(load);
+  return lazy(load);
+}
+const LogbookPanel = lazyPanel(() =>
   import("../modules/field-logbook/LogbookPanel").then((m) => ({ default: m.LogbookPanel })),
 );
-const PlotSheet = lazy(() =>
+const PlotSheet = lazyPanel(() =>
   import("../modules/plot-sheet/PlotSheet").then((m) => ({ default: m.PlotSheet })),
 );
-const HarvestPanel = lazy(() =>
+const HarvestPanel = lazyPanel(() =>
   import("../modules/field-logbook/HarvestPanel").then((m) => ({ default: m.HarvestPanel })),
 );
-const WarehousePanel = lazy(() =>
+const WarehousePanel = lazyPanel(() =>
   import("../modules/warehouse/WarehousePanel").then((m) => ({
     default: m.WarehousePanel,
   })),
 );
-const FuelRefillPanel = lazy(() =>
+const FuelRefillPanel = lazyPanel(() =>
   import("../modules/machinery/FuelRefillTab").then((m) => ({
     default: m.FuelRefillTab,
   })),
 );
-const SoilPanel = lazy(() =>
+const SoilPanel = lazyPanel(() =>
   import("../modules/soil/SoilPanel").then((m) => ({ default: m.SoilPanel })),
 );
-const CropDataPanel = lazy(() =>
+const CropDataPanel = lazyPanel(() =>
   import("../modules/crops/CropPanel").then((m) => ({
     default: m.CropDataPanel,
   })),
 );
-const CropDssPanel = lazy(() =>
+const CropDssPanel = lazyPanel(() =>
   import("../modules/crops/CropPanel").then((m) => ({
     default: m.CropDssPanel,
   })),
 );
-const VraPanel = lazy(() =>
+const VraPanel = lazyPanel(() =>
   import("../modules/vra/VraPanel").then((m) => ({ default: m.VraPanel })),
 );
-const WaterBalancePanel = lazy(() =>
+const WaterBalancePanel = lazyPanel(() =>
   import("../modules/water-balance/WaterBalancePanel").then((m) => ({
     default: m.WaterBalancePanel,
   })),
 );
-const PrintComposer = lazy(() =>
+const PrintComposer = lazyPanel(() =>
   import("../modules/print/PrintComposer").then((m) => ({
     default: m.PrintComposer,
   })),
 );
-const ParcelAdoptionPanel = lazy(() =>
+const ParcelAdoptionPanel = lazyPanel(() =>
   import("../modules/parcel-adoption/ParcelAdoptionPanel").then((m) => ({
     default: m.ParcelAdoptionPanel,
   })),
 );
-const DataEntrySheet = lazy(() =>
+const DataEntrySheet = lazyPanel(() =>
   import("../components/DataEntrySheet").then((m) => ({
     default: m.DataEntrySheet,
   })),
 );
-const DetailEditSheet = lazy(() =>
+const DetailEditSheet = lazyPanel(() =>
   import("../components/DetailEditSheet").then((m) => ({
     default: m.DetailEditSheet,
   })),
 );
-const GeometryRegistry = lazy(() =>
+const GeometryRegistry = lazyPanel(() =>
   import("../components/GeometryRegistry").then((m) => ({
     default: m.GeometryRegistry,
   })),
 );
-const SyncPanel = lazy(() =>
+const SyncPanel = lazyPanel(() =>
   import("../components/SyncPanel").then((m) => ({ default: m.SyncPanel })),
 );
-const SettingsPanel = lazy(() =>
+const SettingsPanel = lazyPanel(() =>
   import("../modules/settings/SettingsPanel").then((m) => ({
     default: m.SettingsPanel,
   })),
 );
-const RegistryPanel = lazy(() =>
+const RegistryPanel = lazyPanel(() =>
   import("../modules/registry/RegistryPanel").then((m) => ({
     default: m.RegistryPanel,
   })),
 );
-const GeoCompliancePanel = lazy(() =>
+const GeoCompliancePanel = lazyPanel(() =>
   import("../modules/compliance/GeoCompliancePanel").then((m) => ({
     default: m.GeoCompliancePanel,
   })),
 );
-const CompliancePanel = lazy(() =>
+const CompliancePanel = lazyPanel(() =>
   import("../modules/compliance/CompliancePanel").then((m) => ({
     default: m.CompliancePanel,
   })),
 );
-const TaskPlannerPanel = lazy(() =>
+const TaskPlannerPanel = lazyPanel(() =>
   import("../modules/tasks/TaskPlannerPanel").then((m) => ({
     default: m.TaskPlannerPanel,
   })),
 );
-const FieldCollectionTool = lazy(() =>
+const FieldCollectionTool = lazyPanel(() =>
   import("../components/FieldCollectionTool").then((m) => ({
     default: m.FieldCollectionTool,
   })),
 );
-const FieldDetectionModal = lazy(() =>
+const FieldDetectionModal = lazyPanel(() =>
   import("../modules/field-mode/FieldDetectionModal").then((m) => ({
     default: m.FieldDetectionModal,
   })),
 );
-const IndexTimeSlider = lazy(() =>
+const IndexTimeSlider = lazyPanel(() =>
   import("../modules/soil/IndexTimeSlider").then((m) => ({
     default: m.IndexTimeSlider,
   })),
@@ -254,6 +269,25 @@ export function FieldDashboard() {
       ? { onPlotTap: setPeekPlotId, onEmptyTap: () => setPeekPlotId(null) }
       : {},
   );
+  // Telefono: quando l'app è inattiva (requestIdleCallback, quindi senza
+  // contendere risorse alla mappa) si scarica il codice di tutti i pannelli.
+  // Senza, la prima apertura (es. Moduli → Coltura → Dati coltura) chiudeva il
+  // foglio Moduli e lasciava la mappa vuota per il tempo del download, prima
+  // che il pannello comparisse di colpo.
+  useEffect(() => {
+    if (!platform.isMobile) return;
+    const preload = () => {
+      for (const load of panelLoaders) void load().catch(() => {});
+    };
+    // Le WebView più vecchie (Safari < 16.4) non hanno requestIdleCallback.
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(preload, { timeout: 4000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = globalThis.setTimeout(preload, 1500);
+    return () => globalThis.clearTimeout(id);
+  }, [platform.isMobile]);
+
   // Un pannello aperto (Quaderno, Moduli, scheda completa…) prende il posto
   // della scheda compatta: non restano due fogli impilati.
   useEffect(() => {

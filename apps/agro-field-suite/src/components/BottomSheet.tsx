@@ -11,6 +11,12 @@ interface BottomSheetProps {
   /** Altezza massima come stringa CSS (default: 80dvh). */
   maxHeight?: string;
   className?: string;
+  /**
+   * false → la prossima chiusura è istantanea, senza scivolare via: quando il
+   * foglio lascia il posto a un pannello che sale dal basso (Moduli → uno
+   * strumento), due movimenti in sequenza sembravano un "chiudi e riapri".
+   */
+  animateClose?: boolean;
 }
 
 /** Trascinato oltre questa distanza (px) verso il basso, il foglio si chiude. */
@@ -33,7 +39,9 @@ export function BottomSheet({
   children,
   maxHeight = "80dvh",
   className,
+  animateClose = true,
 }: BottomSheetProps) {
+  const animate = open || animateClose;
   const [dragOffset, setDragOffset] = useState(0);
   const startHeight = useRef(0);
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -69,7 +77,8 @@ export function BottomSheet({
       {/* Backdrop semitrasparente: tap fuori chiude lo sheet. */}
       <div
         className={cn(
-          "absolute inset-0 z-30 bg-black/40 transition-opacity duration-300",
+          "absolute inset-0 z-30 bg-black/40",
+          animate && "transition-opacity duration-300",
           open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
         onClick={onClose}
@@ -84,7 +93,7 @@ export function BottomSheet({
         }}
         className={cn(
           "absolute bottom-0 left-0 right-0 z-40 overflow-y-auto rounded-t-2xl border-t border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-pop)]",
-          !drag.dragging && "transition-transform duration-300 ease-out",
+          !drag.dragging && animate && "transition-transform duration-300 ease-out",
           open ? "translate-y-0" : "translate-y-full",
           className,
         )}
