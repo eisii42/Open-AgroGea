@@ -2,6 +2,8 @@
 
 > [🇮🇹 Italiano](./moduli-agronomici.md) · 🇬🇧 English
 
+> **Document version 0.5.0** · updated 27 September 2026 · aligned with **AgroGea 0.5.0** (local PGlite schema **v25**). Version-by-version changes are in the [CHANGELOG](../../CHANGELOG.md).
+
 > This document explains **how the agronomic modules of AgroGea actually work**: which quantities they compute, with which formulas and assumptions, and how to interpret the results. It is the technical companion to the [User Manual](../user-guide/manual.en.md), which instead describes *where to click*.
 >
 > All calculation engines are **pure functions** in `plugins/agro-tools/src/` (NDVI, FAO 56/66, phenology, phytopathology, soil, zoning): they run entirely on the device, with no network. The agronomic parameters (temperature thresholds, crop coefficients, response factors) are **editable literature defaults, not regulatory constants**: they must be tuned to the actual environment and crop.
@@ -18,7 +20,7 @@
 6. [Phytopathological DSS and degree-days](#6-phytopathological-dss-and-degree-days)
 7. [DSS risk map (green/yellow/red)](#7-dss-risk-map-greenyellowred)
 8. [Variable-rate application maps (VRA)](#8-variable-rate-application-maps-vra)
-9. [Geofencing and actual area worked](#9-geofencing-and-actual-area-worked)
+9. [Geofencing and area worked](#9-geofencing-and-area-worked)
 10. [Field Calculator formulas](#10-field-calculator-formulas)
 11. [References](#11-references)
 
@@ -38,7 +40,10 @@ These are the most robust indices because the normalized ratio reduces the effec
 |---|---|---|
 | **NDVI** | (B08 − B04) / (B08 + B04) = (NIR − Red) / (NIR + Red) | Green vigor/biomass. The reference index; it saturates at high canopy cover. |
 | **NDRE** | (B08 − B05) / (B08 + B05) = (NIR − Red-Edge) / (NIR + Red-Edge) | Nitrogen/chlorophyll status. The red-edge penetrates the dense canopy better: more sensitive than NDVI on fully-vegetated vineyard and orchard. |
-| **NDWI** | (B03 − B08) / (B03 + B08) = (Green − NIR) / (Green + NIR) | Water content of the vegetation and saturated surfaces (McFeeters formulation). High values = more water. |
+| **NDWI** | (B03 − B08) / (B03 + B08) = (Green − NIR) / (Green + NIR) | Open water and saturated surfaces (McFeeters formulation). High values = more water. |
+| **NDMI** | (B08 − B11) / (B08 + B11) = (NIR − SWIR) / (NIR + SWIR) | **Canopy moisture** (Gao formulation, also called Gao's NDWI). SWIR is absorbed by the water in the leaves: this — not NDWI — is the index to read for crop water stress. |
+
+> **NDWI and NDMI are not interchangeable.** McFeeters' NDWI (Green−NIR) was designed to map **open water** and is used here for saturated surfaces; NDMI (NIR−SWIR) measures the water **inside the canopy**. On a field under stress the former may not move at all. Hence the distinct color ramps (see *Statistics and symbology*).
 
 > **A note on interpretation:** the absolute value is not comparable across different crops or phenological stages. The same NDVI = 0.55 is "poor" for an arable crop at full cover and "normal" for a vineyard at the start of the season. That is why AgroGea does not read indices in absolute terms but **parameterizes them on the phenological stage** (see §2).
 
@@ -68,7 +73,27 @@ On **tree crops** the inter-row (soil, cover crop) must be excluded before compu
 
 ### Statistics and symbology
 
-For each parcel, mean, min, max, standard deviation and number of valid pixels are computed (on non-`NaN` pixels only). The raster overlay uses dedicated color ramps: a vigor ramp (red → green) for NDVI/NDRE/SAVI/MSAVI2 and a water ramp (beige → blue) for NDWI.
+For each parcel, mean, min, max, standard deviation and number of valid pixels are computed (on non-`NaN` pixels only).
+
+**Vector cells, no longer a blurred image.** The raster is vectorized into a **grid of square polygons** (`index-grid.ts`), one per Sentinel-2 pixel, snapped to the scene's UTM grid: adjacent cells share the exact same corners in full float coordinates, so no seams appear between contiguous cells. The operational gain is that every cell is a queryable *feature* — it carries the value of **every** index computed on that pixel, not just the primary one — and that the same geometry redraws without going back to the network.
+
+**Relative color scale.** The ramp is no longer pinned to the theoretical −1..1 range but to the **actual domain** of the pixels computed in the same run (`relativeDomain`): bounds at the **2nd and 98th percentile**, so a handful of outliers cannot collapse the whole scale. That is the difference between an all-green map and a map that shows the variability *inside* the field — which is the information VRA zoning needs. On a degenerate domain (all values equal) it falls back to the real min/max and finally to a ±0.01 neighborhood, so the colorbar stays drawable.
+
+Ramps remain dedicated per family: vigor (red → green) for NDVI/NDRE/SAVI/MSAVI2, open water (beige → blue) for NDWI, canopy moisture for NDMI.
+
+### Local scene cache and background refresh
+
+The Soil module no longer recomputes from scratch on every opening. Processed scenes land in two **local-only** tables of schema v21 — `vegetation_index_scenes` (one row per parcel × STAC scene, with the per-index means) and `vegetation_index_rasters` (the pixel grid) — fully recomputable from the STAC scenes, hence outside the sync queue like `dss_results` and `soil_water_indices`.
+
+Three technical choices hold the mechanism up:
+
+- **Per-scene deduplication.** The `(plot_id, scene_id)` unique key avoids re-downloading the COGs of an already-processed scene. A cached scene is reusable only if it covers **all** the requested indices; otherwise it is reprocessed in full, and the upsert merges the means instead of duplicating the row.
+- **One scene per day.** On the same day the satellite may deposit several items (adjacent tiles, reprocessings): `bestScenePerDay` keeps the one with the **lowest cloud cover** (ties go to the most recent) and marks the others as duplicates, shown on request. Processing them all would double the points of the series without adding information.
+- **Compact raster instead of GeoJSON.** The raster is persisted, not the cells: `rasterToIndexCells` rebuilds them when needed. Values are **little-endian scaled Int16** (`value_scale`, default 10,000 → 4 decimals over the −1..1 range) with a sentinel for pixels outside the polygon, serialized as base64 in `text`. That is ~2 bytes/pixel instead of ~300: **~10 KB per scene over 50 ha**, not ~1.5 MB.
+
+**Retention:** 36 months (three agricultural campaigns: besides year-on-year comparisons, the GAEC 7 card of the Compliance module compares three rotation years, and with 24 months the pruning would have deleted the history just downloaded on every run); older scenes are pruned at the end of a run and the rasters follow through the `on delete cascade` FK.
+
+**Refresh job at startup.** Sentinel-2 revisits the same point every ~5 days, so a check at every launch would be wasted traffic: the job throttles itself to **one every 12 hours per company**, with the timestamp in the tenant DB's `agro_meta` (not in localStorage — so it follows the dataDir backup and does not mix across companies). It automatically computes **NDVI only** and goes through the shared queued worker, one scene per job: an analysis started by the user while the job runs waits for at most one scene, not the whole refresh. It deliberately does **not** update `plots_registry.last_ndvi_mean`, which is a synchronized column: an automatic job must not generate outbox entries without the user having asked for anything.
 
 ---
 
@@ -258,7 +283,7 @@ An `intensity` parameter (0..1) controls the maximum deviation from the referenc
 
 ---
 
-## 9. Geofencing and actual area worked
+## 9. Geofencing and area worked
 
 Pure engine in `plugins/agro-tools/src/geofencing.ts` and `reentry.ts`. No DOM, no network, no GPS access: it takes samples and returns state — which is what makes it testable without a device.
 
@@ -276,20 +301,27 @@ Membership is an **exact point-in-polygon** test (`@turf/boolean-point-in-polygo
 
 Discarding for accuracy is **not silent**: the reducer reports back whether the sample was accepted, and the UI distinguishes "listening" from "signal too weak (±N m)". Without that distinction a GPS delivering only poor fixes — WiFi positioning, overcast sky, lock not yet acquired — would have every sample discarded while still showing detection as apparently active, leaving the operator waiting in the middle of a field for an event that cannot come.
 
-### Area worked
+### Area worked — declared, not estimated from the track
 
-The area is **measured, not declared**. The track is a polyline of accepted samples; length is geodetic (haversine on the ellipsoid, consistent with `@turf/area` used elsewhere):
+> **Changed in 0.4.1.** Up to 0.4.0 the area was derived from the GPS as `track_length × working_width`. It no longer is.
+
+When the session is closed the operator declares the **share of the parcel completed** (a percentage, with quick steps at 25/50/75/100, because with gloves on you tap, you do not drag precisely):
 
 ```text
-area_worked (ha) = track_length (m) × working_width (m) / 10 000
+area_worked_today (ha) = (declared_percent − already_recorded_percent) / 100 × parcel_area (ha)
 ```
 
-This is the standard FMIS convention: working width comes from the attached implement (`equipment.working_width_m`) or the configured default. Two limits worth knowing:
+Subtracting the progress already recorded is the part that matters: without it, resuming the next day would count **twice** the product already declared yesterday.
 
-- the result is **clamped to the parcel area** when known — passes overlap, and an overlap must not inflate the figure beyond the real field;
-- without a working width the area is not computable and is `0`; in that case closing the session falls back to the cadastral area and **flags it** in the summary, rather than writing a zero quantity into the register.
+**Why step back from measurement to declaration.** A `length × width` estimate looks more objective but is not: it depends on the working width configured on the implement, it inflates the figure over overlapping passes, and it collapses to zero when the GPS fix is poor or the implement has no recorded width — exactly the cases where the register must be written anyway. On a legally-relevant document, the declaration of whoever was on the tractor is worth more than a geometric estimate built on parameters nobody verified. The GPS still records the track (useful for verification and for replaying the geotagged notes), but it **no longer estimates the area**.
 
-Product quantities are therefore `dose_per_ha × area_worked`, never `dose_per_ha × cadastral_area`: declaring product over ground that was not worked is precisely the error the tracking exists to prevent.
+Downstream consequences:
+
+- product quantities are `dose_per_ha × area_worked_today`, and the **warehouse issue** discharges exactly the `total_quantity` written into the logbook — never a value recomputed some other way;
+- **below 100% the task does not close**: it goes back to planned with the progress stored in `planned_tasks.metadata.completion_percent` (v20 JSONB column, no new migration), so geofencing offers it again on the next entry and work resumes where it stopped. Today's work is already in the logbook regardless;
+- if no usable area results, it falls back to the parcel's **cadastral area** and **flags it** in the summary (`gps_area_fallback`): better a complete, flagged record than a zero quantity in a register.
+
+**Sowing → crop automation.** A sowing closed in the field now assigns the campaign crop to the parcel, as the same sowing recorded by hand in the logbook already did (pure rule in `field/session-crop.ts`). Two conditions, both required: the operation is a `sowing` and the parcel does **not** already have an open campaign for the year — a crop in progress is never overwritten. The crop identity comes from the seed product record (`products.metadata`), with the commercial name as the last resort. Without this rule the parcel was left with no crop: no DSS, no water balance, no row in the agricultural campaign.
 
 ### Re-entry interval (PAN)
 

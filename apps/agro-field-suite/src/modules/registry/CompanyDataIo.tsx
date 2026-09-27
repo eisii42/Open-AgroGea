@@ -1,4 +1,4 @@
-import { useAgroStore } from "@agrogea/core";
+import { type TransferScope, useAgroStore } from "@agrogea/core";
 import { Button } from "@geolibre/ui";
 import { Download, Loader2, ShieldAlert, Upload } from "lucide-react";
 import { useState } from "react";
@@ -11,6 +11,7 @@ import {
   pickCompanyFile,
 } from "../../services/companyDataIo";
 import { STANDALONE } from "../../standalone";
+import { BackupScopeDialog } from "./BackupScopeDialog";
 
 /**
  * Import/Export dei dati aziendali in GeoJSON Esteso. Componente unico, ma con
@@ -37,16 +38,24 @@ export function CompanyDataIo() {
     s.companies.find((a) => a.id === s.activeCompanyId),
   );
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const [scopeOpen, setScopeOpen] = useState(false);
 
   const exporting = status.kind === "busy" && status.op === "export";
   const importing = status.kind === "busy" && status.op === "import";
   const disabled = !dal || !company || status.kind === "busy";
 
-  async function handleExport() {
+  /**
+   * L'export passa SEMPRE dalla scelta del perimetro: il dialog si apre già
+   * su "backup completo", quindi chi vuole tutto conferma e basta, e chi vuole
+   * un estratto (una campagna, il solo magazzino) lo dice prima di generare il
+   * file invece di accorgersene dopo.
+   */
+  async function handleExport(scope: TransferScope) {
     if (!dal || !company) return;
+    setScopeOpen(false);
     setStatus({ kind: "busy", op: "export" });
     try {
-      const json = await exportCompanyData(dal, company);
+      const json = await exportCompanyData(dal, company, scope);
       downloadCompanyJson(exportFilename(company), json);
       setStatus({ kind: "ok", msg: t("companyDataIo.exportSuccess") });
     } catch (e) {
@@ -68,7 +77,18 @@ export function CompanyDataIo() {
     setStatus({ kind: "busy", op: "import" });
     try {
       const raw = JSON.parse(await file.text());
-      const s = await importCompanyData(dal, raw, activeCompanyId);
+      // La stessa particella pubblica già presente sotto un altro record: si
+      // CHIEDE, una per una. Sovrascrivere di iniziativa butterebbe via il
+      // quaderno di campagna di un campo che l'utente ha già lavorato, ed è il
+      // danno peggiore che un ripristino possa fare. Rispondere "no" salta
+      // l'appezzamento e lascia intatto quello esistente.
+      const s = await importCompanyData(dal, raw, activeCompanyId, ({ existing }) =>
+        window.confirm(
+          t("companyDataIo.confirmParcelConflict", {
+            name: existing.user_plot_name,
+          }),
+        ),
+      );
       setStatus({
         kind: "ok",
         msg: t("companyDataIo.importSuccess", {
@@ -80,8 +100,30 @@ export function CompanyDataIo() {
           harvests: s.harvests,
           assets: s.assets,
           scouting: s.scouting,
+          warehouse: s.warehouse,
+          machinery: s.machinery,
+          planning: s.planning,
         }),
       });
+      if (s.plotsSkipped > 0) {
+        setStatus({
+          kind: "ok",
+          msg: t("companyDataIo.importSuccessWithSkips", {
+            plots: s.plots,
+            skipped: s.plotsSkipped,
+          }),
+        });
+      }
+      // Righe collegate rimaste senza aggancio (tipico di un backup parziale
+      // ripristinato su un archivio che non ha il resto): si dice, non si tace.
+      if (s.linksSkipped > 0) {
+        setStatus({
+          kind: "ok",
+          msg: t("companyDataIo.importSuccessWithUnlinked", {
+            skipped: s.linksSkipped,
+          }),
+        });
+      }
     } catch (e) {
       setStatus({
         kind: "error",
@@ -104,7 +146,7 @@ export function CompanyDataIo() {
 
       <div className="mt-3 flex flex-wrap gap-2">
         <Button
-          onClick={() => void handleExport()}
+          onClick={() => setScopeOpen(true)}
           disabled={disabled}
           className="min-h-[var(--touch-min)] gap-2"
         >
@@ -140,6 +182,12 @@ export function CompanyDataIo() {
           {status.msg}
         </p>
       )}
+
+      <BackupScopeDialog
+        open={scopeOpen}
+        onClose={() => setScopeOpen(false)}
+        onConfirm={(scope) => void handleExport(scope)}
+      />
     </section>
   );
 }

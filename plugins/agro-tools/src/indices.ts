@@ -5,7 +5,7 @@
  */
 
 /** Indici a differenza normalizzata (a − b)/(a + b). */
-export type NormalizedIndex = "ndvi" | "ndre" | "ndwi" | "ndmi";
+export type NormalizedIndex = "ndvi" | "ndre" | "ndwi" | "ndmi" | "nbr";
 /** Indici corretti per il suolo (NIR/Red + fattore L). */
 export type SoilIndex = "savi" | "msavi2";
 export type VegetationIndex = NormalizedIndex | SoilIndex;
@@ -25,6 +25,14 @@ export const REQUIRED_BANDS: Record<
   // B11 è nativa a 20 m: il worker la ricampiona sulla griglia 10 m di B08
   // (stesso trattamento di B05 per l'NDRE).
   ndmi: { a: "B08", b: "B11" },
+  // (NIR − SWIR2) / (NIR + SWIR2) — Normalized Burn Ratio: crolla dopo una
+  // combustione, perché il residuo carbonioso assorbe nel NIR e riflette nello
+  // SWIR2. Serve alla scheda BCAA 3 (divieto di bruciatura delle stoppie) e
+  // introduce **B12**, che nessun altro indice usava: chiedere questo indice
+  // aggiunge una banda allo scarico di ogni scena (vedi
+  // `requiredBandsForIndices`), ed è un costo che va deciso, non subìto. Come
+  // B11, B12 è nativa a 20 m e viene ricampionata sulla griglia 10 m di B08.
+  nbr: { a: "B08", b: "B12" },
 };
 
 /** Bande NIR/Red usate dagli indici corretti per il suolo. */
@@ -275,6 +283,9 @@ export const INDEX_RAMP: Record<VegetationIndex, [number, string][]> = {
   msavi2: NDVI_RAMP,
   ndwi: NDWI_RAMP,
   ndmi: NDMI_RAMP,
+  // NBR ha lo stesso intervallo −1..1 e la stessa lettura "alto = vegetazione
+  // integra, basso = superficie bruciata o nuda" della rampa di vigore.
+  nbr: NDVI_RAMP,
 };
 
 export function rampForIndex(index: VegetationIndex): [number, string][] {

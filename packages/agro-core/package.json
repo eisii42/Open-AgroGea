@@ -9,11 +9,13 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.2.0",
-    "@turf/area": "^7.3.5",
-    "@turf/bbox": "^7.3.5",
-    "uuid": "^14.0.0",
-    "zustand": "^5.0.14"
+    "@agrogea/parcel": "*",
+    "@electric-sql/pglite": "^0.2.17",
+    "@turf/area": "^7.4.0",
+    "@turf/bbox": "^7.4.0",
+    "proj4": "^2.22.0",
+    "uuid": "^14.0.2",
+    "zustand": "^5.0.15"
   },
   "peerDependencies": {
     "@geolibre/core": "*",
@@ -21,7 +23,7 @@
   },
   "devDependencies": {
     "@types/geojson": "^7946.0.16",
-    "@types/react": "^19.2.17",
+    "@types/react": "^19.3.0",
     "typescript": "^6.0.3"
   },
   "license": "AGPL-3.0-or-later",

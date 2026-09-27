@@ -7,6 +7,7 @@ import type {
   TreatmentLog,
   ActivityProduct,
   IssueRequest,
+  Warehouse,
 } from "../types";
 import {
   cumpAfterInbound,
@@ -27,7 +28,8 @@ export class WarehouseError extends Error {
       | "insufficient_stock"
       | "expired_lot"
       | "lot_not_found"
-      | "invalid_product",
+      | "invalid_product"
+      | "invalid_warehouse",
     message: string,
   ) {
     super(message);
@@ -43,6 +45,107 @@ export class WarehouseError extends Error {
  * storno) vivono in UN'UNICA transazione: o si confirm tutto, o niente.
  */
 export class AgroDalWarehouse extends AgroDalLogbook {
+  // -- warehouses (magazzini fisici) ------------------------------------------
+
+  /**
+   * Crea o aggiorna un magazzino. La `geometry` è opzionale: valorizzata, il
+   * magazzino diventa un POI cliccabile sulla mappa; assente, resta un
+   * magazzino logico raggiungibile solo dal modulo.
+   */
+  async upsertWarehouse(
+    input: Omit<
+      Warehouse,
+      | "id"
+      | "tenant_id"
+      | "warehouse_type"
+      | "geometry"
+      | "address"
+      | "notes"
+      | "metadata"
+      | "created_at"
+      | "updated_at"
+      | "deleted_at"
+    > &
+      Partial<
+        Pick<
+          Warehouse,
+          "warehouse_type" | "geometry" | "address" | "notes" | "metadata"
+        >
+      > & { id?: string },
+  ): Promise<Warehouse> {
+    const name = input.name.trim();
+    if (!name) {
+      throw new WarehouseError(
+        "invalid_warehouse",
+        "Il nome del magazzino è obbligatorio.",
+      );
+    }
+    const ts = nowIso();
+    const existing = input.id ? await this.getWarehouse(input.id) : null;
+    const row: Warehouse = {
+      id: input.id ?? uuidv4(),
+      tenant_id: this.tenantId,
+      company_id: input.company_id,
+      name,
+      warehouse_type: input.warehouse_type ?? existing?.warehouse_type ?? "general",
+      geometry: input.geometry ?? existing?.geometry ?? null,
+      address: input.address ?? existing?.address ?? null,
+      notes: input.notes ?? existing?.notes ?? null,
+      metadata: input.metadata ?? existing?.metadata ?? {},
+      created_at: existing?.created_at ?? ts,
+      updated_at: ts,
+      deleted_at: null,
+    };
+    await this.writeWithOutbox(
+      "warehouses",
+      "update",
+      row as unknown as Row & { id: string },
+    );
+    return row;
+  }
+
+  async getWarehouse(id: string): Promise<Warehouse | null> {
+    const result = await this.db.query<Warehouse>(
+      `select * from warehouses where id = $1`,
+      [id],
+    );
+    return result.rows[0] ?? null;
+  }
+
+  async listWarehouses(companyId: string): Promise<Warehouse[]> {
+    const result = await this.db.query<Warehouse>(
+      `select * from warehouses
+       where company_id = $1 and deleted_at is null
+       order by name`,
+      [companyId],
+    );
+    return result.rows;
+  }
+
+  /**
+   * Soft-delete di un magazzino. I lots che vi erano collocati NON vengono
+   * cancellati: tornano "non assegnati" e restano nella giacenza complessiva —
+   * chiudere un deposito non è distruggere la merce che conteneva.
+   */
+  async deleteWarehouse(id: string): Promise<void> {
+    const lots = await this.db.query<ProductLot>(
+      `select * from product_lots where warehouse_id = $1 and deleted_at is null`,
+      [id],
+    );
+    for (const lot of lots.rows) {
+      await this.writeWithOutbox(
+        "product_lots",
+        "update",
+        {
+          ...lot,
+          warehouse_id: null,
+          updated_at: nowIso(),
+        } as unknown as Row & { id: string },
+      );
+    }
+    await this.softDelete("warehouses", id);
+  }
+
   // -- products (anagrafica) --------------------------------------------------
 
   /**
@@ -150,8 +253,17 @@ export class AgroDalWarehouse extends AgroDalLogbook {
   async receiveLot(
     input: Omit<
       ProductLot,
-      "id" | "tenant_id" | "quantity_on_hand" | "created_at" | "updated_at" | "deleted_at"
-    > & { id?: string },
+      | "id"
+      | "tenant_id"
+      | "warehouse_id"
+      | "quantity_on_hand"
+      | "created_at"
+      | "updated_at"
+      | "deleted_at"
+    > &
+      // Collocazione FACOLTATIVA: un carico senza magazzino resta valido e
+      // conta nella giacenza complessiva (retrocompatibile coi lots pre-v23).
+      Partial<Pick<ProductLot, "warehouse_id">> & { id?: string },
   ): Promise<ProductLot> {
     const ts = nowIso();
     const product = await this.getProduct(input.product_id);
@@ -165,6 +277,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
       id: input.id ?? uuidv4(),
       tenant_id: this.tenantId,
       product_id: input.product_id,
+      warehouse_id: input.warehouse_id ?? null,
       lot_number: input.lot_number ?? null,
       expires_at: input.expires_at ?? null,
       initial_quantity: input.initial_quantity,
@@ -218,7 +331,12 @@ export class AgroDalWarehouse extends AgroDalLogbook {
 
   async listLotti(
     companyId: string,
-    options: { productId?: string; soloDisponibili?: boolean } = {},
+    options: {
+      productId?: string;
+      soloDisponibili?: boolean;
+      /** Restringe a un magazzino; `null` = solo i lots non assegnati. */
+      warehouseId?: string | null;
+    } = {},
   ): Promise<ProductLot[]> {
     const conditions = [
       "p.company_id = $1",
@@ -229,6 +347,12 @@ export class AgroDalWarehouse extends AgroDalLogbook {
     if (options.productId) {
       params.push(options.productId);
       conditions.push(`l.product_id = $${params.length}`);
+    }
+    if (options.warehouseId === null) {
+      conditions.push("l.warehouse_id is null");
+    } else if (options.warehouseId !== undefined) {
+      params.push(options.warehouseId);
+      conditions.push(`l.warehouse_id = $${params.length}`);
     }
     if (options.soloDisponibili) {
       conditions.push("l.quantity_on_hand > 0");
@@ -341,6 +465,7 @@ export class AgroDalWarehouse extends AgroDalLogbook {
         id: lot.id,
         tenant_id: lot.tenant_id,
         product_id: lot.product_id,
+        warehouse_id: lot.warehouse_id,
         lot_number: lot.lot_number,
         expires_at: lot.expires_at,
         initial_quantity: lot.initial_quantity,
@@ -486,6 +611,75 @@ export class AgroDalWarehouse extends AgroDalLogbook {
       } as Row & { id: string });
       await this.reverseIssuesTx(tx, id, ts);
     });
+  }
+
+  /**
+   * Scarichi di TUTTE le attività dell'azienda, con l'anagrafica del prodotto
+   * accanto. È ciò che serve al motore del biologico: le quantità VERE uscite
+   * dal magazzino (non quelle pianificate), più i titoli del prodotto — rame,
+   * azoto — senza i quali una dose non si converte in kg di sostanza.
+   *
+   * Una sola query invece di una per operazione: un quaderno di dieci anni ha
+   * migliaia di righe, e interrogare a una a una renderebbe l'analisi
+   * inutilizzabile proprio sulle aziende che ne hanno più bisogno.
+   */
+  async listCompanyIssuesWithProducts(
+    companyId: string,
+    options: { from?: string; to?: string } = {},
+  ): Promise<
+    Array<
+      ActivityProduct & {
+        treatment_log_id: string;
+        product_id: string;
+        product_name: string;
+        category: string;
+        unit: string;
+        active_substance: string | null;
+        registration_number: string | null;
+        npk_n: number | null;
+        metadata: Record<string, unknown>;
+      }
+    >
+  > {
+    const conditions = [
+      "t.company_id = $1",
+      "a.deleted_at is null",
+      "t.deleted_at is null",
+    ];
+    const params: unknown[] = [companyId];
+    if (options.from) {
+      params.push(options.from);
+      conditions.push(`t.executed_at >= $${params.length}`);
+    }
+    if (options.to) {
+      params.push(options.to);
+      conditions.push(`t.executed_at <= $${params.length}`);
+    }
+    const result = await this.db.query<
+      ActivityProduct & {
+        treatment_log_id: string;
+        product_id: string;
+        product_name: string;
+        category: string;
+        unit: string;
+        active_substance: string | null;
+        registration_number: string | null;
+        npk_n: number | null;
+        metadata: Record<string, unknown>;
+      }
+    >(
+      `select a.*, p.id as product_id, p.name as product_name, p.category,
+              p.unit, p.active_substance, p.registration_number, p.npk_n,
+              p.metadata
+       from activity_products a
+       join product_lots l on l.id = a.product_lot_id
+       join products p on p.id = l.product_id
+       join treatment_logs t on t.id = a.treatment_log_id
+       where ${conditions.join(" and ")}
+       order by t.executed_at`,
+      params,
+    );
+    return result.rows;
   }
 
   /** Scarichi (con lot e product) di una singola attività del Quaderno. */

@@ -23,15 +23,23 @@ Scope and rules (see `CLAUDE.md` §2–§3):
 | Italian | English | Notes / DB anchor |
 |---|---|---|
 | appezzamento / appezzamenti | plot / plots | `plots_registry`, `plot_id` (not "field") |
+| particella (da fonte pubblica) | parcel | `Parcel` in `@agrogea/parcel`: what a SOURCE declares; becomes a `Plot` only when adopted |
+| adozione (di una particella) | adoption | `parcel/adoption.ts`; provenance in `source_id`, `nuts_code`, `reference_unit_type`, `validity_year`, `metadata.parcel` |
+| fonte (di particelle) | parcel source | catalogue record in `packages/agro-parcel/src/catalog/<id>.json` |
+| primo avvio | onboarding | `modules/onboarding` |
+| certificazione dell'operatore | operator certification | `companies.operator_certifications` (jsonb) |
+| regime di produzione | production regime | `plots_campaign.production_regime` (per campaign year) |
 | coltura / colture | crop / crops | `crops` table |
 | categoria coltura | crop category | |
 | azienda / aziende | company / companies | `companies` |
 | operazione | operation | `operation_type` |
 | trattamento | treatment | `treatment_logs` |
 | raccolta / raccolte | harvest / harvests | `harvest_logs` |
-| magazzino | warehouse | |
+| magazzino (il modulo) | warehouse | |
+| magazzino / deposito (il luogo) | warehouse (store) | `warehouses`, `warehouse_id` |
+| tipologia di deposito | warehouse type | `warehouse_type` (free text, `WarehouseKind` for the canonical list) |
 | prodotto / prodotti | product / products | `products` |
-| lotto | lot | `product_lots` |
+| lotto | lot | `product_lots` (holds the location: `warehouse_id`) |
 | giacenza | stock / quantity on hand | `quantity_on_hand` |
 | scadenza | expiry | `expires_at` |
 | carico (di magazzino) | inbound / receipt | keep `CUMP` token |

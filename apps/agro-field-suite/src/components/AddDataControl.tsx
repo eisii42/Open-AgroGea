@@ -1,4 +1,9 @@
-import { type FileFormat, useAgroStore } from "@agrogea/core";
+import {
+  declarativeLabelSet,
+  type FileFormat,
+  useAgroStore,
+} from "@agrogea/core";
+import { useTenantCountry } from "../hooks/useTenantCountry";
 import {
   DEFAULT_LAYER_STYLE,
   type GeoLibreLayer,
@@ -25,6 +30,7 @@ import {
   downloadArtifact,
   serializzaVettoriale,
 } from "../services/gis/geo-export";
+import { AddRasterSection } from "./AddRasterSection";
 import { TransferTagsFeed } from "./TransferTagsFeed";
 
 type ModoImport = "mappa" | "sian";
@@ -58,6 +64,9 @@ export function AddDataControl() {
   const recordTransfer = useAgroStore((s) => s.recordTransfer);
   const activeCampaign = useAgroStore((s) => s.activeCampaign);
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
+  // Paese risolto dell'azienda: sceglie l'adapter del fascicolo e le etichette.
+  const { countryCode } = useTenantCountry();
+  const labelSet = declarativeLabelSet(countryCode);
 
   const [open, setOpen] = useState(false);
   const [modo, setModo] = useState<ModoImport>("mappa");
@@ -202,7 +211,16 @@ export function AddDataControl() {
     }
   }
 
-  /** Import del Fascicolo SIAN: file → campi_campagna (create-or-populate). */
+  /**
+   * Import del fascicolo grafico aziendale: file → plots_campaign
+   * (create-or-populate).
+   *
+   * Il parser è scelto in base al PAESE dell'azienda. Prima passava sempre da
+   * quello italiano: un fascicolo SIGPAC spagnolo o un RPG francese venivano
+   * letti con gli alias ministeriali italiani, quindi quasi nessun campo veniva
+   * riconosciuto e l'import finiva in un "nessun campo riconosciuto" senza
+   * spiegazione. Gli adapter per gli altri paesi esistevano già.
+   */
   async function onFileSian(file: File) {
     setErrore(null);
     setOutcome(null);
@@ -212,10 +230,13 @@ export function AddDataControl() {
     }
     setBusy(true);
     try {
-      const { SianImportParser } = await import(
-        "../services/gis/SianImportParser"
+      const { AbstractGisParser } = await import(
+        "../services/gis/AbstractGisParser"
       );
-      const { formato, fields } = await SianImportParser.parse(file);
+      const { formato, parcels: fields } = await AbstractGisParser.parse(
+        file,
+        countryCode,
+      );
       if (fields.length === 0) {
         setErrore(t("addDataControl.noFieldsRecognized"));
         return;
@@ -268,11 +289,13 @@ export function AddDataControl() {
         <div className="absolute left-0 top-11 z-50 w-80 overflow-hidden rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--sh-pop)]">
           <p className="mb-1 text-sm font-semibold">{t("addDataControl.addData")}</p>
 
-          {/* Selettore modalità: layer cartografico vs import Fascicolo SIAN. */}
+          {/* Selettore modalità: layer cartografico vs import del fascicolo
+              grafico. Il nome del fascicolo cambia col paese: "Fascicolo SIAN"
+              a un'azienda olandese non dice nulla. */}
           <div className="mb-2.5 flex gap-1 rounded-[var(--r-2)] bg-[var(--panel-2)] p-0.5">
             {([
               { id: "mappa", labelKey: "addDataControl.mapLayer" },
-              { id: "sian", labelKey: "addDataControl.sianFile" },
+              { id: "sian", labelKey: `addDataControl.dossierFile.${labelSet}` },
             ] as const).map((m) => (
               <button
                 key={m.id}
@@ -297,7 +320,9 @@ export function AddDataControl() {
           <p className="mb-2.5 text-xs text-[var(--ink-4)]">
             {modo === "mappa"
               ? t("addDataControl.mapModeDescription")
-              : t("addDataControl.sianModeDescription", { year: activeCampaign })}
+              : t(`addDataControl.dossierModeDescription.${labelSet}`, {
+                  year: activeCampaign,
+                })}
           </p>
 
           <label
@@ -365,6 +390,9 @@ export function AddDataControl() {
             <p className="mt-2 text-xs text-[var(--danger)]">{errore}</p>
           )}
           {outcome && <p className="mt-2 text-xs text-[var(--ok)]">{outcome}</p>}
+
+          {/* Cartografia raster: WMS da indirizzo, ortofoto da file. */}
+          <AddRasterSection />
 
           {/* Export in blocco della configurazione cartografica aziendale */}
           <div className="mt-3 border-t border-[var(--line)] pt-2.5">

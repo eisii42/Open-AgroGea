@@ -60,10 +60,68 @@ export function MapTooltip({ hover }: { hover: HoverState | null }) {
       className="pointer-events-none absolute z-30 min-w-[180px] max-w-[240px] rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-2.5 shadow-[var(--sh-pop)]"
       style={style}
     >
+      {kind === "parcelCandidate" && <ParcelCandidateBody props={props} />}
       {kind === "appezzamento" && <PlotBody props={props} />}
       {kind === "infrastruttura" && <InfrastructureBody props={props} />}
       {kind === "poi" && <PoiBody props={props} />}
       {kind === "indexCell" && <IndexCellBody props={props} />}
+    </div>
+  );
+}
+
+/**
+ * Scheda di una particella pubblica sotto il cursore, PRIMA di adottarla.
+ *
+ * Mostra ciò che serve a decidere: che cosa si sta guardando (il tipo di unità
+ * di riferimento, che cambia il significato della geometria), l'identificativo
+ * con cui la fonte la chiama, e i pochi dati che pubblica. In fondo la fonte e
+ * la sua licenza: l'attribuzione va vista mentre si sceglie, non scoperta dopo.
+ */
+function ParcelCandidateBody({ props }: { props: Record<string, unknown> }) {
+  const { t } = useTranslation();
+  const areaUnit = useSettingsStore((s) => s.units.area);
+  const sourceId = str(props.sourceId);
+  const unitType = str(props.referenceUnitType);
+  const declaredArea = num(props.declaredArea);
+  const cropCode = str(props.nationalCropCode);
+  const year = num(props.validityYear);
+  const sourceName = str(props.sourceName);
+  const licenseId = str(props.licenseId);
+  const attribution = str(props.licenseAttribution);
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="text-[13px] font-semibold">
+        {sourceId ?? t("mapTooltip.parcelNoReference")}
+      </p>
+      {unitType && (
+        <p className="text-[11px] leading-snug text-[var(--ink-3)]">
+          {t(`parcelAdoption.unitType.${unitType}` as "parcelAdoption.unitType.manual")}
+        </p>
+      )}
+      {declaredArea != null && (
+        <Row
+          label={t("mapTooltip.parcelDeclaredArea")}
+          value={
+            <span className="agro-num">{formatArea(declaredArea, areaUnit)}</span>
+          }
+        />
+      )}
+      {cropCode && <Row label={t("mapTooltip.parcelCropCode")} value={cropCode} />}
+      {year != null && (
+        <Row
+          label={t("mapTooltip.parcelYear")}
+          value={<span className="agro-num">{year}</span>}
+        />
+      )}
+      {(sourceName || attribution) && (
+        <p className="mt-0.5 border-t border-[var(--line)] pt-1 text-[10px] leading-snug text-[var(--ink-4)]">
+          {sourceName ?? attribution}
+          {licenseId ? ` · ${licenseId}` : ""}
+        </p>
+      )}
+      <p className="text-[10px] text-[var(--ink-4)]">
+        {t("mapTooltip.parcelClickHint")}
+      </p>
     </div>
   );
 }

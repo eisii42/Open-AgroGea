@@ -3,6 +3,7 @@ import { areaHectares, normalizeGeometry } from "../geo/area";
 import type {
   Plot,
   Company,
+  ComplianceParameterOverride,
   PlotCampaign,
   Crop,
   TenantMembership,
@@ -18,13 +19,20 @@ export class AgroDalRegistry extends AgroDalBase {
   // -- companies -------------------------------------------------------------
 
   async upsertCompany(
-    input: Omit<Company, "tenant_id" | "created_at" | "updated_at" | "deleted_at"> &
-      Partial<Pick<Company, "created_at">>,
+    input: Omit<
+      Company,
+      "tenant_id" | "operator_certifications" | "created_at" | "updated_at" | "deleted_at"
+    > &
+      Partial<Pick<Company, "operator_certifications" | "created_at">>,
   ): Promise<Company> {
     const ts = nowIso();
+    // `certifications` (deprecata dalla v24) non compare qui: se il chiamante
+    // non la porta con sé — e nessun percorso nuovo lo fa — la colonna resta al
+    // suo default e ai valori già presenti sul device.
     const row: Company = {
       created_at: ts,
       ...input,
+      operator_certifications: input.operator_certifications ?? [],
       tenant_id: this.tenantId,
       updated_at: ts,
       deleted_at: null,
@@ -142,9 +150,30 @@ export class AgroDalRegistry extends AgroDalBase {
   async upsertPlot(
     input: Omit<
       Plot,
-      "tenant_id" | "created_at" | "updated_at" | "deleted_at" | "area_ha"
+      | "tenant_id"
+      | "created_at"
+      | "updated_at"
+      | "deleted_at"
+      | "area_ha"
+      // La provenienza (v22) è opzionale in ingresso: gli appezzamenti
+      // disegnati a mano e quelli importati dal Fascicolo non ne hanno, e non
+      // devono essere costretti a dichiararla nulla a ogni chiamata.
+      | "source_id"
+      | "nuts_code"
+      | "reference_unit_type"
+      | "validity_year"
     > &
-      Partial<Pick<Plot, "created_at" | "area_ha">>,
+      Partial<
+        Pick<
+          Plot,
+          | "created_at"
+          | "area_ha"
+          | "source_id"
+          | "nuts_code"
+          | "reference_unit_type"
+          | "validity_year"
+        >
+      >,
   ): Promise<Plot> {
     const ts = nowIso();
     // Geometria normalizzata PRIMA di persistere: il GeoEditor può emettere un
@@ -157,6 +186,13 @@ export class AgroDalRegistry extends AgroDalBase {
     const areaHa = areaHectares(geometry);
     const row: Plot = {
       created_at: ts,
+      // Esplicitamente null e non assenti: la riga deve portare SEMPRE tutte le
+      // colonne, altrimenti l'upsert non le toccherebbe e un aggiornamento
+      // potrebbe lasciare in piedi una provenienza vecchia.
+      source_id: null,
+      nuts_code: null,
+      reference_unit_type: null,
+      validity_year: null,
       ...input,
       geometry,
       area_ha: areaHa,
@@ -223,9 +259,22 @@ export class AgroDalRegistry extends AgroDalBase {
   async upsertCampoCampagna(
     input: Omit<
       PlotCampaign,
-      "id" | "tenant_id" | "closed_at" | "created_at" | "updated_at" | "deleted_at"
+      | "id"
+      | "tenant_id"
+      | "closed_at"
+      | "production_regime"
+      | "regime_since"
+      | "regime_notes"
+      | "created_at"
+      | "updated_at"
+      | "deleted_at"
     > &
-      Partial<Pick<PlotCampaign, "closed_at">> & {
+      Partial<
+        Pick<
+          PlotCampaign,
+          "closed_at" | "production_regime" | "regime_since" | "regime_notes"
+        >
+      > & {
         id?: string;
         created_at?: string;
       },
@@ -254,6 +303,22 @@ export class AgroDalRegistry extends AgroDalBase {
       crop_external_code: input.crop_external_code ?? null,
       variety_external_code: input.variety_external_code ?? null,
       declared_area_ha: input.declared_area_ha,
+      // v24 — il regime si CONSERVA se il chiamante non lo porta: l'import del
+      // Fascicolo e il ripristino da un backup più vecchio non lo conoscono, e
+      // senza questa distinzione fra "non passato" e "passato a null" ogni
+      // riscrittura della campagna lo cancellerebbe.
+      production_regime:
+        input.production_regime !== undefined
+          ? input.production_regime
+          : current?.production_regime ?? null,
+      regime_since:
+        input.regime_since !== undefined
+          ? input.regime_since
+          : current?.regime_since ?? null,
+      regime_notes:
+        input.regime_notes !== undefined
+          ? input.regime_notes
+          : current?.regime_notes ?? null,
       closed_at: input.closed_at ?? current?.closed_at ?? null,
       created_at: input.created_at ?? current?.created_at ?? ts,
       updated_at: ts,
@@ -333,5 +398,86 @@ export class AgroDalRegistry extends AgroDalBase {
       [this.tenantId],
     );
     return result.rows.map((r) => r.year);
+  }
+
+  // -- override dei parametri di compliance (v25) -----------------------------
+
+  /**
+   * Soglie che l'utente ha spostato rispetto ai default normativi di una
+   * scheda. Sono una SCELTA e non un derivato: si sincronizzano e finiscono nel
+   * backup, a differenza degli esiti, che si ricalcolano.
+   */
+  async listComplianceOverrides(
+    companyId: string,
+  ): Promise<ComplianceParameterOverride[]> {
+    const result = await this.db.query<ComplianceParameterOverride>(
+      `select * from compliance_parameter_overrides
+       where company_id = $1 and deleted_at is null
+       order by check_id, parameter_id`,
+      [companyId],
+    );
+    return result.rows;
+  }
+
+  /**
+   * Imposta (o aggiorna) l'override di un parametro. Riusa la riga viva della
+   * stessa terna (azienda, scheda, parametro) per restare idempotente e non
+   * accumulare doppioni a ogni ritocco della soglia.
+   */
+  async setComplianceOverride(
+    input: Pick<
+      ComplianceParameterOverride,
+      "company_id" | "check_id" | "parameter_id" | "value"
+    >,
+  ): Promise<ComplianceParameterOverride> {
+    const ts = nowIso();
+    const existing = await this.db.query<ComplianceParameterOverride>(
+      `select * from compliance_parameter_overrides
+       where company_id = $1 and check_id = $2 and parameter_id = $3
+         and deleted_at is null
+       limit 1`,
+      [input.company_id, input.check_id, input.parameter_id],
+    );
+    const current = existing.rows[0];
+    const row: ComplianceParameterOverride = {
+      id: current?.id ?? uuidv4(),
+      tenant_id: this.tenantId,
+      company_id: input.company_id,
+      check_id: input.check_id,
+      parameter_id: input.parameter_id,
+      value: input.value,
+      created_at: current?.created_at ?? ts,
+      updated_at: ts,
+      deleted_at: null,
+    };
+    await this.writeWithOutbox(
+      "compliance_parameter_overrides",
+      "update",
+      row as unknown as Row & { id: string },
+    );
+    return row;
+  }
+
+  /**
+   * Riporta un parametro al default normativo. Tombstone e non cancellazione
+   * fisica, come ogni altra entità sincronizzata: l'indice unico è parziale
+   * sulle righe vive, quindi lo stesso parametro può essere ri-personalizzato
+   * più avanti senza inciampare nel proprio passato.
+   */
+  async clearComplianceOverride(
+    companyId: string,
+    checkId: string,
+    parameterId: string,
+  ): Promise<void> {
+    const existing = await this.db.query<{ id: string }>(
+      `select id from compliance_parameter_overrides
+       where company_id = $1 and check_id = $2 and parameter_id = $3
+         and deleted_at is null
+       limit 1`,
+      [companyId, checkId, parameterId],
+    );
+    const id = existing.rows[0]?.id;
+    if (!id) return;
+    await this.softDelete("compliance_parameter_overrides", id);
   }
 }

@@ -1,5 +1,10 @@
 import { v4 as uuidv4 } from "uuid";
 import {
+  findAdoptedPlot,
+  ParcelAlreadyAdoptedError,
+  parcelToPlotDraft,
+} from "../parcel/adoption";
+import {
   assertWritable,
   MAX_GEOMETRY_HISTORY,
   persistGeometryToDal,
@@ -19,6 +24,18 @@ export function createGeometrySlice(
     geomEditRequest: null,
     geometryUndo: [],
     geometryRedo: [],
+    parcelCandidates: [],
+    selectedParcelId: null,
+
+    setParcelCandidates: (parcels) =>
+      // Una nuova ricerca azzera la selezione: l'elemento evidenziato prima
+      // quasi certamente non è più fra i risultati.
+      set({ parcelCandidates: parcels, selectedParcelId: null }),
+
+    selectParcelCandidate: (id) => set({ selectedParcelId: id }),
+
+    clearParcelCandidates: () =>
+      set({ parcelCandidates: [], selectedParcelId: null }),
 
     saveDrawnPlot: async (geometria, attrs = {}) => {
       assertWritable(get);
@@ -42,6 +59,38 @@ export function createGeometrySlice(
         const others = s.plots.filter((a) => a.id !== record.id);
         return { plots: [...others, record] };
       });
+      syncRouter?.notifyLocalWrite();
+      return record;
+    },
+
+    adoptParcel: async (parcel, attrs) => {
+      assertWritable(get);
+      const { dal, activeCompanyId, syncRouter, plots } = get();
+      if (!dal || !activeCompanyId) return null;
+
+      // Si controlla PRIMA di scrivere: l'indice unico in `plots_registry`
+      // respingerebbe comunque il doppione, ma con un errore SQL grezzo. Qui
+      // l'errore dice che cosa è successo e quale appezzamento esiste già.
+      const existing = findAdoptedPlot(plots, parcel);
+      if (existing) {
+        throw new ParcelAlreadyAdoptedError(existing);
+      }
+
+      const draft = parcelToPlotDraft(parcel, {
+        companyId: activeCompanyId,
+        name: attrs.name,
+        cadastralSheet: attrs.cadastralSheet,
+        cadastralParcel: attrs.cadastralParcel,
+      }, uuidv4);
+      const record = await dal.upsertPlot(draft);
+      set((s) => ({
+        plots: [...s.plots.filter((a) => a.id !== record.id), record],
+        // Adottata: esce dalle candidate e la mappa la ridisegna come
+        // appezzamento aziendale, non più come proposta.
+        parcelCandidates: s.parcelCandidates.filter((p) => p.id !== parcel.id),
+        selectedParcelId:
+          s.selectedParcelId === parcel.id ? null : s.selectedParcelId,
+      }));
       syncRouter?.notifyLocalWrite();
       return record;
     },

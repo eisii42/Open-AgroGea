@@ -1,9 +1,18 @@
 mod agro;
+mod parcel_source;
+
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
     .setup(|app| {
+      // Trasporto delle fonti di particelle: allow-list host (popolata dal
+      // frontend a partire dal catalogo), semaforo di concorrenza e client HTTP.
+      app.manage(
+        parcel_source::ParcelSourceTransport::new()
+          .expect("trasporto delle fonti di particelle non inizializzabile"),
+      );
       // Auto-update nativo (solo desktop: Windows/macOS/Linux). Su mobile gli
       // aggiornamenti passano dagli store, quindi i plugin updater/process NON
       // vengono compilati né registrati (vedi gate in Cargo.toml).
@@ -32,6 +41,8 @@ pub fn run() {
       agro::agro_push_mutations,
       agro::agro_pull_mutations,
       agro::agro_fetch_map_tile,
+      parcel_source::agro_register_parcel_source_hosts,
+      parcel_source::agro_fetch_parcel_source,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

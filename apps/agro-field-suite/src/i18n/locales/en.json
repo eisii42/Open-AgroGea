@@ -1,4 +1,64 @@
 {
+  "backupScopeDialog": {
+    "title": "What to put in the backup",
+    "completeHint": "Complete backup: all of the farm's data, the whole history.",
+    "partialHint": "Partial backup: the file will only contain what you selected.",
+    "timeRange": "Reference period",
+    "allHistory": "Whole history",
+    "currentYear": "Current year",
+    "last12Months": "Last 12 months",
+    "from": "From",
+    "to": "To",
+    "periodNote": "The period filters dated records (operations, harvests, analyses, scouting, maintenance, sessions). Registries and warehouse stock are always kept in full: without them the file could not be restored.",
+    "content": "Content",
+    "selectAll": "Everything",
+    "selectNone": "Registries only",
+    "alwaysIncluded": "always included",
+    "exportComplete": "Export complete backup",
+    "exportSelection": "Export {{count}} sections",
+    "sections": {
+      "plots": {
+        "label": "Plots, crops and campaigns",
+        "hint": "Field registry with geometries, crops and growing campaigns."
+      },
+      "treatments": {
+        "label": "Field logbook (operations)",
+        "hint": "Recorded treatments, fertilisations, irrigations, tillage and sowing."
+      },
+      "harvests": {
+        "label": "Harvests",
+        "hint": "Harvest records with yields and destinations."
+      },
+      "soilSamples": {
+        "label": "Soil analyses",
+        "hint": "Soil sampling and laboratory reports."
+      },
+      "scouting": {
+        "label": "Field scouting",
+        "hint": "Georeferenced observations collected in the field."
+      },
+      "assets": {
+        "label": "Infrastructure and POIs",
+        "hint": "Wells, traps, sensors, buildings and technical geometries."
+      },
+      "warehouse": {
+        "label": "Warehouse",
+        "hint": "Stores, products, lots with stock on hand and issues to operations."
+      },
+      "machinery": {
+        "label": "Machinery fleet",
+        "hint": "Machines, equipment, usage, maintenance, documents and refuelling."
+      },
+      "planning": {
+        "label": "Planning and Field Mode",
+        "hint": "Recipes, planned tasks and executed sessions with GPS track."
+      },
+      "compliance": {
+        "label": "Regulatory monitoring",
+        "hint": "Compliance thresholds changed from the regulatory defaults. Outcomes are not exported: they are recomputed."
+      }
+    }
+  },
   "language": {
     "label": "Language"
   },
@@ -33,6 +93,292 @@
       "plotsOutsideCountry": "{{count}} plot(s) fall outside {{country}} (detected: {{detected}}).",
       "swappedCoordinates": "{{count}} plot(s) appear to have swapped coordinates (lat/lon).",
       "addressCoordsMismatch": "No legal address country set; derived {{detected}} from plot coordinates."
+    },
+    "badges": {
+      "regimeTitle": "Regime declared for campaign {{year}}"
+    },
+    "messages": {
+      "subject.a1AgriculturalActivity": "Agricultural activity on the area",
+      "subject.a2CropCoherence": "Consistency between declared crop and observed profile",
+      "subject.a3DeclaredArea": "Cultivated area versus declared area",
+      "subject.b1BufferStrips": "Buffer strips along watercourses",
+      "subject.b3SoilCover": "Minimum soil cover during the sensitive period",
+      "subject.b4CropRotation": "Crop rotation and diversification",
+      "subject.b5NonProductiveAreas": "Non-productive areas and features",
+      "subject.b6PermanentGrassland": "Environmentally sensitive permanent grassland: no conversion",
+      "subject.b7WetlandsPeatlands": "Wetlands and peatlands",
+      "subject.b8StubbleBurning": "Ban on burning arable stubble",
+      "subject.c1OrchardGroundCover": "Ground cover in permanent crops",
+      "subject.c2ExtensiveForage": "Extensive forage systems with legumes",
+      "subject.c3CatchCrops": "Catch crops between two main crops",
+      "subject.d1MowingGrazing": "Mowing and grazing on permanent grassland",
+      "subject.d2SowingHarvestDates": "Recorded sowing and harvest dates",
+      "subject.d4Irrigation": "Irrigation applied to the plot",
+      "subject.organicInputs": "Inputs used under organic farming",
+      "method.a1AgriculturalActivity": "Management EVENTS are sought (sharp NDVI drops), not the greenness level: abandoned land invaded by scrub has a high, stable NDVI — higher than freshly ploughed arable land.",
+      "method.a2CropCoherence": "The crop is NOT classified: the observed profile is compared with the NDVI band expected for the declared crop. A divergence is a hint to look into, not an alternative crop.",
+      "method.a3DeclaredArea": "Two comparisons kept apart: the geometric one (declared area against the polygon's geodesic area), which is exact, and the vegetated one, indicative because edge pixels are mixed.",
+      "method.b1BufferStrips": "A GEOMETRIC, not spectral check: minimum distance between the plot and the loaded hydrographic network. A three-metre strip is a third of a pixel — looking for it in NDVI would be make-believe.",
+      "method.b3SoilCover": "Share of DAYS (not scenes) above threshold in the sensitive window, by linear interpolation. NDVI cannot tell a sown cover crop from spontaneous weeds.",
+      "method.b4CropRotation": "First the declared campaigns of previous years, which are unambiguous; then, as corroboration, the similarity between monthly NDVI profiles.",
+      "method.b5NonProductiveAreas": "No processing: hedges, isolated trees and field margins are below the 10 m pixel. Orthophotos or very-high-resolution imagery are needed — and that is what this card says.",
+      "method.b6PermanentGrassland": "Deep drops WITHOUT regrowth ending on bare soil: the signature of ploughing, not mowing. Regrowth is what tells this card apart from D1.",
+      "method.b7WetlandsPeatlands": "Intersection with the designated wetland layer, then a persistent drop in the moisture index. A dry year produces the same drop as drainage.",
+      "method.b8StubbleBurning": "NBR collapse in the post-harvest window: char absorbs in the NIR and reflects in SWIR2. It requires band B12, which no other index in the product uses.",
+      "method.c1OrchardGroundCover": "Green cover in the required window. In a narrow-spaced vineyard a 10 m pixel contains rows and inter-rows together: the value is an average and cannot be separated.",
+      "method.c2ExtensiveForage": "A profile consistent with forage (prolonged cover, several cuts) and no plant-protection treatments in the year, read from the logbook and not from the satellite.",
+      "method.c3CatchCrops": "Persistence of cover between two main crops. A sowing recorded in the logbook shows the cover was intended: without it, NDVI cannot tell it from weeds.",
+      "method.d1MowingGrazing": "NDVI drops followed by REGROWTH: regrowth is what tells mowing from a land-use change. Extensive grazing may produce no clear step at all.",
+      "method.d2SowingHarvestDates": "Phenological signature against recorded dates. The satellite sees emergence, not sowing: days or weeks separate them, which is why tolerance starts at three weeks.",
+      "method.d4Irrigation": "SAR (Sentinel-1) or thermal (Landsat TIRS, ECOSTRESS) would be needed: multispectral optical imagery cannot see applied water. The card reports what the logbook declares.",
+      "method.organicInputs": "Not satellite-based: the logbook and the batches actually issued from the store are read and compared with a dated version of the annexes to EU Reg. 2021/1165.",
+      "explain.a1Active": "{{events}} management events observed in the year; the last around {{lastEvent}}.",
+      "explain.a1Marginal": "{{events}} management events observed out of {{minEvents}} expected; the profile does vary (amplitude {{amplitude}}), so an event may have fallen into an observation gap.",
+      "explain.a1Abandoned": "No management events and vegetation present on {{activeSharePct}}% of days with a flat profile (amplitude {{amplitude}}): the typical signature of land no longer worked.",
+      "explain.a2Coherent": "Observed maximum {{observedMax}}, consistent with the {{expectedLow}}–{{expectedHigh}} band expected for “{{crop}}” (tolerance {{tolerance}}).",
+      "explain.a2Divergent": "Observed maximum {{observedMax}} against the {{expectedLow}}–{{expectedHigh}} band expected for “{{crop}}”: worth a look. No alternative crop is proposed, as none could be named reliably.",
+      "explain.a3Consistent": "{{declared}} ha declared against {{geometric}} ha geometric ({{deltaPct}}%, tolerance {{tolerancePct}}%); vegetated for {{vegetatedSharePct}}% of the period.",
+      "explain.a3Overdeclared": "{{declared}} ha declared against {{geometric}} ha geometric: {{deltaPct}}% beyond the {{tolerancePct}}% tolerance. The comparison is exact, not estimated.",
+      "explain.a3VegetatedShortfall": "Declared area consistent, but vegetation present only {{vegetatedSharePct}}% of the period. Indicative estimate: {{purePixels}} pure pixels.",
+      "explain.b1Compliant": "Minimum distance to the water network {{distance}} m, beyond the required {{width}} m strip.",
+      "explain.b1TooClose": "Minimum distance to the water network {{distance}} m, below the required {{width}} m strip. The result is only as good as the loaded hydrographic layer.",
+      "explain.b3Covered": "Soil covered on {{sharePct}}% of the days in the sensitive window (required {{requiredPct}}%, NDVI threshold {{threshold}}).",
+      "explain.b3PartiallyCovered": "Soil covered on {{sharePct}}% of days, below the required {{requiredPct}}% but not far off: worth checking before next season.",
+      "explain.b3Bare": "Soil covered only {{sharePct}}% of days against the required {{requiredPct}}%: mostly bare soil during the sensitive period.",
+      "explain.b4Rotated": "{{distinctCrops}} distinct crops over {{declaredYears}} declared years; profile distance {{distance}} (similarity threshold {{similarityMax}}).",
+      "explain.b4Monoculture": "A single crop over {{declaredYears}} declared years; nearly identical profiles (distance {{distance}}, threshold {{similarityMax}}): consistent with monocropping.",
+      "explain.b6Stable": "No drop consistent with conversion; {{mowing}} cuts observed and an NDVI floor of {{floor}} (bare-soil threshold {{bareSoil}}).",
+      "explain.b6Converted": "{{conversions}} deep drops without regrowth down to bare soil, the first around {{date}}: consistent with ploughing of the grassland.",
+      "explain.b7NoSignal": "No persistent drop in the moisture index ({{drops}} events detected).",
+      "explain.b7DrainageSignal": "{{drops}} moisture-index drops beyond the {{threshold}} threshold. A dry year produces the same signal: ground checking is needed.",
+      "explain.b8NoBurnSignal": "No NBR collapse in the post-harvest window (threshold {{threshold}}).",
+      "explain.b8BurnSignal": "{{events}} NBR collapses in the post-harvest window, the first around {{date}}. An authorised phytosanitary derogation produces the same signal.",
+      "explain.c1Covered": "Inter-row covered on {{sharePct}}% of days (required {{requiredPct}}%), with a declared row spacing of {{rowSpacing}} m.",
+      "explain.c1Bare": "Cover on {{sharePct}}% of days against {{requiredPct}}% required. With {{rowSpacing}} m spacing the pixel mixes row and inter-row: ground checking advised.",
+      "explain.c2Compatible": "Cover on {{sharePct}}% of days (required {{requiredPct}}%) and no plant-protection treatment recorded in the year.",
+      "explain.c2Incompatible": "Cover on {{sharePct}}% of days (required {{requiredPct}}%) and {{treatments}} plant-protection treatments recorded in the year.",
+      "explain.c3Present": "Cover for {{coveredDays}} days (minimum {{minDays}}); sowings recorded in the window: {{sowing}}.",
+      "explain.c3Absent": "Cover for only {{coveredDays}} days against the {{minDays}} minimum required.",
+      "explain.d1Events": "{{events}} cuts observed (drops with regrowth): {{dates}}.",
+      "explain.d1NoEvents": "{{events}} cuts observed out of {{minEvents}} expected. Extensive grazing lowers biomass gradually and may produce no clear step.",
+      "explain.d2Consistent": "Harvest recorded on {{declared}}, observed around {{observed}}: {{gapDays}} days apart (tolerance {{tolerance}}).",
+      "explain.d2Divergent": "Harvest recorded on {{declared}} but observed around {{observed}}: {{gapDays}} days apart, beyond the {{tolerance}} tolerance. The record needs review.",
+      "explain.d4NotObservable": "Irrigation is not observable with multispectral optical imagery. The logbook declares {{declaredEvents}} irrigations in the year; moisture-index range {{ndmiRange}}.",
+      "explain.organicCompliant": "{{operations}} inputs checked against the {{act}} annexes (version {{version}}): no non-permitted substance. Copper {{copper}}/{{copperLimit}} kg/ha, nitrogen {{nitrogen}}/{{nitrogenLimit}} kg N/ha.",
+      "explain.organicAttention": "{{unknown}} substances not listed in {{act}} (version {{version}}), or data insufficient for a limit. Copper {{copper}}/{{copperLimit}} kg/ha, nitrogen {{nitrogen}}/{{nitrogenLimit}} kg N/ha.",
+      "explain.organicNonCompliant": "{{notAllowed}} inputs with substances not permitted by the {{act}} annexes (version {{version}}), or a limit exceeded. Copper {{copper}}/{{copperLimit}} kg/ha, nitrogen {{nitrogen}}/{{nitrogenLimit}} kg N/ha.",
+      "explain.undecidable": "There is no basis for a decision: the method was not run. What is missing, and how to complete it, is listed below.",
+      "factor.sceneCount": "{{usable}} usable scenes out of {{expected}} expected in the window",
+      "factor.temporalGap": "largest gap {{maxGapDays}} days (tolerated {{toleratedGapDays}})",
+      "factor.cloudCover": "mean cloud cover {{meanCloudPct}}% on the scenes used",
+      "factor.purePixels": "{{purePixels}} estimated pure pixels at {{gsdM}} m (minimum {{minPurePixels}})",
+      "factor.resolutionFit": "object about {{objectSizeM}} m against a {{gsdM}} m pixel",
+      "factor.declaredData": "{{present}} declared data present out of {{required}} required",
+      "factor.archiveDepth": "{{availableYears}} years in archive out of {{requiredYears}} required",
+      "missing.noUsableScenes": "Not enough usable scenes: {{usable}} of {{required}} needed",
+      "missing.noUsableScenesFix": "Wait for further satellite passes, or raise the accepted cloud-cover threshold in the parameters",
+      "missing.tooFewPurePixels": "Plot too small for the sensor: {{purePixels}} estimated pure pixels against {{minPurePixels}} needed",
+      "missing.tooFewPurePixelsFix": "Waiting will not help: at 10 m resolution edge pixels dominate the signal. Orthophotos or very-high-resolution imagery are needed",
+      "missing.archiveTooShort": "Archive too short: {{available}} years available out of {{required}} required",
+      "missing.archiveTooShortFix": "Run the historical scene retrieval ({{required}} years): the local cache holds 24 months, the rest must be downloaded",
+      "missing.indexNotInPipeline": "Index {{index}} is not present in the cached scenes",
+      "missing.indexNotInPipelineFix": "Reprocess the scenes including {{index}}: it needs a band the pipeline does not download by default, adding traffic per scene",
+      "missing.campaign": "No agricultural campaign declared for this year",
+      "missing.campaignFix": "Fill in the plot's crop sheet for the year",
+      "missing.crop": "Campaign crop not specified",
+      "missing.cropFix": "Enter the species and crop code in the crop sheet",
+      "missing.declaredArea": "Declared area missing or zero",
+      "missing.declaredAreaFix": "Enter the declared area in the crop sheet",
+      "missing.operations": "No operation recorded in the logbook for this plot",
+      "missing.operationsFix": "Record the operations in the field logbook",
+      "missing.productionRegime": "Production regime not declared for this year",
+      "missing.productionRegimeFix": "Choose the regime in the crop sheet (conventional, in conversion, organic, integrated)",
+      "missing.issues": "No warehouse batch linked to the operations",
+      "missing.issuesFix": "Link issued batches to the operations: those are the real quantities, not the planned ones",
+      "missing.terrain": "Slope data not available",
+      "missing.terrainFix": "Load a digital terrain model for the area",
+      "missing.layer": "Layer “{{layer}}” not loaded",
+      "missing.layerFix": "Load the map layer and tag it with the “{{layer}}” compliance tag",
+      "missing.copperContent": "Copper content missing for “{{product}}”",
+      "missing.copperContentFix": "Add the metallic-copper percentage to the product metadata: without it, the amount of formulation says nothing about the copper applied",
+      "missing.nitrogenContent": "Nitrogen content missing for “{{product}}”",
+      "missing.nitrogenContentFix": "Fill in the N content in the product registry, or the N-P-K ratio in the operation",
+      "missing.regimeSince": "Regime start date not specified",
+      "missing.regimeSinceFix": "Set “under this regime since” in the crop sheet: the 24 or 36 conversion months are counted from there",
+      "missing.resolutionTooCoarse": "Feature about {{featureWidth}} m below the sensor's {{gsd}} m resolution",
+      "missing.resolutionTooCoarseFix": "Orthophotos (20–50 cm) or VHR imagery are needed: with Sentinel-2 this check cannot be anticipated — which is itself useful to know",
+      "missing.sensorNotAvailable": "Suitable sensor not available in the pipeline",
+      "missing.sensorNotAvailableFix": "SAR (Sentinel-1) or thermal (Landsat TIRS, ECOSTRESS) would be needed: multispectral optical imagery cannot see applied water",
+      "parameter.activityNdviThreshold": "NDVI threshold above which the area counts as vegetated",
+      "parameter.activityMinEvents": "Minimum management events for the area to count as worked",
+      "parameter.coverNdviThreshold": "NDVI threshold for soil cover",
+      "parameter.coverMinDaysShare": "Minimum share of covered days in the window (0–1)",
+      "parameter.coverWindowStart": "Start of the sensitive period, MMDD format (1115 = 15 November)",
+      "parameter.coverWindowEnd": "End of the sensitive period, MMDD format (215 = 15 February)",
+      "parameter.cloudCoverMax": "Maximum cloud cover for a scene to be usable",
+      "parameter.areaTolerancePct": "Tolerance on the gap between declared and geometric area",
+      "parameter.mowingDropDelta": "Minimum NDVI drop to recognise an event",
+      "parameter.mowingMinEvents": "Minimum cuts required in the year",
+      "parameter.mowingRecoveryDays": "Days within which the sward must regrow for the drop to be a cut",
+      "parameter.slopeThresholdDeg": "Slope beyond which the obligation applies",
+      "parameter.bufferWidthM": "Minimum buffer strip width",
+      "parameter.rotationSimilarityMax": "Distance below which two annual profiles count as the same crop",
+      "parameter.grasslandConversionDrop": "NDVI drop consistent with grassland conversion",
+      "parameter.burnNbrDrop": "NBR collapse identifying a burn",
+      "parameter.catchCropMinDays": "Minimum days the catch crop must stay in the field",
+      "parameter.phenologyToleranceDays": "Tolerated gap between recorded and observed date",
+      "parameter.copperLimitKgHa": "Metallic-copper limit over the rolling window",
+      "parameter.copperWindowYears": "Length in years of the rolling copper window",
+      "parameter.nitrogenLimitKgHa": "Organic-fertiliser nitrogen limit per year",
+      "parameter.conversionMonthsAnnual": "Conversion months for annual crops",
+      "parameter.conversionMonthsPerennial": "Conversion months for perennial crops",
+      "parameter.coherenceTolerance": "Tolerated deviation from the NDVI band expected for the crop",
+      "parameter.vegetatedNdviThreshold": "NDVI threshold above which a pixel counts as vegetated",
+      "parameter.featureWidthM": "Typical width of the non-productive feature observed",
+      "parameter.nonProductiveSharePct": "Minimum share of non-productive area required",
+      "parameter.bareSoilNdvi": "NDVI threshold below which soil counts as bare",
+      "parameter.drainageNdmiDrop": "Moisture-index drop consistent with drainage",
+      "parameter.rowSpacingM": "Row spacing: distance between rows, which sets the inter-row width",
+      "parameter.forageCoverThreshold": "NDVI cover threshold for the forage system",
+      "parameter.forageMinCoverShare": "Minimum share of covered days in the forage system",
+      "parameter.catchCropNdviThreshold": "NDVI threshold for the catch crop",
+      "parameter.harvestDropDelta": "NDVI drop identifying the harvest",
+      "organic.substanceAllowed": "“{{substance}}” permitted (annex {{annex}})",
+      "organic.substanceNotAllowed": "“{{substance}}” not permitted under organic farming",
+      "organic.substanceUnknown": "“{{substance}}” is not in the reference list: check it against {{act}}. The list is deliberately partial, so absence does not mean prohibition",
+      "organic.copperWithinLimit": "Copper {{value}} kg/ha of the {{limit}} permitted over {{years}} years",
+      "organic.copperNearLimit": "Copper {{value}} kg/ha close to the {{limit}} limit over {{years}} years",
+      "organic.copperOverLimit": "Copper {{value}} kg/ha beyond the {{limit}} limit over {{years}} years",
+      "organic.copperUndecidable": "Copper cannot be computed: {{uncountable}} operations lack the copper content in the {{years}}-year window",
+      "organic.nitrogenWithinLimit": "Organic nitrogen {{value}} kg N/ha of the {{limit}} permitted ({{counted}} applications counted)",
+      "organic.nitrogenOverLimit": "Organic nitrogen {{value}} kg N/ha beyond the {{limit}} limit",
+      "organic.nitrogenUndecidable": "Nitrogen cannot be computed: {{uncountable}} applications lack the nitrogen content",
+      "organic.conversionOngoing": "Conversion under way: it ends on {{endsOn}} ({{months}} months)",
+      "organic.conversionComplete": "Conversion completed on {{endsOn}} ({{months}} months)",
+      "organic.conversionUnknown": "Conversion period cannot be computed: the regime start date is missing",
+      "organic.incompleteOperations": "Incomplete operation: not enough data to conclude",
+      "subject.b2SlopeScope": "GAEC 5 scope: is the plot on a slope?",
+      "method.b2SlopeScope": "Mean and maximum slope from Copernicus DEM GLO-30 (Horn's algorithm), compared with the regional threshold. Tillage is not detected: furrow direction, which is what the rule governs, is not observable at 10 m.",
+      "explain.b2NotInScope": "Mean slope {{slope}}° (max {{maxSlope}}°), below the {{threshold}}° threshold: the plot falls outside the GAEC 5 obligation. Source: {{source}}.",
+      "explain.b2InScope": "Mean slope {{slope}}° (max {{maxSlope}}°), above the {{threshold}}° threshold: the plot falls under GAEC 5. Check the regional tillage rules. Source: {{source}}.",
+      "explain.b5NeedsOrthophoto": "An orthophoto is needed: at 10 m a {{featureWidth}} m wide feature cannot be resolved. At least {{requiredGsdCm}} cm resolution is required.",
+      "explain.b5OrthophotoTooCoarse": "Orthophoto at {{gsdCm}} cm: too coarse for a {{featureWidth}} m wide feature, which needs at least {{requiredGsdCm}} cm.",
+      "explain.b5OrthophotoNoBands": "Orthophoto {{fileName}} has {{bandCount}} bands: estimating green cover needs at least 3 (R, G, B). It remains usable for visual checking.",
+      "explain.b5Sufficient": "{{sharePct}}% of the area reads as vegetated over {{pixels}} pixels at {{gsdCm}} cm ({{fileName}}), above the required {{requiredShare}}%. Indicative RGB classification: it does not tell a hedge from a weed.",
+      "explain.b5Insufficient": "{{sharePct}}% of the area reads as vegetated over {{pixels}} pixels at {{gsdCm}} cm ({{fileName}}), below the required {{requiredShare}}%. The estimate is RGB and indicative: check visually before drawing conclusions.",
+      "missing.orthophoto": "High-resolution orthophoto for a {{featureWidth}} m wide feature",
+      "missing.orthophotoFix": "Upload a georeferenced GeoTIFF with at least {{requiredGsdCm}} cm resolution (national, regional or drone orthophoto).",
+      "missing.orthophotoResolution": "Orthophoto resolution is insufficient ({{gsdCm}} cm)",
+      "missing.orthophotoBands": "The orthophoto has only {{bandCount}} bands",
+      "missing.orthophotoBandsFix": "Upload a colour orthophoto (R, G, B): green cover cannot be estimated with fewer than three bands."
+    },
+    "panel": {
+      "title": "Regulatory monitoring",
+      "subtitle": "Campaign {{year}} · {{areaHa}} ha",
+      "selectPlot": "Select a plot to see its self-assessment.",
+      "loading": "Computing from the scenes already in the archive…",
+      "noChecks": "No card applies to the company's country.",
+      "exportReport": "Export the report ({{count}} cards)",
+      "historyCost": "Some cards need {{years}} years of archive and {{cached}} are cached: completing them means downloading about {{scenes}} scenes ({{indices}}), with the traffic and time that entails.",
+      "plot": "Plot and crop",
+      "plotHint": "The assessment runs on one plot at a time, on the crop declared for campaign {{year}}. Clicking the map still opens the field logbook.",
+      "noCrop": "crop not declared",
+      "running": "Assessment running…",
+      "runOne": "Assess this card",
+      "rerunOne": "Re-assess"
+    },
+    "card": {
+      "observability": "Observability",
+      "window": "Window",
+      "confidence": "Confidence",
+      "limitedBy": "Confidence limited by: {{factors}}.",
+      "uncertainty": "Uncertainty",
+      "method": "Method and thresholds",
+      "scenes": "Scenes used ({{count}})",
+      "series": "Raw series",
+      "noScenes": "No scenes used: this card does not observe the satellite.",
+      "sceneDate": "Date",
+      "sceneId": "Scene",
+      "sceneCloud": "Cloud",
+      "scenePixels": "Pixels",
+      "seriesTitle": "{{index}} · {{count}} observations",
+      "parameterDefault": "Regulatory default {{value}} · current value: {{source}}",
+      "needs": "Requires",
+      "needsImagery": "{{indices}} · {{years}} years of archive",
+      "needsNoImagery": "Logbook and campaign only: no imagery",
+      "computedAt": "Assessed on {{at}}"
+    },
+    "parameterSource": {
+      "default": "default",
+      "override": "changed by you"
+    },
+    "outcome": {
+      "compliant": "Compliant",
+      "attention": "Needs a look",
+      "non_compliant": "Non-compliant",
+      "undecidable": "Undecidable"
+    },
+    "observability": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "factor": {
+      "scene_count": "Scene count",
+      "temporal_gap": "Temporal gap",
+      "cloud_cover": "Cloud cover",
+      "pure_pixels": "Pure pixels",
+      "resolution_fit": "Resolution fit",
+      "declared_data": "Declared data",
+      "archive_depth": "Archive depth"
+    },
+    "disclaimer": {
+      "short": "Self-assessment, not an official check.",
+      "full": "This is a SELF-ASSESSMENT based on public satellite observations and on your field logbook. It is not an official check: area monitoring (AMS, EU Reg. 2021/2116 art. 66) belongs to the Paying Agency, and organic verification to the control body. Every card states its method, thresholds, scenes used and uncertainty: read them together with the outcome."
+    },
+    "group": {
+      "eligibility": "Eligibility",
+      "conditionality": "Conditionality (GAEC)",
+      "ecoSchemes": "Eco-schemes",
+      "transversal": "Cross-cutting",
+      "organic": "Organic"
+    },
+    "sources": {
+      "title": "Data sources",
+      "terrain": "Slope (DEM)",
+      "terrainHint": "Needed by GAEC 5. Fetched from Copernicus DEM GLO-30, no upload needed.",
+      "terrainReady": "Mean {{slope}}°, max {{maxSlope}}° · {{source}}",
+      "waterNetwork": "Water network (OSM)",
+      "waterNetworkHint": "Needed by GAEC 4. Extracted from OpenStreetMap around the plot: volunteer mapping, not the official network.",
+      "waterNetworkReady": "{{count}} watercourses · {{attribution}}",
+      "orthophoto": "Orthophoto (.tif)",
+      "orthophotoHint": "Needed by GAEC 8: hedges and field margins are invisible at 10 m. The file stays in memory and is not saved.",
+      "orthophotoReady": "{{fileName}} · {{gsdCm}} cm · {{bands}} bands",
+      "fetch": "Fetch",
+      "upload": "Upload",
+      "replace": "Replace",
+      "orthophotoFromMap": "Use “{{name}}” already loaded",
+      "orthophotoFromMapHint": "Loaded from Add data: it is re-read at full resolution, clipped to this plot."
+    },
+    "scenes": {
+      "hint": "Check how many scenes this card needs and how many are missing.",
+      "summary": "{{available}} scenes available from {{from}} to {{to}}: {{cached}} already cached, {{missing}} missing.",
+      "size": "≈ {{mb}} MB to download.",
+      "verify": "Check scenes",
+      "download": "Download {{count}} scenes",
+      "downloading": "Downloading {{done}} of {{total}}…"
+    },
+    "cache": {
+      "title": "Scene cache",
+      "stats": "{{scenes}} cached scenes, ≈ {{mb}} MB.",
+      "safe": "Safe to clear: scenes are re-downloaded from the catalogue. None of your own data lives here.",
+      "cleared": "{{count}} scenes removed.",
+      "clearPlot": "Clear for this plot",
+      "clearAll": "Clear the whole cache",
+      "confirmPlot": "Clear this plot's cache?",
+      "confirmAll": "Clear the cache for every plot?",
+      "confirm": "Clear",
+      "cancel": "Cancel"
     }
   },
   "validation": {
@@ -141,7 +487,9 @@
     "toolExport": "Export (CSV)…",
     "toolProfile": "Company profile",
     "toolWeather": "Weather source & variables",
-    "toolGeoCompliance": "GeoCompliance"
+    "toolGeoCompliance": "GeoCompliance",
+    "toolParcelAdoption": "Public parcels",
+    "moduleCompliance": "Compliance"
   },
   "help": {
     "menu": "Help",
@@ -466,6 +814,9 @@
       },
       "contact": {
         "label": "Contact"
+      },
+      "certifications": {
+        "label": "Certifications"
       }
     },
     "fields": {
@@ -493,6 +844,17 @@
       "contactName": "Full name",
       "contactRole": "Role",
       "contactRolePlaceholder": "e.g. owner, agronomist"
+    },
+    "certification": {
+      "organicTitle": "Organic farming",
+      "organicHint": "Certification issued to the company by the control body (EU Reg. 2018/848). Each plot's production regime is per campaign year and is declared in the crop sheet.",
+      "controlBody": "Control body",
+      "controlBodyPlaceholder": "e.g. accredited control body",
+      "operatorCode": "Operator code",
+      "operatorCodePlaceholder": "Code assigned by the control body",
+      "certificateNumber": "Certificate number",
+      "validFrom": "Valid from",
+      "validTo": "Valid until"
     }
   },
   "harvestPanel": {
@@ -614,7 +976,6 @@
     "recentActivity": "Recent activity",
     "sianImportResult": "Farm dossier {{year}}: {{created}} fields created, {{updated}} updated.",
     "sianImportResultSkipped": "Farm dossier {{year}}: {{created}} fields created, {{updated}} updated, {{skipped}} skipped.",
-    "sianModeDescription": "Import the Graphic Farm Dossier (Shapefile .zip or CAA CSV). Creates/updates fields for the {{year}} Agricultural Campaign.",
     "unrecognizedFormat": "Unrecognized format: {{name}}. Accepted: GeoJSON, KML, KMZ, GPX, GeoPackage (.gpkg), Shapefile (.zip/.shp).",
     "uploadAnyway": "Upload anyway",
     "addData": "Add data",
@@ -625,7 +986,31 @@
     "noReadableGeometries": "The file contains no readable geometries.",
     "selectCompanyFirst": "Select an active company first.",
     "mapLayer": "Map layer",
-    "sianFile": "SIAN dossier"
+    "dossierFile": {
+      "SIAN": "SIAN dossier",
+      "SIEX": "SIGPAC dossier",
+      "generic": "Graphic dossier"
+    },
+    "dossierModeDescription": {
+      "SIAN": "Import the SIAN graphic farm dossier (Shapefile .zip or CAA CSV). Creates/updates the {{year}} campaign parcels.",
+      "SIEX": "Import the SIGPAC graphic dossier (Shapefile .zip or CSV). Creates/updates the {{year}} campaign parcels.",
+      "generic": "Import your official graphic farm dossier (Shapefile .zip or CSV). Creates/updates the {{year}} campaign parcels."
+    },
+    "raster": {
+      "title": "Raster maps",
+      "wms": "WMS service",
+      "orthophoto": "Orthophoto (.tif)",
+      "wmsHint": "Paste the service address: the available layers are read from it.",
+      "wmsPlaceholder": "https://service.example.org/wms",
+      "loadLayers": "Read the available layers",
+      "layersFound": "{{count}} layers · WMS {{version}}",
+      "addToMap": "Add to the map",
+      "wmsAdded": "WMS layer “{{name}}” added to the map.",
+      "orthophotoHint": "Georeferenced GeoTIFF (UTM or WGS84). It stays on the device and works offline; the GAEC 8 card can measure on it without a second upload.",
+      "chooseTif": "Choose the .tif file",
+      "orthophotoAdded": "Orthophoto “{{name}}” added ({{gsdCm}} cm).",
+      "orthophotoAddedScaled": "Orthophoto “{{name}}” added ({{gsdCm}} cm). On the map it is downscaled to {{side}} px per side; GAEC 8 measurements still use the original file."
+    }
   },
   "basemapSwitcher": {
     "basemap": "Basemap",
@@ -638,14 +1023,17 @@
   "companyDataIo": {
     "exportCompanyData": "Export farm data (GeoJSON)",
     "importData": "Import data",
-    "importSuccess": "Imported {{crops}} crops, {{plots}} plots, {{campaigns}} campaigns, {{treatments}} treatments, {{soilSamples}} soil analyses, {{harvests}} harvests, {{assets}} assets, {{scouting}} scouting records.",
+    "importSuccess": "Imported {{crops}} crops, {{plots}} plots, {{campaigns}} campaigns, {{treatments}} treatments, {{soilSamples}} soil analyses, {{harvests}} harvests, {{assets}} assets, {{scouting}} scouting records, {{warehouse}} warehouse records, {{machinery}} machinery records, {{planning}} planning records.",
     "confirmImport": "The file's data will be imported into the active company: any records with the same identifier will be overwritten. Continue?",
     "confirmRestoreLocal": "Restore local data: this operation OVERWRITES the current state of the map (plots and Field Logbook) with the data from the file. Continue?",
     "descriptionCloud": "Export or import the active company's data (plots + Field Logbook) in Extended GeoJSON format.",
     "descriptionStandalone": "Export a complete snapshot of the local data as GeoJSON, or restore the state from a backup file.",
     "exportSuccess": "Company data exported.",
     "titleCloud": "Company data transfer",
-    "titleStandalone": "Data safety (backup/restore)"
+    "titleStandalone": "Data safety (backup/restore)",
+    "confirmParcelConflict": "The parcel is already in this farm as “{{name}}”. Overwrite it? Its logbook entries would be kept, but its details would be replaced. Choose Cancel to keep it as it is.",
+    "importSuccessWithSkips": "{{plots}} plots restored, {{skipped}} skipped because they were already in the farm.",
+    "importSuccessWithUnlinked": "Restore complete. {{skipped}} linked rows were skipped: the record they hang from is neither in the file nor in the archive (typical of a partial backup)."
   },
   "confirmDeleteOperation": {
     "confirmDelete": "Yes, delete permanently",
@@ -1590,21 +1978,48 @@
     "sowingHint": "Log the \"Sowing / Transplanting\" operation in the Logbook: its date drives the DSS growing-degree-day models.",
     "speciesFromCatalog": "Species from catalog · {{countryCode}}",
     "speciesLabel": "Species · {{label}}",
-    "agriculturalParcel": "Agricultural parcel ID",
     "commonName": "Common name",
-    "cropCode": "Crop code (SIAN/ministerial)",
     "cropCodePlaceholder": "e.g. 060",
     "nextYear": "Next year",
     "noActiveCompany": "No active company.",
     "previousYear": "Previous year",
-    "referenceParcel": "Reference parcel ID",
     "saveCrop": "Save crop",
     "scientificName": "Scientific name",
     "scientificNamePlaceholder": "e.g. Vitis vinifera",
     "updateCrop": "Update crop",
     "varietyCode": "Variety code",
     "varietyFromCatalog": "Variety from catalog",
-    "varietyPlaceholder": "e.g. Sangiovese, Leccino"
+    "varietyPlaceholder": "e.g. Sangiovese, Leccino",
+    "parcelLabels": {
+      "SIAN": {
+        "referenceParcel": "SIAN reference parcel ID (isola)",
+        "agriculturalParcel": "SIAN agricultural parcel ID",
+        "cropCode": "SIAN crop code"
+      },
+      "SIEX": {
+        "referenceParcel": "SIGPAC reference parcel",
+        "agriculturalParcel": "SIGPAC enclosure (recinto)",
+        "cropCode": "SIEX crop code"
+      },
+      "generic": {
+        "referenceParcel": "Reference parcel code",
+        "agriculturalParcel": "Parcel code",
+        "cropCode": "Crop code"
+      }
+    },
+    "productionRegimeLabel": "Production regime",
+    "productionRegime": "Declared regime",
+    "regimeNotDeclared": "Not declared",
+    "regimeSince": "Under this regime since",
+    "regimeNotes": "Regime notes",
+    "regimeNotesPlaceholder": "Derogations, notes from the control body",
+    "regimeHint": "The regime applies to this campaign year: changing it does not rewrite the past. “Under this regime since” is the date the 24-month (annual crops) or 36-month (perennials) organic conversion period is counted from.",
+    "regimes": {
+      "conventional": "Conventional",
+      "in_conversion": "In conversion",
+      "organic": "Organic",
+      "integrated": "Integrated production"
+    }
   },
   "cropPanel": {
     "calculateModels": "Calculate Models",
@@ -1870,6 +2285,14 @@
       "area": "Area",
       "yield": "Yield / quantity",
       "water": "Water input"
+    },
+    "map": {
+      "title": "Map view",
+      "subtitle": "Zoom range the field map is allowed to move within. Only 13 to 17 is permitted: you can narrow it, not widen it.",
+      "minZoom": "Minimum zoom",
+      "minZoomHint": "How far out the view can go. Lowest allowed is 13 (farm or district).",
+      "maxZoom": "Maximum zoom",
+      "maxZoomHint": "How far in the view can go. Highest allowed is 17 (row or single plant)."
     }
   },
   "operationDetailCard": {
@@ -1944,7 +2367,12 @@
     "poi": "POI",
     "id": "ID",
     "indexCell": "Index cell",
-    "cellSize": "{{size}} × {{size}} m"
+    "cellSize": "{{size}} × {{size}} m",
+    "parcelNoReference": "No native identifier",
+    "parcelDeclaredArea": "Declared area",
+    "parcelCropCode": "Crop code",
+    "parcelYear": "Year",
+    "parcelClickHint": "Click to add it"
   },
   "appHeader": {
     "commandCenter": "Command Center",
@@ -2331,5 +2759,97 @@
       "water": "Water stress"
     },
     "showAll": "Show all"
+  },
+  "parcelAdoption": {
+    "title": "Public parcels",
+    "intro": "Pick an official source, then search the area you are looking at or click a point on the map. Nothing is added until you choose it.",
+    "sourceLabel": "Source",
+    "attribution": "Data: {{attribution}} — licence {{license}}",
+    "searchHere": "Search this area",
+    "pickPoint": "Click a point",
+    "pickingPoint": "Click on the map…",
+    "zoomIn": "The visible area is too wide: zoom in before searching.",
+    "noResults": "No parcels found here.",
+    "noReference": "No native identifier",
+    "declaredArea": "{{value}} ha declared",
+    "cropCode": "crop {{code}}",
+    "plotNameLabel": "Plot name",
+    "adopt": "Add to the farm",
+    "alreadyAdopted": "This parcel is already in the farm as “{{name}}”.",
+    "unitType": {
+      "cadastral_parcel": "Cadastral parcel — it may hold more than one crop.",
+      "physical_block": "Physical block — it may contain several cultivated plots.",
+      "farmer_parcel": "Farmer parcel as declared to the paying agency.",
+      "agricultural_parcel": "Agricultural parcel — already a single cropped unit.",
+      "manual": "Drawn by hand."
+    },
+    "foundHint": "{{count}} parcels drawn on the map. Hover one to see its details, click it to add it.",
+    "zoomOut": "You are too close: zoom out a little before searching."
+  },
+  "onboarding": {
+    "title": "Welcome to AgroGea",
+    "intro": "Everything stays on this device. Start a new farm, or restore one from a backup.",
+    "newCompany": "New farm",
+    "businessName": "Farm name",
+    "country": "Country",
+    "countryPlaceholder": "Choose a country…",
+    "countryHint": "It decides which official parcel sources are offered and which rules apply.",
+    "city": "Municipality or locality (optional)",
+    "cityHint": "Only used to frame the map. Your fields can be anywhere, including across a border.",
+    "vatNumber": "VAT number (optional)",
+    "start": "Start",
+    "or": "or",
+    "restore": "Restore from a backup",
+    "restoreHint": "An AgroGea GeoJSON file. Older backups are upgraded automatically.",
+    "pickBackup": "Choose a file…",
+    "restoredCompany": "Restored farm",
+    "error": {
+      "nameRequired": "Give the farm a name.",
+      "countryInvalid": "Choose a country."
+    }
+  },
+  "warehouseSheet": {
+    "title": "Warehouses",
+    "manage": "Warehouses",
+    "selectorLabel": "Warehouse",
+    "allWarehouses": "All warehouses",
+    "unassigned": "Unassigned",
+    "lotWarehouse": "Destination warehouse",
+    "lotsInStock_one": "{{count}} lot in stock",
+    "lotsInStock_other": "{{count}} lots in stock",
+    "backToProducts": "‹ Back to products",
+    "empty": "No warehouse yet: create one to place your stock and see it on the map.",
+    "emptyWarehouse": "No product in this warehouse.",
+    "newWarehouse": "New warehouse",
+    "edit": "Edit warehouse",
+    "delete": "Delete warehouse",
+    "deleteNotice": "Deleting a warehouse does not lose its lots: they become “unassigned”.",
+    "name": "Name",
+    "namePlaceholder": "E.g. North shed",
+    "type": "Type",
+    "address": "Address",
+    "position": "Position on the map",
+    "noPosition": "No position",
+    "tapMap": "Tap the map",
+    "tapMapEllipsis": "Tap the map…",
+    "clearPosition": "Clear position",
+    "save": "Save warehouse",
+    "kind": {
+      "general": "General",
+      "phytosanitary": "Plant protection store",
+      "fertilizer": "Fertiliser store",
+      "seed": "Seed store",
+      "fuel": "Fuel tank",
+      "machinery": "Machinery shed"
+    }
+  },
+  "plotAlerts": {
+    "tasksPending_one": "{{count}} task planned",
+    "tasksPending_other": "{{count}} tasks planned",
+    "gap": {
+      "soil_texture": "Missing soil texture",
+      "declarative_fields": "Incomplete campaign declaration data",
+      "incomplete_records": "Incomplete logbook records"
+    }
   }
 }

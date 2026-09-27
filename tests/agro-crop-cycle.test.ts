@@ -7,6 +7,7 @@ import {
   missingDeclarative,
   sianComplete,
   missingSian,
+  declarativeLabelSet,
   declarativeSystem,
 } from "../packages/agro-core/src/compliance/sian-campaign";
 import { cropForPlot } from "../packages/agro-core/src/store/feature-collections";
@@ -195,6 +196,17 @@ describe("compliance SIAN / campi dichiarativi mancanti", () => {
     assert.equal(sianComplete(completa), true);
   });
 
+  it("le etichette dei codici particella seguono il paese", () => {
+    // "Isola" e "SIAN" sono termini del sistema italiano: mostrarli a
+    // un'azienda di un altro paese è sbagliato, non solo poco elegante.
+    assert.equal(declarativeLabelSet("IT"), "SIAN");
+    assert.equal(declarativeLabelSet("ES"), "SIEX");
+    // Paesi senza sistema dichiarativo gateato → termini generici, veri ovunque.
+    for (const country of ["NL", "FR", "DE", "EU", null, undefined, ""]) {
+      assert.equal(declarativeLabelSet(country), "generic", String(country));
+    }
+  });
+
   it("country-aware: IT→SIAN, ES→SIEX, altri paesi senza gate", () => {
     assert.equal(declarativeSystem("IT"), "SIAN");
     assert.equal(declarativeSystem("ES"), "SIEX");
@@ -239,6 +251,9 @@ describe("v17 / cropForPlot ignora le campagne chiuse", () => {
       crop_external_code: null,
       variety_external_code: null,
       declared_area_ha: 1,
+      production_regime: null,
+      regime_since: null,
+      regime_notes: null,
       closed_at: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",

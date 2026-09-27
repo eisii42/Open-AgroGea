@@ -1,0 +1,23 @@
+{
+  "$schema": "./source.schema.json",
+  "id": "fr-rpg-parcelles",
+  "nuts": ["FR"],
+  "name": "RPG — Parcelles graphiques (IGN Géoplateforme)",
+  "accessType": "wfs",
+  "endpoint": "https://data.geopf.fr/wfs/ows",
+  "featureType": "RPG.LATEST:parcelles_graphiques",
+  "crs": "EPSG:4326",
+  "referenceUnitType": "farmer_parcel",
+  "license": {
+    "id": "etalab-2.0",
+    "attribution": "IGN — Registre parcellaire graphique",
+    "url": "https://www.etalab.gouv.fr/licence-ouverte-open-licence"
+  },
+  "attributeMap": {
+    "sourceId": "id_parcel",
+    "nationalCropCode": "code_cultu",
+    "declaredArea": "surf_parc"
+  },
+  "updateCadence": "annual",
+  "lastVerified": null
+}

@@ -92,6 +92,11 @@ export interface UserPreferences {
   };
   /** Lingua dell'interfaccia (codice {@link AppLocale}: "it"|"en"|"es"|"fr"). */
   locale?: string;
+  /**
+   * Intervallo di zoom entro cui la mappa di campo può muoversi
+   * ({@link MapZoomLimits}, default 13–17).
+   */
+  mapZoom?: { min: number; max: number };
 }
 
 /**
@@ -125,6 +130,54 @@ export type CropType =
   | "olivicoltura"
   | "frutticoltura"
   | (string & {});
+
+/**
+ * Schema di certificazione dell'OPERATORE (l'organismo certifica l'azienda, non
+ * il campo). Per ora l'unico implementato è il biologico; il tipo è un'unione
+ * aperta perché GlobalGAP, SQNPI e le altre arriveranno senza migrazione.
+ *
+ * VALORE persistito (dentro `companies.operator_certifications`): resta in
+ * inglese come gli altri discriminanti nuovi.
+ */
+export type CertificationScheme = "organic" | (string & {});
+
+/**
+ * Certificazione dell'operatore rilasciata da un organismo di controllo.
+ * Vive in `companies.operator_certifications` (jsonb, array): l'azienda può
+ * averne più d'una contemporaneamente (biologico + GlobalGAP + …) e ognuna ha
+ * la propria validità, quindi non sono colonne.
+ *
+ * Chiavi snake_case: sono un contratto PERSISTITO, come le chiavi di
+ * `planned_tasks.metadata`.
+ */
+export interface OperatorCertification {
+  /** Schema certificato (per ora solo `"organic"`). */
+  scheme: CertificationScheme;
+  /** Codice operatore assegnato dall'organismo di controllo. */
+  operator_code: string | null;
+  /** Organismo di controllo (es. "ICEA", "Suolo e Salute", "Bioagricert"). */
+  control_body: string | null;
+  /** Numero del certificato di conformità. */
+  certificate_number: string | null;
+  /** Inizio validità (`YYYY-MM-DD`). */
+  valid_from: string | null;
+  /** Fine validità (`YYYY-MM-DD`); `null` = senza scadenza dichiarata. */
+  valid_to: string | null;
+}
+
+/**
+ * Regime di produzione dichiarato per l'ANNATA (`plots_campaign`). È un dato
+ * per campagna e non per appezzamento: su `plots_registry` non si potrebbe dire
+ * "bio dal 2024" senza sovrascrivere il passato.
+ *
+ * VALORI persistiti e accoppiati alla UI: restano in inglese come gli altri
+ * discriminanti nuovi.
+ */
+export type ProductionRegime =
+  | "conventional"
+  | "organic"
+  | "in_conversion"
+  | "integrated";
 
 /** Company agricola (`companies`). */
 export interface Company {
@@ -160,8 +213,24 @@ export interface Company {
   sdi_code: string | null;
   /** Centroide dell'azienda (jsonb GeoJSON Point). */
   centroid: Point | null;
-  /** Certificazioni (ex certificazioni). */
-  certifications: string[];
+  /**
+   * @deprecated v24 — campo MORTO: nessun form lo compilava e nessun modulo lo
+   * leggeva; l'unico scrittore era `createCompany`, che ci metteva `[]`. La
+   * certificazione dell'operatore è strutturata e vive in
+   * {@link Company.operator_certifications}; il regime dell'appezzamento è per
+   * ANNATA e vive in {@link PlotCampaign.production_regime}.
+   *
+   * La colonna `certifications text[]` NON è stata droppata (sui device ci sono
+   * dati reali e le migrazioni sono solo additive) e resta leggibile per
+   * compatibilità: opzionale qui perché nessun nuovo codice deve valorizzarla.
+   * Vedi `docs/technical/operator-certification-and-production-regime.md`.
+   */
+  certifications?: string[];
+  /**
+   * Certificazioni dell'operatore (`operator_certifications` jsonb, array).
+   * Una voce per schema certificato; oggi la UI compila solo `"organic"`.
+   */
+  operator_certifications: OperatorCertification[];
   /** Numero del fascicolo aziendale (ex fascicolo_aziendale). */
   farm_file_id: string | null;
   /** Organismo pagatore di riferimento (ex organismo_pagatore). */
@@ -223,6 +292,36 @@ export interface Plot {
   planting_year: number | null;
   /** Note storiche del field come entità FISICA immutabile (ex note_storiche). */
   historical_notes?: string | null;
+  /**
+   * Identificativo NATIVO nella fonte pubblica da cui la particella è stata
+   * adottata (codice catastale, FLIK, id RPG, localId INSPIRE). `null` per gli
+   * appezzamenti disegnati a mano o importati da un fascicolo.
+   * Con {@link Plot.nuts_code} forma la chiave di deduplica.
+   */
+  source_id: string | null;
+  /**
+   * Nodo NUTS di provenienza. Serve INSIEME a `source_id` perché la granularità
+   * del catalogo è il nodo e non lo Stato: due nodi possono usare numerazioni
+   * sovrapposte, e il solo identificativo nativo non sarebbe univoco.
+   */
+  nuts_code: string | null;
+  /**
+   * Che cosa rappresenta la geometria adottata (valori di
+   * `ReferenceUnitType` in `@agrogea/parcel`). Va conservato perché cambia il
+   * significato dell'appezzamento: un `physical_block` può contenere più
+   * colture diverse, una `agricultural_parcel` è già l'unità colturale.
+   */
+  reference_unit_type: string | null;
+  /** Annata del dato di origine (campagna LPIS della fonte). */
+  validity_year: number | null;
+  /**
+   * Metadata estensibili. Chiavi persistite note:
+   *   * `suolo` — parametri pedologici inseriti a mano;
+   *   * `parcel` — provenienza estesa della particella adottata (nome e URL
+   *     della fonte, licenza con attribuzione, istante di acquisizione, CRS e
+   *     geometria originali non riproiettati). Vedi `ParcelProvenance` in
+   *     `@agrogea/core`.
+   */
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -252,6 +351,20 @@ export interface PlotCampaign {
   variety_external_code: string | null;
   /** Superficie ufficiale dichiarata in ettari (IACS declared area, NUMERIC 10,4). */
   declared_area_ha: number;
+  /**
+   * Regime di produzione DICHIARATO per questa annata (v24). `null` = non
+   * dichiarato: le campagne create prima della v24 restano tali e nessun
+   * modulo deve inferire "convenzionale" dal silenzio.
+   */
+  production_regime: ProductionRegime | null;
+  /**
+   * Data d'inizio del regime (`YYYY-MM-DD`), da cui si contano i 24/36 mesi di
+   * conversione al biologico (Reg. UE 2018/848). Può precedere di anni la
+   * campagna: è la data dell'evento, non dell'annata.
+   */
+  regime_since: string | null;
+  /** Note libere sul regime (deroghe, note dell'organismo di controllo). */
+  regime_notes: string | null;
   /**
    * Chiusura del ciclo colturale (ISO): il raccolto di un'ANNUALE termina la
    * campagna e il field torna libero (mappa neutra, DSS spento, nuova semina
@@ -552,7 +665,11 @@ export type FileFormat =
   | "shapefile"
   | "gpkg"
   | "kml"
-  | "gpx";
+  | "gpx"
+  /** Report di autovalutazione del modulo Compliance (v25). */
+  | "json"
+  /** Ortofoto GeoTIFF caricata come sovrapposizione cartografica (v25). */
+  | "geotiff";
 
 /** Voce del registro dei trasferimenti dati (`data_transfer_logs`, LOCAL-ONLY). */
 export interface DataTransferLog {
@@ -660,11 +777,67 @@ export interface Product {
   deleted_at: string | null;
 }
 
+/**
+ * Magazzino fisico dell'azienda (`warehouses`): il LUOGO in cui la merce sta.
+ * Un'azienda può averne quanti ne servono (capannone, deposito agrofarmaci,
+ * cisterna carburante, silos), ciascuno con il proprio contenuto — sono i
+ * {@link ProductLot} a portare la collocazione, non l'anagrafica prodotto.
+ */
+export interface Warehouse {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  /** Denominazione d'uso ("Capannone Nord", "Deposito fitofarmaci"). */
+  name: string;
+  /** Tipologia di deposito ({@link WarehouseKind}); guida icona e filtri. */
+  warehouse_type: string;
+  /**
+   * Posizione sulla mappa (Point GeoJSON) o null. Valorizzata, il magazzino
+   * compare come POI con icona dedicata e il click apre la sua scheda.
+   */
+  geometry: import("geojson").Point | null;
+  address: string | null;
+  notes: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/**
+ * Tipologie di deposito proposte dal form. È testo libero a DB (`warehouse_type`
+ * non ha CHECK: le tipologie sono aziendali, non normative), ma l'elenco
+ * canonico guida l'icona sulla mappa e il selettore.
+ */
+export type WarehouseKind =
+  | "general"
+  | "phytosanitary"
+  | "fertilizer"
+  | "seed"
+  | "fuel"
+  | "machinery";
+
+/** Elenco canonico delle tipologie proposte (ordine del selettore). */
+export const WAREHOUSE_KINDS: readonly WarehouseKind[] = [
+  "general",
+  "phytosanitary",
+  "fertilizer",
+  "seed",
+  "fuel",
+  "machinery",
+];
+
 /** Lotto di warehouse (`product_lots`): scadenza, stock e costo di carico. */
 export interface ProductLot {
   id: string;
   tenant_id: string;
   product_id: string;
+  /**
+   * Magazzino in cui il lot è collocato, o null se non assegnato (lots
+   * caricati prima dei magazzini multipli). La giacenza vive nel lot: è
+   * questo campo a permettere lo STESSO product in depositi diversi.
+   */
+  warehouse_id: string | null;
   /** Numero lot di produzione. */
   lot_number: string | null;
   /** Data di scadenza (ISO "YYYY-MM-DD"), null se non deperibile. */
@@ -1233,32 +1406,74 @@ export interface TenantMembership {
 // Outbox / sync
 // ---------------------------------------------------------------------------
 
-export type SyncTable =
-  | "companies"
-  | "crops"
-  | "plots_registry"
-  | "plots_campaign"
-  | "treatment_logs"
-  | "weather_readings"
-  | "soil_samples"
-  | "infrastructure_assets"
-  | "harvest_logs"
-  | "scouting_observations"
-  | "tenant_memberships"
-  | "products"
-  | "product_lots"
-  | "activity_products"
-  | "machines"
-  | "equipment"
-  | "activity_machines"
-  | "maintenance_schedules"
-  | "maintenance_logs"
-  | "machine_documents"
-  | "counter_adjustments"
-  | "fuel_refills"
-  | "recipes"
-  | "planned_tasks"
-  | "field_operation_sessions";
+/**
+ * Override di un parametro di una scheda di compliance
+ * (`compliance_parameter_overrides`, v25).
+ *
+ * Gli ESITI delle schede non si persistono: sono interamente ricalcolabili
+ * dalle scene e dal Quaderno, e come `dss_results` o la cache degli indici non
+ * appartengono a una coda di mutazioni. Gli **override** sì: sono una scelta
+ * dell'utente — la soglia di copertura che il suo Organismo Pagatore applica,
+ * il periodo sensibile della sua regione — e perderli in un ripristino
+ * cambierebbe gli esiti in silenzio, che è il modo peggiore in cui un backup
+ * può fallire. Per questo la tabella è sincronizzata e sta nel formato di
+ * scambio, sezione `compliance`.
+ */
+export interface ComplianceParameterOverride {
+  id: string;
+  tenant_id: string;
+  company_id: string;
+  /** Id della scheda (`CheckSpec.id`, es. `"b3_gaec6_soil_cover"`). */
+  check_id: string;
+  /** Id del parametro dentro la scheda (es. `"coverNdviThreshold"`). */
+  parameter_id: string;
+  /** Valore scelto dall'utente. Fuori dagli estremi della scheda viene ignorato. */
+  value: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/**
+ * Tabelle sincronizzabili: il contratto del wire format dell'outbox.
+ *
+ * Valore runtime e non solo tipo perché lo stesso elenco vive anche in Rust
+ * (`TABELLE_SYNC` in `src-tauri/src/agro.rs`, che rifiuta ogni mutazione su
+ * una tabella fuori lista) e in `PULL_TABLES` (`sync/targets.ts`): il test
+ * `tests/agro-sync-tables.test.ts` confronta i tre elenchi, così aggiungere una
+ * tabella sincronizzata in un posto solo rompe la CI invece del sync.
+ */
+export const SYNC_TABLES = [
+  "companies",
+  "crops",
+  "plots_registry",
+  "plots_campaign",
+  "treatment_logs",
+  "weather_readings",
+  "soil_samples",
+  "infrastructure_assets",
+  "harvest_logs",
+  "scouting_observations",
+  "tenant_memberships",
+  "warehouses",
+  "products",
+  "product_lots",
+  "activity_products",
+  "machines",
+  "equipment",
+  "activity_machines",
+  "maintenance_schedules",
+  "maintenance_logs",
+  "machine_documents",
+  "counter_adjustments",
+  "fuel_refills",
+  "recipes",
+  "planned_tasks",
+  "field_operation_sessions",
+  "compliance_parameter_overrides",
+] as const;
+
+export type SyncTable = (typeof SYNC_TABLES)[number];
 
 export type MutationOperation = "insert" | "update" | "delete";
 
@@ -1314,6 +1529,19 @@ export type PanelMode = "floating" | "docked";
  */
 export type WarehouseTab = "products" | "machines";
 
+/**
+ * Famiglia di schede del modulo Normativa, cioè la voce con cui il modulo si
+ * apre dalla sidebar. Rispecchia `CheckGroup` di `@agrogea/tools`: il core non
+ * dipende dal pacchetto dei motori, e i due tipi sono allineati
+ * strutturalmente come già avviene per gli id degli indici vegetazionali.
+ */
+export type ComplianceGroup =
+  | "eligibility"
+  | "conditionality"
+  | "ecoSchemes"
+  | "transversal"
+  | "organic";
+
 export type FieldPanel =
   | "quaderno"
   | "plot-sheet"
@@ -1337,7 +1565,12 @@ export type FieldPanel =
   | "geocompliance"
   | "profile"
   | "scouting"
-  | "tasks";
+  | "tasks"
+  // Nuovo id in inglese: i valori italiani sopra sono storici e restano come
+  // sono (sono accoppiati a UI e persistenza), ma non si aggiungono più.
+  | "parcel-adoption"
+  /** Monitoraggio normativo (v25): autovalutazione delle schede PAC. */
+  | "compliance-monitor";
 
 /** Rilievo GPS in field, sincronizzato via outbox come le altre tabelle. */
 export interface ScoutingObservation {

@@ -317,3 +317,93 @@ export function persistUnits(units: UnitSystem): void {
     /* no-op */
   }
 }
+
+// ---------------------------------------------------------------------------
+// Limiti di zoom della mappa
+// ---------------------------------------------------------------------------
+
+/**
+ * Intervallo di zoom entro cui l'utente può muovere la mappa di campo. È una
+ * preferenza d'UTENTE (stesso ciclo di vita di unità e layout): la vista
+ * agronomica utile vive fra la scala aziendale e il dettaglio del filare, e
+ * lasciare la mappa libera fino allo zoom 0/24 produce solo viste inutilizzabili
+ * (il mondo intero, o pixel di ortofoto sovracampionati).
+ */
+export interface MapZoomLimits {
+  min: number;
+  max: number;
+}
+
+/**
+ * ESTREMI ASSOLUTI della mappa di campo: 13 (azienda/comprensorio) e 17
+ * (filare/pianta singola). Non sono soltanto il default, sono il pavimento e
+ * il soffitto invalicabili — l'utente può stringere l'intervallo dentro
+ * questi due valori, mai allargarlo oltre. Fuori di qui la vista non serve al
+ * lavoro di campo: sotto il 13 si guarda una regione, sopra il 17 si
+ * sovracampionano pixel di ortofoto che non esistono.
+ */
+export const MAP_ZOOM_FLOOR = 13;
+export const MAP_ZOOM_CEILING = 17;
+
+/** Default: l'intervallo pieno consentito. */
+export const DEFAULT_MAP_ZOOM_LIMITS: MapZoomLimits = {
+  min: MAP_ZOOM_FLOOR,
+  max: MAP_ZOOM_CEILING,
+};
+
+/** Valori proposti dal selettore delle Impostazioni: 13, 14, 15, 16, 17. */
+export const MAP_ZOOM_CHOICES: readonly number[] = Array.from(
+  { length: MAP_ZOOM_CEILING - MAP_ZOOM_FLOOR + 1 },
+  (_, i) => MAP_ZOOM_FLOOR + i,
+);
+
+function clampZoom(value: unknown, fallback: number): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(MAP_ZOOM_CEILING, Math.max(MAP_ZOOM_FLOOR, Math.round(n)));
+}
+
+/**
+ * Normalizza una coppia (parziale, legacy o corrotta) contro i default,
+ * riportandola dentro [{@link MAP_ZOOM_FLOOR}, {@link MAP_ZOOM_CEILING}] e
+ * garantendo l'invariante `min <= max`: un intervallo invertito bloccherebbe la
+ * mappa (MapLibre alza `minZoom` sopra `maxZoom` e la vista resta incastrata).
+ *
+ * Il clamp vale anche in LETTURA, non solo sull'input del selettore: un valore
+ * fuori intervallo rimasto in `localStorage` o arrivato dal profilo remoto
+ * viene riportato dentro i limiti invece di essere applicato alla mappa.
+ */
+export function normalizeMapZoomLimits(
+  partial: { min?: unknown; max?: unknown } | null | undefined,
+): MapZoomLimits {
+  if (!partial || typeof partial !== "object") {
+    return { ...DEFAULT_MAP_ZOOM_LIMITS };
+  }
+  const min = clampZoom(partial.min, DEFAULT_MAP_ZOOM_LIMITS.min);
+  const max = clampZoom(partial.max, DEFAULT_MAP_ZOOM_LIMITS.max);
+  return min <= max ? { min, max } : { min: max, max: min };
+}
+
+const MAP_ZOOM_KEY = "agrogea.mapZoomLimits";
+
+export function loadMapZoomLimits(): MapZoomLimits {
+  try {
+    const raw = globalThis.localStorage?.getItem(MAP_ZOOM_KEY);
+    if (raw) {
+      return normalizeMapZoomLimits(
+        JSON.parse(raw) as { min?: unknown; max?: unknown },
+      );
+    }
+  } catch {
+    /* storage non disponibile o JSON corrotto: si ricade sui default */
+  }
+  return { ...DEFAULT_MAP_ZOOM_LIMITS };
+}
+
+export function persistMapZoomLimits(limits: MapZoomLimits): void {
+  try {
+    globalThis.localStorage?.setItem(MAP_ZOOM_KEY, JSON.stringify(limits));
+  } catch {
+    /* no-op */
+  }
+}

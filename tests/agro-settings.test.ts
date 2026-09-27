@@ -3,12 +3,17 @@ import { describe, it } from "node:test";
 import {
   DASHBOARD_MODULE_IDS,
   DEFAULT_DASHBOARD_LAYOUT,
+  DEFAULT_MAP_ZOOM_LIMITS,
+  MAP_ZOOM_CEILING,
+  MAP_ZOOM_CHOICES,
+  MAP_ZOOM_FLOOR,
   type DashboardModuleId,
   formatArea,
   formatYield,
   loadDashboardLayout,
   loadUnits,
   mergeDashboardLayout,
+  normalizeMapZoomLimits,
 } from "../packages/agro-core/src/field/settings";
 
 describe("mergeDashboardLayout", () => {
@@ -94,5 +99,70 @@ describe("load* fallbacks without localStorage", () => {
   });
   it("loadUnits falls back to the metric default", () => {
     assert.deepEqual(loadUnits(), { area: "ha", yield: "q", water: "mm" });
+  });
+});
+
+/**
+ * Limiti di zoom della mappa. 13 e 17 sono gli estremi ASSOLUTI: l'utente può
+ * stringere l'intervallo, mai allargarlo oltre. L'invariante `min <= max` non è
+ * cosmetica — un intervallo invertito farebbe alzare `minZoom` sopra `maxZoom`
+ * e la vista resterebbe incastrata.
+ */
+describe("normalizeMapZoomLimits", () => {
+  it("gli estremi assoluti sono 13 e 17, e sono anche il default", () => {
+    assert.equal(MAP_ZOOM_FLOOR, 13);
+    assert.equal(MAP_ZOOM_CEILING, 17);
+    assert.deepEqual(DEFAULT_MAP_ZOOM_LIMITS, { min: 13, max: 17 });
+  });
+
+  it("senza preferenze salvate usa l'intervallo pieno 13–17", () => {
+    assert.deepEqual(normalizeMapZoomLimits(null), DEFAULT_MAP_ZOOM_LIMITS);
+    assert.deepEqual(normalizeMapZoomLimits(undefined), { min: 13, max: 17 });
+    assert.deepEqual(normalizeMapZoomLimits({}), { min: 13, max: 17 });
+  });
+
+  it("il selettore propone solo i valori ammessi", () => {
+    assert.deepEqual([...MAP_ZOOM_CHOICES], [13, 14, 15, 16, 17]);
+  });
+
+  it("un intervallo più stretto dei limiti è lecito e viene rispettato", () => {
+    assert.deepEqual(normalizeMapZoomLimits({ min: 15, max: 16 }), {
+      min: 15,
+      max: 16,
+    });
+  });
+
+  it("nessuno può allargare l'intervallo oltre 13–17", () => {
+    assert.deepEqual(normalizeMapZoomLimits({ min: -5, max: 99 }), {
+      min: 13,
+      max: 17,
+    });
+    // Anche un valore salvato quando i limiti erano più larghi viene riportato
+    // dentro: il clamp vale in lettura, non solo sull'input del selettore.
+    assert.deepEqual(normalizeMapZoomLimits({ min: 8, max: 20 }), {
+      min: 13,
+      max: 17,
+    });
+  });
+
+  it("arrotonda a interi dentro l'intervallo", () => {
+    assert.deepEqual(normalizeMapZoomLimits({ min: 14.4, max: 15.6 }), {
+      min: 14,
+      max: 16,
+    });
+  });
+
+  it("raddrizza un intervallo invertito invece di lasciarlo passare", () => {
+    assert.deepEqual(normalizeMapZoomLimits({ min: 16, max: 14 }), {
+      min: 14,
+      max: 16,
+    });
+  });
+
+  it("un valore non numerico ricade sul suo default, senza toccare l'altro", () => {
+    assert.deepEqual(normalizeMapZoomLimits({ min: "abc", max: 15 }), {
+      min: 13,
+      max: 15,
+    });
   });
 });

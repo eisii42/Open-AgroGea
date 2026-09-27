@@ -1,0 +1,74 @@
+name: sources-verify
+
+# Verifica LIVE del catalogo delle fonti di particelle: interroga davvero ogni
+# endpoint e controlla che gli attributi dichiarati in `attributeMap` esistano
+# ancora. Un portale che rinomina una colonna non rompe nulla in compilazione —
+# rompe l'acquisizione sul dispositivo di un agricoltore, in silenzio.
+#
+# Sta in un workflow A SÉ, separato da `quality.yml`, per una ragione precisa:
+# il gate di qualità non deve MAI toccare la rete (requisito §10 delle
+# specifiche). Test e build restano offline; qui, e solo qui, si esce.
+#
+# ── DISATTIVATO ────────────────────────────────────────────────────────────
+# Gira solo su avvio manuale. L'esecuzione a calendario è pronta ma commentata:
+# attivarla significa far partire da sola, ogni settimana, una serie di
+# richieste verso i geoportali pubblici a nome del progetto — una decisione da
+# prendere deliberatamente, non da ereditare da un file di configurazione.
+#
+# Per attivarla: togliere il commento al blocco `schedule` qui sotto.
+#
+#   schedule:
+#     # Lunedì alle 04:17 UTC. Minuto non tondo di proposito: gli orari esatti
+#     # sono quando tutta GitHub Actions parte insieme, e i portali regionali
+#     # non meritano quel picco.
+#     - cron: "17 4 * * 1"
+#
+# Nota su `lastVerified`: questo workflow NON scrive nel repository. Aggiorna il
+# campo solo nell'artefatto del report; portarlo nel catalogo resta una pull
+# request aperta da una persona. Un bot che committa da solo su un repository
+# pubblico è una decisione a parte, e non l'abbiamo presa.
+
+on:
+  workflow_dispatch:
+    inputs:
+      write:
+        description: "Aggiorna lastVerified nell'artefatto del report"
+        type: boolean
+        default: false
+
+# Nessun permesso di scrittura: legge il codice, interroga la rete, riporta.
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm install --legacy-peer-deps
+
+      - name: Verifica delle fonti
+        id: verify
+        run: |
+          if [ "${{ inputs.write }}" = "true" ]; then
+            npm run verify:sources -- --write | tee sources-report.txt
+          else
+            npm run verify:sources | tee sources-report.txt
+          fi
+
+      # Il report si conserva anche quando la verifica fallisce: è proprio il
+      # caso in cui serve leggerlo.
+      - name: Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sources-report
+          path: |
+            sources-report.txt
+            packages/agro-parcel/src/catalog/*.json

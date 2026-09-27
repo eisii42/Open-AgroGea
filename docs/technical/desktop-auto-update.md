@@ -1,5 +1,7 @@
 # AgroGea Desktop — Auto-Update (Tauri v2 Updater)
 
+> **Versione documento 0.5.0** · aggiornato il 27 settembre 2026 · allineato ad **AgroGea 0.5.0**. Le modifiche versione per versione sono nel [CHANGELOG](../../CHANGELOG.md).
+
 L'app desktop open source si aggiorna da sola tramite il **Tauri Updater v2**, con
 gli installer ospitati su **GitHub Releases** e un endpoint JSON statico
 (`updater.json`) come canale di controllo. Questo documento descrive la

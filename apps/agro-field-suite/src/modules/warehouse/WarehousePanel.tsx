@@ -3,17 +3,26 @@ import {
   EXPIRY_WARNING_DAYS_DEFAULT,
   type ProductLot,
   type Product,
+  type Warehouse,
   expiryStatus,
   useAgroStore,
   useSettingsStore,
   validateProduct,
 } from "@agrogea/core";
 import { FieldSheet } from "@agrogea/ui";
+import type { MapController } from "@geolibre/map";
 import { Button, cn, Input, Label, Select } from "@geolibre/ui";
-import { FileUp, PackagePlus, Trash2 } from "lucide-react";
-import { type FormEvent, useMemo, useState } from "react";
+import { FileUp, PackagePlus, Trash2, Warehouse as WarehouseIcon } from "lucide-react";
+import {
+  type FormEvent,
+  type RefObject,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { ProductImportDialog } from "./ProductImportDialog";
+import { WarehouseManager } from "./WarehouseManager";
 import { WarehouseTabBar } from "./WarehouseTabBar";
 import { MachineryTab } from "../machinery/MachineryTab";
 
@@ -23,14 +32,24 @@ import { MachineryTab } from "../machinery/MachineryTab";
  * ogni scheda ha la propria FieldSheet con la WarehouseTabBar in testa. Il
  * router rispetta i flag di abilitazione (Impostazioni, §6.1). Il Refill
  * carburante è un pannello a sé (FieldPanel `refill`), aperto solo dal FAB.
+ *
+ * `mapControllerRef` serve solo all'anagrafica dei magazzini, per posare il
+ * punto di un deposito toccando la mappa: è opzionale perché il pannello vive
+ * anche fuori dalla dashboard geocentrica.
  */
-export function WarehousePanel({ onClose }: { onClose: () => void }) {
+export function WarehousePanel({
+  onClose,
+  mapControllerRef,
+}: {
+  onClose: () => void;
+  mapControllerRef?: RefObject<MapController | null>;
+}) {
   const tab = useAgroStore((s) => s.warehouseTab);
   const flags = useSettingsStore((s) => s.dashboardLayout);
   if (tab === "machines" && flags.panelMezzi) {
     return <MachineryTab onClose={onClose} />;
   }
-  return <ProductsTab onClose={onClose} />;
+  return <ProductsTab onClose={onClose} mapControllerRef={mapControllerRef} />;
 }
 
 /**
@@ -97,21 +116,61 @@ function ExpiryBadge({
   );
 }
 
-function ProductsTab({ onClose }: { onClose: () => void }) {
+function ProductsTab({
+  onClose,
+  mapControllerRef,
+}: {
+  onClose: () => void;
+  mapControllerRef?: RefObject<MapController | null>;
+}) {
   const { t } = useTranslation();
   const products = useAgroStore((s) => s.products);
-  const lots = useAgroStore((s) => s.lots);
+  const allLots = useAgroStore((s) => s.lots);
+  const warehouses = useAgroStore((s) => s.warehouses);
+  const activeWarehouseId = useAgroStore((s) => s.activeWarehouseId);
+  const setActiveWarehouseId = useAgroStore((s) => s.setActiveWarehouseId);
   const saveProduct = useAgroStore((s) => s.saveProduct);
   const deleteProduct = useAgroStore((s) => s.deleteProduct);
   const receiveLot = useAgroStore((s) => s.receiveLot);
   const deleteLot = useAgroStore((s) => s.deleteLot);
 
-  // Vista: elenco | form nuovo product | import CSV | dettaglio product.
+  // Vista: elenco | form nuovo product | import CSV | dettaglio product |
+  // anagrafica magazzini.
   const [creatingNew, setCreatingNew] = useState(false);
   const [importingCsv, setImportingCsv] = useState(false);
+  const [managingWarehouses, setManagingWarehouses] = useState(false);
   const [openProductId, setOpenProductId] = useState<string | null>(null);
   const [warningDays, setWarningDays] = useState(loadExpiryDays);
   const [errore, setErrore] = useState<string | null>(null);
+
+  const activeWarehouse = useMemo(
+    () => warehouses.find((w) => w.id === activeWarehouseId) ?? null,
+    [warehouses, activeWarehouseId],
+  );
+
+  // Click su un POI magazzino in mappa: il pannello torna all'ELENCO di quel
+  // deposito, qualunque sotto-vista avesse aperto. Senza questo la richiesta
+  // arrivata dalla mappa cambierebbe lo stato senza che si veda nulla — chi
+  // tocca il magazzino sulla mappa si aspetta di vederne il contenuto.
+  const focusToken = useAgroStore((s) => s.warehouseFocusToken);
+  useEffect(() => {
+    if (focusToken === 0) return;
+    setManagingWarehouses(false);
+    setCreatingNew(false);
+    setImportingCsv(false);
+    setOpenProductId(null);
+  }, [focusToken]);
+
+  // Il filtro per magazzino agisce sui LOTTI, non sull'anagrafica: la giacenza
+  // vive nel lotto, quindi "che cosa c'è in questo deposito" è esattamente
+  // l'insieme dei suoi lotti (e i prodotti che li possiedono).
+  const lots = useMemo(
+    () =>
+      activeWarehouseId
+        ? allLots.filter((l) => l.warehouse_id === activeWarehouseId)
+        : allLots,
+    [allLots, activeWarehouseId],
+  );
 
   const openProduct = useMemo(
     () => products.find((p) => p.id === openProductId) ?? null,
@@ -127,6 +186,16 @@ function ProductsTab({ onClose }: { onClose: () => void }) {
     }
     return map;
   }, [lots]);
+
+  // Con un deposito selezionato l'elenco mostra solo ciò che ci sta dentro;
+  // nella vista aggregata resta l'anagrafica completa (anche a giacenza zero).
+  const visibleProducts = useMemo(
+    () =>
+      activeWarehouseId
+        ? products.filter((p) => lotsPerProduct.has(p.id))
+        : products,
+    [products, lotsPerProduct, activeWarehouseId],
+  );
 
   // Alert §5.1: lots con stock scaduti o in scadenza entro la soglia.
   const criticalLots = useMemo(
@@ -168,13 +237,17 @@ function ProductsTab({ onClose }: { onClose: () => void }) {
           ? t("warehouse.newProduct")
           : importingCsv
             ? t("warehouse.import.title")
-            : openProduct
-              ? openProduct.name
-              : t("warehouse.title")
+            : managingWarehouses
+              ? t("warehouseSheet.title")
+              : openProduct
+                ? openProduct.name
+                : activeWarehouse
+                  ? activeWarehouse.name
+                  : t("warehouse.title")
       }
       onClose={onClose}
       footer={
-        creatingNew || importingCsv || openProduct ? undefined : (
+        creatingNew || importingCsv || openProduct || managingWarehouses ? undefined : (
           <div className="flex gap-2">
             <Button
               className="min-h-[var(--touch-min)] flex-1"
@@ -193,7 +266,9 @@ function ProductsTab({ onClose }: { onClose: () => void }) {
         )
       }
     >
-      {!creatingNew && !importingCsv && !openProduct && <WarehouseTabBar />}
+      {!creatingNew && !importingCsv && !openProduct && !managingWarehouses && (
+        <WarehouseTabBar />
+      )}
       {errore && (
         <p className="mb-3 rounded-[var(--r-2)] border border-[var(--danger)] bg-[var(--danger-l)] px-3 py-2 text-xs text-[var(--danger)]">
           {errore}
@@ -202,8 +277,15 @@ function ProductsTab({ onClose }: { onClose: () => void }) {
 
       {importingCsv ? (
         <ProductImportDialog onClose={() => setImportingCsv(false)} />
+      ) : managingWarehouses ? (
+        <WarehouseManager
+          onBack={() => setManagingWarehouses(false)}
+          mapControllerRef={mapControllerRef}
+        />
       ) : creatingNew ? (
         <ProductForm
+          warehouses={warehouses}
+          defaultWarehouseId={activeWarehouseId}
           onSubmit={async (input, lottoIniziale) => {
             // Product + carico del lot iniziale (stock di partenza): il
             // carico update anche il CUMP dal costo unitario indicato.
@@ -212,6 +294,7 @@ function ProductsTab({ onClose }: { onClose: () => void }) {
               if (record) {
                 await receiveLot({
                   product_id: record.id,
+                  warehouse_id: lottoIniziale.warehouse_id,
                   lot_number: lottoIniziale.lot_number,
                   expires_at: lottoIniziale.expires_at,
                   initial_quantity: lottoIniziale.initial_quantity,
@@ -227,6 +310,8 @@ function ProductsTab({ onClose }: { onClose: () => void }) {
         <ProductDetail
           product={openProduct}
           lots={lotsPerProduct.get(openProduct.id) ?? []}
+          warehouses={warehouses}
+          defaultWarehouseId={activeWarehouseId}
           warningDays={warningDays}
           onBack={() => setOpenProductId(null)}
           onCarica={(input) => withError(() => receiveLot(input))}
@@ -240,6 +325,41 @@ function ProductsTab({ onClose }: { onClose: () => void }) {
         />
       ) : (
         <div className="flex flex-col gap-3">
+          {/* Selettore del deposito: la vista aggregata mostra l'anagrafica
+              completa, un deposito selezionato mostra SOLO ciò che ci sta
+              dentro (giacenze, alert di scadenza e sotto-scorta compresi). */}
+          <div className="flex items-end gap-2">
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <Label htmlFor="mag-deposito">
+                {t("warehouseSheet.selectorLabel")}
+              </Label>
+              <Select
+                id="mag-deposito"
+                value={activeWarehouseId ?? ""}
+                onChange={(e) =>
+                  setActiveWarehouseId(e.target.value || null)
+                }
+              >
+                <option value="">{t("warehouseSheet.allWarehouses")}</option>
+                {warehouses.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setManagingWarehouses(true)}
+              title={t("warehouseSheet.manage")}
+              aria-label={t("warehouseSheet.manage")}
+              className="min-h-[var(--touch-min)] gap-1.5 px-2 text-xs"
+            >
+              <WarehouseIcon size={15} /> {t("warehouseSheet.manage")}
+            </Button>
+          </div>
+
           {/* Alert di scadenza con soglia configurabile (§5.1). */}
           <div className="flex flex-col gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2">
             <div className="flex items-end gap-2">
@@ -269,13 +389,15 @@ function ProductsTab({ onClose }: { onClose: () => void }) {
             </p>
           </div>
 
-          {products.length === 0 ? (
+          {visibleProducts.length === 0 ? (
             <p className="py-8 text-center text-sm text-[var(--ink-3)]">
-              {t("warehouse.noProducts")}
+              {activeWarehouse
+                ? t("warehouseSheet.emptyWarehouse")
+                : t("warehouse.noProducts")}
             </p>
           ) : (
             <ul className="flex flex-col gap-2">
-              {products.map((product) => {
+              {visibleProducts.map((product) => {
                 const suoi = lotsPerProduct.get(product.id) ?? [];
                 const stock = suoi.reduce(
                   (sum, l) => sum + Number(l.quantity_on_hand),
@@ -366,6 +488,8 @@ interface ProductFormInput {
 
 /** Carico iniziale contestuale alla creazione del product (stock di partenza). */
 interface InitialLotInput {
+  /** Deposito in cui la merce entra; null = nessuna collocazione. */
+  warehouse_id: string | null;
   lot_number: string | null;
   expires_at: string | null;
   initial_quantity: number;
@@ -373,9 +497,13 @@ interface InitialLotInput {
 }
 
 function ProductForm({
+  warehouses,
+  defaultWarehouseId,
   onSubmit,
   onCancel,
 }: {
+  warehouses: Warehouse[];
+  defaultWarehouseId: string | null;
   onSubmit: (
     input: ProductFormInput,
     lottoIniziale: InitialLotInput,
@@ -412,6 +540,12 @@ function ProductForm({
   const [expiry, setExpiry] = useState("");
   const [quantity, setQuantity] = useState("");
   const [costo, setCosto] = useState("");
+  // Deposito di destinazione: preselezionato su quello in cui l'utente sta
+  // già lavorando, o sull'unico esistente (il caso mono-magazzino non deve
+  // costare una scelta in più).
+  const [warehouseId, setWarehouseId] = useState<string>(
+    defaultWarehouseId ?? (warehouses.length === 1 ? warehouses[0].id : ""),
+  );
   const [saving, setSaving] = useState(false);
 
   const num = (s: string) => (s.trim() === "" ? null : Number(s));
@@ -465,6 +599,7 @@ function ProductForm({
     setSaving(true);
     try {
       await onSubmit(draft, {
+        warehouse_id: warehouseId || null,
         lot_number: lotNumber.trim() || null,
         expires_at: expiry || null,
         initial_quantity: qtaNum,
@@ -715,6 +850,25 @@ function ProductForm({
         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
           {t("warehouse.initialLoad")}
         </p>
+        {warehouses.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="mag-lotto-deposito">
+              {t("warehouseSheet.lotWarehouse")}
+            </Label>
+            <Select
+              id="mag-lotto-deposito"
+              value={warehouseId}
+              onChange={(e) => setWarehouseId(e.target.value)}
+            >
+              <option value="">{t("warehouseSheet.unassigned")}</option>
+              {warehouses.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="mag-lotto">{t("warehouse.lotNumber")}</Label>
@@ -814,6 +968,8 @@ function ProductForm({
 function ProductDetail({
   product,
   lots,
+  warehouses,
+  defaultWarehouseId,
   warningDays,
   onBack,
   onCarica,
@@ -822,10 +978,13 @@ function ProductDetail({
 }: {
   product: Product;
   lots: ProductLot[];
+  warehouses: Warehouse[];
+  defaultWarehouseId: string | null;
   warningDays: number;
   onBack: () => void;
   onCarica: (input: {
     product_id: string;
+    warehouse_id: string | null;
     lot_number: string | null;
     expires_at: string | null;
     initial_quantity: number;
@@ -840,7 +999,14 @@ function ProductDetail({
   const [expiry, setExpiry] = useState("");
   const [quantity, setQuantity] = useState("");
   const [costo, setCosto] = useState("");
+  const [warehouseId, setWarehouseId] = useState<string>(
+    defaultWarehouseId ?? (warehouses.length === 1 ? warehouses[0].id : ""),
+  );
   const [saving, setSaving] = useState(false);
+
+  const warehouseName = (id: string | null) =>
+    warehouses.find((w) => w.id === id)?.name ??
+    t("warehouseSheet.unassigned");
 
   const stock = lots.reduce((s, l) => s + Number(l.quantity_on_hand), 0);
   const qtaNum = Number.parseFloat(quantity);
@@ -855,6 +1021,7 @@ function ProductDetail({
     try {
       await onCarica({
         product_id: product.id,
+        warehouse_id: warehouseId || null,
         lot_number: lotNumber.trim() || null,
         expires_at: expiry || null,
         initial_quantity: qtaNum,
@@ -920,6 +1087,25 @@ function ProductDetail({
           onSubmit={handleLoad}
           className="flex flex-col gap-3 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] p-2"
         >
+          {warehouses.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="lotto-deposito">
+                {t("warehouseSheet.lotWarehouse")}
+              </Label>
+              <Select
+                id="lotto-deposito"
+                value={warehouseId}
+                onChange={(e) => setWarehouseId(e.target.value)}
+              >
+                <option value="">{t("warehouseSheet.unassigned")}</option>
+                {warehouses.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="lotto-numero">{t("warehouse.lotNumber")}</Label>
@@ -1001,6 +1187,8 @@ function ProductDetail({
                   <ExpiryBadge lot={lot} warningDays={warningDays} />
                 </span>
                 <span className="block text-xs text-[var(--ink-3)]">
+                  {warehouseName(lot.warehouse_id)}
+                  {" · "}
                   {t("warehouse.stock")}{" "}
                   <strong className="agro-num">
                     {Number(lot.quantity_on_hand).toLocaleString("it-IT")}/

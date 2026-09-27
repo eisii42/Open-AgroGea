@@ -2,6 +2,8 @@
 
 > 🇮🇹 Italiano · [🇬🇧 English](./agronomic-modules.en.md)
 
+> **Versione documento 0.5.0** · aggiornato il 27 settembre 2026 · allineato ad **AgroGea 0.5.0** (schema locale PGlite **v25**). Le modifiche versione per versione sono nel [CHANGELOG](../../CHANGELOG.md).
+
 > Questo documento spiega **come funzionano davvero** i moduli agronomici di AgroGea: quali grandezze calcolano, con quali formule e assunzioni, e come vanno interpretati i risultati. È il complemento tecnico del [Manuale utente](../user-guide/manuale.md), che invece descrive *dove cliccare*.
 >
 > Tutti i motori di calcolo sono **funzioni pure** in `plugins/agro-tools/src/` (NDVI, FAO 56/66, fenologia, fitopatologia, suolo, zonazione): girano interamente sul dispositivo, senza rete. I parametri agronomici (soglie termiche, coefficienti colturali, fattori di risposta) sono **default editabili di letteratura, non costanti regolatorie**: vanno tarati sull'ambiente e sulla coltura reale.
@@ -18,7 +20,7 @@
 6. [DSS fitopatologico e gradi-giorno](#6-dss-fitopatologico-e-gradi-giorno)
 7. [Mappa del rischio DSS (verde/giallo/rosso)](#7-mappa-del-rischio-dss-verdegiallorosso)
 8. [Mappe a rateo variabile (VRA)](#8-mappe-a-rateo-variabile-vra)
-9. [Geofencing e superficie realmente lavorata](#9-geofencing-e-superficie-realmente-lavorata)
+9. [Geofencing e superficie lavorata](#9-geofencing-e-superficie-lavorata)
 10. [Formule del Field Calculator](#10-formule-del-field-calculator)
 11. [Riferimenti bibliografici](#11-riferimenti-bibliografici)
 
@@ -38,7 +40,10 @@ Sono gli indici più robusti perché il rapporto normalizzato riduce l'effetto d
 |---|---|---|
 | **NDVI** | (B08 − B04) / (B08 + B04) = (NIR − Rosso) / (NIR + Rosso) | Vigore/biomassa verde. È l'indice di riferimento; satura ad alta copertura fogliare. |
 | **NDRE** | (B08 − B05) / (B08 + B05) = (NIR − Red-Edge) / (NIR + Red-Edge) | Stato azotato/clorofilla. Il red-edge penetra meglio la chioma densa: più sensibile dell'NDVI su vigneto e frutteto a piena vegetazione. |
-| **NDWI** | (B03 − B08) / (B03 + B08) = (Verde − NIR) / (Verde + NIR) | Contenuto idrico della vegetazione e superfici sature (formulazione McFeeters). Valori alti = più acqua. |
+| **NDWI** | (B03 − B08) / (B03 + B08) = (Verde − NIR) / (Verde + NIR) | Acqua libera e superfici sature (formulazione McFeeters). Valori alti = più acqua. |
+| **NDMI** | (B08 − B11) / (B08 + B11) = (NIR − SWIR) / (NIR + SWIR) | **Umidità della chioma** (formulazione Gao, detta anche NDWI di Gao). La SWIR è assorbita dall'acqua nelle foglie: è l'indice da leggere per lo stress idrico della coltura, non l'NDWI. |
+
+> **NDWI e NDMI non sono intercambiabili.** L'NDWI di McFeeters (Verde−NIR) è nato per mappare l'**acqua libera** e viene usato qui per le superfici sature; l'NDMI (NIR−SWIR) misura l'acqua **dentro la chioma**. Su un campo in stress il primo può non muoversi affatto. Per questo hanno rampe colore distinte (vedi *Statistiche e simbologia*).
 
 > **Attenzione all'interpretazione:** il valore assoluto non è comparabile tra colture diverse o tra fasi fenologiche diverse. Lo stesso NDVI = 0,55 è "scarso" per un seminativo a piena copertura e "normale" per un vigneto a inizio stagione. Per questo AgroGea non legge gli indici in assoluto ma li **parametrizza sulla fase fenologica** (vedi §2).
 
@@ -68,7 +73,27 @@ Sulle **colture arboree** l'interfila (suolo, inerbimento) va escluso prima di c
 
 ### Statistiche e simbologia
 
-Per ogni appezzamento si calcolano media, min, max, deviazione standard e numero di pixel validi (sui soli pixel non-`NaN`). L'overlay raster usa rampe colore dedicate: una rampa di vigore (rosso → verde) per NDVI/NDRE/SAVI/MSAVI2 e una rampa idrica (beige → blu) per NDWI.
+Per ogni appezzamento si calcolano media, min, max, deviazione standard e numero di pixel validi (sui soli pixel non-`NaN`).
+
+**Celle vettoriali, non più un'immagine sfumata.** Il raster viene vettorializzato in una **griglia di poligoni quadrati** (`index-grid.ts`), uno per pixel Sentinel-2, agganciata alla griglia UTM della scena: celle adiacenti condividono gli stessi angoli in coordinate float piene, così non compaiono fessure fra celle contigue. Il vantaggio operativo è che ogni cella è un *feature* interrogabile — porta il valore di **tutti** gli indici calcolati in quel pixel, non solo del primario — e che la stessa geometria si ridisegna senza tornare in rete.
+
+**Scala colore relativa.** La rampa non è più tarata sull'intervallo teorico −1..1 ma sul **dominio effettivo** dei pixel calcolati nella stessa run (`relativeDomain`): estremi al **2° e 98° percentile**, per non far collassare l'intera scala su un pugno di outlier. È la differenza fra una mappa tutta verde e una mappa che mostra la variabilità *interna* al campo — che è l'informazione che serve alla zonazione VRA. Con dominio degenere (tutti i valori uguali) si ricade sui min/max reali e infine su un intorno di ±0,01, così la colorbar resta disegnabile.
+
+Le rampe restano dedicate per famiglia: vigore (rosso → verde) per NDVI/NDRE/SAVI/MSAVI2, acqua libera (beige → blu) per NDWI, umidità della chioma per NDMI.
+
+### Cache locale delle scene e aggiornamento in background
+
+Il modulo Suolo non ricalcola più da zero a ogni apertura. Le scene elaborate finiscono in due tabelle **local-only** dello schema v21 — `vegetation_index_scenes` (una riga per appezzamento × scena STAC, con le medie per indice) e `vegetation_index_rasters` (la griglia di pixel) — interamente ricomputabili dalle scene STAC, quindi fuori dalla coda di sync come `dss_results` e `soil_water_indices`.
+
+Tre scelte tecniche sostengono il meccanismo:
+
+- **Deduplica per scena.** L'unico `(plot_id, scene_id)` evita di riscaricare i COG di una scena già elaborata. Una scena in cache è riutilizzabile solo se copre **tutti** gli indici richiesti; altrimenti si rielabora per intero e l'upsert fonde le medie invece di duplicare la riga.
+- **Una scena per giorno.** Nella stessa giornata il satellite può depositare più item (tile adiacenti, riprocessamenti): `bestScenePerDay` tiene quello con la **copertura nuvolosa più bassa** (a parità, il più recente) e marca gli altri come doppioni, mostrabili a richiesta. Elaborarli tutti raddoppierebbe i punti della serie senza aggiungere informazione.
+- **Raster compatto invece di GeoJSON.** Si persiste il raster, non le celle: `rasterToIndexCells` le ricostruisce quando servono. I valori sono **Int16 little-endian scalati** (`value_scale`, default 10 000 → 4 decimali sull'intervallo −1..1) con sentinella per i pixel fuori poligono, serializzati base64 in `text`. Sono ~2 byte/pixel invece di ~300: **~10 KB per scena su 50 ha**, non ~1,5 MB.
+
+**Ritenzione:** 36 mesi (tre annate agrarie: oltre ai confronti anno-su-anno, la scheda BCAA 7 del modulo Normativa confronta tre annate di rotazione, e con 24 mesi la potatura avrebbe cancellato a ogni run lo storico appena scaricato); le scene più vecchie sono potate a fine run e i raster seguono per FK `on delete cascade`.
+
+**Job di aggiornamento all'avvio.** Sentinel-2 ripassa sullo stesso punto ogni ~5 giorni, quindi un controllo a ogni avvio sarebbe traffico sprecato: il job si autolimita a **uno ogni 12 ore per azienda**, con il timestamp in `agro_meta` del DB del tenant (non in localStorage — così segue il backup del dataDir e non si mescola fra aziende diverse). Calcola in automatico il **solo NDVI** e passa dal worker condiviso a coda, una scena per job: un'analisi avviata dall'utente mentre il job gira attende al massimo una scena, non l'intero aggiornamento. Deliberatamente **non** aggiorna `plots_registry.last_ndvi_mean`, che è una colonna sincronizzata: un job automatico non deve generare voci di outbox senza che l'utente abbia chiesto nulla.
 
 ---
 
@@ -258,7 +283,7 @@ Un parametro `intensità` (0..1) regola lo scostamento massimo dalla dose di rif
 
 ---
 
-## 9. Geofencing e superficie realmente lavorata
+## 9. Geofencing e superficie lavorata
 
 Motore puro in `plugins/agro-tools/src/geofencing.ts` e `reentry.ts`. Nessun accesso al DOM, alla rete o al GPS: riceve campioni e restituisce stato — è ciò che lo rende testabile senza un dispositivo.
 
@@ -276,20 +301,27 @@ Il test di appartenenza è un **point-in-polygon esatto** (`@turf/boolean-point-
 
 Lo scarto per accuratezza **non è silenzioso**: il riduttore riporta al chiamante se il campione è stato accettato, e la UI distingue "in ascolto" da "segnale troppo debole (±N m)". Senza quella distinzione un GPS che consegna solo fix scadenti — localizzazione via WiFi, cielo coperto, fix non ancora agganciato — farebbe scartare ogni campione mostrando comunque un rilevamento apparentemente attivo, e l'operatore aspetterebbe in mezzo al campo un evento che non può arrivare.
 
-### Superficie lavorata
+### Superficie lavorata — dichiarata, non stimata dal tracciato
 
-La superficie è **misurata, non dichiarata**. Il tracciato è una polilinea di campioni accettati; la lunghezza è geodetica (haversine sull'ellissoide, coerente con `@turf/area` usato altrove):
+> **Cambiato in 0.4.1.** Fino alla 0.4.0 la superficie era derivata dal GPS come `lunghezza_tracciato × larghezza_di_lavoro`. Non lo è più.
+
+Alla chiusura della sessione l'operatore dichiara la **quota di appezzamento completata** (percentuale, con scatti rapidi a 25/50/75/100 perché coi guanti si tocca, non si trascina di precisione):
 
 ```text
-area_lavorata (ha) = lunghezza_tracciato (m) × larghezza_di_lavoro (m) / 10 000
+area_lavorata_oggi (ha) = (percentuale_dichiarata − percentuale_già_registrata) / 100 × area_appezzamento (ha)
 ```
 
-È la convenzione FMIS: la larghezza di lavoro viene dall'attrezzo agganciato (`equipment.working_width_m`) o dal default configurato. Due limiti da conoscere:
+La sottrazione dell'avanzamento già registrato è la parte che conta: senza, una ripresa il giorno dopo conterebbe **due volte** il prodotto già dichiarato ieri.
 
-- il risultato è **clampato alla superficie dell'appezzamento** quando nota — le passate si sovrappongono, e una sovrapposizione non può gonfiare il dato oltre il campo reale;
-- senza larghezza di lavoro la superficie non è calcolabile e vale `0`; in quel caso la chiusura della sessione ricade sulla superficie catastale e **lo segnala** nel riepilogo, invece di scrivere una quantità nulla nel registro.
+**Perché il passo indietro dalla misura alla dichiarazione.** Una stima `lunghezza × larghezza` sembra più oggettiva ma non lo è: dipende dalla larghezza di lavoro configurata sull'attrezzo, gonfia il dato sulle passate sovrapposte, e crolla a zero quando il fix GPS è scadente o l'attrezzo non ha larghezza registrata — proprio i casi in cui il registro deve comunque essere scritto. Su un documento di rilevanza legale, la dichiarazione di chi era sul trattore vale più di una stima geometrica costruita su parametri che nessuno ha verificato. Il GPS continua a tracciare il percorso (utile per verifica e riascolto delle note geotaggate), ma **non stima più la superficie**.
 
-Le quantità di prodotto sono quindi `dose_per_ha × area_lavorata`, mai `dose_per_ha × area_catastale`: dichiarare prodotto su superficie non lavorata è precisamente l'errore che il tracciamento esiste per evitare.
+Conseguenze a valle:
+
+- le quantità di prodotto sono `dose_per_ha × area_lavorata_oggi`, e lo **scarico di magazzino** scarica esattamente il `total_quantity` scritto nel Quaderno — mai un valore ricalcolato per altra via;
+- **sotto il 100% la task non si chiude**: torna programmata con l'avanzamento salvato in `planned_tasks.metadata.completion_percent` (colonna JSONB v20, nessuna nuova migrazione), così il geofencing la ripropone al prossimo ingresso e si riprende da dove si era rimasti. Il lavoro di oggi è comunque già nel Quaderno;
+- se non risulta alcuna superficie utilizzabile si ricade sulla **superficie catastale** dell'appezzamento e lo si **segnala** nel riepilogo (`gps_area_fallback`): meglio un record completo e marcato che una quantità nulla in un registro.
+
+**Automazione semina → coltura.** Una semina chiusa a bordo campo assegna ora la coltura di campagna all'appezzamento, come già faceva la stessa semina registrata a mano nel Quaderno (regola pura in `field/session-crop.ts`). Due condizioni, entrambe necessarie: l'operazione è una `sowing` e il campo **non** ha già una campagna aperta per l'annata — una coltura in corso non si sovrascrive mai. L'identità colturale arriva dall'anagrafica della semente (`products.metadata`), con il nome commerciale come ultima risorsa. Senza questa regola il campo restava senza coltura: niente DSS, niente bilancio idrico, nessuna riga nella campagna agraria.
 
 ### Tempo di rientro (PAN)
 

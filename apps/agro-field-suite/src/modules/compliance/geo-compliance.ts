@@ -6,6 +6,7 @@
  * Parte PURA (turf + geometria): testabile sotto Node. Nessun DuckDB necessario,
  * così il controllo è sincrono e immediato al salvataggio dell'appezzamento.
  */
+import { NITROGEN_LIMIT_KG_HA } from "@agrogea/tools";
 import booleanIntersects from "@turf/boolean-intersects";
 import type {
   Feature,
@@ -15,17 +16,35 @@ import type {
   Polygon,
 } from "geojson";
 
-export type ConstraintType = "zvn" | "sic" | "zps" | "eudr";
+/**
+ * Layer vincolanti riconosciuti. Ai quattro storici (v0.1) si aggiungono, con
+ * il modulo Compliance, quelli che le schede BCAA interrogano: il reticolo
+ * idrografico della BCAA 4 e le zone umide della BCAA 2.
+ */
+export type ConstraintType =
+  | "zvn"
+  | "sic"
+  | "zps"
+  | "eudr"
+  | "water_network"
+  | "wetland";
 
 export const CONSTRAINT_LABELS: Record<ConstraintType, string> = {
   zvn: "Zona Vulnerabile ai Nitrati",
   sic: "Sito di Importanza Comunitaria (SIC)",
   zps: "Zona di Protezione Speciale (ZPS)",
   eudr: "Rischio deforestazione (EUDR, cut-off 2020)",
+  water_network: "Reticolo idrografico (BCAA 4)",
+  wetland: "Zona umida / torbiera (BCAA 2)",
 };
 
-/** Tetto azoto in ZVN: 170 kg N/ha/anno (Direttiva Nitrati 91/676/CEE). */
-export const NITROGEN_MAX_ZVN_KG_HA = 170;
+/**
+ * Tetto azoto: 170 kg N/ha/anno (Direttiva Nitrati 91/676/CEE). La costante ha
+ * UNA sola definizione, in `@agrogea/tools`, dove serve anche al motore del
+ * biologico: qui si ri-esporta con il nome storico, così i consumatori esistenti
+ * non cambiano e i due moduli non possono divergere.
+ */
+export const NITROGEN_MAX_ZVN_KG_HA = NITROGEN_LIMIT_KG_HA;
 
 export interface LayerCompliance {
   type: ConstraintType;
@@ -160,4 +179,142 @@ export function exceedsNitrogenCap(
   const tetto = totalNitrogenMax(superficieHa, maxKgHa);
   if (tetto == null || quantitaTotaleKg == null) return false;
   return quantitaTotaleKg > tetto;
+}
+
+// ---------------------------------------------------------------------------
+// Distanza dal reticolo idrografico (BCAA 4, scheda B1)
+// ---------------------------------------------------------------------------
+
+/**
+ * Metri per grado di latitudine. Costante a sufficienza per l'uso che se ne fa
+ * qui (la variazione fra equatore e poli è dello 0,6%).
+ */
+const M_PER_DEG_LAT = 111_320;
+
+/**
+ * Distanza planare in metri fra due posizioni, con la longitudine scalata per
+ * il coseno della latitudine.
+ *
+ * È un'APPROSSIMAZIONE dichiarata, non una geodetica: su distanze dell'ordine
+ * delle decine o centinaia di metri — che è tutto ciò che serve per una fascia
+ * tampone di 3–10 m — l'errore è sotto il decimo di percento, e non introduce
+ * una dipendenza geometrica per una formula di tre righe. Su distanze
+ * chilometriche degraderebbe, ma a quel punto il quesito "sono dentro la fascia
+ * tampone?" ha già risposta.
+ */
+function metersBetween(
+  [lon1, lat1]: [number, number],
+  [lon2, lat2]: [number, number],
+): number {
+  const midLat = ((lat1 + lat2) / 2) * (Math.PI / 180);
+  const dx = (lon2 - lon1) * M_PER_DEG_LAT * Math.cos(midLat);
+  const dy = (lat2 - lat1) * M_PER_DEG_LAT;
+  return Math.hypot(dx, dy);
+}
+
+/** Distanza in metri fra un punto e un segmento (proiezione ortogonale). */
+function distanceToSegment(
+  point: [number, number],
+  a: [number, number],
+  b: [number, number],
+): number {
+  const midLat = ((a[1] + b[1]) / 2) * (Math.PI / 180);
+  const scale = Math.cos(midLat);
+  // Si lavora in un piano locale in metri: la proiezione ortogonale su un
+  // segmento non è esprimibile in gradi senza deformare le lunghezze.
+  const toXy = ([lon, lat]: [number, number]): [number, number] => [
+    lon * M_PER_DEG_LAT * scale,
+    lat * M_PER_DEG_LAT,
+  ];
+  const [px, py] = toXy(point);
+  const [ax, ay] = toXy(a);
+  const [bx, by] = toXy(b);
+  const dx = bx - ax;
+  const dy = by - ay;
+  const lengthSq = dx * dx + dy * dy;
+  if (lengthSq === 0) return metersBetween(point, a);
+  // t è la posizione della proiezione lungo il segmento, limitata agli estremi.
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lengthSq));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+/** Tutte le posizioni di una geometria, appiattite. */
+function positionsOf(geometry: Geometry): [number, number][] {
+  const out: [number, number][] = [];
+  const walk = (node: unknown): void => {
+    if (!Array.isArray(node)) return;
+    if (typeof node[0] === "number" && typeof node[1] === "number") {
+      out.push([node[0], node[1]]);
+      return;
+    }
+    for (const child of node) walk(child);
+  };
+  if ("coordinates" in geometry) walk(geometry.coordinates);
+  else if (geometry.type === "GeometryCollection") {
+    for (const g of geometry.geometries) out.push(...positionsOf(g));
+  }
+  return out;
+}
+
+/** Segmenti consecutivi di una geometria lineare o poligonale. */
+function segmentsOf(geometry: Geometry): [[number, number], [number, number]][] {
+  const segments: [[number, number], [number, number]][] = [];
+  const walkLine = (line: unknown): void => {
+    if (!Array.isArray(line)) return;
+    if (typeof (line[0] as number[])?.[0] === "number") {
+      const positions = line as [number, number][];
+      for (let i = 1; i < positions.length; i++) {
+        segments.push([positions[i - 1], positions[i]]);
+      }
+      return;
+    }
+    for (const child of line) walkLine(child);
+  };
+  if ("coordinates" in geometry) walkLine(geometry.coordinates);
+  else if (geometry.type === "GeometryCollection") {
+    for (const g of geometry.geometries) segments.push(...segmentsOf(g));
+  }
+  return segments;
+}
+
+/**
+ * Distanza minima in metri fra l'appezzamento e le geometrie di un layer.
+ *
+ * Serve alla scheda BCAA 4 (fasce tampone), che è **geometrica e non
+ * spettrale**: una fascia di tre metri è un terzo di un pixel Sentinel-2, e
+ * cercarla nell'NDVI sarebbe una finzione. Il conto è sui VERTICI
+ * dell'appezzamento contro i SEGMENTI del layer: è la distanza che conta per
+ * l'obbligo — quanto il campo coltivato si avvicina al corso d'acqua — e
+ * approssima per eccesso solo nel caso raro in cui un corso d'acqua passi
+ * rasente un lato lungo senza avvicinarsi ad alcun vertice.
+ *
+ * `null` quando il layer non contiene geometrie utili: assenza di dato, non
+ * distanza infinita, e la scheda la tratta come "non decidibile".
+ */
+export function minDistanceToLayerM(
+  plotGeometry: Geometry,
+  fc: FeatureCollection,
+): number | null {
+  const vertices = positionsOf(plotGeometry);
+  if (vertices.length === 0) return null;
+  let min = Number.POSITIVE_INFINITY;
+  for (const feature of fc.features) {
+    if (!feature.geometry) continue;
+    const segments = segmentsOf(feature.geometry);
+    if (segments.length === 0) {
+      // Layer puntuale: si misura sui punti.
+      for (const position of positionsOf(feature.geometry)) {
+        for (const vertex of vertices) {
+          min = Math.min(min, metersBetween(vertex, position));
+        }
+      }
+      continue;
+    }
+    for (const [a, b] of segments) {
+      for (const vertex of vertices) {
+        min = Math.min(min, distanceToSegment(vertex, a, b));
+      }
+    }
+  }
+  return Number.isFinite(min) ? min : null;
 }

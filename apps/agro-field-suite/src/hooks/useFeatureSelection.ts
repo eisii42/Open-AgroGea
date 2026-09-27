@@ -30,6 +30,7 @@ const PLOTS_ID = "agrogea-plots";
 const INFRASTRUTTURE_ID = "agrogea-infrastrutture";
 const POI_ID = "agrogea-poi";
 const SCOUTING_ID = "agrogea-scouting";
+const PARCEL_CANDIDATES_ID = "agrogea-parcel-candidates";
 
 interface LayerKind {
   id: string;
@@ -61,6 +62,11 @@ function featureRecordId(
 // la scheda della nota nel pannello Scouting invece della scheda dettaglio.
 const SCOUTING_LAYER = circleLayerId(SCOUTING_ID);
 
+// Particelle candidate: anch'esse fuori da SelectableKind — non sono elementi
+// dell'azienda, sono proposte. Il click le evidenzia e apre la scheda di
+// adozione nel pannello, senza toccare nulla in PGlite.
+const PARCEL_CANDIDATES_LAYER = fillLayerId(PARCEL_CANDIDATES_ID);
+
 export function useFeatureSelection(
   mapControllerRef: RefObject<MapController | null>,
   mapReady: boolean,
@@ -70,6 +76,7 @@ export function useFeatureSelection(
   const openScoutingForObservation = useAgroStore(
     (s) => s.openScoutingForObservation,
   );
+  const selectParcelCandidate = useAgroStore((s) => s.selectParcelCandidate);
 
   useEffect(() => {
     if (!mapReady) return;
@@ -83,14 +90,21 @@ export function useFeatureSelection(
       // Durante il posizionamento di una nota scouting il click serve a posarla:
       // non deve aprire Quaderno/dettaglio dell'appezzamento sottostante.
       if (s.scoutingPlacing) return;
+      // Stessa ragione per il punto di un magazzino in corso di posizionamento.
+      if (s.warehousePlacing) return;
 
       const present = LAYER_KINDS.filter((l) => map.getLayer(l.id));
       const scoutingPresent = map.getLayer(SCOUTING_LAYER);
-      if (present.length === 0 && !scoutingPresent) return;
+      const candidatesPresent = map.getLayer(PARCEL_CANDIDATES_LAYER);
+      if (present.length === 0 && !scoutingPresent && !candidatesPresent) return;
 
-      // I punti scouting (piccoli, specifici) hanno priorità di hit sui poligoni.
+      // Ordine di priorità: i punti scouting (piccoli, specifici), poi le
+      // particelle candidate — mentre si sceglie che cosa adottare il click
+      // appartiene alla proposta, anche sopra un campo già in portafoglio —
+      // e infine gli elementi dell'azienda.
       const queryLayers = [
         ...(scoutingPresent ? [SCOUTING_LAYER] : []),
+        ...(candidatesPresent ? [PARCEL_CANDIDATES_LAYER] : []),
         ...present.map((l) => l.id),
       ];
       const hits = map.queryRenderedFeatures(e.point, { layers: queryLayers });
@@ -106,6 +120,12 @@ export function useFeatureSelection(
       // Punto scouting → scheda della nota nel pannello Scouting.
       if (top.layer.id === SCOUTING_LAYER) {
         openScoutingForObservation(id);
+        return;
+      }
+
+      // Particella candidata → si evidenzia e il pannello ne apre la scheda.
+      if (top.layer.id === PARCEL_CANDIDATES_LAYER) {
+        selectParcelCandidate(id);
         return;
       }
 
@@ -130,5 +150,6 @@ export function useFeatureSelection(
     selectFeatureOnMap,
     openPlotSheet,
     openScoutingForObservation,
+    selectParcelCandidate,
   ]);
 }

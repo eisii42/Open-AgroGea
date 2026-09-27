@@ -9,7 +9,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@turf/boolean-point-in-polygon": "^7.3.5"
+    "@turf/boolean-point-in-polygon": "^7.4.0"
   },
   "peerDependencies": {
     "@geolibre/plugins": "*"

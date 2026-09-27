@@ -1,7 +1,11 @@
 import {
+  PRODUCTION_REGIMES,
+  declarativeLabelSet,
+  isProductionRegime,
+  useAgroStore,
   type Plot,
   type PlotCampaign,
-  useAgroStore,
+  type ProductionRegime,
 } from "@agrogea/core";
 import { Button, Input, Label, Select } from "@geolibre/ui";
 import { useEffect, useMemo, useState } from "react";
@@ -61,6 +65,11 @@ export function CropDataForm({
   // specie e varietà del registro nazionale per i quick-pick guidati. Se vuoti,
   // i campi restano a testo libero (l'utente non è bloccato).
   const { items: cropCatalog, countryCode } = useCountryCatalog("crop");
+  // I codici di riferimento della particella si chiamano in modo diverso in
+  // ogni sistema nazionale. "Isola" e "SIAN" sono termini italiani: a
+  // un'azienda di un altro paese vanno mostrati i termini generici, che restano
+  // veri ovunque.
+  const labelSet = declarativeLabelSet(countryCode);
   const { items: varietyCatalog } = useCountryCatalog("variety");
 
   // Tutte le campagne dell'appezzamento (ogni annata), per modifica + copia anno
@@ -108,6 +117,11 @@ export function CropDataForm({
   const [agriParcel, setAgriParcel] = useState("");
   const [cropCode, setCropCode] = useState("");
   const [varietyCode, setVarietyCode] = useState("");
+  // Regime di produzione dell'ANNATA (v24). "" = non dichiarato, ed è diverso
+  // da "convenzionale": nessun modulo deve inferire un regime dal silenzio.
+  const [productionRegime, setProductionRegime] = useState<string>("");
+  const [regimeSince, setRegimeSince] = useState("");
+  const [regimeNotes, setRegimeNotes] = useState("");
   // Id da riusare in MODIFICA (annata current già presente); undefined = nuovo.
   const [editCampaignId, setEditCampaignId] = useState<string | undefined>();
   const [editCropId, setEditCropId] = useState<string | undefined>();
@@ -149,6 +163,12 @@ export function CropDataForm({
     setAgriParcel(source?.agricultural_parcel_external_id ?? "");
     setCropCode(source?.crop_external_code ?? "");
     setVarietyCode(source?.variety_external_code ?? "");
+    // Il regime si eredita dall'annata precedente come gli altri dati
+    // dichiarativi: un appezzamento bio non torna convenzionale al cambio
+    // d'anno, e `regime_since` conserva la data dell'evento originale.
+    setProductionRegime(source?.production_regime ?? "");
+    setRegimeSince(source?.regime_since ?? "");
+    setRegimeNotes(source?.regime_notes ?? "");
     setOutcome("idle");
   }, [plot.id, plot.area_ha, activeCampaign, plotCampaigns, crops]);
 
@@ -240,6 +260,11 @@ export function CropDataForm({
         agricultural_parcel_external_id: agriParcel.trim() || null,
         crop_external_code: cropCode.trim() || null,
         variety_external_code: varietyCode.trim() || null,
+        production_regime: isProductionRegime(productionRegime)
+          ? productionRegime
+          : null,
+        regime_since: regimeSince.trim() || null,
+        regime_notes: regimeNotes.trim() || null,
       });
       if (!camp) throw new Error(t("cropDataForm.noActiveCompany"));
 
@@ -473,7 +498,7 @@ export function CropDataForm({
                 />
               </div>
               <div>
-                <Label htmlFor="camp-cropcode">{t("cropDataForm.cropCode")}</Label>
+                <Label htmlFor="camp-cropcode">{t(`cropDataForm.parcelLabels.${labelSet}.cropCode`)}</Label>
                 <Input
                   id="camp-cropcode"
                   value={cropCode}
@@ -492,7 +517,7 @@ export function CropDataForm({
                 />
               </div>
               <div>
-                <Label htmlFor="camp-ref">{t("cropDataForm.referenceParcel")}</Label>
+                <Label htmlFor="camp-ref">{t(`cropDataForm.parcelLabels.${labelSet}.referenceParcel`)}</Label>
                 <Input
                   id="camp-ref"
                   value={refParcel}
@@ -501,7 +526,7 @@ export function CropDataForm({
                 />
               </div>
               <div>
-                <Label htmlFor="camp-agri">{t("cropDataForm.agriculturalParcel")}</Label>
+                <Label htmlFor="camp-agri">{t(`cropDataForm.parcelLabels.${labelSet}.agriculturalParcel`)}</Label>
                 <Input
                   id="camp-agri"
                   value={agriParcel}
@@ -510,6 +535,63 @@ export function CropDataForm({
                 />
               </div>
             </div>
+          </section>
+
+          {/* Regime di produzione dell'ANNATA (plots_campaign, v24). Sta qui e
+              non nell'anagrafica dell'appezzamento perché cambia nel tempo:
+              "bio dal 2024" si può dire solo se ogni campagna porta il proprio
+              regime. La certificazione dell'OPERATORE è un'altra cosa e vive
+              nell'anagrafica azienda. */}
+          <section className="flex flex-col gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
+              {t("cropDataForm.productionRegimeLabel")}
+            </p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="camp-regime">
+                  {t("cropDataForm.productionRegime")}
+                </Label>
+                <Select
+                  id="camp-regime"
+                  value={productionRegime}
+                  onChange={(e) => setProductionRegime(e.target.value)}
+                >
+                  <option value="">
+                    {t("cropDataForm.regimeNotDeclared")}
+                  </option>
+                  {PRODUCTION_REGIMES.map((r: ProductionRegime) => (
+                    <option key={r} value={r}>
+                      {t(`cropDataForm.regimes.${r}`)}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="camp-regime-since">
+                  {t("cropDataForm.regimeSince")}
+                </Label>
+                <Input
+                  id="camp-regime-since"
+                  type="date"
+                  value={regimeSince}
+                  onChange={(e) => setRegimeSince(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="camp-regime-notes">
+                {t("cropDataForm.regimeNotes")}
+              </Label>
+              <Input
+                id="camp-regime-notes"
+                value={regimeNotes}
+                onChange={(e) => setRegimeNotes(e.target.value)}
+                placeholder={t("cropDataForm.regimeNotesPlaceholder")}
+              />
+            </div>
+            <p className="text-[10px] text-[var(--ink-4)]">
+              {t("cropDataForm.regimeHint")}
+            </p>
           </section>
 
           {outcome === "errore" && (

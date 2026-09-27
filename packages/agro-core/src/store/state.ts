@@ -1,3 +1,4 @@
+import type { Parcel } from "@agrogea/parcel";
 import type { Feature, Geometry } from "geojson";
 import type { StoreApi } from "zustand";
 import type { AgroDal } from "../db/dal";
@@ -32,7 +33,10 @@ import type {
   TenantClaims,
   TenantMembership,
   LastOperation,
+  OperatorCertification,
+  ComplianceGroup,
   WarehouseTab,
+  Warehouse,
   Machine,
   Equipment,
   MachineUsageRequest,
@@ -158,6 +162,12 @@ export interface NewCompanyInput {
   region?: string | null;
   /** Paese ISO 3166-1 alpha-2 (sorgente primaria del Country Resolution). */
   country?: string | null;
+  /**
+   * Certificazioni dell'operatore (v24). Non si digitano nel primo avvio: le
+   * porta il RIPRISTINO da un backup, che ricrea l'azienda da zero e senza
+   * questo campo perderebbe la certificazione pur avendola nel file.
+   */
+  operator_certifications?: OperatorCertification[];
 }
 
 // ---------------------------------------------------------------------------
@@ -229,6 +239,8 @@ export interface DomainSlice {
   products: Product[];
   /** Lotti di warehouse (tutti i products dell'azienda attiva). */
   lots: ProductLot[];
+  /** Magazzini fisici dell'azienda attiva (v23): i luoghi, non il contenuto. */
+  warehouses: Warehouse[];
   /** Unità motrici del parco macchine dell'azienda attiva (0.3.0). */
   machines: Machine[];
   /** Attrezzi del parco macchine dell'azienda attiva. */
@@ -364,9 +376,22 @@ export interface DomainSlice {
   savePlotCampaign: (
     input: Omit<
       PlotCampaign,
-      "id" | "tenant_id" | "closed_at" | "created_at" | "updated_at" | "deleted_at"
+      | "id"
+      | "tenant_id"
+      | "closed_at"
+      | "production_regime"
+      | "regime_since"
+      | "regime_notes"
+      | "created_at"
+      | "updated_at"
+      | "deleted_at"
     > &
-      Partial<Pick<PlotCampaign, "closed_at">> & { id?: string },
+      Partial<
+        Pick<
+          PlotCampaign,
+          "closed_at" | "production_regime" | "regime_since" | "regime_notes"
+        >
+      > & { id?: string },
   ) => Promise<PlotCampaign | null>;
   /**
    * Chiude il ciclo colturale di una campagna (v17, raccolto delle annuali):
@@ -413,14 +438,49 @@ export interface DomainSlice {
       ProductLot,
       | "id"
       | "tenant_id"
+      | "warehouse_id"
       | "quantity_on_hand"
       | "created_at"
       | "updated_at"
       | "deleted_at"
-    > & { id?: string },
+    > &
+      Partial<Pick<ProductLot, "warehouse_id">> & { id?: string },
   ) => Promise<ProductLot | null>;
   /** Soft-delete di un lot di warehouse. */
   deleteLot: (id: string) => Promise<void>;
+
+  // -- Magazzini fisici (v23) ------------------------------------------------
+  /**
+   * Crea/aggiorna un magazzino (il luogo, non il suo contenuto) e idrata lo
+   * store. Con una `geometry` puntuale il magazzino diventa un POI sulla mappa.
+   */
+  saveWarehouse: (
+    input: Omit<
+      Warehouse,
+      | "id"
+      | "tenant_id"
+      | "company_id"
+      | "warehouse_type"
+      | "geometry"
+      | "address"
+      | "notes"
+      | "metadata"
+      | "created_at"
+      | "updated_at"
+      | "deleted_at"
+    > &
+      Partial<
+        Pick<
+          Warehouse,
+          "warehouse_type" | "geometry" | "address" | "notes" | "metadata"
+        >
+      > & { id?: string },
+  ) => Promise<Warehouse | null>;
+  /**
+   * Soft-delete di un magazzino: i lots che vi erano collocati tornano NON
+   * assegnati (chiudere un deposito non elimina la merce che conteneva).
+   */
+  deleteWarehouse: (id: string) => Promise<void>;
 
   // -- Parco macchine (0.3.0) -------------------------------------------------
   /** Crea/aggiorna una macchina (il contatore ore non si tocca da qui) e idrata. */
@@ -762,6 +822,46 @@ export interface UiSlice {
    */
   warehouseTab: WarehouseTab;
   /**
+   * Famiglia di schede su cui il modulo Normativa è puntato (Ammissibilità,
+   * Condizionalità, Eco-schemi, Trasversali, Biologico). Come
+   * {@link warehouseTab}, vive nello store perché è la sidebar ad aprire il
+   * pannello già sulla voce giusta.
+   */
+  complianceGroup: ComplianceGroup;
+  /**
+   * Appezzamento su cui il modulo Normativa lavora.
+   *
+   * È DISTINTO da {@link selectedPlotId}, e deliberatamente: il click sulla
+   * mappa apre il Quaderno di Campagna, e deve continuare a farlo. La
+   * valutazione normativa si sceglie il proprio appezzamento dal pannello,
+   * insieme alla coltura dichiarata per l'annata — che è l'informazione che
+   * rende sensata la scelta.
+   */
+  compliancePlotId: string | null;
+  /**
+   * Magazzino su cui il modulo Magazzino è puntato: `null` = vista aggregata
+   * (tutti i depositi). È il valore che il click su un POI magazzino imposta,
+   * ed è quindi ciò che rende la mappa una via d'accesso al modulo.
+   */
+  activeWarehouseId: string | null;
+  /**
+   * Contatore incrementato da {@link openWarehouse}: segnala al modulo
+   * Magazzino di tornare all'elenco del deposito richiesto, abbandonando la
+   * sotto-vista in cui si trovava (anagrafica magazzini, dettaglio prodotto,
+   * form). Serve un token e non il solo `activeWarehouseId` perché la richiesta
+   * va onorata anche quando si ritocca il POI del deposito GIÀ selezionato:
+   * l'id non cambierebbe e il pannello resterebbe dov'era — stesso motivo di
+   * {@link logbookScopeToken}.
+   */
+  warehouseFocusToken: number;
+  /**
+   * `true` mentre il form magazzino attende un tap sulla mappa per posarne il
+   * punto. Come {@link scoutingPlacing}, inibisce la selezione globale delle
+   * feature: quel click serve a posizionare, non ad aprire la scheda di ciò che
+   * sta sotto.
+   */
+  warehousePlacing: boolean;
+  /**
    * `true` quando l'accesso rapido a bordo campo (FAB refill) chiede al pannello
    * Refill (staccato dal Magazzino) di aprire SUBITO il form precompilato.
    * Consumato e azzerato dal pannello all'apertura.
@@ -841,6 +941,23 @@ export interface UiSlice {
   setWarehouseTab: (tab: WarehouseTab) => void;
   /** Apre il modulo Magazzino puntando una sotto-scheda (nav Prodotti/Mezzi). */
   openWarehouseTab: (tab: WarehouseTab) => void;
+  /**
+   * Apre il modulo Normativa su una famiglia di schede. Non tocca
+   * {@link selectedPlotId}: l'appezzamento della valutazione è il suo, scelto
+   * dal pannello.
+   */
+  openComplianceGroup: (group: ComplianceGroup) => void;
+  /** Punta il modulo Normativa su un appezzamento (`null` = nessuno scelto). */
+  setCompliancePlotId: (plotId: string | null) => void;
+  /**
+   * Apre la SCHEDA di un magazzino (click sul suo POI in mappa): punta il
+   * modulo sulla sotto-scheda Prodotti filtrata su quel deposito.
+   */
+  openWarehouse: (warehouseId: string) => void;
+  /** Punta il modulo su un magazzino (`null` = tutti i depositi). */
+  setActiveWarehouseId: (warehouseId: string | null) => void;
+  /** Attiva/disattiva l'attesa di un tap per posare il punto del magazzino. */
+  setWarehousePlacing: (placing: boolean) => void;
   /**
    * Apre il pannello Refill carburante (staccato dal Magazzino), tipicamente dal
    * FAB a bordo campo. Con `quickRefill` chiede l'apertura del form precompilato.
@@ -938,9 +1055,35 @@ export interface GeometrySlice {
   /** Pila redo delle modifiche geometriche (DAL-aware). */
   geometryRedo: GeometrySnapshot[];
 
+  /**
+   * Particelle proposte dall'ultima interrogazione, disegnate sulla mappa.
+   * Stanno nello store e non nel pannello perché sono l'oggetto di un dialogo
+   * fra due parti dell'interfaccia: il pannello le trova, la mappa le mostra e
+   * ne raccoglie il click. Vivono solo in memoria — nulla entra in PGlite
+   * finché l'utente non adotta.
+   */
+  parcelCandidates: Parcel[];
+  /** Candidata evidenziata sulla mappa, di cui il pannello mostra la scheda. */
+  selectedParcelId: string | null;
+  setParcelCandidates: (parcels: Parcel[]) => void;
+  selectParcelCandidate: (id: string | null) => void;
+  /** Sgombera la mappa: chiude il pannello o azzera una ricerca. */
+  clearParcelCandidates: () => void;
+
   saveDrawnPlot: (
     geometria: Plot["geometry"],
     attrs?: PlotDrawAttrs,
+  ) => Promise<Plot | null>;
+  /**
+   * Adotta una particella scelta dall'utente da una fonte pubblica: la converte
+   * in appezzamento e la persiste con la sua provenienza. Ritorna `null` se
+   * manca il contesto company; lancia se la particella è già stata adottata,
+   * perché sovrascrivere in silenzio un appezzamento con i suoi dati
+   * agronomici sarebbe una perdita.
+   */
+  adoptParcel: (
+    parcel: Parcel,
+    attrs: { name: string; cadastralSheet?: string | null; cadastralParcel?: string | null },
   ) => Promise<Plot | null>;
   saveDrawnAsset: (
     geometria: Geometry,

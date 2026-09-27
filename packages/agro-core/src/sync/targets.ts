@@ -70,8 +70,10 @@ export const PULL_TABLES: { tabella: SyncTable; columns: string }[] = [
     columns:
       "id,tenant_id,business_name,national_company_id,vat_number,legal_form," +
       "address,city,province,region,postal_code,country,email,pec,sdi_code," +
-      "centroid,certifications,farm_file_id,paying_agency,contact_name," +
-      "contact_role,created_at,updated_at,deleted_at",
+      // `certifications` è deprecata (v24) ma resta nell'elenco: la colonna
+      // esiste ancora sui device e il pull non deve azzerarla.
+      "centroid,certifications,operator_certifications,farm_file_id," +
+      "paying_agency,contact_name,contact_role,created_at,updated_at,deleted_at",
   },
   {
     tabella: "crops",
@@ -84,14 +86,16 @@ export const PULL_TABLES: { tabella: SyncTable; columns: string }[] = [
     columns:
       "id,tenant_id,company_id,user_plot_name,cadastral_sheet,cadastral_parcel," +
       "geometry,irrigation_type,planting_year,area_ha,last_ndvi_mean," +
-      "historical_notes,metadata,created_at,updated_at,deleted_at",
+      "historical_notes,metadata,source_id,nuts_code,reference_unit_type," +
+      "validity_year,created_at,updated_at,deleted_at",
   },
   {
     tabella: "plots_campaign",
     columns:
       "id,tenant_id,plot_id,crop_id,campaign_year,reference_parcel_external_id," +
       "agricultural_parcel_external_id,crop_external_code,variety_external_code," +
-      "declared_area_ha,closed_at,created_at,updated_at,deleted_at",
+      "declared_area_ha,production_regime,regime_since,regime_notes," +
+      "closed_at,created_at,updated_at,deleted_at",
   },
   {
     tabella: "treatment_logs",
@@ -131,10 +135,22 @@ export const PULL_TABLES: { tabella: SyncTable; columns: string }[] = [
       "created_at,updated_at,deleted_at",
   },
   {
+    tabella: "scouting_observations",
+    columns:
+      "id,tenant_id,company_id,lat,lng,accuracy_m,note,capture_count," +
+      "observation_date,photo_url,created_at,updated_at,deleted_at",
+  },
+  {
     tabella: "tenant_memberships",
     columns:
       "id,tenant_id,company_id,email,role,status,invited_at,joined_at," +
       "created_at,updated_at,deleted_at",
+  },
+  {
+    tabella: "warehouses",
+    columns:
+      "id,tenant_id,company_id,name,warehouse_type,geometry,address,notes," +
+      "metadata,created_at,updated_at,deleted_at",
   },
   {
     tabella: "products",
@@ -146,8 +162,9 @@ export const PULL_TABLES: { tabella: SyncTable; columns: string }[] = [
   {
     tabella: "product_lots",
     columns:
-      "id,tenant_id,product_id,lot_number,expires_at,initial_quantity," +
-      "quantity_on_hand,unit_cost,created_at,updated_at,deleted_at",
+      "id,tenant_id,product_id,warehouse_id,lot_number,expires_at," +
+      "initial_quantity,quantity_on_hand,unit_cost,created_at,updated_at," +
+      "deleted_at",
   },
   {
     tabella: "activity_products",
@@ -228,6 +245,12 @@ export const PULL_TABLES: { tabella: SyncTable; columns: string }[] = [
       "recipe_id,machine_id,equipment_id,working_width_m,start_time,end_time," +
       "path,path_length_m,area_worked_ha,status,audio_notes,treatment_log_ids," +
       "operator_name,notes,created_at,updated_at,deleted_at",
+  },
+  {
+    tabella: "compliance_parameter_overrides",
+    columns:
+      "id,tenant_id,company_id,check_id,parameter_id,value," +
+      "created_at,updated_at,deleted_at",
   },
 ];
 

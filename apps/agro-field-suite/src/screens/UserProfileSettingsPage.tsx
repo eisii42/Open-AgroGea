@@ -2,6 +2,7 @@ import {
   type AppLocale,
   type AreaUnit,
   type DashboardModuleId,
+  MAP_ZOOM_CHOICES,
   type WaterUnit,
   type YieldUnit,
   useSettingsStore,
@@ -28,8 +29,10 @@ import {
   Printer,
   Ruler,
   Satellite,
+  Search,
   ShieldCheck,
   Sprout,
+  ZoomIn,
   TableProperties,
   Tractor,
   Fuel,
@@ -291,6 +294,8 @@ export function UserProfileSettingsPage({ onClose }: { onClose: () => void }) {
 
   const units = useSettingsStore((s) => s.units);
   const setUnits = useSettingsStore((s) => s.setUnits);
+  const mapZoomLimits = useSettingsStore((s) => s.mapZoomLimits);
+  const setMapZoomLimits = useSettingsStore((s) => s.setMapZoomLimits);
   const remoteSync = useSettingsStore((s) => s.remoteSync);
   const resetLayout = useSettingsStore((s) => s.resetLayout);
 
@@ -428,6 +433,57 @@ export function UserProfileSettingsPage({ onClose }: { onClose: () => void }) {
                   </option>
                 ))}
               </Select>
+            </div>
+          </div>
+        </Card>
+
+        {/* §3 — Vista della mappa: intervallo di zoom consentito */}
+        <Card
+          title={t("userProfileSettingsPage.map.title")}
+          subtitle={t("userProfileSettingsPage.map.subtitle")}
+        >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="pf-zoom-min" className="flex items-center gap-1.5">
+                <Search size={14} /> {t("userProfileSettingsPage.map.minZoom")}
+              </Label>
+              <Select
+                id="pf-zoom-min"
+                value={String(mapZoomLimits.min)}
+                onChange={(e) =>
+                  setMapZoomLimits({ min: Number(e.target.value) })
+                }
+              >
+                {MAP_ZOOM_CHOICES.map((z) => (
+                  <option key={z} value={z}>
+                    {z}
+                  </option>
+                ))}
+              </Select>
+              <p className="text-xs text-[var(--ink-4)]">
+                {t("userProfileSettingsPage.map.minZoomHint")}
+              </p>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="pf-zoom-max" className="flex items-center gap-1.5">
+                <ZoomIn size={14} /> {t("userProfileSettingsPage.map.maxZoom")}
+              </Label>
+              <Select
+                id="pf-zoom-max"
+                value={String(mapZoomLimits.max)}
+                onChange={(e) =>
+                  setMapZoomLimits({ max: Number(e.target.value) })
+                }
+              >
+                {MAP_ZOOM_CHOICES.map((z) => (
+                  <option key={z} value={z}>
+                    {z}
+                  </option>
+                ))}
+              </Select>
+              <p className="text-xs text-[var(--ink-4)]">
+                {t("userProfileSettingsPage.map.maxZoomHint")}
+              </p>
             </div>
           </div>
         </Card>

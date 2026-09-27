@@ -1,7 +1,15 @@
-import { type Company, useAgroStore } from "@agrogea/core";
+import {
+  findOperatorCertification,
+  readOperatorCertifications,
+  useAgroStore,
+  withOperatorCertification,
+  type Company,
+  type OperatorCertification,
+} from "@agrogea/core";
 import { FieldSheet } from "@agrogea/ui";
 import { Button, cn } from "@geolibre/ui";
 import {
+  BadgeCheck,
   Building2,
   FileText,
   type LucideIcon,
@@ -55,6 +63,83 @@ interface Sezione {
   label: string;
   Icon: LucideIcon;
   fields: Campo[];
+}
+
+/**
+ * Unico schema certificato gestito da questa scheda. È l'organismo di controllo
+ * a certificare l'AZIENDA (non il campo): qui vivono numero di certificato e
+ * validità, mentre il regime del singolo appezzamento è per annata e si dichiara
+ * nella scheda coltura (`plots_campaign.production_regime`).
+ */
+const CERTIFICATION_SCHEME = "organic";
+
+/** Campi della certificazione, esclusa la chiave dello schema. */
+type CertificationKey = Exclude<keyof OperatorCertification, "scheme">;
+
+interface CampoCertificazione {
+  key: CertificationKey;
+  label: string;
+  placeholder?: string;
+  type?: "text" | "date";
+}
+
+function getCertificationFields(t: TFunction): CampoCertificazione[] {
+  return [
+    {
+      key: "control_body",
+      label: t("registryPanel.certification.controlBody"),
+      placeholder: t("registryPanel.certification.controlBodyPlaceholder"),
+    },
+    {
+      key: "operator_code",
+      label: t("registryPanel.certification.operatorCode"),
+      placeholder: t("registryPanel.certification.operatorCodePlaceholder"),
+    },
+    {
+      key: "certificate_number",
+      label: t("registryPanel.certification.certificateNumber"),
+    },
+    {
+      key: "valid_from",
+      label: t("registryPanel.certification.validFrom"),
+      type: "date",
+    },
+    {
+      key: "valid_to",
+      label: t("registryPanel.certification.validTo"),
+      type: "date",
+    },
+  ];
+}
+
+const CHIAVI_CERTIFICAZIONE: CertificationKey[] = getCertificationFields(
+  ((k: string) => k) as unknown as TFunction,
+).map((c) => c.key);
+
+type CertificationFormState = Record<CertificationKey, string>;
+
+function certificationInitialState(
+  company: Company | undefined,
+): CertificationFormState {
+  const current = findOperatorCertification(company, CERTIFICATION_SCHEME);
+  const out = {} as CertificationFormState;
+  for (const k of CHIAVI_CERTIFICAZIONE) out[k] = current?.[k] ?? "";
+  return out;
+}
+
+/** Form → voce di certificazione (i campi vuoti diventano `null`). */
+function certificationFromForm(
+  form: CertificationFormState,
+): OperatorCertification {
+  const value = (k: CertificationKey) => form[k].trim() || null;
+  return {
+    scheme: CERTIFICATION_SCHEME,
+    operator_code: value("operator_code"),
+    control_body: value("control_body"),
+    certificate_number: value("certificate_number"),
+    valid_from: value("valid_from"),
+    valid_to: value("valid_to"),
+  };
 }
 
 function getSezioni(t: TFunction): Sezione[] {
@@ -132,6 +217,14 @@ function getSezioni(t: TFunction): Sezione[] {
         },
       ],
     },
+    {
+      // Sezione a UI propria: la certificazione non è un campo di testo
+      // dell'azienda ma una voce strutturata di `operator_certifications`.
+      id: "certifications",
+      label: t("registryPanel.sections.certifications.label"),
+      Icon: BadgeCheck,
+      fields: [],
+    },
   ];
 }
 
@@ -160,8 +253,12 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
   const updateCompany = useAgroStore((s) => s.updateCompany);
 
   const SEZIONI = getSezioni(t);
+  const CAMPI_CERTIFICAZIONE = getCertificationFields(t);
   const [sezioneId, setSezioneId] = useState(SEZIONI[0].id);
   const [form, setForm] = useState<FormState>(() => initialState(company));
+  const [certForm, setCertForm] = useState<CertificationFormState>(() =>
+    certificationInitialState(company),
+  );
   const [status, setStatus] = useState<"idle" | "salvo" | "fatto" | "errore">(
     "idle",
   );
@@ -170,6 +267,7 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
   // Ricarica i campi quando cambia l'azienda attiva (o arriva dal sync).
   useEffect(() => {
     setForm(initialState(company));
+    setCertForm(certificationInitialState(company));
     setStatus("idle");
     // company.updated_at copre sia il cambio company sia l'idratazione da pull.
   }, [activeCompanyId, company?.updated_at]);
@@ -177,18 +275,28 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
   const setField = (key: KeyField, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  const setCertField = (key: CertificationKey, value: string) =>
+    setCertForm((prev) => ({ ...prev, [key]: value }));
+
   const save = async () => {
     if (!company) return;
     setStatus("salvo");
     setErroreMsg(undefined);
     try {
-      const patch: Record<string, string | null> = {};
+      const patch: Record<string, unknown> = {};
       for (const k of CHIAVI) {
         const v = form[k].trim();
         // business_name è NOT NULL: se svuotato si conserva il value esistente.
         patch[k] =
           k === "business_name" ? v || company.business_name : v || null;
       }
+      // Le certificazioni di altri schemi (che questa scheda non mostra) non
+      // vengono toccate; una voce svuotata in tutti i campi viene rimossa.
+      patch["operator_certifications"] = withOperatorCertification(
+        readOperatorCertifications(company),
+        CERTIFICATION_SCHEME,
+        certificationFromForm(certForm),
+      );
       await updateCompany(patch as unknown as Partial<Company>);
       setStatus("fatto");
     } catch (err) {
@@ -259,6 +367,30 @@ export function RegistryPanel({ onClose }: { onClose: () => void }) {
 
           {/* Campi della sezione attiva */}
           <div className="min-w-0 flex-1">
+            {sezione.id === "certifications" && (
+              <div className="mb-2 flex flex-col gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
+                  {t("registryPanel.certification.organicTitle")}
+                </p>
+                <p className="text-[11px] text-[var(--ink-4)]">
+                  {t("registryPanel.certification.organicHint")}
+                </p>
+                {CAMPI_CERTIFICAZIONE.map((c) => (
+                  <label key={c.key} className="flex flex-col gap-1 text-sm">
+                    <span className="text-xs font-semibold text-[var(--ink-4)]">
+                      {c.label}
+                    </span>
+                    <input
+                      value={certForm[c.key]}
+                      onChange={(e) => setCertField(c.key, e.target.value)}
+                      type={c.type ?? "text"}
+                      placeholder={c.placeholder}
+                      className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2 py-1.5 text-sm"
+                    />
+                  </label>
+                ))}
+              </div>
+            )}
             <div className="flex flex-col gap-2">
               {sezione.fields.map((c) => (
                 <label key={c.key} className="flex flex-col gap-1 text-sm">

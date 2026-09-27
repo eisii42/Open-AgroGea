@@ -24,6 +24,11 @@ export function ProductImportDialog({ onClose }: { onClose: () => void }) {
   const products = useAgroStore((s) => s.products);
   const saveProduct = useAgroStore((s) => s.saveProduct);
   const receiveLot = useAgroStore((s) => s.receiveLot);
+  // I carichi iniziali del file entrano nel deposito su cui il modulo è
+  // puntato: importare un listino "dentro" un magazzino e ritrovarne le
+  // giacenze non assegnate sarebbe una sorpresa. Nella vista aggregata
+  // (nessun deposito scelto) restano senza collocazione, com'è giusto.
+  const activeWarehouseId = useAgroStore((s) => s.activeWarehouseId);
 
   const [fileName, setFileName] = useState<string | null>(null);
   const [csvText, setCsvText] = useState<string | null>(null);
@@ -88,7 +93,11 @@ export function ProductImportDialog({ onClose }: { onClose: () => void }) {
         if (record) {
           success += 1;
           if (row.lot) {
-            await receiveLot({ product_id: record.id, ...row.lot });
+            await receiveLot({
+              product_id: record.id,
+              warehouse_id: activeWarehouseId,
+              ...row.lot,
+            });
           }
         } else {
           failed += 1;

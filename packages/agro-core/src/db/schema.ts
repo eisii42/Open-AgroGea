@@ -163,9 +163,107 @@
  *   `drop table vegetation_index_rasters, vegetation_index_scenes` (in
  *   quest'ordine per la FK). Nessun dato pre-v21 è toccato e la sola
  *   conseguenza è che il module Suolo torna a ricalcolare ogni volta.
+ *
+ * v22 — additiva: provenienza delle particelle adottate da fonti pubbliche
+ * (LPIS, catasto, INSPIRE). Quattro columns su `plots_registry`:
+ *   * `source_id` — identificativo NATIVO nella fonte (codice catastale, FLIK,
+ *     id RPG, localId INSPIRE). È la metà della chiave di deduplica;
+ *   * `nuts_code` — nodo NUTS di provenienza, l'altra metà. La granularità del
+ *     catalogo è il nodo, non lo Stato: `source_id` da solo non basta perché
+ *     due nodi diversi possono usare numerazioni sovrapposte;
+ *   * `reference_unit_type` — che cosa rappresenta la geometria adottata
+ *     (`cadastral_parcel` | `physical_block` | `farmer_parcel` |
+ *     `agricultural_parcel` | `manual`). Non è decorativo: un Feldblock può
+ *     contenere più appezzamenti coltivati, e l'interfaccia deve poterlo dire
+ *     all'utente PRIMA che adotti;
+ *   * `validity_year` — annata del dato di origine.
+ *   Più l'indice unico parziale `plots_registry_source_unq` che impedisce di
+ *   adottare due volte la stessa particella (vedi le sue condizioni in loco).
+ *   Il resto della provenienza — nome della fonte, URL, licenza con
+ *   attribuzione, `retrievedAt`, CRS e geometria originali non riproiettate —
+ *   vive sotto la chiave `parcel` di `plots_registry.metadata`: non ci si
+ *   interroga sopra, e tenerla in JSONB evita sei columns che nessuno filtra.
+ *   Gli appezzamenti pre-v22 (disegnati a mano o importati dal Fascicolo) hanno
+ *   le quattro columns a null e continuano a funzionare invariati.
+ *   Rollback logico v22: `drop index if exists plots_registry_source_unq` e
+ *   `alter table plots_registry drop column source_id, nuts_code,
+ *   reference_unit_type, validity_year`. Nessun dato pre-v22 è toccato.
+ *
+ * v23 — additiva: magazzini MULTIPLI e georeferenziati. Una tabella e una
+ * colonna:
+ *   * `warehouses` — il luogo fisico in cui la merce sta (capannone, deposito
+ *     agrofarmaci, cisterna, silos). Ha una `geometry` GeoJSON puntuale
+ *     OPZIONALE: valorizzata, il magazzino diventa un POI cliccabile sulla
+ *     mappa che apre la propria scheda; nulla, resta un magazzino "logico"
+ *     raggiungibile solo dal modulo. Sincronizzata via outbox;
+ *   * `product_lots.warehouse_id` — dove si trova QUEL lotto. La giacenza vive
+ *     nel lotto, non nell'anagrafica: è quindi il lotto (e non il prodotto) a
+ *     stare in un magazzino, ed è ciò che rende naturale avere lo stesso
+ *     prodotto in due depositi con scadenze e quantità diverse. Nullable: i
+ *     lotti caricati prima della v23 restano "non assegnati" e continuano a
+ *     contare nella giacenza complessiva, senza migrazione di dati.
+ *   Rollback logico v23: 1) `delete from sync_outbox where table_name =
+ *   'warehouses'`; 2) `alter table product_lots drop column warehouse_id`;
+ *   3) `drop table warehouses`. Nessun dato pre-v23 è toccato.
+ *
+ * v24 — additiva: certificazione dell'OPERATORE e regime di produzione
+ * dell'ANNATA. Sono due cose diverse, ed è il motivo per cui il vecchio
+ * `companies.certifications text[]` non ha mai funzionato: un array di stringhe
+ * libere sull'azienda non poteva reggere né l'una né l'altra.
+ *   * `companies.operator_certifications` jsonb (array, default `[]`) — è
+ *     l'organismo di controllo a certificare l'AZIENDA, e la certificazione ha
+ *     una struttura: schema, codice operatore, organismo, numero di
+ *     certificato, `valid_from`/`valid_to`. jsonb e non colonne tipizzate
+ *     perché le certificazioni sono PIÙ D'UNA per operatore (biologico +
+ *     GlobalGAP + SQNPI…), ognuna con la propria validità: colonne singole ne
+ *     reggerebbero una sola e ogni nuovo schema costerebbe una migrazione.
+ *     Su questo campo non si filtra e non si deduplica (si legge la riga
+ *     dell'azienda attiva, che è una), quindi il criterio della v22 —
+ *     "colonne dove si interroga, JSONB dove no" — porta qui a JSONB;
+ *   * `plots_campaign.production_regime` (`conventional` | `organic` |
+ *     `in_conversion` | `integrated`), `regime_since` date, `regime_notes` —
+ *     il regime è per ANNATA: su `plots_registry` non si potrebbe dire "bio
+ *     dal 2024" senza cancellare il passato. Niente CHECK sul valore (come
+ *     `plots_registry.reference_unit_type` della v22): un CHECK aggiunto a una
+ *     tabella esistente non è esprimibile in modo idempotente senza `DO $$`, e
+ *     l'insieme dei valori è già chiuso nel tipo TypeScript.
+ *     `null` = non dichiarato, e resta tale per le campagne pre-v24: nessun
+ *     modulo deve inferire "convenzionale" dal silenzio.
+ *   `companies.certifications text[]` è DEPRECATA da qui: non si droppa (dati
+ *   reali sui device) e nessun percorso la valorizza più; resta leggibile per
+ *   compatibilità. Vedi
+ *   `docs/technical/operator-certification-and-production-regime.md`.
+ *   Rollback logico v24: `alter table companies drop column
+ *   operator_certifications` e `alter table plots_campaign drop column
+ *   production_regime, regime_since, regime_notes`. Nessun dato pre-v24 è
+ *   toccato.
+ *
+ * v25 — additiva: modulo Compliance (monitoraggio normativo). Una sola tabella,
+ * e la scelta di che cosa NON persistere conta quanto quella di che cosa
+ * persistere:
+ *   * `compliance_parameter_overrides` — le soglie che l'utente ha cambiato
+ *     rispetto ai default normativi di ciascuna scheda (soglia di copertura del
+ *     suolo, periodo sensibile della propria regione, massimale di rame…).
+ *     Sincronizzata via outbox e inclusa nel backup, perché è una SCELTA
+ *     dell'utente: perderla in un ripristino cambierebbe gli esiti in silenzio.
+ *     Unicità su `(company_id, check_id, parameter_id)` fra le righe vive;
+ *   * gli **esiti** delle schede NON hanno tabella. Sono interamente
+ *     ricalcolabili dalle scene STAC e dal Quaderno — come `dss_results`,
+ *     `soil_water_indices` e la cache degli indici — e una cache ricalcolabile
+ *     non appartiene né all'outbox né al backup. Se un domani il ricalcolo
+ *     diventasse costoso al punto da giustificare una cache, quella cache
+ *     nascerebbe local-only, non sincronizzata.
+ *   Più i formati `json` e `geotiff` nel CHECK di
+ *   `data_transfer_logs.file_format` — il report di autovalutazione e le
+ *   ortofoto caricate da "Aggiungi dati" — allargato con lo stesso pattern
+ *   idempotente già usato dalla v13 e dalla v14: drop del vincolo e riaggiunta.
+ *   Rollback logico v25: 1) `delete from sync_outbox where table_name =
+ *   'compliance_parameter_overrides'`; 2) `drop table
+ *   compliance_parameter_overrides`. Nessun dato pre-v25 è toccato e la sola
+ *   conseguenza è che le schede tornano ai default normativi.
  */
 
-export const AGRO_LOCAL_SCHEMA_VERSION = 21;
+export const AGRO_LOCAL_SCHEMA_VERSION = 25;
 
 export const AGRO_LOCAL_SCHEMA_SQL = `
 create table if not exists agro_meta (
@@ -191,7 +289,13 @@ create table if not exists companies (
   pec                 varchar(255),
   sdi_code            varchar(20),
   centroid            jsonb,
+  -- DEPRECATA (v24): campo morto mai compilato da alcun form e mai letto da
+  -- alcun modulo. Non si droppa (dati reali sui device, migrazioni additive) e
+  -- nessun percorso la valorizza più: la certificazione dell'operatore vive in
+  -- operator_certifications, il regime dell'annata in plots_campaign.
   certifications      text[] not null default '{}',
+  -- v24: certificazioni dell'OPERATORE, una voce per schema certificato.
+  operator_certifications jsonb not null default '[]'::jsonb,
   farm_file_id        varchar(100),
   paying_agency       varchar(100),
   contact_name        varchar(255),
@@ -200,6 +304,12 @@ create table if not exists companies (
   updated_at          timestamptz not null default now(),
   deleted_at          timestamptz
 );
+
+-- v24: certificazione dell'operatore per le istanze già create. Additiva e con
+-- default: le aziende esistenti partono da "nessuna certificazione dichiarata",
+-- che è esattamente ciò che sapevamo di loro.
+alter table companies
+  add column if not exists operator_certifications jsonb not null default '[]'::jsonb;
 
 -- crops — specie/varietà coltivata, isolata dall'anagrafica fisica. Le
 -- proprietà di filiera (clone, sesto d'impianto, portainnesto…) vivono dentro
@@ -250,6 +360,29 @@ create table if not exists plots_registry (
 create index if not exists plots_registry_company_idx
   on plots_registry (company_id);
 
+-- v22 — provenienza dell'appezzamento adottato da una fonte pubblica.
+-- Colonne (e non chiavi JSONB) perché su queste si DEDUPLICA e si filtra: la
+-- licenza, gli URL e la geometria originale restano invece in metadata, dove
+-- nessuno interroga.
+alter table plots_registry add column if not exists source_id text;
+alter table plots_registry add column if not exists nuts_code text;
+alter table plots_registry add column if not exists reference_unit_type text;
+alter table plots_registry add column if not exists validity_year smallint;
+
+-- Chiave di deduplica: la stessa particella pubblica non può entrare due volte
+-- nello stesso portafoglio. Indice PARZIALE, e ognuna delle tre condizioni ha
+-- una ragione:
+--   * source_id is not null — gli appezzamenti disegnati a mano non hanno
+--     provenienza e devono poter essere quanti si vuole;
+--   * deleted_at is null — una particella cancellata deve poter essere
+--     riadottata, altrimenti il tombstone la vieterebbe per sempre;
+--   * ambito company_id — è il confine di proprietà reale. Un agronomo che
+--     segue due companies può legittimamente ritrovarsi la stessa particella
+--     in due portafogli distinti.
+create unique index if not exists plots_registry_source_unq
+  on plots_registry (company_id, source_id, nuts_code)
+  where source_id is not null and deleted_at is null;
+
 -- plots_campaign — status BUROCRATICO annuale del field per Campagna Agraria,
 -- LPIS/IACS compliant. Associa un plot fisico a una crop (crops) per
 -- una determinata annata; relazione 1:N su (plot_id, campaign_year).
@@ -264,6 +397,14 @@ create table if not exists plots_campaign (
   crop_external_code              varchar(30),
   variety_external_code           varchar(30),
   declared_area_ha                numeric(10, 4) not null,
+  -- v24: regime di produzione DICHIARATO per l'annata (conventional | organic |
+  -- in_conversion | integrated). NULL = non dichiarato, e resta tale: nessun
+  -- modulo deve inferire "convenzionale" dal silenzio.
+  production_regime               text,
+  -- Inizio del regime: da qui si contano i 24/36 mesi di conversione al
+  -- biologico (Reg. UE 2018/848). Può precedere di anni la campagna.
+  regime_since                    date,
+  regime_notes                    text,
   -- v17: chiusura del ciclo colturale (raccolto delle annuali). NULL = aperta.
   closed_at                       timestamptz,
   created_at                      timestamptz not null default now(),
@@ -275,6 +416,14 @@ create table if not exists plots_campaign (
 -- pieno con l'unicità PARZIALE sulle campagne aperte (secondo raccolto possibile
 -- dopo la chiusura della before campagna dello stesso year).
 alter table plots_campaign add column if not exists closed_at timestamptz;
+
+-- v24: regime di produzione dell'annata per le istanze già create. Nessun CHECK
+-- sul valore, come per plots_registry.reference_unit_type (v22): l'insieme dei
+-- valori è chiuso nel tipo TypeScript e un CHECK aggiunto a una tabella
+-- esistente non è idempotente senza un blocco DO $$.
+alter table plots_campaign add column if not exists production_regime text;
+alter table plots_campaign add column if not exists regime_since date;
+alter table plots_campaign add column if not exists regime_notes text;
 alter table plots_campaign
   drop constraint if exists unique_plot_per_campaign;
 create unique index if not exists plots_campaign_open_unq
@@ -445,6 +594,30 @@ create index if not exists sync_outbox_pending_idx
   on sync_outbox (sync_status, created_at)
   where sync_status in ('pending', 'error');
 
+-- compliance_parameter_overrides (v25) — le soglie che l'utente ha spostato
+-- rispetto ai default normativi di una scheda di compliance. Sincronizzata:
+-- è una SCELTA, non un derivato, e perderla in un ripristino cambierebbe gli
+-- esiti in silenzio. Gli esiti delle schede, al contrario, non hanno tabella:
+-- sono ricalcolabili dalle scene e dal Quaderno.
+create table if not exists compliance_parameter_overrides (
+  id           uuid primary key default gen_random_uuid(),
+  tenant_id    uuid not null,
+  company_id   uuid not null references companies (id),
+  check_id     text not null,
+  parameter_id text not null,
+  value        numeric not null,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now(),
+  deleted_at   timestamptz
+);
+
+-- Un solo override vivo per (azienda, scheda, parametro): l'indice è PARZIALE
+-- sulle righe non cancellate, così un parametro riportato al default (tombstone)
+-- può essere ri-personalizzato in seguito.
+create unique index if not exists compliance_overrides_unq
+  on compliance_parameter_overrides (company_id, check_id, parameter_id)
+  where deleted_at is null;
+
 -- weather_config — configurazione per-company della fonte weather. Tabella
 -- LOCAL-ONLY: non transita dall'outbox (la api_key non lascia il device, ed è
 -- status di installazione). Una row per company.
@@ -523,7 +696,10 @@ alter table data_transfer_logs
   drop constraint if exists data_transfer_logs_file_format_check;
 alter table data_transfer_logs
   add constraint data_transfer_logs_file_format_check
-  check (file_format in ('csv', 'geojson', 'isoxml', 'shapefile', 'gpkg', 'kml', 'gpx'));
+  check (file_format in ('csv', 'geojson', 'isoxml', 'shapefile', 'gpkg', 'kml', 'gpx',
+                         -- v25: report di autovalutazione del modulo Compliance
+                         -- e ortofoto caricate come sovrapposizione raster.
+                         'json', 'geotiff'));
 
 -- v14: rimuove 'survey' dal CHECK di treatment_logs (ora gestito da scouting_observations).
 alter table treatment_logs
@@ -1081,4 +1257,37 @@ create table if not exists vegetation_index_rasters (
   values_base64   text not null,
   primary key (scene_row_id, index_name)
 );
+
+-- v23 — Magazzini multipli e georeferenziati -----------------------------------
+
+-- warehouses — luogo fisico in cui la merce sta. La geometria puntuale è
+-- OPZIONALE: valorizzata, il magazzino compare come POI cliccabile sulla mappa
+-- (icona dedicata) e apre la propria scheda; nulla, resta un magazzino logico
+-- raggiungibile dal modulo. Il tipo di deposito è testo libero come asset_type
+-- degli asset (nessun CHECK: le tipologie sono aziendali, non normative).
+create table if not exists warehouses (
+  id             uuid primary key,
+  tenant_id      uuid not null,
+  company_id     uuid not null references companies (id),
+  name           text not null,
+  warehouse_type text not null default 'general',
+  geometry       jsonb,
+  address        text,
+  notes          text,
+  metadata       jsonb not null default '{}',
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  deleted_at     timestamptz
+);
+
+create index if not exists warehouses_company_idx
+  on warehouses (company_id);
+
+-- La giacenza vive nel LOTTO: è il lotto ad avere una collocazione, non
+-- l'anagrafica prodotto. Nullable = lotto non assegnato (tutti quelli pre-v23).
+alter table product_lots
+  add column if not exists warehouse_id uuid references warehouses (id);
+
+create index if not exists product_lots_warehouse_idx
+  on product_lots (warehouse_id);
 `;

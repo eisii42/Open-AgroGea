@@ -8,7 +8,166 @@ Gli installer nativi di ogni versione rilasciata sono su [GitHub Releases](https
 
 ## [Non rilasciato]
 
-### Aggiunto — 0.4.0 «Geofencing e Modalità Campo low-touch»
+Nessuna modifica oltre a quelle già elencate per la 0.5.0.
+
+## [0.5.0] — in preparazione
+
+Sei aree: le particelle si **adottano da fonti pubbliche** invece di ridisegnarle (nuovo pacchetto `@agrogea/parcel`) e il **primo avvio** chiede azienda e paese invece di inventarli; nasce il modulo **Normativa** (autovalutazione PAC e biologico); la certificazione dell'azienda e il regime di produzione diventano dati veri; il magazzino diventa un insieme di **luoghi** con una posizione sulla mappa; il **backup** passa al formato v3 con perimetro selezionabile; la vista cartografica viene vincolata alla scala in cui il lavoro di campo si svolge davvero.
+
+Storage: **migrazioni additive PGlite v22, v23, v24 e v25** (la 0.4.1 era alla v21). Nessuna colonna esistente cambia di significato, nessun dato va migrato a mano; i rollback logici sono documentati in testa a `packages/agro-core/src/db/schema.ts`. Formato di backup: **v3.1** (`agrogea.company-transfer`); i file v1 e v2 si leggono ancora e vengono migrati in memoria all'import.
+
+### Aggiunto — Particelle da fonti pubbliche (`@agrogea/parcel`, v22)
+
+- **Nuovo pacchetto foglia `packages/agro-parcel`**, senza dipendenze runtime e senza accesso a rete, DB o DOM: il contratto `Parcel` (unione discriminata `SourcedParcel | ManualParcel`, così una particella acquisita non può esistere senza provenienza e licenza), gli adapter **WFS** e **OGC API – Features**, la normalizzazione degli attributi e il **catalogo delle fonti come dato** — un JSON per fonte validato da `source.schema.json`/`validateSourceRecord`, con copertura per nodo **NUTS** (non per Stato) e `attributeMap` dichiarativo. Rete (`ParcelFetch`) e riproiezione (`Reprojector`, proj4 in `@agrogea/core` `geo/reproject.ts`) sono iniettate.
+- **Due fonti verificate contro i servizi vivi**: Paesi Bassi **BRP Gewaspercelen** (RVO/PDOK, CC0-1.0, `agricultural_parcel`) e Francia **RPG** (IGN, Etalab 2.0, `farmer_parcel`). Aggiungere un paese significa aggiungere un record al catalogo, non scrivere codice.
+- **Pannello *Particelle pubbliche*** (sidebar → *Disegna elemento*, prima voce): si sceglie la fonte, si cerca **nella zona inquadrata** o **cliccando un punto**, le candidate compaiono sulla mappa come layer dedicato con **tooltip al passaggio** (identificativo, superficie dichiarata, codice coltura, tipo di unità) e si adottano **una alla volta**, con un nome scelto dall'utente. La ricerca è ammessa solo fra zoom 13 e 17: più larga interrogherebbe decine di migliaia di geometrie, più stretta restituirebbe quasi nulla.
+- **L'adozione è sempre un atto esplicito**: i livelli LPIS pubblici sono anonimizzati per legge e nessun portafoglio viene pre-popolato. Il pannello spiega **che cosa si sta adottando** (particella catastale, blocco fisico, appezzamento dichiarato, unità colturale) *prima* dell'adozione, e riconosce una particella già in azienda invece di duplicarla.
+- **Provenienza persistita (schema v22)**: `plots_registry.source_id`, `nuts_code`, `reference_unit_type`, `validity_year` (colonne vere, con indice univoco per la deduplica) e `metadata.parcel` (nome e URL della fonte, licenza e attribuzione, CRS originale, geometria come pubblicata, istante di acquisizione). L'attribuzione viaggia col dato fino al backup.
+- Anche l'**import del Fascicolo SIAN** valorizza ora le colonne di provenienza (`agricultural_parcel`, annata, paese dell'azienda): il percorso italiano non è più l'unico a produrre appezzamenti senza provenienza interrogabile.
+- **Etichette dei codici di riferimento per paese** (`declarativeLabelSet`): «Isola», «Appezzamento», «SIAN» sono termini italiani; un'azienda di un paese senza sistema dichiarativo gateato vede ora etichette generiche, nella scheda coltura e nell'import del fascicolo grafico.
+- **Trasporto nativo Rust** (`src-tauri/src/parcel_source.rs`): fuori dal sandbox CORS del webview, con **allow-list degli host** registrata dal catalogo, **blocco degli indirizzi non pubblici** (loopback, privati, link-local, CGNAT, ULA) risolti prima della richiesta, redirect ricontrollati e concorrenza limitata da semaforo per non sovraccaricare i portali regionali.
+- **Verifica live del catalogo** con `npm run verify:sources` (`scripts/verify-parcel-sources.mts`) e workflow dedicato `.github/workflows/sources-verify.yml`, **solo su avvio manuale** e senza permessi di scrittura: il gate di qualità resta offline, test e build non toccano mai la rete (fixture reali in `tests/fixtures/parcel-sources/`).
+- **Paese dell'azienda su tutto ISO 3166-1 alpha-2** (`country-resolution.ts`): `CountryCode` distingue ora *dove può stare un'azienda* (qualunque paese), *dove sappiamo verificare le coordinate* (paesi con bounding box) e *dove sappiamo produrre export normativi* (`SUPPORTED_COUNTRIES` IT/ES/FR). Fuori dai riquadri noti il controllo spaziale **si astiene** invece di segnalare "campi fuori dal paese dichiarato".
+- Test: `tests/agro-parcel.test.ts`, `agro-parcel-catalog.test.ts`, `agro-parcel-sources.test.ts`, `agro-parcel-adoption.test.ts`, `agro-country-resolution.test.ts`.
+
+### Aggiunto — Primo avvio guidato
+
+- L'app **non crea più da sola** l'azienda «Company locale» con paese `IT` (`LOCAL_COMPANY_DEFAULT` è rimossa): ora che il paese decide quali fonti di particelle vengono proposte, sceglierlo al posto dell'utente significherebbe mostrargli il catalogo sbagliato.
+- Senza aziende l'app apre la **schermata di benvenuto** (`modules/onboarding/`): *Nuova azienda* (ragione sociale e paese obbligatori; comune e Partita IVA facoltativi — il comune serve solo a inquadrare la mappa) oppure **Ripristina da un backup** (i backup più vecchi vengono aggiornati da soli).
+- **Chi ha già un'installazione non se ne accorge**: la sua azienda esiste e viene aperta come sempre.
+- Test: `tests/agro-onboarding.test.ts`.
+
+### Aggiunto — Backup con perimetro selezionabile (formato v3)
+
+- Prima dell'export si apre **«Cosa mettere nel backup»** (`BackupScopeDialog`): di default *backup completo*; si possono restringere il **periodo** (tutto lo storico, anno corrente, ultimi 12 mesi, date libere) e le **sezioni** — Quaderno, raccolte, analisi del suolo, rilievi, infrastrutture, magazzino, parco macchine, pianificazione e Modalità Campo, monitoraggio normativo. Appezzamenti, colture e campagne sono **sempre inclusi**: tutto il resto ci si aggancia.
+- **Formato v3** (`TRANSFER_SCHEMA_VERSION` 3.1.0): il file include ora **magazzino** (depositi, prodotti, lotti, scarichi), **parco macchine** (mezzi, attrezzi, impieghi, manutenzioni, documenti, rifornimenti, rettifiche contatori), **pianificazione** (ricette, task, sessioni di campo) e gli **override delle soglie di compliance** (v3.1), e dichiara il proprio perimetro in `agrogea.scope`: fra un anno si distingue ancora un magazzino *vuoto* da uno *non incluso*.
+- **Migrazione a catena v1 → v2 → v3** all'import: i v2 dichiarano le sole sezioni che potevano contenere, così il ripristino di un file vecchio non azzera le sezioni nuove.
+- Lettura e ripristino passano da un DAL dedicato (`AgroDalBackup`, `db/dal-backup.ts`), con upsert transazionale dato + outbox.
+- Test: `tests/agro-company-backup.test.ts` (round-trip end-to-end), `agro-transfer-v2.test.ts`, `agro-transfer-v3.test.ts`.
+
+### Aggiunto — Modulo Normativa (monitoraggio normativo)
+
+Modulo di **primo livello** nella sidebar, con una voce per famiglia: Ammissibilità, Condizionalità (BCAA), Eco-schemi, Trasversali, Biologico, Layer vincolanti. Documentazione tecnica in [`docs/technical/compliance-monitoring.md`](docs/technical/compliance-monitoring.md), guida utente al §4.17 del manuale.
+
+- **È autovalutazione, e lo dice ovunque.** Il controllo ufficiale è l'AMS dell'Organismo Pagatore (Reg. (UE) 2021/2116 art. 66); per il biologico l'organismo di controllo. Il disclaimer sta in testa al pannello, accanto a ogni esito, nel campo `assessment` di **ogni** risultato — scritto dal runner, non dalle schede, così nessuna può ometterlo — e nel report esportato.
+- **Diciotto schede** data-driven per paese: il catalogo si filtra su `reference.countries`, così gli eco-schemi italiani e i periodi sensibili della BCAA 6 spariscono da un'installazione francese invece di dare un esito sbagliato con l'aria di essere giusto.
+- **Quattro esiti, mai tre**: conforme, attenzione, non conforme e **non decidibile**. L'ultimo è una porta, non un punteggio basso: i presupposti mancanti (scene insufficienti, pixel puri sotto soglia, archivio corto, dati dichiarati assenti) fermano la scheda **prima** che il metodo giri, e la scheda dice che cosa manca e dove completarlo. Due schede restano "non decidibili" quasi sempre di proposito — sapere quale controllo il satellite non può anticipare vale quanto sapere gli altri.
+- **Nessun numero senza provenienza**: ogni esito porta le scene realmente usate (id STAC, data, nuvolosità, pixel validi), la finestra osservata, il metodo, i parametri applicati e la **serie grezza ispezionabile**. Chi legge fra un anno deve poter contestare il metodo, non indovinarlo.
+- **Le soglie sono parametri, non costanti**: valore, default, estremi, unità e riferimento normativo accanto. Gli override dell'utente vivono in `compliance_parameter_overrides` (sincronizzata, nel backup): sono una SCELTA, e perderli in un ripristino cambierebbe gli esiti in silenzio. Gli **esiti** invece non si salvano — si ricalcolano.
+- **L'incertezza è un dato di prima classe**: sette fattori con score, peso e frase leggibile; la confidenza è la media pesata, ma `limitedBy` nomina i fattori che la stanno limitando, così la UI dice *«confidenza 55%, limitata da nuvolosità e numero di scene»* invece di un numero nudo. L'osservabilità dichiarata dalla scheda mette un tetto: una scheda che osserva un oggetto più piccolo del pixel non può risultare confidente solo perché quel giorno il cielo era sereno.
+- **Una valutazione alla volta**, attivata dall'utente: aprire un pannello non è chiedere un giudizio. L'appezzamento si sceglie **nel modulo** (con la coltura dichiarata accanto), non sulla mappa — il tocco sul poligono continua ad aprire il Quaderno di Campagna.
+- **Verifica e recupero delle scene per scheda**: si interroga il catalogo (gratis, nessuna immagine) e si vede quante scene esistono per *quella* finestra, quante sono già in cache e quanti megabyte mancano. Il numero è sempre il **residuo**: una scena presa da una scheda serve già a tutte le altre. Costo misurato sui COG del Planetary Computer: ~0,45 MB per banda per scena, **indipendente dalla superficie** dell'appezzamento (una tile da 512×512 copre 2621 ha a 10 m).
+- **Tre schede si procurano il dato da sole**, e prima restavano mute: BCAA 4 estrae il reticolo idrografico da **OpenStreetMap** (attribuzione ODbL inclusa, un layer regionale dell'utente ha la precedenza); BCAA 5 legge la pendenza dal **Copernicus DEM GLO-30** con l'algoritmo di Horn; BCAA 8 accetta un'**ortofoto GeoTIFF** caricata dall'utente e misura la quota vegetata con Excess Green, dichiarando che la classificazione RGB non distingue una siepe da un'infestante.
+- **Il biologico non è satellitare**: si calcola dai registri — i lotti realmente scaricati, non le dosi pianificate. Sostanze ammesse su **reference data versionato** (Reg. (UE) 2021/1165, con atto e data di versione nell'esito), rame in finestra mobile di 7 anni con conversione a rame metallo, azoto organico 170 kg/ha/anno, periodo di conversione 24/36 mesi. Una sostanza fuori elenco è **sconosciuta, non vietata**: l'elenco è parziale, e trattarne l'assenza come divieto significherebbe accusare l'agricoltore della nostra incompletezza.
+- **Punto di innesto per i plugin** (`registerComplianceCheck`): i disciplinari DOP/DOCG/IGP vivranno in plugin esterni, sulla giuntura GeoLibre già esistente (`GeoLibreExternalPluginManifest`, `isAllowedPluginManifestUrl`). In questa fase **non si carica alcun plugin**: un sistema di plugin a metà è peggio di nessun sistema.
+- **Pulizia della cache** in fondo al pannello, per appezzamento o totale. La ritenzione passa da 24 a **36 mesi**: con tre annate richieste dalla rotazione colturale, la potatura di fine run avrebbe cancellato a ogni giro lo storico appena scaricato.
+- Test in `tests/agro-compliance-engine.test.ts`, `agro-compliance-organic.test.ts`, `agro-compliance-module.test.ts`, `agro-compliance-sources.test.ts`, `agro-add-data-raster.test.ts`.
+
+### Aggiunto — Certificazione dell'operatore e regime di produzione (v24)
+
+- `companies.operator_certifications` (jsonb): schema, codice operatore, organismo di controllo, numero di certificato e validità. **jsonb e non colonne** perché le certificazioni di un operatore sono più d'una, ognuna con la propria validità, e su questo campo non si filtra. Si compila da **Anagrafica Azienda → Certificazioni**.
+- `plots_campaign.production_regime` / `regime_since` / `regime_notes`: il regime è per **ANNATA**, non per appezzamento — su `plots_registry` non si potrebbe dire "bio dal 2024" senza cancellare il 2023. Si compila dalla scheda coltura e compare nei badge di compliance.
+- `upsertCampoCampagna` distingue **campo non passato** (conserva) da **passato a null** (azzera): senza, il re-import del Fascicolo e il ripristino di un backup più vecchio avrebbero cancellato il regime in silenzio.
+- `companies.certifications text[]` è **deprecata**: campo morto che nessun form compilava e nessun modulo leggeva. Non si droppa (dati reali sui device) e nessun percorso la valorizza più. Vedi [`docs/technical/operator-certification-and-production-regime.md`](docs/technical/operator-certification-and-production-regime.md).
+
+### Aggiunto — Cartografia raster in "Aggiungi dati"
+
+- **Servizio WMS da indirizzo**: si incolla l'URL, AgroGea interroga il GetCapabilities e presenta i layer con il **titolo leggibile** invece del codice tecnico. Gestite le versioni 1.3.0 e 1.1.1, che cambiano il nome del parametro del sistema di riferimento (`CRS` contro `SRS`) — l'errore che fa rispondere al server in un modo che nessuno collega alla versione del protocollo.
+- **Ortofoto GeoTIFF**: sovrapposizione georeferenziata che resta sul dispositivo e funziona offline. Un sistema di riferimento diverso da UTM o WGS84 viene **rifiutato citando il codice EPSG**, invece di essere disegnato nel posto sbagliato: un'ortofoto fuori registro sembra funzionare, ed è peggio di una che non si carica.
+- **Un solo caricamento per due usi**: l'ortofoto aggiunta alla mappa resta disponibile alla scheda BCAA 8, che la rilegge a piena risoluzione e ritagliata sull'appezzamento senza chiedere di ricaricarla.
+
+### Modificato
+
+- **BCAA 5** non tenta più di rilevare la lavorazione dall'NDVI: ciò che la norma disciplina è la direzione dei solchi, che a 10 m non è osservabile. La scheda ora delimita l'**ambito** — l'appezzamento rientra o no nell'obbligo — sulla pendenza da DEM. È meno di prima ed è più utile: un indizio che non discrimina è rumore con accanto un riferimento normativo.
+- `searchSceneSeries` **pagina** il catalogo STAC: senza, una finestra pluriennale ne perdeva in silenzio la maggior parte.
+- Nuovo indice **NBR** (Normalized Burn Ratio, B08/B12) per la scheda BCAA 3 (bruciatura delle stoppie): introduce la banda B12, ricampionata a 10 m come B11.
+- **Sidebar**: il modulo **Normativa** è di primo livello (prima la geo-compliance stava sotto *Impostazioni Azienda*) e *Particelle pubbliche* è la prima voce di *Disegna elemento*, perché è il flusso principale; il disegno a mano resta per rettifica e ripiego.
+- Dipendenze aggiornate alle versioni in-range (Vite 8.3, React 19.3, ESLint 10.11, deck.gl 9.4, Radix, Turf 7.4, Tauri CLI 2.11.5) con i range dei `package.json` allineati. I pacchetti `@geolibre/*` restano al fork vendorizzato 1.4.0 e non si aggiornano dal registro.
+
+### Rimosso
+
+- **Scheda EUDR (deforestazione dopo il cut-off 2020)**: richiedeva sei annate di archivio — da sola, più della metà del traffico dell'intero catalogo — per una verifica che la parte layer-based di `due-diligence.ts` copre già nella sostanza. Il codice è nella storia del repository e si riprende quando il recupero storico sarà meno costoso.
+- Il gating di edizione `cloudOnly` nella sidebar dei moduli, rimasto senza usi.
+
+### Aggiunto — Magazzini multipli e georeferenziati
+- **Tabella `warehouses`** (sincronizzata via `sync_outbox` come le altre tabelle di dominio): nome, tipologia, indirizzo, note e una **`geometry` puntuale FACOLTATIVA**. Un'azienda può quindi avere tanti depositi quanti ne servono — capannone, deposito fitofarmaci, cisterna, silos — invece di un unico magazzino implicito.
+- **La collocazione vive nel LOTTO, non nell'anagrafica**: `product_lots.warehouse_id` (nullable, FK). La giacenza è del lotto, quindi è il lotto ad avere un posto in cui sta — ed è questo che permette lo **stesso prodotto in due depositi** con scadenze e quantità diverse senza duplicare l'anagrafica. I lotti pre-v23 restano *non assegnati*, contano nella giacenza complessiva e continuano a funzionare invariati: nessuna migrazione di dati.
+- **POI del magazzino sulla mappa** (`WarehouseMarkers`): i depositi con posizione compaiono come punto cliccabile con **icona per tipologia** (generico, fitosanitari, concimi, sementi, carburante, mezzi) e badge dei lotti in giacenza. Il click apre la scheda di **quel** deposito. Sono marker permanenti e non dipendono da un toggle: un deposito è un elemento stabile dell'azienda, non una sovrapposizione temporanea come i simboli delle operazioni.
+- **Anagrafica dei depositi** (`WarehouseManager`, pulsante *Magazzini* nel modulo) con creazione, modifica ed eliminazione, e **posizionamento «tocca la mappa»** che riusa il pattern del rilievo scouting (un flag nello store inibisce la selezione delle feature, così quel tocco posa il punto e non apre la scheda di ciò che sta sotto).
+- **Filtro per deposito** in testa al pannello: *Tutti i magazzini* mostra l'anagrafica completa (anche a giacenza zero), un deposito selezionato mostra **solo ciò che ci sta dentro**, con giacenze, alert di scadenza e badge di sotto-scorta calcolati su quel deposito. Il carico lotto e il **carico iniziale** del nuovo prodotto hanno un selettore *Magazzino di destinazione* preselezionato sul deposito in cui si sta lavorando (o sull'unico esistente); l'**import CSV** deposita i carichi nel magazzino su cui il modulo è puntato.
+- **Eliminare un deposito non elimina la merce**: i suoi lotti tornano *non assegnati* in una scrittura tracciata dall'outbox. Chiudere un magazzino è un fatto logistico, non una distruzione di scorte — e un soft-delete che si portasse dietro le giacenze sarebbe una perdita silenziosa.
+- Il click sul POI riporta il pannello all'**elenco di quel deposito** anche se era fermo su un'altra sotto-vista (`warehouseFocusToken`, stesso pattern di `logbookScopeToken`): un token e non il solo id, così ritoccare il POI del deposito già selezionato viene comunque onorato.
+- Test dedicati in `tests/agro-warehouse.test.ts` (collocazione e filtro per deposito, lotti non assegnati, eliminazione che preserva le giacenze, nome obbligatorio) e `tests/agro-schema-migration.test.ts` (tabella, colonna nullable, idempotenza della ALTER).
+
+### Aggiunto — Limiti di zoom della mappa (13–17)
+- La mappa di campo si muove **solo fra lo zoom 13 e il 17**, ed è anche l'intervallo di default: sotto il 13 si guarda una regione, sopra il 17 si sovracampionano pixel di ortofoto che non esistono. Sono **estremi assoluti** (`MAP_ZOOM_FLOOR`/`MAP_ZOOM_CEILING`): dalle **Impostazioni profilo → Vista della mappa** l'utente può *stringere* l'intervallo, mai allargarlo.
+- La preferenza è local-first come unità e lingua (`localStorage` + `preferences.mapZoom` per il cross-device) e il clamp vale **anche in lettura**: un valore fuori intervallo rimasto in storage o arrivato dal profilo remoto viene riportato dentro invece di essere applicato alla mappa. `normalizeMapZoomLimits` garantisce inoltre `min <= max` — un intervallo invertito farebbe alzare `minZoom` sopra `maxZoom` e la vista resterebbe incastrata.
+- **Un unico proprietario di `preferences.map`** (`useMapZoomLimits`): il tetto tecnico dell'ortofoto Esri, che stava in `BasemapSwitcher` con un ref di ripristino, è ora **composto** con la preferenza dell'utente invece di sovrascriverla. Con una preferenza scrivibile i due effetti si sarebbero rincorsi, ripristinando a vicenda il valore appena cambiato.
+- Test dedicati in `tests/agro-settings.test.ts`.
+
+### Aggiunto — Segnali di attenzione sugli appezzamenti
+- Sulla mappa compaiono due simboli distinti, perché chiedono due azioni diverse: **`!`** (pallino blu) dove c'è **lavoro previsto** — task `PLANNED`/`IN_PROGRESS` sul campo, col conteggio — e **⚠** (triangolo ambra) dove **mancano dati**: tessitura del suolo, campi dichiarativi di campagna (SIAN/SIEX), righe del Quaderno o task incomplete. Un badge unico avrebbe reso un promemoria indistinguibile da un errore da correggere.
+- **Il click porta dove si risolve**: il `!` apre la scheda dell'appezzamento (da cui le task si avviano); il ⚠ apre *Dati coltura*, *Pianificazione Task* o la scheda del suolo a seconda del **gap più urgente**.
+- Il motore (`field/plot-alerts.ts`) è **puro** e **riusa** `evaluateTaskCompleteness`/`evaluateLogCompleteness` e `missingDeclarative` invece di reimplementarne le regole: l'elenco di ciò che manca deve essere lo stesso che l'utente legge nel cruscotto «Record incompleti» e nel gate SIAN, altrimenti la mappa direbbe una cosa e il pannello un'altra. Gli appezzamenti senza nulla da segnalare non producono alcun marker: un simbolo su ogni campo non segnalerebbe più niente.
+- I dichiarativi si valutano **solo sulla campagna aperta** e **solo dove il paese ha un sistema gateato**, altrimenti ogni campo a riposo porterebbe un triangolo.
+- Test dedicati: `tests/agro-plot-alerts.test.ts`.
+
+### Corretto
+- **Sincronizzazione verso PostgreSQL privato — colonne del pull**: `PULL_TABLES` non elencava la tabella `warehouses`, `product_lots.warehouse_id`, le colonne di provenienza di `plots_registry`, il regime di `plots_campaign` e `companies.operator_certifications`; un pull da PostgreSQL privato le avrebbe ignorate. `companies.certifications` (deprecata) resta nell'elenco per non essere azzerata.
+- **Sincronizzazione — tabelle allineate**: la whitelist Rust (`TABELLE_SYNC`) conteneva 12 tabelle contro le 27 sincronizzabili, quindi le mutazioni di magazzino, parco macchine e pianificazione venivano rifiutate al push e ignorate al pull; `PULL_TABLES` non leggeva `scouting_observations`. I tre elenchi derivano ora da `SYNC_TABLES` (`types.ts`) e `tests/agro-sync-tables.test.ts` fallisce se divergono.
+
+### Documentazione
+- Manuale utente (IT/EN) §2 e §4.14 riscritti sui **depositi** (creazione, tipologie, POI, filtro, cosa succede eliminandoli, dove finiscono i lotti importati), più i limiti di zoom e i simboli di attenzione; glossario e `docs/ARCHITECTURE.md` aggiornati sul modello dati del magazzino.
+- Manuale utente (IT/EN) portato alla **0.5.0**: primo avvio, *Particelle pubbliche*, certificazioni in Anagrafica, regime di produzione nella scheda coltura, sidebar aggiornata, §4.17 Normativa (anche in inglese), cartografia raster e perimetro del backup allineati fra le due lingue.
+- Ritenzione della cache delle scene corretta a **36 mesi** nel manuale e nella documentazione tecnica dei moduli (era rimasta a 24); intestazioni di versione di manuali, `ARCHITECTURE.md` e documenti tecnici portate a 0.5.0 / schema v25; README (IT/EN) con Normativa, magazzino e backup selettivo; glossario esteso a particelle, adozione, primo avvio, certificazioni e regime.
+- Nuovi documenti tecnici: [`compliance-monitoring.md`](docs/technical/compliance-monitoring.md), [`operator-certification-and-production-regime.md`](docs/technical/operator-certification-and-production-regime.md), [`raster-sources.md`](docs/technical/raster-sources.md); README del pacchetto [`agro-parcel`](packages/agro-parcel/README.md); in `docs/ARCHITECTURE.md` la procedura *How to add a new parcel source*.
+
+## [0.4.1] — 2026-08-20
+
+Quattro aree: il calendario delle operazioni diventa una vista di primo livello e le sessioni a bordo campo si chiudono su un avanzamento dichiarato; il Command Center abbandona la griglia di KPI fissi in favore di indici composti dall'utente; i controlli mappa vengono localizzati, restilizzati e riorganizzati; l'anagrafica prodotti si importa da CSV.
+
+Lo storage local-first non è toccato: **nessuna migrazione di schema PGlite**, nessuna tabella nuova, nessun cambiamento alla coda di sync. L'unica nuova persistenza sono le preferenze di visualizzazione per azienda in `localStorage`.
+
+### Aggiunto — Calendario aziendale
+- **Terza vista di primo livello** (`modules/calendar/`), accanto a Mappa e Command Center invece che riquadro dentro il cruscotto analitico: una sola griglia mensile per tutto ciò che ha una data. Le tre viste restano montate (keep-alive in `App.tsx`), quindi passare al calendario non ricarica il workspace; le **frecce ←/→** le scorrono nell'ordine Mappa → Calendario → Command Center.
+- **Cinque sorgenti, una griglia**: task `PLANNED` (l'unica sorgente futura, pianificabile a mano dal calendario), operazioni del Quaderno, raccolte, giorni a **rischio alto dei DSS** e giorni di **stress idrico** del bilancio FAO 56/66. Le ultime due compaiono non appena il rispettivo calcolo viene eseguito altrove: il calendario le legge dalla cache locale, non le ricalcola. Costruzione degli eventi **pura e testata** (`calendar-events.ts`: nessun hook, nessun DAL, nessun `t()` — le etichette arrivano dal chiamante).
+- **Meteo giorno per giorno** nella stessa griglia, storico e previsione (`useCalendarWeather` + `WeatherSyncService` su Open-Meteo, centroide dell'azienda). È un dato di **contorno**: non tocca `weather_readings` — la serie che alimenta i DSS resta di competenza del servizio meteo — e offline il calendario funziona identico, senza celle mancanti.
+- **Dettaglio del giorno**: cosa è successo o succederà in quella data, il meteo, e due porte d'ingresso — *Pianifica task* e *Registra operazione* — sempre **sul giorno aperto**, mai su "oggi" per errore. Filtro per appezzamento, legenda che accende/spegne le categorie, scorciatoia a *Oggi*, ricarica di DSS e bilancio idrico.
+- **Il calendario consulta il registro, non lo riscrive**: operazioni e raccolte si aprono nella loro scheda di sola lettura, e correzioni/cancellazioni restano dove vive il record. Un registro di rilevanza legale non deve avere due porte di modifica con regole diverse. Restano modificabili le sole **task**, che sono pianificazione e non registrazione.
+- Test dedicati: `tests/agro-calendar-events.test.ts`.
+
+### Aggiunto — Schede KPI personalizzate (Command Center)
+- La griglia a **indici fissi** (anomalia di vigore, trattamenti, GDD, rischio malattie, stress idrico) è stata **rimossa**: l'utente compone l'indice che gli serve scegliendo **entità → funzione(misura) → periodo**, con filtro, unità, decimali, sparkline di andamento e soglie di colore facoltativi (`kpi-cards.ts`, modulo puro; rendering in `CustomKpiCards.tsx`).
+- Il catalogo dati è **lo stesso** dell'analisi libera dei grafici (`dashboard-analytics`): appezzamenti, operazioni, raccolte, bilancio idrico, meteo, DSS — nessuna riga di logica duplicata. La differenza è che una scheda non raggruppa per dimensione: aggrega tutto in **un** numero e usa la dimensione temporale solo per sparkline e variazione.
+- **Soglie con direzione esplicita** (`above`/`below`): un indice che peggiora salendo (giorni di stress) e uno che peggiora scendendo (NDVI medio) non possono condividere la stessa regola di colore.
+- Persistenza **per azienda e per dispositivo** in `localStorage`, come la config dei grafici: sono preferenze di visualizzazione, non dati di dominio, e non passano dal DAL né dal sync. Alla prima apertura tre schede generiche di partenza, modificabili o eliminabili.
+- Test dedicati: `tests/agro-kpi-cards.test.ts`.
+
+### Aggiunto — Import CSV dell'anagrafica prodotti
+- **Import massivo dei prodotti di magazzino** (`ProductImportDialog` + `product-import.ts`) con anteprima, validazione riga per riga, import parziale e **modello CSV** scaricabile. Le regole sono le **stesse del form**, riusate dal DAL: agrofarmaci → n. di registrazione, concimi → titoli N-P-K fra 0 e 100, carburante → codice UMA; `category` accetta sia i codici inglesi sia i nomi italiani. Un CSV non può essere una porta di servizio per far entrare un'anagrafica non conforme.
+- **Carico iniziale facoltativo**: con `initial_quantity` e `unit_cost` nasce anche il lotto e il CUMP si muove; senza, entra la sola anagrafica a giacenza zero.
+- **Deduplica su categoria + nome** (normalizzato): un prodotto già in magazzino viene scartato, e il controllo vale anche fra righe dello stesso file.
+- **Parser CSV condiviso** estratto in `lib/csv.ts` (RFC4180-ish, zero dipendenze npm, campi fra virgolette, CRLF, BOM di Excel, separatore `;`/`,`/tab riconosciuto da solo): ora lo usano sia l'import mezzi sia quello prodotti, invece di due implementazioni parallele.
+- Test dedicati: `tests/agro-product-import.test.ts`.
+
+### Modificato — Superficie lavorata: dichiarata, non stimata dal GPS
+- Alla chiusura di una sessione a bordo campo compare **una sola domanda** («Quanto hai lavorato?», scatti rapidi 25/50/75/100%, `SessionCompletionSheet`): la superficie che finisce nel Quaderno — e quindi le quantità di prodotto e lo scarico di magazzino — è la **quota dichiarata** dell'appezzamento, non più `lunghezza_tracciato × larghezza_di_lavoro`. Quella stima prometteva una precisione che il GPS non ha: dipendeva dalla larghezza registrata sull'attrezzo, si gonfiava sulle passate sovrapposte e crollava a zero col fix scadente. Il tracciato continua a essere registrato, ma non dimensiona più il registro.
+- **Sotto il 100% la task non si chiude**: torna `PLANNED` con l'avanzamento in `planned_tasks.metadata.completion_percent` (colonna JSONB già esistente, nessuna migrazione), così il geofencing la ripropone il giorno dopo e si riprende da dove si era rimasti. La quota lavorata oggi è sempre `dichiarato − già registrato`: una ripresa non conta due volte il prodotto di ieri.
+- **La Modalità Campo mostra ciò che è vero**: velocità, tempo attivo, superficie totale del campo e **cosa si sta facendo** (ricetta, prodotti e dosi dalla task), più l'avanzamento già registrato — al posto degli ettari stimati che salivano da soli.
+- **Semina → coltura anche a bordo campo** (`field/session-crop.ts`, regola pura): una semina chiusa in campo assegna ora la coltura di campagna all'appezzamento, come già faceva la stessa semina registrata a mano. Solo se il campo non ha già una campagna aperta per l'annata — una coltura in corso non si sovrascrive mai. Prima il campo restava senza coltura: niente DSS, niente bilancio idrico, nessuna riga nella campagna agraria.
+- Test dedicati: `tests/agro-session-completion.test.ts`.
+
+### Modificato — Controlli della mappa: localizzati, restilizzati, riorganizzati
+- **Controlli nativi tradotti** (`native-map-i18n.ts` + `useNativeMapI18n`): righello, gestore livelli, zoom, bussola, schermo intero, GPS e rilievo arrivano da pacchetti di terze parti che scrivono le etichette in inglese direttamente nel DOM e non espongono alcuna opzione di i18n; i pacchetti `@geolibre/*` sono vendorizzati e non si modificano. Si traducono quindi **a valle**, per stringa esatta: nomi di livello, valori numerici e qualsiasi testo fuori dizionario restano intatti, così nessuna euristica può storpiare un dato dell'utente.
+- **«Cerca luogo»** (`MapSearchControl`) spostata nella colonna dei controlli MapLibre, dove stava finendo sotto la barra dei moduli. Il pannello di ricerca è quello nativo di GeoLibre, pilotato dalle API standalone come il righello.
+- **Bussola con la «N»** quando la vista è a nord (`useCompassNorth`): lo stato si legge dal `bearing` della mappa, non dal `transform` che MapLibre scrive sull'icona.
+- **Zoom del satellite limitato a 18**: oltre quel livello Esri World Imagery risponde con tile vuote su buona parte del territorio e la vista satellitare "si buca". Il limite vale finché il satellite è attivo.
+- **Ordine dei layer di sfondo** reso deterministico: i basemap si posizionano sempre sotto il primo layer applicativo (store GeoLibre, editor Geoman, selezione, righello), col catasto sopra il satellite.
+- **«Modifica / elimina geometrie» diventa «Lista appezzamenti»**: la voce descrive ora ciò che il pannello fa davvero — elencare gli elementi tracciati, inquadrarli e aprirne la scheda (suolo, metadati, geometria) — invece di annunciare solo le due azioni distruttive.
+
+## [0.4.0] — 2026-07-30
+
+### Aggiunto — Geofencing e Modalità Campo low-touch
 - **Pianificazione task e ricette** (schema locale v19, migrazione additiva e non distruttiva): tabelle `recipes` (miscele riutilizzabili, prodotti con dose per ettaro in JSONB), `planned_tasks` (schede di lavorazione programmate per appezzamento, stato `PLANNED`/`IN_PROGRESS`/`COMPLETED`/`CANCELLED`) e `field_operation_sessions` (sessione eseguita: tracciato GPS `LineString` in JSONB, superficie lavorata, note vocali, righe di Quaderno collegate) — tutte sincronizzate via `sync_outbox`. La tabella `field_session_audio` è **local-only**: il contenuto delle note vocali non lascia il dispositivo. Rollback logico documentato in testa a `packages/agro-core/src/db/schema.ts`.
 - **Riquadro «Pianificazione Task» a schermo intero** (sidebar → Pianificazione Task): task programmate ordinate per data, storico, e libreria ricette con prodotti prelevati dall'anagrafica di magazzino (n. registrazione e sostanza attiva derivati automaticamente).
 - **Geofencing GPS automatico**: nessun pulsante e nessuna impostazione da attivare. Il rilevamento dell'ingresso in un appezzamento richiede una **permanenza continuativa di 15 s** (debounce) e l'uscita un'assenza sostenuta di 30 s (**isteresi** contro il jitter del segnale); i campioni con accuratezza peggiore della soglia sono scartati. Il motore è puro e testato in isolamento (`plugins/agro-tools/src/geofencing.ts`).
@@ -53,7 +212,18 @@ Gli installer nativi di ogni versione rilasciata sono su [GitHub Releases](https
 - Test dedicati (`tests/agro-row-mapping.test.ts`), tutti su righe realmente rilette dal database — una riga costruita in TypeScript avrebbe già i tipi giusti e non proverebbe nulla. L'intera suite è verificata anche sotto `TZ` diversi (UTC, Europe/Rome, America/New_York, Asia/Tokyo, Pacific/Kiritimati).
 - Corretto inoltre un helper di test (`relativeDay` in `tests/agro-warehouse.test.ts`) che costruiva le date in UTC mentre la funzione sotto test confronta in ora locale: il test falliva se eseguito fra mezzanotte e l'offset del fuso.
 
-### Aggiunto — 0.3.0 «Parco macchine»
+### Aggiunto — Cache locale degli indici satellitari e time slider
+- **Cache delle scene elaborate** (schema locale v21, additiva): due tabelle **local-only** `vegetation_index_scenes` (una riga per appezzamento × scena STAC, medie per indice, copertura nuvolosa, pixel validi) e `vegetation_index_rasters` (la griglia di pixel). Sono interamente ricomputabili dalle scene STAC, quindi **non generano voci di outbox** come `dss_results` e `soil_water_indices`. Riaprendo l'app una scena già elaborata si ridisegna **senza rete**. Rollback logico in testa a `packages/agro-core/src/db/schema.ts`.
+- **Si persiste il raster, non le celle**: valori **Int16 little-endian scalati** (`value_scale`, default 10 000 → 4 decimali su −1..1) con sentinella per i pixel fuori poligono, base64 in `text` come `field_session_audio`. Sono ~2 byte/pixel invece di ~300: **~10 KB per scena su 50 ha** invece di ~1,5 MB. `rasterToIndexCells` ricostruisce le celle quando servono.
+- **Deduplica per `(plot_id, scene_id)`**: i COG di una scena già elaborata non si riscaricano. Una scena in cache è riutilizzabile solo se copre **tutti** gli indici richiesti; altrimenti si rielabora e l'upsert fonde le medie invece di duplicare. **Ritenzione 24 mesi** (due annate, per i confronti anno-su-anno), potatura a fine run coi raster in cascata.
+- **Una scena per giorno** (`bestScenePerDay` in `@agrogea/tools`): nella stessa giornata il satellite deposita spesso più item (tile adiacenti, riprocessamenti); si tiene il meno nuvoloso e gli altri restano *doppioni*, mostrabili a richiesta. Elaborarli tutti raddoppierebbe i punti della serie senza aggiungere informazione.
+- **Time slider degli indici** (`IndexTimeSlider`): navigazione temporale delle scene di un appezzamento, ancorata in basso sulla mappa dopo un calcolo e utilizzabile anche a pannello Suolo chiuso, con riproduzione automatica della serie, badge *in cache* / *da calcolare*, elaborazione al volo della scena su cui ci si sposta e toggle **Mostra / Nascondi** dal pannello Suolo.
+- **Job di aggiornamento all'avvio** (`useIndexRefreshJob`): controlla le nuove scene al massimo **una volta ogni 12 ore per azienda** (Sentinel-2 ripassa ogni ~5 giorni) e ne calcola il **solo NDVI**, dal worker condiviso a coda — un'analisi avviata dall'utente attende al massimo una scena. Il timestamp vive in `agro_meta` del DB del tenant, non in localStorage, così segue il backup del dataDir. Deliberatamente **non** aggiorna `plots_registry.last_ndvi_mean`: è una colonna sincronizzata, e un job automatico non deve sporcare la coda di sync a ogni avvio.
+- Test dedicati: `tests/agro-index-cache.test.ts`.
+
+## [0.3.0] — 2026-07-23
+
+### Aggiunto — Parco macchine
 - **Anagrafica mezzi e attrezzi** (schema locale v18, migrazione additiva e non distruttiva): tabelle `machines` (unità motrici tracciate a **ore di lavoro**, stato operativo/in manutenzione/fermo-guasto/dismesso, campi predisposti per l'ammortamento futuro), `equipment` (attrezzi tracciati per **usura** e larghezza di lavoro), `activity_machines` (giunzione attività ↔ mezzo ↔ attrezzo con ore), `maintenance_schedules`/`maintenance_logs`, `machine_documents`, `counter_adjustments` e `fuel_refills`. Tutte sincronizzate via `sync_outbox`; rollback logico documentato in testa a `packages/agro-core/src/db/schema.ts`. I dati preesistenti e il testo libero `machinery_equipment` restano intatti.
 - **Sotto-scheda «Mezzi»** dentro il modulo Magazzino: anagrafica mezzi/attrezzi con contatori, stato a semaforo, import **CSV** (anteprima + validazione, import parziale, 100% offline) e cruscotto **«Richiede attenzione»** che aggrega manutenzioni in scadenza/scadute, documenti in scadenza/scaduti, consumi anomali e mezzi fermi.
 - **Contatori ore automatici** (§5.2): registrando un'operazione di campo si seleziona un **mezzo già a database** (motrice + attrezzo opz.) con le ore; al salvataggio i contatori si **incrementano** nella stessa transazione dell'attività; modifica/cancellazione li **stornano** senza scostamenti. Le rettifiche manuali (lettura iniziale, sostituzione motore) passano da `counter_adjustments` con audit trail; l'incremento automatico riparte dal valore rettificato.
@@ -64,12 +234,32 @@ Gli installer nativi di ogni versione rilasciata sono su [GitHub Releases](https
 - **Impostazioni profilo**: le nuove sezioni «Parco macchine» (`panelMezzi`) e il pulsante «Refill carburante» (`panelRefill`) sono attivabili/disattivabili dalle impostazioni del profilo.
 - Test dedicati (`tests/agro-machinery.test.ts`): migrazione additiva, contatori con storno su modifica/cancellazione e interazione con le rettifiche, refill atomico (blocco per giacenza cisterna insufficiente, coerenza cisterna→mezzo), manutenzione a soglia (tempo/ore) e riprogrammazione, scarico ricambio atomico, documenti a soglia, consumo l/h + anomalie e flusso end-to-end della Definition of Done.
 
+### Aggiunto — Indice NDMI e rendering degli indici a celle
+- **NDMI** (`(B08 − B11) / (B08 + B11)`, NIR−SWIR, formulazione Gao): misura l'acqua **dentro la chioma** ed è la spia dello stress idrico della coltura, che l'NDWI di McFeeters (nato per l'acqua libera) può non mostrare affatto. Rampa colore dedicata, distinta da quella dell'NDWI.
+- **Celle vettoriali al posto dell'overlay raster sfumato** (`index-grid.ts`): un poligono per pixel Sentinel-2, agganciato alla griglia UTM della scena — celle adiacenti condividono gli stessi angoli in coordinate float piene, quindi niente fessure visibili. Ogni cella è interrogabile e porta il valore di **tutti** gli indici calcolati in quel pixel, non solo del primario.
+- **Scala colore relativa** (`relativeDomain`): la rampa si tara sul dominio effettivo dei pixel calcolati nella stessa run (2°–98° percentile), non sull'intervallo teorico −1..1. È ciò che fa emergere la variabilità *interna* all'appezzamento — l'informazione che serve alla zonazione VRA — invece di una macchia uniformemente verde. Domini degeneri gestiti (min/max reali, poi ±0,01). La colorbar collassa i duplicati dello stesso indice e adatta i decimali dei tick all'ampiezza del dominio.
+
+### Aggiunto — Versione dal tag git nella build di rilascio
+- `scripts/set-version.mjs` inietta la versione ricavata dal tag (`vX.Y.Z`, o da `GITHUB_REF_NAME` in CI) in `tauri.conf.json`, nei due `package.json` e nella sezione `[package]` di `Cargo.toml`, **prima** che `tauri-action` builda l'installer. Senza, quel campo restava fermo a `0.1.0` mentre si pushavano tag nuovi, e l'updater — che confronta proprio quella versione — non avrebbe mai proposto un aggiornamento. Non tocca il `versionCode` Android né le `version` delle dipendenze Cargo. Documentato in [`docs/technical/desktop-auto-update.md`](docs/technical/desktop-auto-update.md) §6.
+
+## [0.2.1] — 2026-07-12
+
+### Modificato — Anglicizzazione degli identificatori interni
+- **Tutto il codice sorgente passa a un inglese tecnico standard** — nomi di file e cartelle, tipi, componenti, funzioni, hook, costanti esportate, campi e azioni dello store Zustand, metodi del DAL, identificatori locali — in una serie di commit **behavior-preserving**, separati dalle modifiche funzionali (`TrattamentoFormValues→TreatmentFormValues`, `AVVERSITA_PAN→PAN_PESTS`, `BilancioIdricoPanel→WaterBalancePanel`, …). Restano deliberatamente invariati: schema PGlite persistito, chiavi JSONB, valori-stringa discriminanti, sigle normative (PAN, SIAN, SIEX, UMA, BBCH, FAO-56) e i nomi dei campi degli export ufficiali.
+- **I pannelli di dominio escono da `components/`** e vanno nei rispettivi `modules/<feature>/`: `components/` ospita ora solo UI generica e infrastruttura mappa/campo.
+- **Gate di qualità in CI** (`.github/workflows/quality.yml`) e regola `@typescript-eslint/naming-convention` come warning; documentazione per i contributori: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/glossary.md`](docs/glossary.md), [`docs/naming-conventions.md`](docs/naming-conventions.md), [`docs/contributing.md`](docs/contributing.md).
+
+### Corretto
+- **Endpoint meteo aggiornati** e correzioni al form e alla scheda di dettaglio delle operazioni (griglia adattiva, rendering dinamico dei campi per tipo di operazione).
+
+## [0.2.0] — 2026-07-07
+
 ### Corretto — Export CSV del Quaderno di Campagna (QDCA)
 - **Tipo operazione localizzato**: il CSV riporta l'etichetta leggibile nella lingua attiva (es. «Raccolta», «Semina/Trapianto») invece del codice interno inglese (`harvest`, `sowing`); default italiano anche fuori dalla UI.
 - **Codici SIAN sempre riportati**: i riferimenti ministeriali (codice coltura, isola, appezzamento) si risolvono via `plot_campaign_id` con **fallback per appezzamento + anno**, così i codici compilati nella scheda coltura DOPO la registrazione — o su operazioni non agganciate (es. semina con auto-assegnazione) — compaiono comunque. Il dialog carica le campagne di **tutte le annate**, non solo quella attiva.
 - **Le raccolte rientrano nel QDCA**: gli eventi di raccolta (`harvest_logs`) confluiscono nell'export come operazioni `harvest` (cultivar, quantità raccolta in kg, destinazione), con i codici SIAN della campagna del campo; due nuove colonne dedicate «Quantità raccolta (kg)» e «Destinazione raccolta».
 
-### Aggiunto — 0.2.0 «Magazzino»
+### Aggiunto — Magazzino
 - **Magazzino con anagrafiche reali** (schema locale v16, migrazione additiva e non distruttiva): tabelle `products` (categorie rigide: agrofarmaci con n. registrazione PAN, concimi con titoli N-P-K, sementi, carburante con assegnazione UMA), `product_lots` (lotto, scadenza, giacenza, costo di carico) e `activity_products` (giunzione attività ↔ lotto con costo imputato). Le nuove entità sono sincronizzate via `sync_outbox` come le altre tabelle di dominio; il rollback logico è documentato in testa a `packages/agro-core/src/db/schema.ts`. I campi a testo libero di `treatment_logs` restano intatti come fallback.
 - **Nuovo pannello Magazzino** (sidebar → Magazzino): anagrafica prodotti con campi obbligatori per categoria, carico lotti con scadenza e costo, giacenze e **alert di scadenza** con soglia configurabile (default 30 giorni).
 - **Scarico reale dalle attività di campo**: nel form del Quaderno la sezione «Scarico da magazzino» (prodotto → lotto → quantità) scarica la giacenza nella **stessa transazione** della registrazione; se la giacenza andrebbe sotto zero l'intera operazione fallisce (blocco atomico) con messaggio chiaro. I lotti **scaduti** sono bloccati (non selezionabili); l'eliminazione di un'operazione con scarichi **reintegra** le giacenze.
@@ -77,7 +267,7 @@ Gli installer nativi di ogni versione rilasciata sono su [GitHub Releases](https
 - Test dedicati (`tests/agro-warehouse.test.ts`): CUMP, scarico atomico (incluso blocco per giacenza negativa e lotti scaduti), migrazione additiva con dati preesistenti intatti e flusso end-to-end della Definition of Done.
 - **Anagrafica prodotti estesa**: creazione prodotto con **carico iniziale contestuale** (lotto, scadenza, quantità obbligatoria, costo); sostanza attiva (agrofarmaci), fornitore, **scorta minima** con badge di riordino; categoria residuale «Altro / materiali»; **Command Center a due pagine** («Colture e appezzamenti» + «Azienda» con andamento generale, stato magazzino e costo prodotti per campo); modulo Magazzino disattivabile dalle impostazioni profilo (`panelMagazzino`).
 
-### Aggiunto — 0.2.0 «Automazioni del ciclo colturale» (schema locale v17, additivo)
+### Aggiunto — Automazioni del ciclo colturale (schema locale v17, additivo)
 - **Dose ⇄ scarico riconciliati**: nel form operazione la quantità scaricata segue automaticamente il totale calcolato (dose × superficie, o totale manuale kg); l'edit manuale mostra la **dose effettiva** e segnala lo scostamento; i prodotti con unità non riconciliabile non sono selezionabili. Lotto preselezionato in **FEFO** e **split automatico multi-lotto** quando un lotto non basta.
 - **Semina → coltura automatica**: l'anagrafica della semente porta l'**identità colturale** (specie, nome scientifico, varietà, tipo coltura in `products.metadata`); seminando su un campo libero l'operazione crea automaticamente scheda coltura (`crops`) e campagna agraria (`plots_campaign`), con densità di semina derivata dalla dose.
 - **Il raccolto chiude il ciclo**: colonna `plots_campaign.closed_at` + indice unico parziale sulle campagne aperte (possibile il **secondo raccolto** nello stesso anno). Alla raccolta di un'annuale la chiusura è proposta pre-attiva; il campo torna libero (mappa neutra, DSS spento). Rollback logico documentato in `packages/agro-core/src/db/schema.ts`.
@@ -85,7 +275,7 @@ Gli installer nativi di ogni versione rilasciata sono su [GitHub Releases](https
 - **Micro-automazioni**: carenza/rientro di default dall'anagrafica agrofarmaco; operatore/CF/patentino ricordati per dispositivo; «**Ripeti operazione**» dal registro (form precompilato, data odierna); cultivar della raccolta precompilata dalla coltura di campagna; badge ⚠ lotti in scadenza sul modulo Magazzino in sidebar.
 - Test (`tests/agro-crop-cycle.test.ts`): chiusura campagna e secondo raccolto, indice unico parziale, metadata prodotti, compliance dichiarativa country-aware, campo libero dopo chiusura.
 
-### Aggiunto
+### Aggiunto — Documentazione bilingue
 - Documentazione tecnica bilingue dei moduli agronomici (`docs/technical/moduli-agronomici.md`, `agronomic-modules.en.md`): formule e assunzioni di indici satellitari, pedotransfer del suolo, bilancio idrico FAO 56/66, DSS fitopatologico, zonazione VRA.
 - README e manuale utente in inglese (`README.en.md`, `docs/user-guide/manual.en.md`), con selettore lingua.
 
@@ -104,5 +294,11 @@ Primo rilascio pubblico dell'edizione Community (standalone, local-first).
 - **Storage local-first**: istanza PGlite (PostgreSQL WASM) isolata per azienda, coda `sync_outbox`, sync opzionale verso PostgreSQL on-premise via comando Rust nativo (Tauri v2).
 - **App desktop** Windows / macOS / Linux con aggiornamenti automatici via Tauri Updater + GitHub Releases, e demo web standalone in-browser.
 
-[Non rilasciato]: https://github.com/eisii42/Open-AgroGea/compare/v0.1.0...HEAD
+[Non rilasciato]: https://github.com/eisii42/Open-AgroGea/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/eisii42/Open-AgroGea/compare/v0.4.1...v0.5.0
+[0.4.1]: https://github.com/eisii42/Open-AgroGea/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/eisii42/Open-AgroGea/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/eisii42/Open-AgroGea/compare/v0.2.1...v0.3.0
+[0.2.1]: https://github.com/eisii42/Open-AgroGea/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/eisii42/Open-AgroGea/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/eisii42/Open-AgroGea/releases/tag/v0.1.0

@@ -203,7 +203,14 @@ export const euBaseAdapter: GisParcelAdapter = makeAdapter(
   },
 );
 
-const ADAPTERS: Record<CountryCode, GisParcelAdapter> = {
+/**
+ * Adapter per i paesi con un formato nazionale conosciuto. `Partial` di
+ * proposito: `CountryCode` copre tutti i paesi ISO, ma un adapter dedicato
+ * esiste solo dove abbiamo studiato il tracciato del portale. Per tutti gli
+ * altri {@link getGisAdapter} ricade sul Base internazionale — che è la
+ * semantica già in vigore, qui resa esplicita nel tipo.
+ */
+const ADAPTERS: Partial<Record<CountryCode, GisParcelAdapter>> = {
   IT: itSianAdapter,
   ES: esSigpacAdapter,
   FR: frTelepacAdapter,

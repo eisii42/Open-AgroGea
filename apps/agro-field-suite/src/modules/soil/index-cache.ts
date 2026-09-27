@@ -35,11 +35,16 @@ import { submitCellsJob, submitSceneJob } from "./soil-worker-client";
  */
 
 /**
- * Finestra di ritenzione della cache: due annate agrarie, così restano
- * possibili i confronti anno-su-anno. Le scene più vecchie vengono potate a fine
- * run (i raster seguono per FK on delete cascade).
+ * Finestra di ritenzione della cache. Le scene più vecchie vengono potate a
+ * fine run (i raster seguono per FK on delete cascade).
+ *
+ * **36 mesi e non 24** dalla nascita del modulo Normativa: la scheda della
+ * rotazione colturale (BCAA 7) confronta tre annate, e con una ritenzione di
+ * due la potatura avrebbe cancellato a ogni giro lo storico appena scaricato
+ * per valutarla — un ciclo di scarica-e-butta invisibile all'utente, che
+ * avrebbe pagato in rete ogni volta la stessa analisi.
  */
-export const CACHE_RETENTION_MONTHS = 24;
+export const CACHE_RETENTION_MONTHS = 36;
 
 /**
  * Una scena in cache è riutilizzabile solo se copre TUTTI gli indici richiesti;

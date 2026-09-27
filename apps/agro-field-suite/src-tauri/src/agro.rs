@@ -23,11 +23,13 @@ use tauri::{AppHandle, Manager};
 const OFFLINE_VAULT: &str = "agrogea-offline-session.vault";
 const PROFILES_VAULT_PREFIX: &str = "agrogea-pg-profile-";
 // Whitelist delle tabelle sincronizzabili verso il Postgres privato. DEVE
-// restare identica all'union `TabellaSync` in @agrogea/core (types.ts): è il
-// contratto del wire format dell'outbox. Le tabelle local-only (weather_config,
-// dss_results, soil_water_indices, data_transfer_logs, product_catalogs) NON
-// si sincronizzano per definizione.
-const TABELLE_SYNC: [&str; 11] = [
+// restare identica a `SYNC_TABLES` in @agrogea/core (types.ts), stesso ordine:
+// è il contratto del wire format dell'outbox, e `tests/agro-sync-tables.test.ts`
+// fallisce se i due elenchi divergono. Una tabella assente da qui fa rifiutare
+// ogni sua mutazione al push e la esclude dal pull. Le tabelle local-only
+// (weather_config, dss_results, soil_water_indices, data_transfer_logs,
+// product_catalogs, cache degli indici) NON si sincronizzano per definizione.
+const TABELLE_SYNC: [&str; 27] = [
     "companies",
     "crops",
     "plots_registry",
@@ -39,6 +41,26 @@ const TABELLE_SYNC: [&str; 11] = [
     "harvest_logs",
     "scouting_observations",
     "tenant_memberships",
+    // v23: magazzini e anagrafica prodotti/lotti.
+    "warehouses",
+    "products",
+    "product_lots",
+    "activity_products",
+    // Parco macchine.
+    "machines",
+    "equipment",
+    "activity_machines",
+    "maintenance_schedules",
+    "maintenance_logs",
+    "machine_documents",
+    "counter_adjustments",
+    "fuel_refills",
+    // Pianificazione e Modalità Campo.
+    "recipes",
+    "planned_tasks",
+    "field_operation_sessions",
+    // v25: soglie dei parametri di compliance spostate dall'utente.
+    "compliance_parameter_overrides",
 ];
 
 // ---------------------------------------------------------------------------

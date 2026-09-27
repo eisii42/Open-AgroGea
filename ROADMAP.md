@@ -5,13 +5,28 @@ da questo repository.
 
 ## ✅ Disponibile oggi
 
+> Include quanto già sul ramo `dev` e in uscita con la **0.5.0** (vedi la
+> sezione dedicata più sotto e il [CHANGELOG](./CHANGELOG.md)).
+
 - Mappa GIS completa (ortofoto Esri, overlay Catasto WMS, Wayback imagery storica, import Shapefile/GeoJSON/OSM/GeoParquet)
+- Particelle da fonti pubbliche: si sceglie una fonte ufficiale dal catalogo, si
+  cercano le particelle nella zona inquadrata (o si clicca un punto), si vedono
+  sulla mappa con i loro dati e si adottano una alla volta — provenienza, annata
+  e licenza restano su ogni appezzamento. Paesi Bassi (BRP/PDOK) e Francia
+  (RPG/IGN) verificati contro i servizi vivi
+- Primo avvio guidato: nuova azienda, oppure ripristino da un backup
+- Modulo **Normativa**: autovalutazione PAC (ammissibilità, BCAA, eco-schemi,
+  trasversali) e biologico, con esiti tracciabili, confidenza dichiarata e soglie
+  modificabili
+- Magazzini multipli georeferenziati, certificazione dell'operatore e regime di
+  produzione per annata
+- Cartografia raster: servizi WMS da indirizzo e ortofoto GeoTIFF offline
 - Quaderno di Campagna Digitale con validazione PAN (trattamenti fitosanitari, fertilizzazioni, Tempo di Carenza)
 - Harvest & Analytics (registrazione raccolte, grafici, Field Calculator)
 - DSS & Bilancio Idrico (mappa colorata del rischio, evapotraspirazione FAO-56, riduzione di resa Ky FAO-33/66)
 - Analisi del suolo e rateo variabile (VRA)
 - Export SIAN/PAN (Italia), SIEX/CUE (Spagna), tracciato UE di base; import Fascicolo Aziendale SIAN
-- Export geometrie (GeoJSON, KML, GPX, CSV, Shapefile) e backup/ripristino dati azienda (GeoJSON esteso)
+- Export geometrie (GeoJSON, KML, GPX, CSV, Shapefile) e backup/ripristino dati azienda (GeoJSON esteso v3, con scelta di periodo e sezioni)
 - Funzionamento 100% offline, storage locale isolato (PGlite)
 - Aggiornamenti automatici desktop (Tauri Updater + GitHub Releases)
 - Installer nativi Windows/macOS/Linux dallo stesso codice (Tauri v2)
@@ -30,11 +45,13 @@ Stabilizzazione della base attuale in vista del primo ciclo di feature.
 
 Ogni minor version è un incremento rilasciabile con valore d'uso concreto. Le
 versioni `0.2.0`–`0.4.0` (Magazzino, Parco macchine, Modalità Campo) sono
-sequenziali perché condividono un prerequisito tecnico; le versioni `0.5.0`–`0.8.0`
-(DSS) sono un **binario parallelo indipendente** che può essere anticipato o
-interlacciato con le prime, senza vincoli di dipendenza.
+sequenziali perché condividono un prerequisito tecnico. La `0.5.0` (particelle
+pubbliche e Normativa) è stata anteposta al binario DSS, che slitta quindi di una
+minor: le versioni `0.6.0`–`0.9.0` (DSS) restano un **binario parallelo
+indipendente** che può essere anticipato o interlacciato, senza vincoli di
+dipendenza.
 
-### `0.2.0` — Magazzino
+### `0.2.0` — Magazzino ✅ rilasciata
 
 Include il refactor del modello dati che abilita anche le versioni successive. Oggi
 `treatment_logs` registra già le attività di campo, ma prodotti e mezzi vi sono
@@ -56,7 +73,14 @@ testo come fallback finché non collegati.
 - **Rilascio quando:** un'attività di campo scarica un lotto reale, la giacenza si
   aggiorna e il costo prodotti è imputato al campo.
 
-### `0.3.0` — Parco macchine ✅ implementata (in attesa di rilascio)
+> **Esteso dopo la pianificazione originale** (schema v23, in uscita con la `0.5.0`):
+> il magazzino non è più unico e implicito. Una tabella `warehouses` con posizione
+> puntuale facoltativa dà all'azienda **più depositi**, ciascuno un POI cliccabile
+> sulla mappa; la collocazione vive su `product_lots.warehouse_id`, così lo stesso
+> prodotto può stare in due depositi con scadenze e quantità diverse. Dettagli
+> nella sezione *Non rilasciato* del [CHANGELOG](./CHANGELOG.md).
+
+### `0.3.0` — Parco macchine ✅ rilasciata
 
 - Anagrafiche `machines` (unità motrici) ed `equipment` (attrezzi) con la giunzione
   `activity_machines` (attività ↔ macchina ↔ attrezzo, ore).
@@ -72,7 +96,7 @@ testo come fallback finché non collegati.
 - **Rilascio quando:** l'uso di un mezzo in campo incrementa i suoi contatori e fa
   scattare gli alert di manutenzione a soglia. ✔️
 
-### `0.4.0` — Geofencing e Modalità Campo low-touch ✅ implementata (in attesa di rilascio)
+### `0.4.0` — Geofencing e Modalità Campo low-touch ✅ rilasciata
 
 L'operatore in trattore non deve compilare moduli. Questa versione chiude il
 cerchio fra ciò che è stato *pianificato* in ufficio e ciò che viene *eseguito* in
@@ -111,7 +135,39 @@ campo, riducendo la registrazione di una lavorazione a zero digitazioni.
   uscire produce una registrazione conforme nel Quaderno senza che l'operatore
   abbia digitato nulla. ✔️
 
-### `0.5.0` — DSS: difesa completa sulle colture esistenti
+> **`0.4.1`** ✅ rilasciata — calendario aziendale, schede KPI personalizzate,
+> import CSV dei prodotti, superficie lavorata dichiarata a fine sessione.
+
+### `0.5.0` — Particelle pubbliche e Normativa ✅ implementata (in attesa di rilascio)
+
+Due prerequisiti di ogni lavoro successivo: sapere **quali campi** ha l'azienda
+senza ridisegnarli, e sapere **come starebbero** davanti a un controllo.
+
+- **Particelle da fonti pubbliche**: nuovo pacchetto `@agrogea/parcel` (contratto
+  `Parcel`, catalogo delle fonti come JSON, adapter WFS/OGC API), trasporto nativo
+  Rust con allow-list e blocco degli indirizzi privati, adozione esplicita una
+  particella alla volta con provenienza, annata e licenza persistite (schema v22).
+  Fonti verificate: Paesi Bassi (BRP/PDOK) e Francia (RPG/IGN).
+- **Primo avvio guidato**: nuova azienda con paese scelto dall'utente, oppure
+  ripristino da backup — niente più azienda di default inventata.
+- **Modulo Normativa**: diciotto schede di autovalutazione PAC e biologico, con
+  quattro esiti (incluso *non decidibile*), scene e parametri tracciati,
+  confidenza con i fattori che la limitano, soglie modificabili (schema v25).
+  BCAA 4/5/8 si procurano il dato da OSM, Copernicus DEM e ortofoto GeoTIFF.
+- **Certificazione dell'operatore e regime di produzione per annata** (v24).
+- **Magazzini multipli georeferenziati** (v23), limiti di zoom 13–17, segnali di
+  attenzione sugli appezzamenti.
+- **Backup v3** con perimetro selezionabile (periodo e sezioni) e migrazione
+  automatica dei file v1/v2.
+- **Rilascio quando:** un'azienda olandese o francese parte dal primo avvio,
+  adotta i propri campi dalla fonte ufficiale e ottiene un'autovalutazione PAC
+  con esiti tracciabili, senza disegnare nulla a mano.
+
+**Candidati per le patch `0.5.x`:** nuove fonti di particelle nel catalogo
+(un record JSON per fonte), attivazione deliberata della verifica settimanale
+delle fonti (`sources-verify.yml`, oggi solo manuale).
+
+### `0.6.0` — DSS: difesa completa sulle colture esistenti
 
 Modelli infettivi veri (oltre alla sola fenologia oggi presente) sulle colture già
 supportate. Ogni coltura è una cartella in `modules/crops/` registrata nel registro
@@ -120,19 +176,19 @@ moduli.
 - Fusariosi della spiga su frumento (finestra BBCH 61-69), Ticchiolatura del melo
   (tabella di Mills), TomCast su pomodoro, Botrite su vite.
 
-### `0.6.0` — DSS: nuovi cereali
+### `0.7.0` — DSS: nuovi cereali
 
 - Mais (GDD base 10 °C, rischio aflatossine), orzo, riso.
 
-### `0.7.0` — DSS: nuove arboree e orticole
+### `0.8.0` — DSS: nuove arboree e orticole
 
 - Pero (Stemphylium), agrumi (mal secco), patata (modello tipo Mileos/SIMPHYT).
 
-### `0.8.0` — DSS: colture industriali e oleaginose
+### `0.9.0` — DSS: colture industriali e oleaginose
 
 - Colza (Sclerotinia), barbabietola da zucchero (CercoBet), girasole, soia.
 
-### `0.9.0` — API sensoristica esterna
+### `0.10.0` — API sensoristica esterna
 
 Sfruttando lo schema `weather_readings` già presente, adapter di ingest da API
 esterne per sensoristica fissa e mobile, con pipeline che alimenta direttamente i
