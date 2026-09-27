@@ -618,7 +618,9 @@ export function CustomDashboard({
 
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
+      {/* Telefono: titolo sopra, controlli sotto a tutta larghezza (su una riga
+          sola sforavano lo schermo). Da 640 px in su la riga di sempre. */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-sm font-semibold">{t("customDashboard.title")}</h2>
           <p className="text-[11px] text-[var(--ink-4)]">
@@ -631,7 +633,7 @@ export function CustomDashboard({
             value={rangeMode}
             onChange={(e) => setRangeMode(e.target.value as RangeMode)}
             title={t("customDashboard.dataPeriod")}
-            className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1.5 text-sm"
+            className="min-h-11 min-w-0 flex-1 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1.5 text-sm sm:min-h-0 sm:flex-none"
           >
             <option value="campaign">{t("customDashboard.campaignYear", { year: campaignYear })}</option>
             <option value="all">{t("customDashboard.wholeHistory")}</option>
@@ -640,7 +642,7 @@ export function CustomDashboard({
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="flex items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1.5 text-sm font-medium text-[var(--ink-2)] hover:bg-[var(--panel-2)]"
+            className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1.5 text-sm font-medium text-[var(--ink-2)] hover:bg-[var(--panel-2)] sm:min-h-0"
           >
             <Plus size={15} /> {t("customDashboard.addChart")}
           </button>

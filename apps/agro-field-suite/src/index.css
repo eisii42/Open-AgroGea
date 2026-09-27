@@ -314,6 +314,15 @@ html.dark .agro-field-map .geolibre-measure-control {
 .agro-field-map[data-mobile="true"] .maplibregl-ctrl-layer-control {
   display: none;
 }
+/* Righe di filtri a scorrimento orizzontale (telefono): si scorrono col dito,
+   la barra di scorrimento non aggiunge nulla e ruba altezza. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Senza colonna di sinistra il pannello Misura si apre dal bordo. */
 .agro-field-map[data-mobile="true"] .geolibre-measure-control {
   margin-left: 0;

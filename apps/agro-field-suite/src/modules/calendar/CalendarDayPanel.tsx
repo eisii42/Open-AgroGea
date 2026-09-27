@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useBackDismiss } from "@agrogea/ui";
 import type { ForecastDay } from "../../lib/WeatherSyncService";
 import { weatherCodeInfo } from "../../lib/weather-codes";
 import { HarvestDetailCard } from "../field-logbook/HarvestDetailCard";
@@ -93,6 +94,8 @@ export function CalendarDayPanel({
 
   const info = weatherCodeInfo(weather?.weatherCode);
   const WeatherIcon = info.Icon;
+  // Tasto indietro di Android: chiude il dettaglio (no-op altrove).
+  useBackDismiss(onClose);
 
   return (
     <div
@@ -126,7 +129,7 @@ export function CalendarDayPanel({
             type="button"
             onClick={onClose}
             aria-label={t("logbook.common.cancel")}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--r-1)] text-[var(--ink-4)] hover:bg-[var(--panel-2)]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--r-1)] text-[var(--ink-4)] hover:bg-[var(--panel-2)] md:h-7 md:w-7"
           >
             <X size={15} />
           </button>

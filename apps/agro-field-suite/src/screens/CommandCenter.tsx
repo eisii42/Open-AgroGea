@@ -18,6 +18,7 @@ import { cn } from "@geolibre/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppHeader } from "../components/AppHeader";
+import { usePlatform } from "../hooks/usePlatform";
 import { CompanyDataIo } from "../modules/registry/CompanyDataIo";
 import { CompanyOverview } from "../modules/analytics/CompanyOverview";
 import { CustomDashboard } from "../modules/analytics/CustomDashboard";
@@ -66,6 +67,7 @@ export function CommandCenter() {
   // Sola reading (Modulo 4): un VIEWER non può lanciare i ricalcoli che mutano
   // il database (DSS, indici, bilancio idrico). L'export resta consentito.
   const readOnly = useReadOnly(activeCompanyId);
+  const { isMobile } = usePlatform();
 
   // Pagina attiva: analisi colturale (default) o andamento generale company.
   const [page, setPage] = useState<CommandCenterPage>("crops");
@@ -243,8 +245,14 @@ export function CommandCenter() {
     <div className="flex h-full flex-col">
       <AppHeader />
 
-      {/* Tab di pagina: analisi colturale vs andamento generale company. */}
-      <div className="flex items-end gap-1 border-b border-[var(--line)] bg-[var(--panel)] px-4">
+      {/* Tab di pagina: analisi colturale vs andamento generale company.
+          Telefono: due tab a metà larghezza, alte 44 px. */}
+      <div
+        className={cn(
+          "flex items-end gap-1 border-b border-[var(--line)] bg-[var(--panel)]",
+          isMobile ? "px-2 [&>button]:min-h-11 [&>button]:flex-1" : "px-4",
+        )}
+      >
         {(
           [
             ["crops", t("commandCenter.pageCrops")],
@@ -267,7 +275,12 @@ export function CommandCenter() {
         ))}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--bg)] p-4">
+      <div
+        className={cn(
+          "min-h-0 flex-1 overflow-y-auto bg-[var(--bg)]",
+          isMobile ? "p-3" : "p-4",
+        )}
+      >
         {/* Banner Sola Lettura (ruolo VIEWER): l'intera vista è in read-only. */}
         {readOnly && (
           <div className="mb-4 flex items-center gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2 text-sm text-[var(--ink-2)]">
@@ -294,7 +307,108 @@ export function CommandCenter() {
 
         {page === "crops" && (
           <>
+        {/* Telefono: annata e coltura affiancate, appezzamenti a tutta
+            larghezza, riepilogo, poi "Calcola tutto" con aggiorna e report
+            come pulsanti a icona — invece di una barra che andava a capo su
+            quattro righe. */}
+        {isMobile && (
+          <div className="mb-4 flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex flex-col gap-1 text-[12px] text-[var(--ink-3)]">
+                {t("commandCenter.campaignYear")}
+                <select
+                  value={campaignYear}
+                  onChange={(e) => setCampaignYear(Number(e.target.value))}
+                  className="min-h-11 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2.5 text-[15px]"
+                >
+                  {data.years.map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-[12px] text-[var(--ink-3)]">
+                {t("commandCenter.crop")}
+                <select
+                  value={cropId ?? ""}
+                  onChange={(e) => setCropId(e.target.value || null)}
+                  className="min-h-11 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2.5 text-[15px]"
+                >
+                  <option value="">{t("commandCenter.allCrops")}</option>
+                  {cropOptions.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.variety_name
+                        ? `${c.common_name} (${c.variety_name})`
+                        : c.common_name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="flex flex-col gap-1 text-[12px] text-[var(--ink-3)]">
+              {t("commandCenter.plots")}
+              <PlotMultiSelect
+                options={plotOptions}
+                selected={selectedPlotIds}
+                onChange={setSelectedPlotIds}
+                fullWidth
+              />
+            </div>
+            {summary && (
+              <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--ink-3)]">
+                <span className="flex items-center gap-1 rounded-full bg-[var(--panel-2)] px-2.5 py-1">
+                  <Layers size={13} /> {summary.categoryLabel}
+                </span>
+                <span className="rounded-full bg-[var(--panel-2)] px-2.5 py-1">
+                  {t("commandCenter.plotsAreaSummary", {
+                    count: summary.plotCount,
+                    area: summary.totalAreaHa.toFixed(1),
+                  })}
+                </span>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => void fullRecalc.run()}
+                disabled={fullRecalc.state.running || readOnly}
+                title={
+                  readOnly
+                    ? t("commandCenter.recalcAllReadOnly")
+                    : t("commandCenter.recalcAllTitle")
+                }
+                className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-[var(--r-2)] border border-[var(--accent)] bg-[var(--accent-l)] px-3 text-[15px] font-medium text-[var(--accent)] active:opacity-90 disabled:opacity-50"
+              >
+                <Sparkles size={16} />
+                {t("commandCenter.recalcAll")}
+              </button>
+              <button
+                type="button"
+                onClick={() => data.refresh()}
+                disabled={data.loading || fullRecalc.state.running}
+                title={t("commandCenter.refreshTitle")}
+                aria-label={t("commandCenter.refresh")}
+                className="flex h-11 w-11 items-center justify-center rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] text-[var(--ink-2)] active:bg-[var(--panel-2)] disabled:opacity-50"
+              >
+                <RefreshCw size={17} className={cn(data.loading && "animate-spin")} />
+              </button>
+              <button
+                type="button"
+                onClick={onExport}
+                disabled={!data.result}
+                title={t("commandCenter.downloadReport")}
+                aria-label={t("commandCenter.downloadReport")}
+                className="flex h-11 w-11 items-center justify-center rounded-[var(--r-2)] bg-[var(--accent)] text-white active:opacity-90 disabled:opacity-50"
+              >
+                <Download size={17} />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Barra filters gerarchici + summary + export */}
+        {!isMobile && (
         <div className="mb-4 flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1 text-[11px] text-[var(--ink-3)]">
             {t("commandCenter.campaignYear")}
@@ -387,6 +501,7 @@ export function CommandCenter() {
             </button>
           </div>
         </div>
+        )}
 
         {/* Barra di avanzamento di "Calcola tutto". */}
         {fullRecalc.state.running && (
@@ -474,10 +589,13 @@ function PlotMultiSelect({
   options,
   selected,
   onChange,
+  fullWidth = false,
 }: {
   options: { id: string; name: string }[];
   selected: string[];
   onChange: (ids: string[]) => void;
+  /** Telefono: a tutta larghezza, voci alte 44 px. */
+  fullWidth?: boolean;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -511,7 +629,10 @@ function PlotMultiSelect({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex min-w-[160px] items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1.5 text-sm"
+        className={cn(
+          "flex min-w-[160px] items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1.5 text-sm",
+          fullWidth && "min-h-11 w-full text-[15px]",
+        )}
       >
         <MapPin size={14} className="shrink-0 text-[var(--ink-3)]" />
         <span className="flex-1 truncate text-left">{label}</span>
@@ -531,7 +652,12 @@ function PlotMultiSelect({
         <ChevronDown size={14} className="shrink-0 text-[var(--ink-4)]" />
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 max-h-64 w-[240px] overflow-y-auto rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] py-1 shadow-[var(--sh-pop)]">
+        <div
+          className={cn(
+            "absolute z-50 mt-1 max-h-64 overflow-y-auto rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] py-1 shadow-[var(--sh-pop)]",
+            fullWidth ? "w-full [&>button]:min-h-11 [&>button]:text-[15px]" : "w-[240px]",
+          )}
+        >
           {options.length === 0 && (
             <p className="px-3 py-2 text-xs text-[var(--ink-4)]">
               {t("commandCenter.noPlotsInScope")}

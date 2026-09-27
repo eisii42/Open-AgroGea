@@ -668,7 +668,7 @@ export function CustomKpiCards({
         <button
           type="button"
           onClick={() => setCreating(true)}
-          className="flex shrink-0 items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1.5 text-sm font-medium text-[var(--ink-2)] hover:bg-[var(--panel-2)]"
+          className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1.5 text-sm font-medium text-[var(--ink-2)] hover:bg-[var(--panel-2)] sm:min-h-0"
         >
           <Plus size={15} /> {t("customKpiCards.addCard")}
         </button>
@@ -679,7 +679,9 @@ export function CustomKpiCards({
           {t("customKpiCards.noCards")}
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+        // Telefono: una scheda per riga (su due colonne titoli e valori si
+        // troncavano); da 640 px in su la griglia di sempre.
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
           {cards.map((c, i) => (
             <KpiCard
               key={c.id}

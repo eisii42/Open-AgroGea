@@ -2769,7 +2769,8 @@
       "dss": "DSS risk",
       "water": "Water stress"
     },
-    "showAll": "Show all"
+    "showAll": "Show all",
+    "dayDetail": "Details"
   },
   "parcelAdoption": {
     "title": "Public parcels",
@@ -2885,5 +2886,8 @@
   "plotPeek": {
     "openSheet": "Open plot sheet",
     "noCrop": "No crop"
+  },
+  "mobileCalendar": {
+    "addOperationShort": "Record"
   }
 }

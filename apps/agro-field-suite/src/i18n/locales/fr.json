@@ -2769,7 +2769,8 @@
       "dss": "Risque DSS",
       "water": "Stress hydrique"
     },
-    "showAll": "Tout afficher"
+    "showAll": "Tout afficher",
+    "dayDetail": "Détail"
   },
   "parcelAdoption": {
     "title": "Parcelles publiques",
@@ -2885,5 +2886,8 @@
   "plotPeek": {
     "openSheet": "Ouvrir la fiche",
     "noCrop": "Aucune culture"
+  },
+  "mobileCalendar": {
+    "addOperationShort": "Enregistrer"
   }
 }

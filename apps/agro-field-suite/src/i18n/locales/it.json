@@ -2769,7 +2769,8 @@
       "dss": "Rischio DSS",
       "water": "Stress idrico"
     },
-    "showAll": "Mostra tutto"
+    "showAll": "Mostra tutto",
+    "dayDetail": "Dettaglio"
   },
   "parcelAdoption": {
     "title": "Particelle pubbliche",
@@ -2885,5 +2886,8 @@
   "plotPeek": {
     "openSheet": "Apri la scheda",
     "noCrop": "Nessuna coltura"
+  },
+  "mobileCalendar": {
+    "addOperationShort": "Registra"
   }
 }
