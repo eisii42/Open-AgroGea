@@ -8,7 +8,8 @@ import {
   Settings,
   X,
 } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
+import { useBackDismiss, useSheetDrag } from "@agrogea/ui";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { WeatherCard } from "../modules/weather/WeatherCard";
 import { AddDataControl } from "./AddDataControl";
@@ -56,6 +57,26 @@ export function MobileAppMenu({
     return () => window.removeEventListener("keydown", onEsc);
   }, [open, onClose]);
 
+  // Tasto indietro: da una pagina interna torna all'elenco, dall'elenco chiude.
+  useBackDismiss(() => (page !== "root" ? setPage("root") : onClose()), open);
+
+  // Trascinando giù maniglia o intestazione il menu si chiude, come gli altri fogli.
+  const [dragOffset, setDragOffset] = useState(0);
+  const startHeight = useRef(0);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const drag = useSheetDrag({
+    enabled: open,
+    getHeight: () => {
+      startHeight.current = sheetRef.current?.getBoundingClientRect().height ?? 0;
+      return startHeight.current;
+    },
+    onDrag: (height) => setDragOffset(Math.max(0, startHeight.current - height)),
+    onRelease: (height, velocity) => {
+      setDragOffset(0);
+      if (startHeight.current - height > 80 || velocity > 0.5) onClose();
+    },
+  });
+
   const openProfile = () => {
     onClose();
     if (!useAgroStore.getState().openPanels.includes("profile")) {
@@ -83,18 +104,31 @@ export function MobileAppMenu({
         onClick={onClose}
       />
       <div
+        ref={sheetRef}
         role="dialog"
         aria-label={title}
+        style={dragOffset > 0 ? { transform: `translateY(${dragOffset}px)` } : undefined}
         className={cn(
-          "absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col rounded-t-2xl border-t border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-pop)] transition-transform duration-300 ease-out",
+          "absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col rounded-t-2xl border-t border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-pop)]",
+          !drag.dragging && "transition-transform duration-300 ease-out",
           open ? "translate-y-0" : "translate-y-full",
         )}
       >
-        <div className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-[var(--line)]" />
+        <div
+          {...drag.handlers}
+          onClickCapture={(e) => {
+            if (drag.consumeDrag()) e.stopPropagation();
+          }}
+          className="shrink-0 touch-none"
+        >
+        <div className="flex h-5 items-end justify-center">
+          <span className="block h-1.5 w-10 rounded-full bg-[var(--line)]" />
+        </div>
         <div className="flex shrink-0 items-center gap-1 border-b border-[var(--line)] px-2 py-1.5">
           {page !== "root" ? (
             <button
               type="button"
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={() => setPage("root")}
               aria-label={t("mobileMenu.back")}
               className="flex h-11 w-11 items-center justify-center rounded-[var(--r-2)] text-[var(--ink-2)] active:bg-[var(--panel-2)]"
@@ -107,12 +141,14 @@ export function MobileAppMenu({
           <span className="flex-1 text-[15px] font-semibold">{title}</span>
           <button
             type="button"
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={onClose}
             aria-label={t("mobileMenu.close")}
             className="flex h-11 w-11 items-center justify-center rounded-[var(--r-2)] text-[var(--ink-3)] active:bg-[var(--panel-2)]"
           >
             <X size={18} />
           </button>
+        </div>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-[calc(12px+env(safe-area-inset-bottom))] pt-2">

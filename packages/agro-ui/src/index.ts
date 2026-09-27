@@ -8,3 +8,6 @@ export {
   type TreatmentFormProps,
   type TreatmentFormValues,
 } from "./components/TreatmentForm";
+export { useBackDismiss } from "./hooks/useBackDismiss";
+export { useNarrowViewport } from "./hooks/useNarrowViewport";
+export { type SheetDrag, type SheetDragOptions, useSheetDrag } from "./hooks/useSheetDrag";

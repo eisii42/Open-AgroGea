@@ -5,6 +5,7 @@ import {
   useSettingsStore,
 } from "@agrogea/core";
 import { ndviColor } from "@agrogea/tools";
+import { useBackDismiss } from "@agrogea/ui";
 import { Button } from "@geolibre/ui";
 import { ChevronRight, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -33,6 +34,8 @@ export function PlotPeekCard({
   const crops = useAgroStore((s) => s.crops);
   const openPlotSheet = useAgroStore((s) => s.openPlotSheet);
   const areaUnit = useSettingsStore((s) => s.units.area);
+  // Tasto indietro di Android: chiude la scheda, come gli altri fogli.
+  useBackDismiss(onClose);
 
   if (!plot) return null;
   const crop = cropForPlot(plot.id, campaignFields, crops);

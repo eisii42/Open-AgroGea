@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@agrogea/core": "*",
-    "@geolibre/ui": "*"
+    "@geolibre/ui": "*",
+    "@tauri-apps/api": "^2.11.1"
   },
   "peerDependencies": {
     "react": "^19.2.7",

@@ -7,10 +7,12 @@ import {
   useAgroStore,
   useSettingsStore,
 } from "@agrogea/core";
+import { useBackDismiss } from "@agrogea/ui";
 import { disableGeoEditorModes } from "@geolibre/plugins";
 import { cn } from "@geolibre/ui";
 import {
   Building2,
+  ChevronLeft,
   ChevronRight,
   ClipboardList,
   CloudSun,
@@ -405,6 +407,175 @@ export function ModuleSidebar({
   // All'avvio TUTTI i moduli sono richiusi (solo l'elenco delle voci di primo
   // livello): la sidebar si presenta compatta e l'utente espande ciò che serve.
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // Telefono (embedded): modulo aperto nella vista a riquadri; null = griglia.
+  const [openModuleId, setOpenModuleId] = useState<string | null>(null);
+  // Tasto indietro con un modulo aperto: torna alla griglia (sta sopra il
+  // foglio nella pila, quindi viene servito per primo).
+  useBackDismiss(() => setOpenModuleId(null), embedded && openModuleId !== null);
+
+  const toolState = (tool: ToolDef) => {
+    const active =
+      (tool.action.kind === "panel" && openPanels.includes(tool.action.panel)) ||
+      (tool.action.kind === "draw" && drawIntent === tool.action.intent);
+    // In sola reading blocco disegno e gestione (Modifica/Elimina).
+    const mutating =
+      tool.action.kind === "draw" ||
+      (tool.action.kind === "panel" && tool.action.panel === "registro");
+    const lockedReadOnly = readOnly && mutating;
+    const disabled = tool.action.kind === "soon" || lockedReadOnly;
+    return { active, lockedReadOnly, disabled };
+  };
+
+  const runTool = (tool: ToolDef) => {
+    if (toolState(tool).lockedReadOnly) return;
+    const action = tool.action;
+    if (action.kind === "panel") {
+      // Aprire il registro = entrare in modalità gestione:
+      // si esce dal disegno così il tap select gli elementi.
+      if (action.panel === "registro") {
+        setDrawIntent(null);
+        disableGeoEditorModes();
+      }
+      togglePanel(action.panel);
+    } else if (action.kind === "draw") {
+      // Apre la suite di disegno (attiva il GeoEditor) e
+      // imposta la modalità geometrica richiesta.
+      if (!openPanels.includes("geoeditor")) {
+        togglePanel("geoeditor");
+      }
+      setDrawIntent(action.intent);
+    } else if (action.kind === "run") {
+      action.run();
+    }
+    // Riaprendo il foglio Moduli si riparte dalla griglia.
+    setOpenModuleId(null);
+    onToolSelected?.();
+  };
+
+  /** Badge di attenzione di un modulo, o null. */
+  const moduleBadge = (id: string): { count: number; title: string } | null => {
+    if (id === "magazzino" && warehouseAlerts > 0) {
+      return {
+        count: warehouseAlerts,
+        title: t("moduleSidebar.warehouseAlerts", { count: warehouseAlerts }),
+      };
+    }
+    if (id === "tasks" && taskCompletenessAlerts > 0) {
+      return {
+        count: taskCompletenessAlerts,
+        title: t("moduleSidebar.taskCompletenessAlerts", {
+          count: taskCompletenessAlerts,
+        }),
+      };
+    }
+    if (id === "qdc" && logCompletenessAlerts > 0) {
+      return {
+        count: logCompletenessAlerts,
+        title: t("moduleSidebar.logCompletenessAlerts", {
+          count: logCompletenessAlerts,
+        }),
+      };
+    }
+    return null;
+  };
+
+  // Telefono: griglia di riquadri (un modulo = un riquadro con icona) e, al
+  // tocco, l'elenco dei suoi strumenti con "indietro". Sostituisce la
+  // fisarmonica a due livelli, lunga e poco leggibile su 375 px.
+  if (embedded) {
+    const visibleModules = moduli
+      .map((mod) => ({
+        mod,
+        tools: mod.tools.filter((tool) => !tool.flag || flags[tool.flag]),
+      }))
+      .filter((m) => m.tools.length > 0);
+    const current = visibleModules.find((m) => m.mod.id === openModuleId);
+
+    return (
+      <div className="w-full p-1">
+        {current ? (
+          <div className="flex flex-col">
+            <button
+              type="button"
+              onClick={() => setOpenModuleId(null)}
+              className="mb-1 flex min-h-11 items-center gap-2 rounded-[var(--r-2)] px-2 text-left text-[15px] font-semibold active:bg-[var(--panel-2)]"
+            >
+              <ChevronLeft size={18} className="text-[var(--ink-3)]" />
+              <current.mod.Icon size={18} className="text-[var(--accent)]" />
+              <span className="flex-1">{t(current.mod.labelKey as never)}</span>
+            </button>
+            <div className="flex flex-col gap-0.5">
+              {current.tools.map((tool) => {
+                const { active, lockedReadOnly, disabled } = toolState(tool);
+                return (
+                  <button
+                    key={tool.id}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => runTool(tool)}
+                    className={cn(
+                      "flex min-h-12 items-center gap-3 rounded-[var(--r-2)] px-3 text-left text-[15px]",
+                      active
+                        ? "bg-[var(--accent-l)] font-medium text-[var(--accent)]"
+                        : "text-[var(--ink-2)] active:bg-[var(--panel-2)]",
+                      disabled && "cursor-not-allowed opacity-50",
+                    )}
+                  >
+                    <tool.Icon size={18} className="shrink-0" />
+                    <span className="flex-1">{t(tool.labelKey as never)}</span>
+                    {tool.action.kind === "soon" && (
+                      <span className="rounded-full bg-[var(--panel-3)] px-1.5 text-[10px] text-[var(--ink-4)]">
+                        {t("nav.soon")}
+                      </span>
+                    )}
+                    {lockedReadOnly && (
+                      <span className="rounded-full bg-[var(--panel-3)] px-1.5 text-[10px] text-[var(--ink-4)]">
+                        {t("moduleSidebar.readOnly")}
+                      </span>
+                    )}
+                    {!disabled && (
+                      <ChevronRight size={16} className="shrink-0 text-[var(--ink-4)]" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            {visibleModules.map(({ mod }) => {
+              const badge = moduleBadge(mod.id);
+              return (
+                <button
+                  key={mod.id}
+                  type="button"
+                  onClick={() => setOpenModuleId(mod.id)}
+                  className="relative flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] px-1.5 py-2 text-center active:bg-[var(--panel-2)]"
+                >
+                  <span className="flex h-11 w-11 items-center justify-center rounded-[var(--r-2)] bg-[var(--accent-l)] text-[var(--accent)]">
+                    <mod.Icon size={22} />
+                  </span>
+                  <span className="line-clamp-2 text-[12px] font-medium leading-tight text-[var(--ink-2)]">
+                    {t(mod.labelKey as never)}
+                  </span>
+                  {badge && (
+                    <span
+                      title={badge.title}
+                      className="absolute right-1.5 top-1.5 rounded-full bg-[var(--warn-l)] px-1.5 text-[10px] font-semibold text-[var(--warn)]"
+                    >
+                      {badge.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <SianExportDialog open={sianOpen} onClose={() => setSianOpen(false)} />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -489,18 +660,7 @@ export function ModuleSidebar({
             {isOpen && (
               <div className="ml-2 flex flex-col gap-0.5 border-l border-[var(--line)] pl-2">
                 {visibleTools.map((tool) => {
-                  const active =
-                    (tool.action.kind === "panel" &&
-                      openPanels.includes(tool.action.panel)) ||
-                    (tool.action.kind === "draw" &&
-                      drawIntent === tool.action.intent);
-                  // In sola reading blocco disegno e gestione (Modifica/Elimina).
-                  const mutating =
-                    tool.action.kind === "draw" ||
-                    (tool.action.kind === "panel" &&
-                      tool.action.panel === "registro");
-                  const lockedReadOnly = readOnly && mutating;
-                  const disabled = tool.action.kind === "soon" || lockedReadOnly;
+                  const { active, lockedReadOnly, disabled } = toolState(tool);
                   return (
                     <button
                       key={tool.id}
@@ -511,29 +671,7 @@ export function ModuleSidebar({
                           ? t("moduleSidebar.readOnlyUnavailable")
                           : undefined
                       }
-                      onClick={() => {
-                        if (lockedReadOnly) return;
-                        const action = tool.action;
-                        if (action.kind === "panel") {
-                          // Aprire il registro = entrare in modalità gestione:
-                          // si esce dal disegno così il tap select gli elementi.
-                          if (action.panel === "registro") {
-                            setDrawIntent(null);
-                            disableGeoEditorModes();
-                          }
-                          togglePanel(action.panel);
-                        } else if (action.kind === "draw") {
-                          // Apre la suite di disegno (attiva il GeoEditor) e
-                          // imposta la modalità geometrica richiesta.
-                          if (!openPanels.includes("geoeditor")) {
-                            togglePanel("geoeditor");
-                          }
-                          setDrawIntent(action.intent);
-                        } else if (action.kind === "run") {
-                          action.run();
-                        }
-                        onToolSelected?.();
-                      }}
+                      onClick={() => runTool(tool)}
                       className={cn(
                         "flex min-h-[40px] items-center gap-2 rounded-[var(--r-2)] px-2 py-1.5 text-left text-[13px]",
                         active
