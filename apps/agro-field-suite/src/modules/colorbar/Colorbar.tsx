@@ -10,6 +10,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { usePlatform } from "../../hooks/usePlatform";
 import { dssRiskRamp } from "../dss/dss-overlay";
+import { IndexSourceNote } from "../soil/IndexSourceNote";
 import { useIndexTimeline } from "../soil/index-timeline-store";
 import { buildColorbar, type ColorbarModel } from "./colorbar-model";
 
@@ -158,6 +159,8 @@ function ColorbarCard({
           {t("colorbar.relativeScale")}
         </p>
       )}
+      {/* Provenienza: Sentinel-2, calcolo AgroGea, link al manuale. */}
+      <IndexSourceNote compact className="mt-1" />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import {
   type LayerStyle,
   useAppStore,
 } from "@geolibre/core";
+import i18n from "../../i18n";
 import type { IndexCellsResult } from "../../workers/soil.worker";
 
 /**
@@ -82,7 +83,12 @@ export function injectIndexCells(
     id,
     name: `Indice ${result.index.toUpperCase()} · ${plot.user_plot_name}`,
     type: "geojson",
-    source: { type: "geojson" },
+    // Fonte citata nella barra attribuzioni della mappa (useLayerAttributions)
+    // finché le celle sono visibili.
+    source: {
+      type: "geojson",
+      attribution: i18n.t("soilPanel.dataSource.attribution"),
+    },
     geojson: result.cells,
     visible: true,
     opacity: 1,

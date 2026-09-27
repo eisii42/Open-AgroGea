@@ -497,7 +497,6 @@
     "shortcuts": "Scorciatoie da tastiera",
     "diagnostics": "Diagnostica",
     "feedback": "Invia feedback",
-    "checkUpdates": "Controlla aggiornamenti",
     "about": "Informazioni",
     "shortcut": {
       "commandPalette": "Apri il riquadro comandi",
@@ -533,14 +532,6 @@
       "syncError": "Sincronizzazione fallita",
       "pendingQueue": "{{count}} mutazione/i in attesa nella coda outbox",
       "weatherMissing": "Fonte meteo non configurata per l'azienda attiva"
-    },
-    "update": {
-      "checking": "Controllo aggiornamenti…",
-      "available": "Nuova versione {{version}} disponibile",
-      "upToDate": "AgroGea è aggiornato",
-      "unavailable": "Controllo aggiornamenti non disponibile qui",
-      "error": "Impossibile controllare gli aggiornamenti",
-      "notifyTitle": "Aggiornamenti AgroGea"
     }
   },
   "logbookPanel": {
@@ -1004,12 +995,20 @@
       "wmsPlaceholder": "https://servizio.regione.it/wms",
       "loadLayers": "Leggi i layer disponibili",
       "layersFound": "{{count}} layer · WMS {{version}}",
-      "addToMap": "Aggiungi alla mappa",
-      "wmsAdded": "Layer WMS «{{name}}» aggiunto alla mappa.",
+      "addToMap": "Usa come sfondo",
+      "wmsAdded": "WMS «{{name}}» salvato e usato come sfondo al posto del satellite. Lo ritrovi nel selettore di sfondo.",
       "orthophotoHint": "GeoTIFF georeferenziato (UTM o WGS84). Resta sul dispositivo e funziona offline; la scheda BCAA 8 può misurarci sopra senza ricaricarlo.",
       "chooseTif": "Scegli il file .tif",
       "orthophotoAdded": "Ortofoto «{{name}}» aggiunta ({{gsdCm}} cm).",
-      "orthophotoAddedScaled": "Ortofoto «{{name}}» aggiunta ({{gsdCm}} cm). Sulla mappa è ridimensionata a {{side}} px di lato; le misure della BCAA 8 usano comunque il file originale."
+      "orthophotoAddedScaled": "Ortofoto «{{name}}» aggiunta ({{gsdCm}} cm). Sulla mappa è ridimensionata a {{side}} px di lato; le misure della BCAA 8 usano comunque il file originale.",
+      "wmsUpdated": "WMS «{{name}}» aggiornato.",
+      "wmsDeleted": "WMS «{{name}}» eliminato.",
+      "savedWms": "WMS salvati",
+      "wmsActive": "sfondo",
+      "editWms": "Modifica",
+      "deleteWms": "Elimina",
+      "editingWmsHint": "Modifica del WMS salvato: cambia indirizzo o layer e salva.",
+      "saveWmsChanges": "Salva modifiche"
     }
   },
   "basemapSwitcher": {
@@ -1058,7 +1057,14 @@
     "today": "Oggi",
     "unavailable": "Meteo non disponibile: connettiti per il primo scaricamento.",
     "refreshNow": "Aggiorna ora",
-    "title": "Meteo · previsione 5 giorni"
+    "title": "Meteo · previsione 5 giorni",
+    "source": "Dati meteo:",
+    "originCompany": "sede aziendale",
+    "originPlot": "centroide dell'appezzamento «{{name}}»",
+    "station": "Centralina aziendale: {{model}} (ID {{device}}).",
+    "stationNote": "Le sue letture alimentano i modelli DSS; la previsione resta di Open-Meteo.",
+    "configureStation": "Configura centralina meteo",
+    "addStation": "Collega una centralina meteo"
   },
   "moduleSidebar": {
     "readOnly": "sola lettura",
@@ -1868,6 +1874,12 @@
   "soilPanel": {
     "calculateButton": "Calcola da Sentinel-2 (STAC)",
     "calculating": "Calcolo in corso…",
+    "dataSource": {
+      "note": "Fonte: dati satellitari Copernicus Sentinel-2 (ESA). Gli indici sono calcolati da AgroGea.",
+      "short": "Sentinel-2 · calcolo AgroGea",
+      "manualLink": "Come vengono calcolati (manuale)",
+      "attribution": "Contiene dati Copernicus Sentinel-2 modificati · indici calcolati da AgroGea"
+    },
     "charts": {
       "needData": "Servono appezzamenti con NDVI calcolato e campionamenti del suolo per incrociare i dati.",
       "samples": "campioni",
@@ -1960,7 +1972,9 @@
       "fine": "Fine (~20 m)",
       "media": "Media (~40 m)",
       "grossa": "Grossa (~80 m)"
-    }
+    },
+    "docNote": "Le zone sono calcolate da AgroGea sugli indici dei dati satellitari Copernicus Sentinel-2 (10 m), con clustering K-means.",
+    "docLink": "Documentazione (manuale)"
   },
   "cropDataForm": {
     "campaignDeclarativeData": "Campagna {{campaignYear}} · dati dichiarativi",

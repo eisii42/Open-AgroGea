@@ -142,6 +142,11 @@ export interface PlotDrawAttrs {
   cadastral_parcel?: string | null;
   irrigation_type?: string | null;
   planting_year?: number | null;
+  /**
+   * Metadata aggiuntivi inseriti alla creazione (es. `suolo`, la composizione
+   * del suolo). Si fondono con quelli di provenienza, che restano prevalenti.
+   */
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -1083,7 +1088,13 @@ export interface GeometrySlice {
    */
   adoptParcel: (
     parcel: Parcel,
-    attrs: { name: string; cadastralSheet?: string | null; cadastralParcel?: string | null },
+    attrs: {
+      name: string;
+      cadastralSheet?: string | null;
+      cadastralParcel?: string | null;
+      /** Metadata aggiuntivi (es. `suolo`), fusi con la provenienza. */
+      metadata?: Record<string, unknown>;
+    },
   ) => Promise<Plot | null>;
   saveDrawnAsset: (
     geometria: Geometry,

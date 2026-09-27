@@ -29,7 +29,19 @@ export interface RegisteredOrthophoto {
 const registry = new Map<string, RegisteredOrthophoto>();
 const listeners = new Set<() => void>();
 
+/**
+ * Elenco ordinato, ricostruito SOLO quando il registro cambia. È lo snapshot di
+ * `useSyncExternalStore`: se ogni lettura restituisse un array nuovo, React lo
+ * vedrebbe sempre "cambiato" e ri-renderizzerebbe all'infinito ("getSnapshot
+ * should be cached" → "Maximum update depth exceeded"), smontando l'app
+ * all'apertura del modulo Normativa.
+ */
+let snapshot: RegisteredOrthophoto[] = [];
+
 function notify(): void {
+  snapshot = [...registry.values()].sort((a, b) =>
+    a.addedAt.localeCompare(b.addedAt),
+  );
   for (const listener of listeners) listener();
 }
 
@@ -42,10 +54,9 @@ export function unregisterOrthophoto(layerId: string): void {
   if (registry.delete(layerId)) notify();
 }
 
+/** Ortofoto registrate, dalla più vecchia: stesso array finché nulla cambia. */
 export function listOrthophotos(): RegisteredOrthophoto[] {
-  return [...registry.values()].sort((a, b) =>
-    a.addedAt.localeCompare(b.addedAt),
-  );
+  return snapshot;
 }
 
 /** Sottoscrizione per `useSyncExternalStore`. */

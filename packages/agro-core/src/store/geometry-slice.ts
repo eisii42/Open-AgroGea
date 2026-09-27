@@ -53,7 +53,7 @@ export function createGeometrySlice(
         irrigation_type: attrs.irrigation_type ?? null,
         planting_year: attrs.planting_year ?? null,
         historical_notes: null,
-        metadata: { origine: "geo-editor" },
+        metadata: { ...attrs.metadata, origine: "geo-editor" },
       });
       set((s) => {
         const others = s.plots.filter((a) => a.id !== record.id);
@@ -82,7 +82,12 @@ export function createGeometrySlice(
         cadastralSheet: attrs.cadastralSheet,
         cadastralParcel: attrs.cadastralParcel,
       }, uuidv4);
-      const record = await dal.upsertPlot(draft);
+      const record = await dal.upsertPlot({
+        ...draft,
+        // La provenienza della particella prevale: è ciò che rende l'adozione
+        // tracciabile e ne impedisce il doppione.
+        metadata: { ...attrs.metadata, ...draft.metadata },
+      });
       set((s) => ({
         plots: [...s.plots.filter((a) => a.id !== record.id), record],
         // Adottata: esce dalle candidate e la mappa la ridisegna come

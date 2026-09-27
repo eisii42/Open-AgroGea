@@ -4,6 +4,11 @@ import {
   useAppStore,
 } from "@geolibre/core";
 import type maplibregl from "maplibre-gl";
+import {
+  type SavedWmsBasemap,
+  WMS_BASEMAP_LAYER_PREFIX,
+  wmsBasemapLayer,
+} from "../modules/add-data/wms-basemaps";
 import { proxiedWmsTileUrl } from "./mapTileProxy";
 
 /**
@@ -23,6 +28,16 @@ export const CADASTRE_LAYER_ID = "agrogea-basemap-cadastre";
 
 /** Tutti gli id di basemap/overlay gestiti da AgroGea (per lo stacking). */
 export const AGRO_BASEMAP_IDS = [SATELLITE_LAYER_ID, CADASTRE_LAYER_ID];
+
+/** Layer dello store che disegna un WMS salvato usato come sfondo. */
+export function isWmsBasemapLayer(layer: GeoLibreLayer): boolean {
+  return layer.id.startsWith(WMS_BASEMAP_LAYER_PREFIX);
+}
+
+/** Basemap AgroGea o WMS di sfondo: tutto ciò che sta sotto l'overlay catastale e i dati. */
+function isBackgroundLayer(layer: GeoLibreLayer): boolean {
+  return AGRO_BASEMAP_IDS.includes(layer.id) || isWmsBasemapLayer(layer);
+}
 
 // Esri World Imagery: ortofoto ad alta risoluzione, senza chiave API per la sola
 // visualizzazione come basemap.
@@ -162,13 +177,76 @@ export function addBasemap(
   const store = useAppStore.getState();
   if (store.layers.some((l) => l.id === layer.id)) return;
   const beforeId = asOverlay
-    ? store.layers.find((l) => !AGRO_BASEMAP_IDS.includes(l.id))?.id ?? null
+    ? store.layers.find((l) => !isBackgroundLayer(l))?.id ?? null
     : store.layers[0]?.id ?? null;
   const styleAnchor = map
     ? firstAppStyleLayerId(
         map,
-        asOverlay ? AGRO_BASEMAP_IDS.map(basemapStyleLayerId) : [],
+        asOverlay
+          ? store.layers
+              .filter(isBackgroundLayer)
+              .map((l) => basemapStyleLayerId(l.id))
+          : [],
       )
     : null;
   store.addLayer({ ...layer, beforeId: styleAnchor ?? undefined }, beforeId);
+}
+
+/** Toglie dallo store ogni WMS di sfondo montato. */
+export function removeWmsBasemapLayers(): void {
+  const store = useAppStore.getState();
+  for (const layer of store.layers.filter(isWmsBasemapLayer)) {
+    store.removeLayer(layer.id);
+  }
+}
+
+/**
+ * Mostra un WMS salvato come sfondo: prende il posto del satellite (e di un
+ * altro WMS di sfondo), in fondo allo stack come un basemap, sotto l'overlay
+ * catastale e i dati dell'azienda.
+ */
+export function activateWmsBasemap(
+  item: SavedWmsBasemap,
+  { map }: { map?: maplibregl.Map | null } = {},
+): void {
+  const store = useAppStore.getState();
+  if (store.layers.some((l) => l.id === SATELLITE_LAYER_ID)) {
+    store.removeLayer(SATELLITE_LAYER_ID);
+  }
+  removeWmsBasemapLayers();
+  addBasemap(wmsBasemapLayer(item), { map });
+}
+
+/** Tipi di layer dello store che disegnano un'immagine (tile o overlay). */
+const RASTER_LAYER_TYPES: readonly GeoLibreLayer["type"][] = [
+  "raster",
+  "wms",
+  "wmts",
+  "xyz",
+  "image",
+];
+
+function isRasterLayer(layer: GeoLibreLayer): boolean {
+  return RASTER_LAYER_TYPES.includes(layer.type);
+}
+
+/**
+ * Inserisce un raster importato dall'utente (ortofoto GeoTIFF) SOPRA i basemap
+ * e gli altri raster già caricati, ma SOTTO il primo layer vettoriale. I WMS
+ * salvati passano invece da {@link activateWmsBasemap}: sono uno sfondo.
+ *
+ * `addLayer` senza posizione lo appenderebbe in cima allo stack: un raster opaco
+ * coprirebbe appezzamenti, infrastrutture e punti, rendendoli invisibili e non
+ * più cliccabili. La cartografia di sfondo, per quanto dettagliata, sta sotto
+ * i dati dell'azienda.
+ *
+ * Un layer vettoriale nello store c'è sempre (appezzamenti, infrastrutture e
+ * punti sono proiettati anche vuoti), quindi il layer-sync trova sempre un
+ * `beforeId` MapLibre e non serve l'ancora di stile di {@link addBasemap}.
+ */
+export function addRasterOverlay(layer: GeoLibreLayer): void {
+  const store = useAppStore.getState();
+  if (store.layers.some((l) => l.id === layer.id)) return;
+  const beforeId = store.layers.find((l) => !isRasterLayer(l))?.id ?? null;
+  store.addLayer(layer, beforeId);
 }

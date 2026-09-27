@@ -285,6 +285,15 @@ html.dark .agro-field-map .geolibre-measure-control {
   visibility: hidden;
 }
 
+/* Viste in keep-alive (App.tsx): la mappa nascosta resta montata con
+   `visibility:hidden`, ma MapLibre dichiara `visibility:visible` sulla barra
+   attribuzioni espansa, che quindi "bucava" Calendario e Command Center.
+   `!important` perché questo foglio sta in un cascade layer e quello di
+   MapLibre no: senza, vince comunque la sua regola. */
+.invisible .maplibregl-ctrl-attrib.maplibregl-compact-show {
+  visibility: hidden !important;
+}
+
 /* Toolbar del GeoEditor: l'icona SVG dei pulsanti deve riempire il bottone e
    restare centrata (allineato al desktop GeoLibre). Senza queste regole — anche
    con lo style.css del pacchetto importato — alcune icone collassano a 0px. */

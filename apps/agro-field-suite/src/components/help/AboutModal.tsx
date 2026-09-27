@@ -5,26 +5,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@geolibre/ui";
-import { BookOpen, Loader2, RefreshCw, Sprout } from "lucide-react";
+import { BookOpen, Sprout } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   APP_VERSION,
-  checkForUpdates,
   getAppVersion,
+  manualUrl as buildManualUrl,
   openExternal,
-  type UpdateResult,
 } from "./helpActions";
 
-const MANUAL_BASE_URL =
-  "https://github.com/eisii42/Open-AgroGea/blob/main/docs/user-guide/";
-
 /**
- * Modal "Informazioni": logo AgroGea, versione current del software e nota
+ * Modal "Informazioni": logo AgroGea, versione current del software, nota
  * legale sul treatment local-first dei dati (PGlite per tenant; nessun dato
- * lascia il dispositivo finché l'utente non sincronizza). Include un controllo
- * aggiornamenti inline così la scheda non resta un testo statico ma riflette
- * lo stato reale del software installato.
+ * lascia il dispositivo finché l'utente non sincronizza) e link al manuale.
  */
 export function AboutModal({
   open,
@@ -34,39 +28,13 @@ export function AboutModal({
   onClose: () => void;
 }) {
   const { t, i18n } = useTranslation();
-  const [checking, setChecking] = useState(false);
-  const [updateResult, setUpdateResult] = useState<UpdateResult | null>(null);
   const [version, setVersion] = useState(APP_VERSION);
 
   useEffect(() => {
     void getAppVersion().then(setVersion);
   }, []);
 
-  const manualFile = i18n.language.startsWith("it") ? "manuale.md" : "manual.en.md";
-  const manualUrl = `${MANUAL_BASE_URL}${manualFile}`;
-
-  const handleCheckUpdates = async () => {
-    if (checking) return;
-    setChecking(true);
-    setUpdateResult(null);
-    setUpdateResult(await checkForUpdates());
-    setChecking(false);
-  };
-
-  const updateMessage = (() => {
-    if (checking) return t("help.update.checking");
-    if (!updateResult) return null;
-    switch (updateResult.status) {
-      case "available":
-        return t("help.update.available", { version: updateResult.version });
-      case "uptodate":
-        return t("help.update.upToDate");
-      case "unavailable":
-        return t("help.update.unavailable");
-      case "error":
-        return t("help.update.error");
-    }
-  })();
+  const manualUrl = buildManualUrl(i18n.language);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -92,25 +60,8 @@ export function AboutModal({
 
           <button
             type="button"
-            disabled={checking}
-            onClick={() => void handleCheckUpdates()}
-            className="mt-1 flex items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] px-3 py-1.5 text-xs font-medium text-[var(--ink-2)] hover:bg-[var(--panel-2)] disabled:cursor-default"
-          >
-            {checking ? (
-              <Loader2 size={13} className="animate-spin text-[var(--ink-3)]" />
-            ) : (
-              <RefreshCw size={13} className="text-[var(--ink-3)]" />
-            )}
-            {t("help.checkUpdates")}
-          </button>
-          {updateMessage && (
-            <p className="text-xs text-[var(--ink-4)]">{updateMessage}</p>
-          )}
-
-          <button
-            type="button"
             onClick={() => void openExternal(manualUrl)}
-            className="flex items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] px-3 py-1.5 text-xs font-medium text-[var(--ink-2)] hover:bg-[var(--panel-2)]"
+            className="mt-1 flex items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] px-3 py-1.5 text-xs font-medium text-[var(--ink-2)] hover:bg-[var(--panel-2)]"
           >
             <BookOpen size={13} className="text-[var(--ink-3)]" />
             {t("help.aboutModal.manual")}

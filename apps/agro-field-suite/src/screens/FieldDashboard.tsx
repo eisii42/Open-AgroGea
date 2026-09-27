@@ -44,6 +44,8 @@ import { useCompassNorth } from "../hooks/useCompassNorth";
 import { useMapStyleEpoch } from "../hooks/useMapStyleEpoch";
 import { useMapZoomLimits } from "../hooks/useMapZoomLimits";
 import { useNativeMapI18n } from "../hooks/useNativeMapI18n";
+import { useLayerAttributions } from "../hooks/useLayerAttributions";
+import { useWmsBasemapRestore } from "../hooks/useWmsBasemapRestore";
 
 /**
  * Pannelli overlay caricati on-demand (code-splitting): non servono al primo
@@ -137,11 +139,6 @@ const GeoCompliancePanel = lazy(() =>
 const CompliancePanel = lazy(() =>
   import("../modules/compliance/CompliancePanel").then((m) => ({
     default: m.CompliancePanel,
-  })),
-);
-const UserProfileSettingsPage = lazy(() =>
-  import("./UserProfileSettingsPage").then((m) => ({
-    default: m.UserProfileSettingsPage,
   })),
 );
 const TaskPlannerPanel = lazy(() =>
@@ -250,6 +247,10 @@ export function FieldDashboard() {
   // scelta hover e click appartengono alla proposta.
   useParcelCandidatesLayer(mapControllerRef, styleEpoch);
   useFieldLayers(styleEpoch);
+  // Fonti dei layer (WMS, satellite, catasto, indici Sentinel-2) nella barra attribuzioni.
+  useLayerAttributions(mapControllerRef, mapReady);
+  // Sfondo WMS salvato dell'azienda: torna com'era alla riapertura.
+  useWmsBasemapRestore(mapControllerRef, mapReady);
   const hover = useHoverTooltips(mapControllerRef, mapReady);
   useFeatureSelection(mapControllerRef, mapReady);
   // Righello e gestore livelli sono controlli di terze parti con le etichette
@@ -482,11 +483,8 @@ export function FieldDashboard() {
           {openPanels.includes("compliance-monitor") && (
             <CompliancePanel onClose={() => togglePanel("compliance-monitor")} />
           )}
-          {/* Impostazioni Profilo: pagina a tutto schermo (non un drawer), sopra
-              mappa e pannelli. Raggiunta dal menù profile e dalla Command Palette. */}
-          {openPanels.includes("profile") && (
-            <UserProfileSettingsPage onClose={() => togglePanel("profile")} />
-          )}
+          {/* Impostazioni Profilo: montate in App.tsx, sopra TUTTE le viste
+              (si aprono anche da Calendario e Command Center). */}
           {/* Riquadro Pianificazione Task / Ricette: pagina a tutto schermo
               come le Impostazioni Profilo (non un drawer). */}
           {openPanels.includes("tasks") && (
@@ -596,7 +594,10 @@ export function FieldDashboard() {
             maxHeight="70dvh"
           >
             <div className="px-2 pb-4">
-              <ModuleSidebar embedded />
+              <ModuleSidebar
+                embedded
+                onToolSelected={() => setMobileSidebarOpen(false)}
+              />
             </div>
           </BottomSheet>
         )}

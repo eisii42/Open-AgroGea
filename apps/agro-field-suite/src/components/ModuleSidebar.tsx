@@ -75,7 +75,14 @@ interface ModuleDef {
 
 export function ModuleSidebar({
   embedded = false,
+  onToolSelected,
 }: {
+  /**
+   * Chiamato dopo aver attivato uno strumento. Su mobile chiude il BottomSheet
+   * "Moduli": altrimenti resta sopra al pannello appena aperto e lo copre, e
+   * sembra che la voce non abbia fatto nulla.
+   */
+  onToolSelected?: () => void;
   /**
    * true quando è annidato nel BottomSheet mobile "Moduli" (FieldDashboard),
    * che fornisce già title, chiusura e larghezza piena: sopprime l'intestazione
@@ -425,9 +432,18 @@ export function ModuleSidebar({
           <div key={mod.id}>
             <button
               type="button"
-              onClick={() =>
-                setExpanded((e) => ({ ...e, [mod.id]: !isOpen }))
-              }
+              onClick={(event) => {
+                setExpanded((e) => ({ ...e, [mod.id]: !isOpen }));
+                // Espandendo un modulo in fondo all'elenco (es. Normativa) le
+                // voci finirebbero sotto il bordo del foglio mobile, senza
+                // alcun segnale: si porta in vista l'intero gruppo.
+                if (!isOpen) {
+                  const group = event.currentTarget.parentElement;
+                  requestAnimationFrame(() =>
+                    group?.scrollIntoView({ block: "nearest", behavior: "smooth" }),
+                  );
+                }
+              }}
               className="flex w-full items-center gap-2 rounded-[var(--r-2)] px-2 py-2 text-left text-sm font-medium hover:bg-[var(--panel-2)]"
             >
               <mod.Icon size={16} className="text-[var(--accent)]" />
@@ -516,6 +532,7 @@ export function ModuleSidebar({
                         } else if (action.kind === "run") {
                           action.run();
                         }
+                        onToolSelected?.();
                       }}
                       className={cn(
                         "flex min-h-[40px] items-center gap-2 rounded-[var(--r-2)] px-2 py-1.5 text-left text-[13px]",

@@ -6,6 +6,8 @@ use tauri::Manager;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
+    // Link esterni (manuale, feedback mailto) aperti dal sistema operativo.
+    .plugin(tauri_plugin_opener::init())
     .setup(|app| {
       // Trasporto delle fonti di particelle: allow-list host (popolata dal
       // frontend a partire dal catalogo), semaforo di concorrenza e client HTTP.

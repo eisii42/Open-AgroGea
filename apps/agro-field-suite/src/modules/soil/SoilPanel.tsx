@@ -29,6 +29,7 @@ import {
   type StrategiaTemporale,
   useSoilPipeline,
 } from "../../hooks/useSoilPipeline";
+import { IndexSourceNote } from "./IndexSourceNote";
 import {
   toggleTimelineHidden,
   useIndexTimeline,
@@ -491,6 +492,7 @@ export function SoilPanel({ onClose }: { onClose: () => void }) {
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
               {t("soilPanel.results.title")}
             </p>
+            <IndexSourceNote />
             {status.domain && (
               <p className="text-xs text-[var(--ink-4)]">
                 {t("soilPanel.results.relativeScale", {

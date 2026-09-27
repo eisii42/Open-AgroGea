@@ -18,6 +18,12 @@ import { useTranslation } from "react-i18next";
 import { createParcelSourceDeps } from "../../lib/parcel-source-transport";
 import { useTenantCountry } from "../../hooks/useTenantCountry";
 import {
+  mergeSoilMetadata,
+  SOIL_FORM_EMPTY,
+  SoilCompositionSection,
+  type SoilForm,
+} from "../soil/SoilCompositionSection";
+import {
   boundsToBBox,
   candidateSummary,
   INTERACTIVE_MAX_FEATURES,
@@ -75,6 +81,9 @@ export function ParcelAdoptionPanel({
   const [pickingPoint, setPickingPoint] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [plotName, setPlotName] = useState("");
+  // Composizione del suolo inseribile già all'adozione; resta modificabile
+  // dalla scheda dell'appezzamento.
+  const [soil, setSoil] = useState<SoilForm>(() => ({ ...SOIL_FORM_EMPTY }));
 
   const selected = useMemo(
     () => candidates.find((c) => c.id === selectedParcelId) ?? null,
@@ -156,9 +165,13 @@ export function ParcelAdoptionPanel({
     setBusy(true);
     setError(null);
     try {
-      await adoptParcel(selected, {
+      const adopted = await adoptParcel(selected, {
         name: plotName.trim() || suggestedPlotName(selected, plots.length + 1),
+        metadata: mergeSoilMetadata({}, soil),
       });
+      // Adottata: la prossima particella parte da un modulo vuoto, non dai
+      // dati di suolo di quella appena salvata.
+      if (adopted) setSoil({ ...SOIL_FORM_EMPTY });
     } catch (cause) {
       setError(
         cause instanceof ParcelAlreadyAdoptedError
@@ -279,6 +292,13 @@ export function ParcelAdoptionPanel({
                 onChange={(e) => setPlotName(e.target.value)}
               />
             </label>
+            <SoilCompositionSection
+              soil={soil}
+              onChange={(field, value) =>
+                setSoil((s) => ({ ...s, [field]: value }))
+              }
+              idPrefix="adopt"
+            />
             <Button onClick={() => void adopt()} disabled={busy}>
               {t("parcelAdoption.adopt")}
             </Button>

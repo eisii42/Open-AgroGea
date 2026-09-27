@@ -4,9 +4,7 @@ import {
   CircleHelp,
   Info,
   Keyboard,
-  Loader2,
   MessageSquare,
-  RefreshCw,
   Search,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -15,14 +13,15 @@ import { AboutModal } from "./AboutModal";
 import { DiagnosticsModal } from "./DiagnosticsModal";
 import { FeedbackModal } from "./FeedbackModal";
 import { ShortcutsModal } from "./ShortcutsModal";
-import { checkForUpdates, notify, type UpdateResult } from "./helpActions";
 import { useDiagnostics } from "./useDiagnostics";
 
 /**
  * Menu di Aiuto della Topbar (accanto al menu Profilo). Replica il menu "Aiuto"
  * di GeoLibre nello stile biopunk/dark della suite: Riquadro Comandi, Scorciatoie,
- * Diagnostica (con badge dinamico), Invia Feedback, Controlla Aggiornamenti e
- * Informazioni.
+ * Diagnostica (con badge dinamico), Invia Feedback e Informazioni.
+ *
+ * Niente "Controlla aggiornamenti": gli aggiornamenti arrivano da soli (banner
+ * `UpdateNotice` sul desktop, store su mobile).
  *
  * Lo stato di apertura è gestito localmente con dropdown hand-rolled (come il
  * menu profile): nessun portale Radix sopra il canvas MapLibre, così la mappa
@@ -43,9 +42,6 @@ export function HelpMenu({
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [diagOpen, setDiagOpen] = useState(false);
-
-  const [checking, setChecking] = useState(false);
-  const [updateResult, setUpdateResult] = useState<UpdateResult | null>(null);
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -70,41 +66,6 @@ export function HelpMenu({
     setOpen(false);
     onOpenCommandPalette();
   };
-
-  // Controllo aggiornamenti: spinner inline nel menu + notifica di sistema con
-  // l'esito (aggiornato / nuova versione available). Il dropdown resta aperto.
-  const handleCheckUpdates = async () => {
-    if (checking) return;
-    setChecking(true);
-    setUpdateResult(null);
-    const result = await checkForUpdates();
-    setUpdateResult(result);
-    setChecking(false);
-
-    if (result.status === "available") {
-      void notify(
-        t("help.update.notifyTitle"),
-        t("help.update.available", { version: result.version }),
-      );
-    } else if (result.status === "uptodate") {
-      void notify(t("help.update.notifyTitle"), t("help.update.upToDate"));
-    }
-  };
-
-  const updateMessage = (() => {
-    if (checking) return t("help.update.checking");
-    if (!updateResult) return null;
-    switch (updateResult.status) {
-      case "available":
-        return t("help.update.available", { version: updateResult.version });
-      case "uptodate":
-        return t("help.update.upToDate");
-      case "unavailable":
-        return t("help.update.unavailable");
-      case "error":
-        return t("help.update.error");
-    }
-  })();
 
   return (
     <>
@@ -163,27 +124,6 @@ export function HelpMenu({
                 setFeedbackOpen(true);
               }}
             />
-
-            {/* Controlla aggiornamenti: non chiude il menu, mostra spinner + esito. */}
-            <button
-              type="button"
-              role="menuitem"
-              disabled={checking}
-              onClick={() => void handleCheckUpdates()}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[var(--ink-2)] hover:bg-[var(--panel-2)] disabled:cursor-default"
-            >
-              {checking ? (
-                <Loader2 size={15} className="animate-spin text-[var(--ink-3)]" />
-              ) : (
-                <RefreshCw size={15} className="text-[var(--ink-3)]" />
-              )}
-              <span className="flex-1">{t("help.checkUpdates")}</span>
-            </button>
-            {updateMessage && (
-              <p className="px-3 pb-1.5 pt-0.5 text-xs text-[var(--ink-4)]">
-                {updateMessage}
-              </p>
-            )}
 
             <div className="my-1 border-t border-[var(--line)]" />
 

@@ -1,13 +1,10 @@
 import { useAgroStore } from "@agrogea/core";
-import {
-  DEFAULT_LAYER_STYLE,
-  type GeoLibreLayer,
-  useAppStore,
-} from "@geolibre/core";
+import { DEFAULT_LAYER_STYLE, type GeoLibreLayer } from "@geolibre/core";
 import { cn } from "@geolibre/ui";
-import { Image, Layers, Loader2 } from "lucide-react";
+import { Globe, Image, Layers, Loader2, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { addRasterOverlay } from "../lib/basemaps";
 import { EXTERNAL_LAYER_FLAG } from "../modules/add-data/add-data";
 import {
   loadGeoTiffOverlay,
@@ -15,10 +12,16 @@ import {
 } from "../modules/add-data/geotiff-overlay";
 import { registerOrthophoto } from "../modules/add-data/orthophoto-registry";
 import {
-  buildWmsTileUrl,
   fetchWmsCapabilities,
   type WmsCapabilities,
+  wmsAttribution,
 } from "../modules/add-data/wms";
+import {
+  deleteWmsBasemap,
+  saveWmsBasemap,
+  useSavedWmsBasemaps,
+} from "../modules/add-data/wms-basemap-store";
+import type { SavedWmsBasemap } from "../modules/add-data/wms-basemaps";
 
 /**
  * Sezione "cartografia raster" di Aggiungi dati: un servizio **WMS** da
@@ -30,13 +33,17 @@ import {
  * l'ortofoto sta sul disco dell'utente (funziona offline, è ferma a quando è
  * stata scattata).
  *
+ * Il WMS aggiunto qui si salva per l'azienda e diventa lo sfondo della mappa al
+ * posto del satellite (vedi `wms-basemaps.ts`); l'elenco dei WMS salvati sta in
+ * questa sezione, con modifica ed eliminazione, e si sceglie dal selettore di
+ * sfondo.
+ *
  * L'ortofoto caricata qui finisce anche nel registro di sessione, così la
  * scheda BCAA 8 del modulo Normativa può misurarci sopra senza chiedere di
  * ricaricare lo stesso file.
  */
 export function AddRasterSection() {
   const { t } = useTranslation();
-  const addLayer = useAppStore((s) => s.addLayer);
   const recordTransfer = useAgroStore((s) => s.recordTransfer);
 
   const [kind, setKind] = useState<"wms" | "orthophoto">("wms");
@@ -46,23 +53,30 @@ export function AddRasterSection() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<string | null>(null);
+  const savedWms = useSavedWmsBasemaps();
+  /** WMS salvato in modifica, o null se se ne sta aggiungendo uno nuovo. */
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const reset = () => {
     setError(null);
     setOutcome(null);
   };
 
-  /** Interroga il servizio: senza l'elenco, il nome del layer è indovinato. */
-  const loadCapabilities = async () => {
+  /**
+   * Interroga il servizio: senza l'elenco, il nome del layer è indovinato.
+   * `preselect` rimette la scelta di un WMS salvato che si sta modificando.
+   */
+  const loadCapabilities = async (address = url, preselect?: string) => {
     reset();
-    if (!url.trim()) return;
+    if (!address.trim()) return;
     setBusy(true);
     setCapabilities(null);
     setSelected("");
     try {
-      const found = await fetchWmsCapabilities(url.trim());
+      const found = await fetchWmsCapabilities(address.trim());
       setCapabilities(found);
-      setSelected(found.layers[0]?.name ?? "");
+      const keep = preselect && found.layers.some((l) => l.name === preselect);
+      setSelected(keep ? preselect : (found.layers[0]?.name ?? ""));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -70,41 +84,55 @@ export function AddRasterSection() {
     }
   };
 
-  const addWmsLayer = async () => {
+  /**
+   * Salva il WMS (nuovo o modificato) e lo mostra come sfondo al posto del
+   * satellite: resta memorizzato per l'azienda e torna alla riapertura.
+   */
+  const saveWms = () => {
     reset();
     if (!capabilities || !selected) return;
     const info = capabilities.layers.find((l) => l.name === selected);
-    const id = `external-${crypto.randomUUID()}`;
-    const layer: GeoLibreLayer = {
-      id,
-      name: info?.title ?? selected,
-      type: "wms",
-      source: {
-        type: "raster",
-        tiles: [
-          buildWmsTileUrl({
-            baseUrl: url.trim(),
-            layerName: selected,
-            version: capabilities.version,
-          }),
-        ],
-        tileSize: 256,
-      },
-      visible: true,
-      opacity: 1,
-      style: { ...DEFAULT_LAYER_STYLE },
-      metadata: {
-        agrogea: true,
-        [EXTERNAL_LAYER_FLAG]: true,
-        formato: "wms",
-        wmsEndpoint: url.trim(),
-        wmsLayer: selected,
-        wmsVersion: capabilities.version,
-      },
-      sourcePath: url.trim(),
-    };
-    addLayer(layer);
-    setOutcome(t("addDataControl.raster.wmsAdded", { name: layer.name }));
+    const title = info?.title ?? selected;
+    saveWmsBasemap({
+      id: editingId ?? crypto.randomUUID(),
+      name: title,
+      baseUrl: url.trim(),
+      layerName: selected,
+      version: capabilities.version,
+      attribution: wmsAttribution(title, capabilities, url.trim()),
+    });
+    setOutcome(
+      t(
+        editingId
+          ? "addDataControl.raster.wmsUpdated"
+          : "addDataControl.raster.wmsAdded",
+        { name: title },
+      ),
+    );
+    setEditingId(null);
+    setCapabilities(null);
+    setUrl("");
+  };
+
+  const startEdit = (item: SavedWmsBasemap) => {
+    setKind("wms");
+    setEditingId(item.id);
+    setUrl(item.baseUrl);
+    void loadCapabilities(item.baseUrl, item.layerName);
+  };
+
+  const cancelEdit = () => {
+    reset();
+    setEditingId(null);
+    setCapabilities(null);
+    setUrl("");
+  };
+
+  const removeWms = (item: SavedWmsBasemap) => {
+    reset();
+    if (editingId === item.id) cancelEdit();
+    deleteWmsBasemap(item.id);
+    setOutcome(t("addDataControl.raster.wmsDeleted", { name: item.name }));
   };
 
   const addOrthophoto = async (file: File) => {
@@ -135,7 +163,7 @@ export function AddRasterSection() {
         },
         sourcePath: `agrogea://${id}`,
       };
-      addLayer(layer);
+      addRasterOverlay(layer);
       // Il File resta disponibile alla scheda BCAA 8, che lo rilegge a piena
       // risoluzione: qui la texture è ridotta e non servirebbe a misurare.
       registerOrthophoto({
@@ -203,8 +231,58 @@ export function AddRasterSection() {
 
       {kind === "wms" ? (
         <div className="flex flex-col gap-1.5">
+          {/* WMS salvati: restano fra una sessione e l'altra, si modificano o
+              si eliminano da qui e si scelgono come sfondo dal selettore. */}
+          {savedWms.items.length > 0 && (
+            <div className="mb-1 flex flex-col gap-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--ink-4)]">
+                {t("addDataControl.raster.savedWms")}
+              </p>
+              {savedWms.items.map((item) => (
+                <div
+                  key={item.id}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-[var(--r-2)] border px-2 py-1 text-xs",
+                    editingId === item.id
+                      ? "border-[var(--accent)]"
+                      : "border-[var(--line)]",
+                  )}
+                >
+                  <Globe size={12} className="shrink-0 text-[var(--ink-3)]" />
+                  <span className="min-w-0 flex-1 truncate" title={item.baseUrl}>
+                    {item.name}
+                  </span>
+                  {savedWms.activeId === item.id && (
+                    <span className="text-[10px] font-medium text-[var(--accent)]">
+                      {t("addDataControl.raster.wmsActive")}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => startEdit(item)}
+                    title={t("addDataControl.raster.editWms")}
+                    aria-label={t("addDataControl.raster.editWms")}
+                    className="rounded-[var(--r-1)] p-1 text-[var(--ink-3)] hover:bg-[var(--panel-2)]"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeWms(item)}
+                    title={t("addDataControl.raster.deleteWms")}
+                    aria-label={t("addDataControl.raster.deleteWms")}
+                    className="rounded-[var(--r-1)] p-1 text-[var(--danger)] hover:bg-[var(--panel-2)]"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <p className="text-[11px] text-[var(--ink-4)]">
-            {t("addDataControl.raster.wmsHint")}
+            {editingId
+              ? t("addDataControl.raster.editingWmsHint")
+              : t("addDataControl.raster.wmsHint")}
           </p>
           <input
             value={url}
@@ -247,12 +325,23 @@ export function AddRasterSection() {
               <button
                 type="button"
                 disabled={!selected}
-                onClick={() => void addWmsLayer()}
+                onClick={saveWms}
                 className="rounded-[var(--r-2)] bg-[var(--accent)] px-2 py-1.5 text-[11px] font-medium text-white disabled:opacity-60"
               >
-                {t("addDataControl.raster.addToMap")}
+                {editingId
+                  ? t("addDataControl.raster.saveWmsChanges")
+                  : t("addDataControl.raster.addToMap")}
               </button>
             </>
+          )}
+          {editingId && (
+            <button
+              type="button"
+              onClick={cancelEdit}
+              className="rounded-[var(--r-2)] px-2 py-1 text-[11px] text-[var(--ink-3)] hover:bg-[var(--panel-2)]"
+            >
+              {t("logbook.common.cancel")}
+            </button>
           )}
         </div>
       ) : (

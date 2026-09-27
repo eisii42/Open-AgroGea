@@ -2,7 +2,7 @@ import { useSettingsStore } from "@agrogea/core";
 import { useAppStore } from "@geolibre/core";
 import type { MapController } from "@geolibre/map";
 import { cn } from "@geolibre/ui";
-import { Check, Layers, Map as MapIcon, Satellite } from "lucide-react";
+import { Check, Globe, Layers, Map as MapIcon, Satellite } from "lucide-react";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -10,13 +10,19 @@ import {
   SATELLITE_LAYER_ID,
   addBasemap,
   cadastreLayer,
+  isWmsBasemapLayer,
   satelliteLayer,
 } from "../lib/basemaps";
+import {
+  selectWmsBasemap,
+  useSavedWmsBasemaps,
+} from "../modules/add-data/wms-basemap-store";
 
 /**
  * Selettore basemap di field (Modulo 1 §FIX, esteso). Apre un menù con:
- *   * basemap di base mutuamente esclusivi (stradario · satellite): un solo
- *     raster di sfondo alla volta, in fondo allo stack;
+ *   * basemap di base mutuamente esclusivi (stradario · satellite · WMS salvati
+ *     da "Aggiungi dati"): un solo raster di sfondo alla volta, in fondo allo
+ *     stack. Un WMS scelto prende il posto del satellite;
  *   * un overlay catastale (WMS Agenzia delle Entrate) attivabile in modo
  *     indipendente, sopra il basemap ma sotto i vettori agronomici.
  *
@@ -41,9 +47,16 @@ export function BasemapSwitcher({
   const removeLayer = useAppStore((s) => s.removeLayer);
   const flags = useSettingsStore((s) => s.dashboardLayout);
 
+  const savedWms = useSavedWmsBasemaps();
+
   const satelliteOn = layers.some((l) => l.id === SATELLITE_LAYER_ID);
   const cadastreOn = layers.some((l) => l.id === CADASTRE_LAYER_ID);
-  const current: BaseChoice = satelliteOn ? "satellite" : "stradario";
+  const activeWmsId = layers.some(isWmsBasemapLayer) ? savedWms.activeId : null;
+  const current: BaseChoice | null = activeWmsId
+    ? null
+    : satelliteOn
+      ? "satellite"
+      : "stradario";
 
   // Il tetto di zoom dell'ortofoto (oltre SATELLITE_MAX_ZOOM Esri non ha
   // copertura e la vista si "buca") NON si applica più da qui: è composto con
@@ -75,12 +88,18 @@ export function BasemapSwitcher({
   }, [open]);
 
   const selectBase = (choice: BaseChoice) => {
-    // Basemap mutuamente esclusivi: rimuovi gli altri raster di sfondo.
+    // Basemap mutuamente esclusivi: rimuovi gli altri raster di sfondo (anche
+    // un WMS salvato, che resta in elenco ma smette di essere lo sfondo).
+    selectWmsBasemap(null);
     if (satelliteOn) removeLayer(SATELLITE_LAYER_ID);
     if (choice === "satellite") {
       addBasemap(satelliteLayer(), { map: mapControllerRef.current?.getMap() });
     }
   };
+
+  // Un WMS salvato prende il posto del satellite come sfondo.
+  const selectWms = (id: string) =>
+    selectWmsBasemap(id, { map: mapControllerRef.current?.getMap() });
 
   const toggleCadastre = () => {
     if (cadastreOn) removeLayer(CADASTRE_LAYER_ID);
@@ -101,7 +120,7 @@ export function BasemapSwitcher({
     },
   ];
 
-  const anyActive = satelliteOn || cadastreOn;
+  const anyActive = satelliteOn || cadastreOn || activeWmsId !== null;
 
   return (
     <div className="relative" ref={ref}>
@@ -116,7 +135,13 @@ export function BasemapSwitcher({
             : "border-[var(--line)] text-[var(--ink-2)]",
         )}
       >
-        {satelliteOn ? <Satellite size={18} /> : <MapIcon size={18} />}
+        {activeWmsId ? (
+          <Globe size={18} />
+        ) : satelliteOn ? (
+          <Satellite size={18} />
+        ) : (
+          <MapIcon size={18} />
+        )}
       </button>
 
       {open && (
@@ -141,6 +166,27 @@ export function BasemapSwitcher({
                 <span className="flex-1">{t(o.labelKey as never)}</span>
               </button>
             ))}
+          {/* WMS salvati da "Aggiungi dati": alternative al satellite. */}
+          {savedWms.items.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => selectWms(item.id)}
+              title={item.attribution || item.baseUrl}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--panel-2)]"
+            >
+              <span className="flex h-4 w-4 items-center justify-center">
+                {activeWmsId === item.id && (
+                  <Check size={15} className="text-[var(--accent)]" />
+                )}
+              </span>
+              <Globe size={14} className="shrink-0 text-[var(--ink-3)]" />
+              <span className="flex-1 truncate">{item.name}</span>
+              <span className="text-[10px] font-semibold uppercase text-[var(--ink-4)]">
+                WMS
+              </span>
+            </button>
+          ))}
 
           {flags.mapBasemapCadastre && (
             <>

@@ -6,7 +6,9 @@ import {
   useSettingsStore,
 } from "@agrogea/core";
 import { ndviColor, type VegetationIndex } from "@agrogea/tools";
+import { CircleAlert, TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { usePlotAlerts } from "../hooks/usePlotAlerts";
 import { cropIcon } from "../lib/cropIcon";
 import { assetIcon } from "../lib/assetIcon";
 import type { HoverState } from "../hooks/useHoverTooltips";
@@ -172,7 +174,36 @@ function PlotBody({ props }: { props: Record<string, unknown> }) {
           )
         }
       />
+      <PlotAlertLines plotId={str(props.id)} />
     </div>
+  );
+}
+
+/**
+ * I segnali del simbolo sull'appezzamento, per esteso e in piccolo: il
+ * triangolo dice solo "manca qualcosa", qui si legge che cosa. Stesso calcolo
+ * dei simboli in mappa (`usePlotAlerts`), quindi i due non divergono.
+ */
+function PlotAlertLines({ plotId }: { plotId: string | null }) {
+  const { t } = useTranslation();
+  const alerts = usePlotAlerts();
+  const alert = plotId ? alerts.find((a) => a.plotId === plotId) : undefined;
+  if (!alert || (alert.gaps.length === 0 && alert.taskCount === 0)) return null;
+  return (
+    <ul className="mt-0.5 flex flex-col gap-0.5 border-t border-[var(--line)] pt-1 text-[10px] leading-snug">
+      {alert.gaps.map((gap) => (
+        <li key={gap} className="flex items-start gap-1 text-[#b45309]">
+          <TriangleAlert size={10} className="mt-[1px] shrink-0" />
+          {t(`plotAlerts.gap.${gap}` as never)}
+        </li>
+      ))}
+      {alert.taskCount > 0 && (
+        <li className="flex items-start gap-1 text-[#2563eb]">
+          <CircleAlert size={10} className="mt-[1px] shrink-0" />
+          {t("plotAlerts.tasksPending", { count: alert.taskCount })}
+        </li>
+      )}
+    </ul>
   );
 }
 

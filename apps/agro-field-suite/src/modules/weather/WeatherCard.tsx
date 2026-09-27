@@ -1,8 +1,16 @@
 import { centroid, useAgroStore } from "@agrogea/core";
 import { cn } from "@geolibre/ui";
-import { Droplets, RefreshCw, Wind } from "lucide-react";
+import {
+  Droplets,
+  MapPin,
+  RadioTower,
+  RefreshCw,
+  Settings,
+  Wind,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { openExternal } from "../../components/help/helpActions";
 import {
   type PrevisioneDashboard,
   WeatherSyncService,
@@ -15,12 +23,22 @@ import { weatherCodeInfo } from "../../lib/weather-codes";
  *
  * Sorgente: `WeatherSyncService.previsioneDashboard` (Open-Meteo, endpoint
  * daily/current), localizzata sul centroid dell'azienda — la sede se nota,
- * altrimenti il primo plot con geometria. Si update all'avvio dell'app
+ * altrimenti il primo plot con geometria. In fondo la scheda dichiara servizio,
+ * coordinate e loro origine, e l'eventuale centralina aziendale. Si update all'avvio dell'app
  * (montaggio) e ogni ora (lucchetto orario condiviso con il resto del meteo).
  */
 
-/** Coordinate [lon, lat] dell'azienda attiva, o null se non localizzabile. */
-function useCompanyCoordinates(): [number, number] | null {
+/** Punto su cui è localizzato il meteo e da dove viene (mostrato nella scheda). */
+interface WeatherLocation {
+  /** [lon, lat] */
+  coordinates: [number, number];
+  /** Sede aziendale, o centroide del primo appezzamento con geometria. */
+  origin: "company" | "plot";
+  plotName?: string;
+}
+
+/** Coordinate dell'azienda attiva, o null se non localizzabile. */
+function useCompanyCoordinates(): WeatherLocation | null {
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const companies = useAgroStore((s) => s.companies);
   const plots = useAgroStore((s) => s.plots);
@@ -28,11 +46,26 @@ function useCompanyCoordinates(): [number, number] | null {
   return useMemo(() => {
     const company = companies.find((a) => a.id === activeCompanyId);
     const sede = company?.centroid?.coordinates;
-    if (sede && sede.length >= 2) return [sede[0], sede[1]];
+    if (sede && sede.length >= 2) {
+      return { coordinates: [sede[0], sede[1]], origin: "company" };
+    }
     const withGeometry = plots.find((a) => a.geometry);
-    if (withGeometry) return centroid(withGeometry.geometry);
+    if (withGeometry) {
+      return {
+        coordinates: centroid(withGeometry.geometry),
+        origin: "plot",
+        plotName: withGeometry.user_plot_name,
+      };
+    }
     return null;
   }, [activeCompanyId, companies, plots]);
+}
+
+const OPEN_METEO_URL = "https://open-meteo.com/";
+
+/** Coordinata in gradi decimali con emisfero (4 decimali ≈ 11 m). */
+function formatCoordinate(value: number, positive: string, negative: string): string {
+  return `${Math.abs(value).toFixed(4)}° ${value >= 0 ? positive : negative}`;
 }
 
 function gradi(v: number | null | undefined): string {
@@ -55,7 +88,9 @@ function dayLabel(
 export function WeatherCard() {
   const { t, i18n } = useTranslation();
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
-  const coordinate = useCompanyCoordinates();
+  const weatherConfig = useAgroStore((s) => s.weatherConfig);
+  const location = useCompanyCoordinates();
+  const coordinate = location?.coordinates ?? null;
 
   const [previsione, setPrevisione] = useState<PrevisioneDashboard | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "errore">("idle");
@@ -117,7 +152,7 @@ export function WeatherCard() {
   }, [aperto]);
 
   // Senza coordinate non c'è nulla da localizzare: scheda nascosta.
-  if (!activeCompanyId || !coordinate) return null;
+  if (!activeCompanyId || !location) return null;
 
   const current = previsione?.current;
   const currentInfo = weatherCodeInfo(current?.weatherCode);
@@ -225,8 +260,105 @@ export function WeatherCard() {
               </div>
             </>
           )}
+
+          {/* Provenienza: servizio, punto localizzato, centralina aziendale. */}
+          <WeatherSourceInfo
+            location={location}
+            stationModel={
+              weatherConfig?.data_source === "private_station"
+                ? (weatherConfig.station_model ?? "")
+                : null
+            }
+            stationDeviceId={weatherConfig?.station_device_id ?? null}
+            onConfigure={() => setAperto(false)}
+          />
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Da dove arriva il meteo mostrato: servizio (Open-Meteo, con l'attribuzione
+ * che la sua licenza CC BY 4.0 richiede), coordinate del punto interrogato e
+ * loro origine. Se l'azienda ha una centralina configurata la si cita: le sue
+ * letture alimentano i modelli DSS, mentre la previsione a 5 giorni resta di
+ * Open-Meteo (una centralina misura, non prevede). Il pulsante porta alla
+ * configurazione della fonte meteo, dove si imposta la centralina.
+ */
+function WeatherSourceInfo({
+  location,
+  stationModel,
+  stationDeviceId,
+  onConfigure,
+}: {
+  location: WeatherLocation;
+  /** Modello della centralina se è la fonte attiva, altrimenti null. */
+  stationModel: string | null;
+  stationDeviceId: string | null;
+  onConfigure: () => void;
+}) {
+  const { t } = useTranslation();
+  const togglePanel = useAgroStore((s) => s.togglePanel);
+  const setActiveView = useAgroStore((s) => s.setActiveView);
+  const [lon, lat] = location.coordinates;
+
+  const configure = () => {
+    onConfigure();
+    // Il pannello vive nella vista mappa: dal Calendario o dal Command Center
+    // si torna lì, altrimenti si aprirebbe nella vista nascosta.
+    setActiveView("map");
+    if (!useAgroStore.getState().openPanels.includes("impostazioni")) {
+      togglePanel("impostazioni");
+    }
+  };
+
+  return (
+    <div className="mt-3 flex flex-col gap-1 border-t border-[var(--line)] pt-2 text-[11px] leading-snug text-[var(--ink-4)]">
+      <p>
+        {t("weatherCard.source")}{" "}
+        <button
+          type="button"
+          onClick={() => void openExternal(OPEN_METEO_URL)}
+          className="text-[var(--accent)] underline-offset-2 hover:underline"
+        >
+          Open-Meteo.com
+        </button>
+      </p>
+      <p className="flex items-start gap-1">
+        <MapPin size={11} className="mt-[1px] shrink-0" />
+        <span>
+          <span className="agro-num tabular-nums">
+            {formatCoordinate(lat, "N", "S")}, {formatCoordinate(lon, "E", "W")}
+          </span>{" "}
+          ·{" "}
+          {location.origin === "company"
+            ? t("weatherCard.originCompany")
+            : t("weatherCard.originPlot", { name: location.plotName ?? "—" })}
+        </span>
+      </p>
+      {stationModel !== null && (
+        <p className="flex items-start gap-1">
+          <RadioTower size={11} className="mt-[1px] shrink-0" />
+          <span>
+            {t("weatherCard.station", {
+              model: stationModel || "—",
+              device: stationDeviceId || "—",
+            })}{" "}
+            {t("weatherCard.stationNote")}
+          </span>
+        </p>
+      )}
+      <button
+        type="button"
+        onClick={configure}
+        className="mt-0.5 flex items-center gap-1 self-start text-[var(--accent)] underline-offset-2 hover:underline"
+      >
+        <Settings size={11} />
+        {stationModel !== null
+          ? t("weatherCard.configureStation")
+          : t("weatherCard.addStation")}
+      </button>
     </div>
   );
 }

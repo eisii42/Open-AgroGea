@@ -74,6 +74,9 @@ export function BottomSheet({
         )}
 
         {children}
+        {/* Spazio per la barra di navigazione di sistema (Android edge-to-edge,
+            iPhone con home indicator): l'ultima voce non deve finirci sotto. */}
+        <div className="h-[env(safe-area-inset-bottom)]" />
       </div>
     </>
   );

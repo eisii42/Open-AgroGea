@@ -15,6 +15,12 @@ const CalendarScreen = lazy(() =>
     default: m.CalendarScreen,
   })),
 );
+// Impostazioni Profilo: pagina a tutto schermo apribile da qualunque vista.
+const UserProfileSettingsPage = lazy(() =>
+  import("./screens/UserProfileSettingsPage").then((m) => ({
+    default: m.UserProfileSettingsPage,
+  })),
+);
 // Primo avvio: si carica solo quando serve davvero, cioè una volta nella vita
 // dell'installazione.
 const OnboardingScreen = lazy(() =>
@@ -57,6 +63,8 @@ function isArrowTargetReserved(target: EventTarget | null): boolean {
 export function App() {
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const activeView = useAgroStore((s) => s.activeView);
+  const profileOpen = useAgroStore((s) => s.openPanels.includes("profile"));
+  const togglePanel = useAgroStore((s) => s.togglePanel);
   // Command Center e Calendario si montano alla prima visita e poi restano vivi
   // (lazy + keep-alive): anche i loro filters/stato sopravvivono al cambio vista.
   const ccVisited = useRef(false);
@@ -155,6 +163,14 @@ export function App() {
               <CommandCenter key={activeCompanyId} />
             </Suspense>
           </div>
+        )}
+        {/* Impostazioni Profilo: SOPRA le tre viste. Stavano dentro la
+            dashboard mappa, così aperte dal menu profilo di Calendario o
+            Command Center finivano nella vista nascosta, sotto quella attiva. */}
+        {profileOpen && (
+          <Suspense fallback={null}>
+            <UserProfileSettingsPage onClose={() => togglePanel("profile")} />
+          </Suspense>
         )}
         {/* Modalità Campo: schermo low-touch a bordo campo, sopra Mappa E
             Command Center (z-index massimo). Si monta da sé quando lo store
