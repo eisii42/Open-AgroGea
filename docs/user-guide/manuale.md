@@ -2,9 +2,9 @@
 
 > 🇮🇹 Italiano · [🇬🇧 English](./manual.en.md)
 
-> **Versione documento 0.4.1** · aggiornato il 21 agosto 2026 · descrive **AgroGea Community 0.4.1**. Se la tua app mostra una versione diversa (menu **?** → *Informazioni*), le differenze sono elencate nel [CHANGELOG](../../CHANGELOG.md).
+> **Versione documento 0.5.0** · aggiornato il 27 settembre 2026 · descrive **AgroGea 0.5.0**. Se la tua app mostra una versione diversa (menu **?** → *Informazioni*), le differenze sono elencate nel [CHANGELOG](../../CHANGELOG.md).
 >
-> Include inoltre le novità ancora **non rilasciate** presenti su `dev` (sezione *Non rilasciato* del CHANGELOG): **magazzini multipli e georeferenziati**, **limiti di zoom della mappa** e **segnali di attenzione sugli appezzamenti**.
+> Novità della 0.5.0 descritte qui: **primo avvio guidato** (§1), **particelle da fonti pubbliche** (Passo 2), **certificazioni** e **regime di produzione** (Passi 1 e 3), **limiti di zoom** e **segnali di attenzione** (§2), **cartografia raster** (§4.8), **backup selettivo** (§4.12), **magazzini multipli e georeferenziati** (§4.14) e il modulo **Normativa** (§4.17).
 
 > Guida **passo-passo** all'edizione Desktop Open Source. Parte dall'app appena installata e ti accompagna lungo il flusso di lavoro completo:
 > **Dati aziendali → Appezzamenti → Colture** e poi l'uso di **tutti i moduli** della suite.
@@ -19,7 +19,7 @@
 2. [Come è fatta la schermata](#2-come-è-fatta-la-schermata)
 3. [Il workflow di base (3 passi)](#3-il-workflow-di-base-3-passi)
    - [Passo 1 — Inserire i dati dell'azienda](#passo-1--inserire-i-dati-dellazienda)
-   - [Passo 2 — Disegnare un appezzamento](#passo-2--disegnare-un-appezzamento)
+   - [Passo 2 — Aggiungere gli appezzamenti](#passo-2--aggiungere-gli-appezzamenti)
    - [Passo 3 — Assegnare la coltura all'appezzamento](#passo-3--assegnare-la-coltura-allappezzamento)
 4. [Usare i moduli](#4-usare-i-moduli)
    - [4.1 Quaderno di Campagna — registrare le operazioni](#41-quaderno-di-campagna--registrare-le-operazioni)
@@ -46,7 +46,14 @@
 
 ## 1. Prima di iniziare
 
-L'edizione Desktop Open Source funziona **subito, senza login e senza connessione**: si apre su **una singola azienda locale** già pronta all'uso. Non c'è nulla da configurare per cominciare — tutti i dati vivono sul tuo dispositivo.
+AgroGea funziona **senza login e senza connessione**: tutti i dati vivono sul tuo dispositivo.
+
+**Il primo avvio.** Alla prima apertura compare la schermata **Benvenuto in AgroGea**, con due strade:
+
+- **Nuova azienda** — servono solo la **ragione sociale** e il **Paese**; comune/località e Partita IVA sono facoltativi (il comune serve solo a inquadrare la mappa: i tuoi campi possono stare ovunque, anche oltreconfine). Premi **Comincia**.
+- **Ripristina da un backup** — scegli un file GeoJSON di AgroGea (§4.12). I backup delle versioni precedenti vengono aggiornati da soli.
+
+> **Perché il Paese viene chiesto subito:** decide quali **fonti ufficiali di particelle** ti vengono proposte (Passo 2), quali regole della **Normativa** si applicano (§4.17) e il formato dei registri ufficiali. AgroGea non lo sceglie al posto tuo. Se aggiorni da una versione precedente non vedi questa schermata: la tua azienda viene aperta come sempre.
 
 Per lavorare al meglio, tieni presente due cose fin da subito:
 
@@ -75,13 +82,15 @@ Si apre dalla **maniglia** sul bordo della mappa e raccoglie tutti gli strumenti
 
 | Modulo | Strumenti |
 |---|---|
-| **Suolo** | Analisi indici (NDVI…), Mappe VRA |
+| **Suolo** | Lista appezzamenti, Analisi indici (NDVI…), Mappe VRA |
 | **Coltura** | Dati coltura, Modelli DSS |
 | **Acqua** | Bilancio idrico |
-| **Disegno** | Disegna appezzamento, Disegna infrastruttura, Disegna POI, Lista appezzamenti, Stampa |
-| **Quaderno (QDC)** | Operazioni, Raccolta, Export SIAN |
+| **Disegna elemento** | **Particelle pubbliche**, Appezzamento (poligono), Infrastruttura (linea), POI (punto), Stampa |
+| **Pianificazione Task** | Task & Ricette |
+| **Quaderno di Campagna** | Operazioni, Raccolta, Export SIAN |
 | **Magazzino** | Prodotti e lotti (con l'anagrafica dei **Magazzini**), Parco macchine |
-| **Impostazioni** | Anagrafica azienda, Meteo |
+| **Impostazioni Azienda** | Anagrafica, Meteo |
+| **Normativa** | Ammissibilità, Condizionalità (BCAA), Eco-schemi, Trasversali, Biologico, GeoCompliance (layer vincolanti) |
 
 Cliccando uno strumento si apre il pannello corrispondente; cliccandolo di nuovo si chiude.
 
@@ -105,14 +114,15 @@ Questo è il cuore del tutorial: i tre passaggi che trasformano l'app vuota in u
 
 ### Passo 1 — Inserire i dati dell'azienda
 
-Prima di tutto diamo un'identità all'azienda: servirà per intestare i registri e per scegliere il **tracciato di export corretto in base al Paese**.
+Ragione sociale e Paese li hai già dati al primo avvio (§1). Qui completi l'identità dell'azienda: servirà per intestare i registri e per scegliere il **tracciato di export corretto in base al Paese**.
 
 1. Apri la sidebar → modulo **Impostazioni** → **Anagrafica azienda** (icona palazzo 🏢).
-2. Il pannello è diviso in **quattro sezioni**, selezionabili dalla colonnina di sinistra:
+2. Il pannello è diviso in **cinque sezioni**, selezionabili dalla colonnina di sinistra:
    - **Identità** — Ragione sociale, forma giuridica, codice azienda nazionale, Partita IVA.
    - **Codici** — Codice SDI, PEC, ID Fascicolo Aziendale, Organismo Pagatore.
    - **Sede** — Indirizzo, CAP, Comune, Provincia, Regione, **Paese**, email.
    - **Referente** — Nome e ruolo del referente aziendale.
+   - **Certificazioni** — per l'**agricoltura biologica**: organismo di controllo, codice operatore, numero di certificato e validità (dal/al). È la certificazione **dell'azienda**; il regime del singolo appezzamento si dichiara per annata nella scheda coltura (Passo 3) ed è ciò che legge la scheda *Biologico* della Normativa.
 3. Compila i campi che ti servono (la **Ragione sociale** è il minimo consigliato: comparirà nell'header).
 4. Premi **Salva**.
 
@@ -120,12 +130,33 @@ Prima di tutto diamo un'identità all'azienda: servirà per intestare i registri
 
 Da questo momento il nome dell'azienda appare nella barra in alto: sei pronto a mappare il territorio.
 
-### Passo 2 — Disegnare un appezzamento
+### Passo 2 — Aggiungere gli appezzamenti
 
-Un **appezzamento** è la particella fisica coltivata, definita da una geometria sulla mappa. Lo disegni direttamente sull'ortofoto.
+Un **appezzamento** è la particella fisica coltivata, definita da una geometria sulla mappa. Ci sono tre strade, dalla più rapida:
+
+- **adottarlo da una fonte pubblica**, se il tuo Paese pubblica le particelle agricole come dato aperto (qui sotto);
+- **importare il Fascicolo** aziendale (§4.8 e §4.12);
+- **disegnarlo a mano** sull'ortofoto: il ripiego quando non c'è una fonte, e il modo per rettificare una geometria.
+
+#### Adottare le particelle da una fonte pubblica
+
+In gran parte d'Europa le particelle agricole sono già vettorializzate e pubblicate dagli enti. Oggi sono disponibili i **Paesi Bassi** (BRP Gewaspercelen, RVO/PDOK) e la **Francia** (RPG, IGN).
+
+1. Apri la sidebar → **Disegna elemento** → **Particelle pubbliche**.
+2. Scegli la **Fonte** (vengono proposte quelle del Paese dell'azienda). Sotto vedi l'attribuzione e la licenza del dato.
+3. Inquadra la zona dei tuoi campi e premi **Cerca in questa zona**, oppure **Clicca un punto** e tocca la mappa sopra il campo. La ricerca funziona fra lo **zoom 13 e il 17**: se sei troppo lontano o troppo vicino il pannello ti chiede di avvicinarti o di allontanarti.
+4. Le particelle trovate compaiono sulla mappa: **passaci sopra** per vederne i dati (identificativo, superficie dichiarata, codice coltura), **cliccane una** per selezionarla.
+5. Leggi il **tipo di unità** mostrato dal pannello: una particella catastale o un blocco fisico possono contenere più colture, un'unità colturale è già un singolo appezzamento. Conviene saperlo *prima* di adottare.
+6. Dai un **Nome all'appezzamento** e premi **Aggiungi all'azienda**.
+
+Nulla viene aggiunto finché non lo scegli tu: si adotta **una particella alla volta**. Se una particella è già in azienda il pannello te lo dice invece di duplicarla. Ogni appezzamento adottato conserva **fonte, annata e licenza**, che viaggiano con il dato anche nel backup.
+
+> Per un Paese non ancora nel catalogo il flusso è: disegna (o rettifica) la geometria e digita i codici di riferimento nella scheda coltura, con le etichette generiche del tuo Paese.
+
+#### Disegnare un appezzamento a mano
 
 1. (Consigliato) Attiva lo sfondo **Satellite** per vedere il terreno: usa lo **switch dei basemap** sulla mappa. In Italia puoi sovrapporre anche il layer **Catasto** per allinearti alle particelle catastali.
-2. Apri la sidebar → modulo **Disegno** → **Disegna appezzamento**.
+2. Apri la sidebar → **Disegna elemento** → **Appezzamento (poligono)**.
 3. Sulla mappa, **clicca vertice dopo vertice** per tracciare il perimetro del campo; **doppio clic** (o chiudi sul primo vertice) per terminare il poligono.
 4. Appena chiudi la forma si apre automaticamente la **scheda dati del nuovo appezzamento**:
    - L'**area geodetica** (ha) è già calcolata e mostrata in sola lettura.
@@ -154,8 +185,9 @@ Ogni appezzamento porta una **coltura per annata**. È questo il dato che "accen
    - *Perenni* (vite/olivo/frutteto): varietà, clone, portainnesto, sesto d'impianto, anno d'impianto…
    - *Annuali* (seminativo/orticoltura): varietà, ciclo, e la **data di semina/trapianto** (che leggerai dal Quaderno).
 6. Compila l'**identità della specie** (nome comune obbligatorio; varietà e nome scientifico consigliati) e i **campi di filiera**.
-7. Nella sezione **Dati dichiarativi di campagna** indica la **superficie dichiarata** (preimpostata sull'area geodetica) e, se li hai, i codici particella/coltura per il Fascicolo.
-8. Premi **Salva coltura**.
+7. Nella sezione **Dati dichiarativi di campagna** indica la **superficie dichiarata** (preimpostata sull'area geodetica) e, se li hai, i codici particella/coltura per il Fascicolo. Le etichette dei codici seguono il tuo Paese (Isola/Appezzamento in Italia, termini generici dove non c'è un sistema dichiarativo nazionale).
+8. (Facoltativo) Nel **Regime di produzione** dichiara il regime dell'annata (*Convenzionale*, *In conversione*, *Biologico*, *Produzione integrata*) con la data **In regime dal** e le eventuali note. Vale per quell'annata: cambiarlo non riscrive il passato. La data è quella da cui si contano i 24 mesi (colture annuali) o 36 mesi (perenni) di conversione al biologico.
+9. Premi **Salva coltura**.
 
 > **Copia dall'anno precedente:** se registri una nuova annata su un appezzamento perenne che aveva già una coltura, il form **precompila** i valori dell'ultimo anno disponibile (creando comunque righe nuove per la stagione, senza toccare lo storico). Ti basta rivedere e salvare.
 
@@ -224,7 +256,7 @@ In fondo al pannello trovi anche lo **scatter NDVI ↔ chimica del suolo** (pH, 
 - Nello stesso giorno il satellite può depositare più immagini: AgroGea tiene **la meno nuvolosa** e nasconde le altre come *doppioni del giorno*, mostrabili con un click se vuoi confrontarle.
 - Se una scena non è più elaborabile (asset scaduti lato satellite) te lo dice e basta rilanciare l'analisi.
 
-**Le immagini già calcolate restano sul dispositivo.** Ogni scena elaborata viene conservata localmente per **24 mesi** — due annate, così i confronti anno-su-anno restano possibili — e riaprendo l'app si ridisegna **senza rete**. All'avvio, non più di **una volta ogni 12 ore**, AgroGea controlla in background se il satellite ha depositato nuove immagini e ne calcola l'NDVI: quando apri il modulo il lavoro è spesso già fatto. È un dato ricalcolabile: non occupa spazio nei backup della sincronizzazione e può essere ricostruito in qualsiasi momento rilanciando l'analisi.
+**Le immagini già calcolate restano sul dispositivo.** Ogni scena elaborata viene conservata localmente per **36 mesi** — tre annate, così restano possibili i confronti anno-su-anno e la verifica della rotazione colturale (§4.17) — e riaprendo l'app si ridisegna **senza rete**. All'avvio, non più di **una volta ogni 12 ore**, AgroGea controlla in background se il satellite ha depositato nuove immagini e ne calcola l'NDVI: quando apri il modulo il lavoro è spesso già fatto. È un dato ricalcolabile: non occupa spazio nei backup della sincronizzazione e può essere ricostruito in qualsiasi momento rilanciando l'analisi.
 
 ### 4.4 Mappe a rateo variabile (VRA)
 
@@ -266,11 +298,11 @@ I pesi sono calibrati per coltura (le arboree pesano di più vigore e patologie,
 
 ### 4.7 Disegno — infrastrutture, POI, gestione e stampa
 
-Oltre agli appezzamenti, il modulo **Disegno** gestisce il resto degli elementi territoriali:
+Oltre agli appezzamenti (Passo 2: particelle pubbliche o disegno a mano), il modulo **Disegna elemento** gestisce il resto degli elementi territoriali:
 
 - **Disegna infrastruttura** (linea) — condotte, recinzioni, reti antigrandine, strade. Alla chiusura inserisci tipo, nome e stato; la **lunghezza** è calcolata.
 - **Disegna POI** (punto) — pozzi, trappole, sensori IoT, ingressi, fabbricati.
-- **Lista appezzamenti** — l'elenco di tutto ciò che hai tracciato (appezzamenti, infrastrutture, POI). Il tap su una voce **inquadra** l'elemento sulla mappa e ne apre la scheda: parametri del suolo, metadati, modifica della geometria, eliminazione protetta. Aprendola esci dalla modalità disegno, così il tap sulla mappa torna a **selezionare** invece di tracciare.
+- **Lista appezzamenti** (nella sidebar sta sotto **Suolo**, perché dalla scheda si leggono i parametri del suolo) — l'elenco di tutto ciò che hai tracciato (appezzamenti, infrastrutture, POI). Il tap su una voce **inquadra** l'elemento sulla mappa e ne apre la scheda: parametri del suolo, metadati, modifica della geometria, eliminazione protetta. Aprendola esci dalla modalità disegno, così il tap sulla mappa torna a **selezionare** invece di tracciare.
 - **Stampa** — apri il **compositore di stampa** per generare una mappa impaginata dell'azienda (es. per tecnici, consorzi, enti).
 
 ### 4.8 Add Data — importare i tuoi strati
@@ -362,9 +394,9 @@ L'export CSV copre l'**intero Quaderno di Campagna Agraria**: comprende sia i tr
 
 **Export delle geometrie** — appezzamenti e layer in **GeoJSON, KML, GPX, CSV, Shapefile**.
 
-**Backup completo** — un'istantanea dell'intera azienda in un unico file **GeoJSON Esteso**, e la relativa **importazione/ripristino**. Prima di generarlo scegli **cosa mettere nel backup**: il dialog si apre già su *backup completo* (tutte le sezioni, tutto lo storico), e chi vuole un estratto può restringere il **periodo di riferimento** (anno corrente, ultimi 12 mesi, date libere) e togliere le sezioni che non gli servono — Quaderno, raccolte, analisi del suolo, rilievi, infrastrutture, **magazzino**, **parco macchine**, **pianificazione e Modalità Campo**. Appezzamenti, colture e campagne restano sempre nel file: tutto il resto ci si aggancia, e senza non sarebbe ripristinabile.
+**Backup completo** — un'istantanea dell'intera azienda in un unico file **GeoJSON Esteso**, e la relativa **importazione/ripristino**. Prima di generarlo scegli **cosa mettere nel backup**: il dialog si apre già su *backup completo* (tutte le sezioni, tutto lo storico), e chi vuole un estratto può restringere il **periodo di riferimento** (anno corrente, ultimi 12 mesi, date libere) e togliere le sezioni che non gli servono — Quaderno, raccolte, analisi del suolo, rilievi, infrastrutture, **magazzino**, **parco macchine**, **pianificazione e Modalità Campo**, **monitoraggio normativo** (le soglie che hai modificato; gli esiti non si esportano, si ricalcolano). Appezzamenti, colture e campagne restano sempre nel file: tutto il resto ci si aggancia, e senza non sarebbe ripristinabile.
 
-Il periodo filtra le registrazioni **datate** (operazioni, raccolte, analisi, rilievi, manutenzioni, rifornimenti, sessioni); anagrafiche e giacenze di magazzino restano complete. Il file dichiara al proprio interno il perimetro con cui è stato generato, così anche fra un anno si distingue un magazzino *vuoto* da un magazzino *non incluso nel backup*.
+Il periodo filtra le registrazioni **datate** (operazioni, raccolte, analisi, rilievi, manutenzioni, rifornimenti, sessioni); anagrafiche e giacenze di magazzino restano complete. Il file dichiara al proprio interno il perimetro con cui è stato generato, così anche fra un anno si distingue un magazzino *vuoto* da un magazzino *non incluso nel backup*. I backup creati con le versioni precedenti si ripristinano senza fare nulla: vengono aggiornati al formato corrente durante l'import.
 
 > Ogni import/export viene annotato in un **giornale dei trasferimenti** locale: hai sempre lo storico di cosa è entrato e uscito.
 
@@ -606,16 +638,17 @@ Da *Esporta il report* ottieni un file con tutte le schede valutate, le scene us
 
 Una traccia pratica che mette in fila i moduli nell'ordine tipico di una campagna:
 
-1. **Setup** (una tantum): Anagrafica azienda → disegno di tutti gli appezzamenti → composizione del suolo dove disponibile.
+1. **Setup** (una tantum): primo avvio (azienda e Paese) → Anagrafica azienda e certificazioni → appezzamenti adottati dalle **Particelle pubbliche** (o importati dal Fascicolo, o disegnati) → depositi del **Magazzino** → composizione del suolo dove disponibile.
 2. **Inizio campagna:** imposta l'**annata** e assegna la **coltura** a ogni appezzamento (Passo 3). Registra **semina/trapianto** nel Quaderno per le annuali.
 3. **Durante la stagione:**
    - tieni il **Calendario** come punto di partenza della giornata: task da fare, operazioni registrate, meteo, rischio DSS e stress idrico sulla stessa griglia (§4.11);
    - registra nel **Quaderno** trattamenti, fertilizzazioni, irrigazioni e lavorazioni;
    - monitora il vigore con l'**Analisi indici** (NDVI…);
    - pianifica le irrigazioni con il **Bilancio idrico** e tieni d'occhio la **mappa DSS**;
-   - genera **mappe VRA** per le operazioni a dose variabile.
+   - genera **mappe VRA** per le operazioni a dose variabile;
+   - verifica con il modulo **Normativa** le schede che ti riguardano (BCAA, eco-schemi, biologico) prima delle scadenze della domanda (§4.17).
 4. **Raccolta:** registra i conferimenti nel modulo **Raccolta**; analizza rese e vigore in **Tabella attributi** e **Command Center**.
-5. **Fine campagna / controlli:** esporta i registri ufficiali (**SIAN/PAN** o equivalente) e fai un **backup GeoJSON** completo dell'azienda.
+5. **Fine campagna / controlli:** esporta i registri ufficiali (**SIAN/PAN** o equivalente), allega se ti serve il **report della Normativa** e fai un **backup GeoJSON** completo dell'azienda.
 
 ---
 

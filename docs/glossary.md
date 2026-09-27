@@ -23,6 +23,12 @@ Scope and rules (see `CLAUDE.md` §2–§3):
 | Italian | English | Notes / DB anchor |
 |---|---|---|
 | appezzamento / appezzamenti | plot / plots | `plots_registry`, `plot_id` (not "field") |
+| particella (da fonte pubblica) | parcel | `Parcel` in `@agrogea/parcel`: what a SOURCE declares; becomes a `Plot` only when adopted |
+| adozione (di una particella) | adoption | `parcel/adoption.ts`; provenance in `source_id`, `nuts_code`, `reference_unit_type`, `validity_year`, `metadata.parcel` |
+| fonte (di particelle) | parcel source | catalogue record in `packages/agro-parcel/src/catalog/<id>.json` |
+| primo avvio | onboarding | `modules/onboarding` |
+| certificazione dell'operatore | operator certification | `companies.operator_certifications` (jsonb) |
+| regime di produzione | production regime | `plots_campaign.production_regime` (per campaign year) |
 | coltura / colture | crop / crops | `crops` table |
 | categoria coltura | crop category | |
 | azienda / aziende | company / companies | `companies` |

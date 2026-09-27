@@ -1,6 +1,6 @@
 # Architecture
 
-> **Document version 0.4.1** · updated 21 August 2026 · aligned with **AgroGea Community 0.4.1** (local PGlite schema **v21**).
+> **Document version 0.5.0** · updated 27 September 2026 · aligned with **AgroGea 0.5.0** (local PGlite schema **v25**).
 
 AgroGea Community is a **local-first** agronomic GIS suite: an npm workspaces
 monorepo (Node 22+) with a single Tauri v2 app and a set of internal packages.
@@ -53,7 +53,10 @@ modules/      ONE folder per functional domain (the "features" layer):
                   operations, harvests, DSS risk, water stress + daily weather),
                 tasks (task/recipe planning), field-mode (geofencing +
                   low-touch in-field screens), plot-sheet (per-parcel dossier:
-                  planned tasks + recorded operations)
+                  planned tasks + recorded operations),
+                parcel-adoption (search public parcel sources, adopt one
+                  at a time), onboarding (first launch: new company or
+                  restore from backup)
 components/    ONLY generic, reusable UI + map/field infrastructure
               (BottomSheet, AppHeader, MapControls, DataEntrySheet, …)
 hooks/        shared React hooks
@@ -96,6 +99,16 @@ UI (modules/*, components/*)
   mutation queue. The index cache stores the **raster** (scaled Int16, base64)
   rather than the GeoJSON cells — ~2 bytes/pixel instead of ~300 — and
   `rasterToIndexCells` rebuilds the geometry on demand.
+
+- **Adopted parcels carry their provenance** (v22). `plots_registry.source_id`,
+  `nuts_code`, `reference_unit_type` and `validity_year` are real columns (a
+  unique index on them deduplicates adoptions), while the display-only
+  provenance — source name/URL, licence and attribution, original CRS, the
+  geometry as published — lives in `metadata.parcel`. The SIAN dossier import
+  fills the same columns, so no path produces a plot without queryable origin.
+  Network access for sources goes through the native Rust transport
+  (`src-tauri/src/parcel_source.rs`: host allow-list built from the catalogue,
+  non-public addresses blocked, redirects re-checked).
 
 - **Warehouses are places, lots carry the location** (v23). `warehouses` is a
   synced domain table with an optional `geometry` (a GeoJSON `Point`: present, it

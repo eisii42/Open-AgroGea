@@ -2,7 +2,7 @@
 
 > [🇮🇹 Italiano](./moduli-agronomici.md) · 🇬🇧 English
 
-> **Document version 0.4.1** · updated 21 August 2026 · aligned with **AgroGea Community 0.4.1** (local PGlite schema **v21**). Version-by-version changes are in the [CHANGELOG](../../CHANGELOG.md).
+> **Document version 0.5.0** · updated 27 September 2026 · aligned with **AgroGea 0.5.0** (local PGlite schema **v25**). Version-by-version changes are in the [CHANGELOG](../../CHANGELOG.md).
 
 > This document explains **how the agronomic modules of AgroGea actually work**: which quantities they compute, with which formulas and assumptions, and how to interpret the results. It is the technical companion to the [User Manual](../user-guide/manual.en.md), which instead describes *where to click*.
 >
@@ -91,7 +91,7 @@ Three technical choices hold the mechanism up:
 - **One scene per day.** On the same day the satellite may deposit several items (adjacent tiles, reprocessings): `bestScenePerDay` keeps the one with the **lowest cloud cover** (ties go to the most recent) and marks the others as duplicates, shown on request. Processing them all would double the points of the series without adding information.
 - **Compact raster instead of GeoJSON.** The raster is persisted, not the cells: `rasterToIndexCells` rebuilds them when needed. Values are **little-endian scaled Int16** (`value_scale`, default 10,000 → 4 decimals over the −1..1 range) with a sentinel for pixels outside the polygon, serialized as base64 in `text`. That is ~2 bytes/pixel instead of ~300: **~10 KB per scene over 50 ha**, not ~1.5 MB.
 
-**Retention:** 24 months (two agricultural campaigns, so year-on-year comparisons stay possible); older scenes are pruned at the end of a run and the rasters follow through the `on delete cascade` FK.
+**Retention:** 36 months (three agricultural campaigns: besides year-on-year comparisons, the GAEC 7 card of the Compliance module compares three rotation years, and with 24 months the pruning would have deleted the history just downloaded on every run); older scenes are pruned at the end of a run and the rasters follow through the `on delete cascade` FK.
 
 **Refresh job at startup.** Sentinel-2 revisits the same point every ~5 days, so a check at every launch would be wasted traffic: the job throttles itself to **one every 12 hours per company**, with the timestamp in the tenant DB's `agro_meta` (not in localStorage — so it follows the dataDir backup and does not mix across companies). It automatically computes **NDVI only** and goes through the shared queued worker, one scene per job: an analysis started by the user while the job runs waits for at most one scene, not the whole refresh. It deliberately does **not** update `plots_registry.last_ndvi_mean`, which is a synchronized column: an automatic job must not generate outbox entries without the user having asked for anything.
 

@@ -135,6 +135,12 @@ export const PULL_TABLES: { tabella: SyncTable; columns: string }[] = [
       "created_at,updated_at,deleted_at",
   },
   {
+    tabella: "scouting_observations",
+    columns:
+      "id,tenant_id,company_id,lat,lng,accuracy_m,note,capture_count," +
+      "observation_date,photo_url,created_at,updated_at,deleted_at",
+  },
+  {
     tabella: "tenant_memberships",
     columns:
       "id,tenant_id,company_id,email,role,status,invited_at,joined_at," +

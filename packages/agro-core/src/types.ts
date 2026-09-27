@@ -1434,34 +1434,46 @@ export interface ComplianceParameterOverride {
   deleted_at: string | null;
 }
 
-export type SyncTable =
-  | "companies"
-  | "crops"
-  | "plots_registry"
-  | "plots_campaign"
-  | "treatment_logs"
-  | "weather_readings"
-  | "soil_samples"
-  | "infrastructure_assets"
-  | "harvest_logs"
-  | "scouting_observations"
-  | "tenant_memberships"
-  | "warehouses"
-  | "products"
-  | "product_lots"
-  | "activity_products"
-  | "machines"
-  | "equipment"
-  | "activity_machines"
-  | "maintenance_schedules"
-  | "maintenance_logs"
-  | "machine_documents"
-  | "counter_adjustments"
-  | "fuel_refills"
-  | "recipes"
-  | "planned_tasks"
-  | "field_operation_sessions"
-  | "compliance_parameter_overrides";
+/**
+ * Tabelle sincronizzabili: il contratto del wire format dell'outbox.
+ *
+ * Valore runtime e non solo tipo perché lo stesso elenco vive anche in Rust
+ * (`TABELLE_SYNC` in `src-tauri/src/agro.rs`, che rifiuta ogni mutazione su
+ * una tabella fuori lista) e in `PULL_TABLES` (`sync/targets.ts`): il test
+ * `tests/agro-sync-tables.test.ts` confronta i tre elenchi, così aggiungere una
+ * tabella sincronizzata in un posto solo rompe la CI invece del sync.
+ */
+export const SYNC_TABLES = [
+  "companies",
+  "crops",
+  "plots_registry",
+  "plots_campaign",
+  "treatment_logs",
+  "weather_readings",
+  "soil_samples",
+  "infrastructure_assets",
+  "harvest_logs",
+  "scouting_observations",
+  "tenant_memberships",
+  "warehouses",
+  "products",
+  "product_lots",
+  "activity_products",
+  "machines",
+  "equipment",
+  "activity_machines",
+  "maintenance_schedules",
+  "maintenance_logs",
+  "machine_documents",
+  "counter_adjustments",
+  "fuel_refills",
+  "recipes",
+  "planned_tasks",
+  "field_operation_sessions",
+  "compliance_parameter_overrides",
+] as const;
+
+export type SyncTable = (typeof SYNC_TABLES)[number];
 
 export type MutationOperation = "insert" | "update" | "delete";
 

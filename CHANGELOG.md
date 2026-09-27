@@ -8,9 +8,42 @@ Gli installer nativi di ogni versione rilasciata sono su [GitHub Releases](https
 
 ## [Non rilasciato]
 
-Quattro aree: nasce il modulo **Normativa** (autovalutazione PAC e biologico), la certificazione dell'azienda e il regime di produzione diventano dati veri, il magazzino diventa un insieme di **luoghi** con una posizione sulla mappa, e la vista cartografica viene vincolata alla scala in cui il lavoro di campo si svolge davvero.
+Nessuna modifica oltre a quelle già elencate per la 0.5.0.
 
-Storage: **migrazioni additive PGlite v23, v24 e v25**. Nessuna colonna esistente cambia di significato, nessun dato va migrato a mano; i rollback logici sono documentati in testa a `packages/agro-core/src/db/schema.ts`.
+## [0.5.0] — in preparazione
+
+Sei aree: le particelle si **adottano da fonti pubbliche** invece di ridisegnarle (nuovo pacchetto `@agrogea/parcel`) e il **primo avvio** chiede azienda e paese invece di inventarli; nasce il modulo **Normativa** (autovalutazione PAC e biologico); la certificazione dell'azienda e il regime di produzione diventano dati veri; il magazzino diventa un insieme di **luoghi** con una posizione sulla mappa; il **backup** passa al formato v3 con perimetro selezionabile; la vista cartografica viene vincolata alla scala in cui il lavoro di campo si svolge davvero.
+
+Storage: **migrazioni additive PGlite v22, v23, v24 e v25** (la 0.4.1 era alla v21). Nessuna colonna esistente cambia di significato, nessun dato va migrato a mano; i rollback logici sono documentati in testa a `packages/agro-core/src/db/schema.ts`. Formato di backup: **v3.1** (`agrogea.company-transfer`); i file v1 e v2 si leggono ancora e vengono migrati in memoria all'import.
+
+### Aggiunto — Particelle da fonti pubbliche (`@agrogea/parcel`, v22)
+
+- **Nuovo pacchetto foglia `packages/agro-parcel`**, senza dipendenze runtime e senza accesso a rete, DB o DOM: il contratto `Parcel` (unione discriminata `SourcedParcel | ManualParcel`, così una particella acquisita non può esistere senza provenienza e licenza), gli adapter **WFS** e **OGC API – Features**, la normalizzazione degli attributi e il **catalogo delle fonti come dato** — un JSON per fonte validato da `source.schema.json`/`validateSourceRecord`, con copertura per nodo **NUTS** (non per Stato) e `attributeMap` dichiarativo. Rete (`ParcelFetch`) e riproiezione (`Reprojector`, proj4 in `@agrogea/core` `geo/reproject.ts`) sono iniettate.
+- **Due fonti verificate contro i servizi vivi**: Paesi Bassi **BRP Gewaspercelen** (RVO/PDOK, CC0-1.0, `agricultural_parcel`) e Francia **RPG** (IGN, Etalab 2.0, `farmer_parcel`). Aggiungere un paese significa aggiungere un record al catalogo, non scrivere codice.
+- **Pannello *Particelle pubbliche*** (sidebar → *Disegna elemento*, prima voce): si sceglie la fonte, si cerca **nella zona inquadrata** o **cliccando un punto**, le candidate compaiono sulla mappa come layer dedicato con **tooltip al passaggio** (identificativo, superficie dichiarata, codice coltura, tipo di unità) e si adottano **una alla volta**, con un nome scelto dall'utente. La ricerca è ammessa solo fra zoom 13 e 17: più larga interrogherebbe decine di migliaia di geometrie, più stretta restituirebbe quasi nulla.
+- **L'adozione è sempre un atto esplicito**: i livelli LPIS pubblici sono anonimizzati per legge e nessun portafoglio viene pre-popolato. Il pannello spiega **che cosa si sta adottando** (particella catastale, blocco fisico, appezzamento dichiarato, unità colturale) *prima* dell'adozione, e riconosce una particella già in azienda invece di duplicarla.
+- **Provenienza persistita (schema v22)**: `plots_registry.source_id`, `nuts_code`, `reference_unit_type`, `validity_year` (colonne vere, con indice univoco per la deduplica) e `metadata.parcel` (nome e URL della fonte, licenza e attribuzione, CRS originale, geometria come pubblicata, istante di acquisizione). L'attribuzione viaggia col dato fino al backup.
+- Anche l'**import del Fascicolo SIAN** valorizza ora le colonne di provenienza (`agricultural_parcel`, annata, paese dell'azienda): il percorso italiano non è più l'unico a produrre appezzamenti senza provenienza interrogabile.
+- **Etichette dei codici di riferimento per paese** (`declarativeLabelSet`): «Isola», «Appezzamento», «SIAN» sono termini italiani; un'azienda di un paese senza sistema dichiarativo gateato vede ora etichette generiche, nella scheda coltura e nell'import del fascicolo grafico.
+- **Trasporto nativo Rust** (`src-tauri/src/parcel_source.rs`): fuori dal sandbox CORS del webview, con **allow-list degli host** registrata dal catalogo, **blocco degli indirizzi non pubblici** (loopback, privati, link-local, CGNAT, ULA) risolti prima della richiesta, redirect ricontrollati e concorrenza limitata da semaforo per non sovraccaricare i portali regionali.
+- **Verifica live del catalogo** con `npm run verify:sources` (`scripts/verify-parcel-sources.mts`) e workflow dedicato `.github/workflows/sources-verify.yml`, **solo su avvio manuale** e senza permessi di scrittura: il gate di qualità resta offline, test e build non toccano mai la rete (fixture reali in `tests/fixtures/parcel-sources/`).
+- **Paese dell'azienda su tutto ISO 3166-1 alpha-2** (`country-resolution.ts`): `CountryCode` distingue ora *dove può stare un'azienda* (qualunque paese), *dove sappiamo verificare le coordinate* (paesi con bounding box) e *dove sappiamo produrre export normativi* (`SUPPORTED_COUNTRIES` IT/ES/FR). Fuori dai riquadri noti il controllo spaziale **si astiene** invece di segnalare "campi fuori dal paese dichiarato".
+- Test: `tests/agro-parcel.test.ts`, `agro-parcel-catalog.test.ts`, `agro-parcel-sources.test.ts`, `agro-parcel-adoption.test.ts`, `agro-country-resolution.test.ts`.
+
+### Aggiunto — Primo avvio guidato
+
+- L'app **non crea più da sola** l'azienda «Company locale» con paese `IT` (`LOCAL_COMPANY_DEFAULT` è rimossa): ora che il paese decide quali fonti di particelle vengono proposte, sceglierlo al posto dell'utente significherebbe mostrargli il catalogo sbagliato.
+- Senza aziende l'app apre la **schermata di benvenuto** (`modules/onboarding/`): *Nuova azienda* (ragione sociale e paese obbligatori; comune e Partita IVA facoltativi — il comune serve solo a inquadrare la mappa) oppure **Ripristina da un backup** (i backup più vecchi vengono aggiornati da soli).
+- **Chi ha già un'installazione non se ne accorge**: la sua azienda esiste e viene aperta come sempre.
+- Test: `tests/agro-onboarding.test.ts`.
+
+### Aggiunto — Backup con perimetro selezionabile (formato v3)
+
+- Prima dell'export si apre **«Cosa mettere nel backup»** (`BackupScopeDialog`): di default *backup completo*; si possono restringere il **periodo** (tutto lo storico, anno corrente, ultimi 12 mesi, date libere) e le **sezioni** — Quaderno, raccolte, analisi del suolo, rilievi, infrastrutture, magazzino, parco macchine, pianificazione e Modalità Campo, monitoraggio normativo. Appezzamenti, colture e campagne sono **sempre inclusi**: tutto il resto ci si aggancia.
+- **Formato v3** (`TRANSFER_SCHEMA_VERSION` 3.1.0): il file include ora **magazzino** (depositi, prodotti, lotti, scarichi), **parco macchine** (mezzi, attrezzi, impieghi, manutenzioni, documenti, rifornimenti, rettifiche contatori), **pianificazione** (ricette, task, sessioni di campo) e gli **override delle soglie di compliance** (v3.1), e dichiara il proprio perimetro in `agrogea.scope`: fra un anno si distingue ancora un magazzino *vuoto* da uno *non incluso*.
+- **Migrazione a catena v1 → v2 → v3** all'import: i v2 dichiarano le sole sezioni che potevano contenere, così il ripristino di un file vecchio non azzera le sezioni nuove.
+- Lettura e ripristino passano da un DAL dedicato (`AgroDalBackup`, `db/dal-backup.ts`), con upsert transazionale dato + outbox.
+- Test: `tests/agro-company-backup.test.ts` (round-trip end-to-end), `agro-transfer-v2.test.ts`, `agro-transfer-v3.test.ts`.
 
 ### Aggiunto — Modulo Normativa (monitoraggio normativo)
 
@@ -47,6 +80,8 @@ Modulo di **primo livello** nella sidebar, con una voce per famiglia: Ammissibil
 
 - **BCAA 5** non tenta più di rilevare la lavorazione dall'NDVI: ciò che la norma disciplina è la direzione dei solchi, che a 10 m non è osservabile. La scheda ora delimita l'**ambito** — l'appezzamento rientra o no nell'obbligo — sulla pendenza da DEM. È meno di prima ed è più utile: un indizio che non discrimina è rumore con accanto un riferimento normativo.
 - `searchSceneSeries` **pagina** il catalogo STAC: senza, una finestra pluriennale ne perdeva in silenzio la maggior parte.
+- Nuovo indice **NBR** (Normalized Burn Ratio, B08/B12) per la scheda BCAA 3 (bruciatura delle stoppie): introduce la banda B12, ricampionata a 10 m come B11.
+- **Sidebar**: il modulo **Normativa** è di primo livello (prima la geo-compliance stava sotto *Impostazioni Azienda*) e *Particelle pubbliche* è la prima voce di *Disegna elemento*, perché è il flusso principale; il disegno a mano resta per rettifica e ripiego.
 - Dipendenze aggiornate alle versioni in-range (Vite 8.3, React 19.3, ESLint 10.11, deck.gl 9.4, Radix, Turf 7.4, Tauri CLI 2.11.5) con i range dei `package.json` allineati. I pacchetti `@geolibre/*` restano al fork vendorizzato 1.4.0 e non si aggiornano dal registro.
 
 ### Rimosso
@@ -77,8 +112,15 @@ Modulo di **primo livello** nella sidebar, con una voce per famiglia: Ammissibil
 - I dichiarativi si valutano **solo sulla campagna aperta** e **solo dove il paese ha un sistema gateato**, altrimenti ogni campo a riposo porterebbe un triangolo.
 - Test dedicati: `tests/agro-plot-alerts.test.ts`.
 
+### Corretto
+- **Sincronizzazione verso PostgreSQL privato — colonne del pull**: `PULL_TABLES` non elencava la tabella `warehouses`, `product_lots.warehouse_id`, le colonne di provenienza di `plots_registry`, il regime di `plots_campaign` e `companies.operator_certifications`; un pull da PostgreSQL privato le avrebbe ignorate. `companies.certifications` (deprecata) resta nell'elenco per non essere azzerata.
+- **Sincronizzazione — tabelle allineate**: la whitelist Rust (`TABELLE_SYNC`) conteneva 12 tabelle contro le 27 sincronizzabili, quindi le mutazioni di magazzino, parco macchine e pianificazione venivano rifiutate al push e ignorate al pull; `PULL_TABLES` non leggeva `scouting_observations`. I tre elenchi derivano ora da `SYNC_TABLES` (`types.ts`) e `tests/agro-sync-tables.test.ts` fallisce se divergono.
+
 ### Documentazione
 - Manuale utente (IT/EN) §2 e §4.14 riscritti sui **depositi** (creazione, tipologie, POI, filtro, cosa succede eliminandoli, dove finiscono i lotti importati), più i limiti di zoom e i simboli di attenzione; glossario e `docs/ARCHITECTURE.md` aggiornati sul modello dati del magazzino.
+- Manuale utente (IT/EN) portato alla **0.5.0**: primo avvio, *Particelle pubbliche*, certificazioni in Anagrafica, regime di produzione nella scheda coltura, sidebar aggiornata, §4.17 Normativa (anche in inglese), cartografia raster e perimetro del backup allineati fra le due lingue.
+- Ritenzione della cache delle scene corretta a **36 mesi** nel manuale e nella documentazione tecnica dei moduli (era rimasta a 24); intestazioni di versione di manuali, `ARCHITECTURE.md` e documenti tecnici portate a 0.5.0 / schema v25; README (IT/EN) con Normativa, magazzino e backup selettivo; glossario esteso a particelle, adozione, primo avvio, certificazioni e regime.
+- Nuovi documenti tecnici: [`compliance-monitoring.md`](docs/technical/compliance-monitoring.md), [`operator-certification-and-production-regime.md`](docs/technical/operator-certification-and-production-regime.md), [`raster-sources.md`](docs/technical/raster-sources.md); README del pacchetto [`agro-parcel`](packages/agro-parcel/README.md); in `docs/ARCHITECTURE.md` la procedura *How to add a new parcel source*.
 
 ## [0.4.1] — 2026-08-20
 
@@ -252,7 +294,8 @@ Primo rilascio pubblico dell'edizione Community (standalone, local-first).
 - **Storage local-first**: istanza PGlite (PostgreSQL WASM) isolata per azienda, coda `sync_outbox`, sync opzionale verso PostgreSQL on-premise via comando Rust nativo (Tauri v2).
 - **App desktop** Windows / macOS / Linux con aggiornamenti automatici via Tauri Updater + GitHub Releases, e demo web standalone in-browser.
 
-[Non rilasciato]: https://github.com/eisii42/Open-AgroGea/compare/v0.4.1...HEAD
+[Non rilasciato]: https://github.com/eisii42/Open-AgroGea/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/eisii42/Open-AgroGea/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/eisii42/Open-AgroGea/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/eisii42/Open-AgroGea/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/eisii42/Open-AgroGea/compare/v0.2.1...v0.3.0

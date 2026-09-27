@@ -2,9 +2,9 @@
 
 > [🇮🇹 Italiano](./manuale.md) · 🇬🇧 English
 
-> **Document version 0.4.1** · updated 21 August 2026 · describes **AgroGea Community 0.4.1**. If your app shows a different version (**?** menu → *About*), the differences are listed in the [CHANGELOG](../../CHANGELOG.md).
+> **Document version 0.5.0** · updated 27 September 2026 · describes **AgroGea 0.5.0**. If your app shows a different version (**?** menu → *About*), the differences are listed in the [CHANGELOG](../../CHANGELOG.md).
 >
-> It also covers the changes still **unreleased** on `dev` (the *Unreleased* section of the CHANGELOG): **multiple georeferenced warehouses**, **map zoom limits** and **attention markers on parcels**.
+> What is new in 0.5.0 and described here: **guided first launch** (§1), **parcels from public sources** (Step 2), **certifications** and **production regime** (Steps 1 and 3), **map zoom limits** and **attention markers** (§2), **raster maps** (§4.8), **selective backup** (§4.12), **multiple georeferenced warehouses** (§4.14) and the **Compliance** module (§4.17).
 
 > **Step-by-step** guide to the Open Source Desktop edition. It starts from the freshly installed app and walks you through the complete workflow:
 > **Farm data → Parcels → Crops** and then the use of **all the suite's modules**.
@@ -19,7 +19,7 @@
 2. [How the screen is laid out](#2-how-the-screen-is-laid-out)
 3. [The basic workflow (3 steps)](#3-the-basic-workflow-3-steps)
    - [Step 1 — Enter the farm data](#step-1--enter-the-farm-data)
-   - [Step 2 — Draw a parcel](#step-2--draw-a-parcel)
+   - [Step 2 — Add the parcels](#step-2--add-the-parcels)
    - [Step 3 — Assign the crop to the parcel](#step-3--assign-the-crop-to-the-parcel)
 4. [Using the modules](#4-using-the-modules)
    - [4.1 Field Logbook — recording operations](#41-field-logbook--recording-operations)
@@ -38,6 +38,7 @@
    - [4.14 Warehouse — stores, products, lots and stock](#414-warehouse--stores-products-lots-and-stock)
    - [4.15 Machinery — vehicles, maintenance and fuel](#415-machinery--vehicles-maintenance-and-fuel)
    - [4.16 Task planning and Field Mode — the no-typing flow](#416-task-planning-and-field-mode--the-no-typing-flow)
+   - [4.17 Compliance — CAP and organic self-assessment](#417-compliance--cap-and-organic-self-assessment)
 5. [Shortcuts and productivity](#5-shortcuts-and-productivity)
 6. [The recommended flow of a season](#6-the-recommended-flow-of-a-season)
 
@@ -45,7 +46,14 @@
 
 ## 1. Before you start
 
-The Open Source Desktop edition works **right away, with no login and no connection**: it opens on **a single local farm** already ready to use. There is nothing to configure to begin — all data lives on your device.
+AgroGea works **with no login and no connection**: all data lives on your device.
+
+**First launch.** The first time you open the app you get the **Welcome to AgroGea** screen, with two paths:
+
+- **New farm** — only the **farm name** and the **Country** are required; municipality/locality and VAT number are optional (the municipality is only used to frame the map: your fields can be anywhere, including across a border). Press **Start**.
+- **Restore from a backup** — choose an AgroGea GeoJSON file (§4.12). Backups from earlier versions are upgraded automatically.
+
+> **Why the Country is asked straight away:** it decides which **official parcel sources** are offered (Step 2), which **Compliance** rules apply (§4.17) and the format of the official registers. AgroGea does not choose it for you. If you are upgrading from an earlier version you will not see this screen: your farm opens as usual.
 
 To work at your best, keep two things in mind from the start:
 
@@ -74,13 +82,15 @@ It opens from the **handle** on the edge of the map and gathers all the tools, g
 
 | Module | Tools |
 |---|---|
-| **Soil** | Index analysis (NDVI…), VRA maps |
+| **Soil** | Plot list, Index analysis (NDVI…), VRA maps |
 | **Crop** | Crop data, DSS models |
 | **Water** | Water balance |
-| **Drawing** | Draw parcel, Draw infrastructure, Draw POI, Plot list, Print |
-| **Logbook (QDC)** | Operations, Harvest, SIAN export |
+| **Draw element** | **Public parcels**, Plot (polygon), Infrastructure (line), POI (point), Print |
+| **Task Planning** | Tasks & Recipes |
+| **Field logbook** | Operations, Harvest, SIAN export |
 | **Warehouse** | Products and lots (including the **Warehouses** registry), Machinery |
-| **Settings** | Farm registry, Weather |
+| **Company settings** | Company profile, Weather |
+| **Compliance** | Eligibility, Conditionality (GAEC), Eco-schemes, Cross-cutting, Organic, GeoCompliance (binding layers) |
 
 Clicking a tool opens the corresponding panel; clicking it again closes it.
 
@@ -104,14 +114,15 @@ This is the heart of the manual: the three steps that turn the empty app into a 
 
 ### Step 1 — Enter the farm data
 
-First we give the farm an identity: it will be used to head the registers and to choose the **correct export format based on the country**.
+You already gave the farm name and Country at first launch (§1). Here you complete the farm's identity: it will be used to head the registers and to choose the **correct export format based on the country**.
 
 1. Open the sidebar → **Settings** module → **Farm registry** (building icon 🏢).
-2. The panel is divided into **four sections**, selectable from the left-hand column:
+2. The panel is divided into **five sections**, selectable from the left-hand column:
    - **Identity** — Business name, legal form, national farm code, VAT number.
    - **Codes** — SDI code, PEC, Farm Dossier ID, Paying Agency.
    - **Location** — Address, ZIP, Municipality, Province, Region, **Country**, email.
    - **Contact** — Name and role of the farm contact.
+   - **Certifications** — for **organic farming**: control body, operator code, certificate number and validity (from/until). This is the **farm's** certification; each parcel's regime is declared per season in the crop sheet (Step 3), and that is what the *Organic* card of the Compliance module reads.
 3. Fill in the fields you need (the **Business name** is the recommended minimum: it will appear in the header).
 4. Press **Save**.
 
@@ -119,12 +130,33 @@ First we give the farm an identity: it will be used to head the registers and to
 
 From this moment the farm name appears in the top bar: you are ready to map the territory.
 
-### Step 2 — Draw a parcel
+### Step 2 — Add the parcels
 
-A **parcel** is the physical cultivated plot, defined by a geometry on the map. You draw it directly on the orthophoto.
+A **parcel** is the physical cultivated plot, defined by a geometry on the map. There are three ways to add one, fastest first:
+
+- **adopt it from a public source**, if your country publishes its agricultural parcels as open data (below);
+- **import the Farm Dossier** (§4.8 and §4.12);
+- **draw it by hand** on the orthophoto: the fallback when there is no source, and the way to correct a geometry.
+
+#### Adopting parcels from a public source
+
+Across much of Europe agricultural parcels are already digitised and published by the authorities. Available today: the **Netherlands** (BRP Gewaspercelen, RVO/PDOK) and **France** (RPG, IGN).
+
+1. Open the sidebar → **Draw element** → **Public parcels**.
+2. Choose the **Source** (the ones for your farm's Country are offered). The data attribution and licence are shown underneath.
+3. Frame the area of your fields and press **Search this area**, or **Click a point** and tap the map over the field. Searching works between **zoom 13 and 17**: if you are too far out or too close, the panel asks you to zoom in or out.
+4. The parcels found appear on the map: **hover** one to see its details (identifier, declared area, crop code), **click** it to select it.
+5. Read the **unit type** the panel shows: a cadastral parcel or a physical block may hold more than one crop, an agricultural parcel is already a single cropped unit. Better to know it *before* adopting.
+6. Give it a **Plot name** and press **Add to the farm**.
+
+Nothing is added until you choose it: parcels are adopted **one at a time**. If a parcel is already in the farm the panel says so instead of duplicating it. Every adopted parcel keeps its **source, year and licence**, which travel with the data into the backup.
+
+> For a country not yet in the catalogue the flow is: draw (or correct) the geometry and type the reference codes in the crop sheet, with your country's generic labels.
+
+#### Drawing a parcel by hand
 
 1. (Recommended) Activate the **Satellite** basemap to see the terrain: use the **basemap switch** on the map. In Italy you can also overlay the **Cadastre** layer to align with cadastral parcels.
-2. Open the sidebar → **Drawing** module → **Draw parcel**.
+2. Open the sidebar → **Draw element** → **Plot (polygon)**.
 3. On the map, **click vertex after vertex** to trace the field perimeter; **double-click** (or close on the first vertex) to finish the polygon.
 4. As soon as you close the shape, the **data card of the new parcel** opens automatically:
    - The **geodetic area** (ha) is already computed and shown read-only.
@@ -153,8 +185,9 @@ Every parcel carries a **crop per season**. This is the data that "switches on" 
    - *Perennials* (vine/olive/orchard): variety, clone, rootstock, planting layout, planting year…
    - *Annuals* (arable/horticulture): variety, cycle, and the **sowing/transplant date** (which you read from the Logbook).
 6. Fill in the **species identity** (common name required; variety and scientific name recommended) and the **supply-chain fields**.
-7. In the **Campaign declaration data** section indicate the **declared area** (pre-set to the geodetic area) and, if you have them, the parcel/crop codes for the Dossier.
-8. Press **Save crop**.
+7. In the **Campaign declaration data** section indicate the **declared area** (pre-set to the geodetic area) and, if you have them, the parcel/crop codes for the Dossier. The code labels follow your Country (Island/Parcel in Italy, generic terms where there is no national declaration system).
+8. (Optional) Under **Production regime** declare the season's regime (*Conventional*, *In conversion*, *Organic*, *Integrated production*) with the **Under this regime since** date and any notes. It applies to that season: changing it does not rewrite the past. The date is the one from which the 24 months (annual crops) or 36 months (perennials) of organic conversion are counted.
+9. Press **Save crop**.
 
 > **Copy from the previous year:** if you record a new season on a perennial parcel that already had a crop, the form **pre-fills** the values from the last available year (still creating new rows for the season, without touching the history). You just need to review and save.
 
@@ -223,7 +256,7 @@ At the bottom of the panel you also find the **NDVI ↔ soil chemistry scatter**
 - On the same day the satellite may deposit several images: AgroGea keeps **the least cloudy one** and hides the others as *duplicates of the day*, shown with one click if you want to compare them.
 - If a scene is no longer processable (assets expired on the satellite side) it says so, and re-running the analysis is enough.
 
-**Images already computed stay on the device.** Every processed scene is kept locally for **24 months** — two seasons, so year-on-year comparisons stay possible — and redraws **with no network** when you reopen the app. At startup, no more than **once every 12 hours**, AgroGea checks in the background whether the satellite deposited new imagery and computes its NDVI: by the time you open the module, the work is often already done. It is recomputable data: it takes no space in the sync backups and can be rebuilt at any time by re-running the analysis.
+**Images already computed stay on the device.** Every processed scene is kept locally for **36 months** — three seasons, so year-on-year comparisons and the crop-rotation check (§4.17) stay possible — and redraws **with no network** when you reopen the app. At startup, no more than **once every 12 hours**, AgroGea checks in the background whether the satellite deposited new imagery and computes its NDVI: by the time you open the module, the work is often already done. It is recomputable data: it takes no space in the sync backups and can be rebuilt at any time by re-running the analysis.
 
 ### 4.4 Variable-rate application maps (VRA)
 
@@ -265,11 +298,11 @@ The weights are calibrated per crop (tree crops weight vigor and diseases more, 
 
 ### 4.7 Drawing — infrastructure, POI, management and printing
 
-Beyond parcels, the **Drawing** module manages the rest of the territorial elements:
+Beyond parcels (Step 2: public parcels or hand drawing), the **Draw element** module manages the rest of the territorial elements:
 
 - **Draw infrastructure** (line) — pipelines, fences, anti-hail nets, roads. On closing you enter type, name and status; the **length** is computed.
 - **Draw POI** (point) — wells, traps, IoT sensors, gates, buildings.
-- **Plot list** — the list of everything you have drawn (parcels, infrastructure, POIs). Tapping an entry **frames** the element on the map and opens its sheet: soil parameters, metadata, geometry editing, protected deletion. Opening it leaves drawing mode, so a tap on the map goes back to **selecting** instead of tracing.
+- **Plot list** (in the sidebar it sits under **Soil**, because its sheet is where soil parameters are read) — the list of everything you have drawn (parcels, infrastructure, POIs). Tapping an entry **frames** the element on the map and opens its sheet: soil parameters, metadata, geometry editing, protected deletion. Opening it leaves drawing mode, so a tap on the map goes back to **selecting** instead of tracing.
 - **Print** — open the **print composer** to generate a laid-out map of the farm (e.g., for technicians, consortia, authorities).
 
 ### 4.8 Add Data — importing your layers
@@ -279,6 +312,13 @@ To bring external data onto the map:
 1. Header → **Add Data** (or **drag** the file into the window).
 2. Supported formats: **Shapefile** (with `.dbf`/`.shx`/`.prj`), **GeoJSON**, **OSM** extracts, **GeoParquet**.
 3. The file is loaded into the local analysis engine and shown as a new overlayable layer (also useful as a **soil map** for the water balance, §4.5).
+
+**Raster maps** (at the bottom of the panel) add images instead of geometries, in two ways:
+
+- **WMS service**: paste the service address and press *Read the available layers*. AgroGea queries the service and lists its layers by their **readable title**, so you do not need to know the technical code. Choose one and add it. The layer stays on the publisher's server: always up to date, but it needs the network.
+- **Orthophoto (.tif)**: a georeferenced GeoTIFF from your computer. It stays on the device and **works offline**. On the map it is downscaled so it can be drawn; the GAEC 8 card of the Compliance module (§4.17) can still measure on it at full resolution, **without asking you to load it again**.
+
+> The orthophoto must be in **UTM or WGS84**. With any other reference system AgroGea refuses to load it and tells you which one it is: better than drawing it a few hundred metres off, which would look like it works.
 
 You can also activate the **"Esri Wayback" historical timeline** to compare the same land across different epochs.
 
@@ -354,9 +394,9 @@ The CSV export covers the **whole Field Logbook (QDCA)**: it includes both treat
 
 **Geometry export** — parcels and layers in **GeoJSON, KML, GPX, CSV, Shapefile**.
 
-**Full backup** — a snapshot of the entire farm in a single **Extended GeoJSON** file, plus the related **import/restore**. Before generating it you choose **what goes into the backup**: the dialog opens on *complete backup* (every section, the whole history), and anyone who wants an extract can narrow the **reference period** (current year, last 12 months, free dates) and drop the sections they do not need — Logbook, harvests, soil analyses, scouting, infrastructure, **warehouse**, **machinery fleet**, **planning and Field Mode**. Parcels, crops and campaigns always stay in the file: everything else hangs from them, and without them it could not be restored.
+**Full backup** — a snapshot of the entire farm in a single **Extended GeoJSON** file, plus the related **import/restore**. Before generating it you choose **what goes into the backup**: the dialog opens on *complete backup* (every section, the whole history), and anyone who wants an extract can narrow the **reference period** (current year, last 12 months, free dates) and drop the sections they do not need — Logbook, harvests, soil analyses, scouting, infrastructure, **warehouse**, **machinery fleet**, **planning and Field Mode**, **regulatory monitoring** (the thresholds you changed; outcomes are not exported, they are recomputed). Parcels, crops and campaigns always stay in the file: everything else hangs from them, and without them it could not be restored.
 
-The period filters **dated** records (operations, harvests, analyses, scouting, maintenance, refuelling, sessions); registries and warehouse stock are always kept in full. The file states its own scope, so even a year later an *empty* warehouse is still distinguishable from a warehouse that was *not included in the backup*.
+The period filters **dated** records (operations, harvests, analyses, scouting, maintenance, refuelling, sessions); registries and warehouse stock are always kept in full. The file states its own scope, so even a year later an *empty* warehouse is still distinguishable from a warehouse that was *not included in the backup*. Backups created with earlier versions restore without any action on your part: they are upgraded to the current format during import.
 
 > Every import/export is logged in a local **transfer journal**: you always have the history of what came in and out.
 
@@ -543,6 +583,44 @@ The map still shows your position through its usual GPS control, top right: that
 
 ---
 
+### 4.17 Compliance — CAP and organic self-assessment
+
+The **Compliance** module tells you, parcel by parcel, how you would fare if an inspection came. It is a module of its own in the sidebar, with one entry per family: **Eligibility**, **Conditionality (GAEC)**, **Eco-schemes**, **Cross-cutting**, **Organic** and **GeoCompliance** (the binding layers).
+
+> **It is not an official check.** The check is the Paying Agency's area monitoring system (AMS, EU Reg. 2021/2116 art. 66); for organic farming it is your control body. What you get here is a **self-assessment** based on public data, and it says so at the top of the panel, on every card and inside the report you export.
+
+**How to use it**
+
+1. Open a family from the sidebar.
+2. Choose the **parcel and crop** from the menu at the top: the choice is made here, not on the map (tapping the map still opens the Logbook).
+3. Each card shows *first* what it observes, how observable it is and what it needs. Press **Assess this card** when you want: assessments never start on their own.
+4. If a card says images are missing, press **Check scenes**: AgroGea queries the satellite catalogue — free, without downloading anything — and tells you how many scenes exist for that card, how many you already have and how many megabytes are needed. Then you decide whether to download them.
+
+**Four outcomes, not three**
+
+Compliant · Needs a look · Non-compliant · **Undecidable**. The last one is not an error: it means the data is not enough to tell, and the card explains *what* is missing and *where* to complete it. Some cards are "undecidable" almost always, and that is useful information — knowing which check the satellite cannot anticipate is worth as much as knowing the others.
+
+**The thresholds are yours**
+
+Every number that decides an outcome — the soil-cover threshold, your region's sensitive period, the copper ceiling — is an **editable parameter**, with the legal reference next to it. If you change it, that card re-assesses itself and your value travels in the backup: you do not lose it on restore.
+
+**What you need, and what AgroGea fetches by itself**
+
+| Card | Data needed | Where it comes from |
+|---|---|---|
+| GAEC 4 — buffer strips | water network | **OpenStreetMap**, by pressing *Fetch* (or a regional layer of yours, which takes precedence) |
+| GAEC 5 — slope | terrain model | **Copernicus DEM**, by pressing *Fetch* |
+| GAEC 8 — non-productive features | high-resolution orthophoto | you load it (§4.8); at least ~67 cm is needed for a 2 m hedge |
+| Organic | Logbook and warehouse | your own registers: no satellite needed here |
+
+**Organic cannot be verified from a satellite**
+
+An organic field and a conventional one look the same from above. The **Organic** card reads what you actually applied — the lots issued from the warehouse, not the planned doses — and checks permitted substances, copper (28 kg/ha over 7 years), organic nitrogen (170 kg/ha/year) and the conversion period. A substance not on our list is **not** declared forbidden: the list is partial and the outcome is "undecidable", with a prompt to check it against the legal act.
+
+**Report and clean-up**
+
+*Export the report* gives you a file with every assessed card, the scenes used, the thresholds applied and the disclaimer: it is meant to be attached and re-read two years from now. At the bottom of the panel there is the **scene cache clean-up**, which you can empty without worry — scenes are downloaded again — when you change thresholds, redraw a parcel or run out of space on the device.
+
 ## 5. Shortcuts and productivity
 
 - **Command Palette** — from the **Help (`?`)** menu open the palette to jump to any action or panel by typing its name (including **Open Calendar** and **Open Command Center**).
@@ -557,16 +635,17 @@ The map still shows your position through its usual GPS control, top right: that
 
 A practical outline that lines up the modules in the typical order of a campaign:
 
-1. **Setup** (one-off): Farm registry → drawing of all parcels → soil composition where available.
+1. **Setup** (one-off): first launch (farm and Country) → Farm registry and certifications → parcels adopted from **Public parcels** (or imported from the Dossier, or drawn) → **Warehouse** stores → soil composition where available.
 2. **Season start:** set the **season** and assign the **crop** to each parcel (Step 3). Record **sowing/transplant** in the Logbook for annuals.
 3. **During the season:**
    - use the **Calendar** as the starting point of the day: tasks to do, operations recorded, weather, DSS risk and water stress on the same grid (§4.11);
    - record treatments, fertilizations, irrigations and tillage in the **Logbook**;
    - monitor vigor with **Index analysis** (NDVI…);
    - plan irrigations with the **Water balance** and keep an eye on the **DSS map**;
-   - generate **VRA maps** for variable-dose operations.
+   - generate **VRA maps** for variable-dose operations;
+   - check the cards that concern you in the **Compliance** module (GAEC, eco-schemes, organic) before the application deadlines (§4.17).
 4. **Harvest:** record deliveries in the **Harvest** module; analyze yields and vigor in the **Attribute table** and **Command Center**.
-5. **End of season / inspections:** export the official registers (**SIAN/PAN** or equivalent) and make a full **GeoJSON backup** of the farm.
+5. **End of season / inspections:** export the official registers (**SIAN/PAN** or equivalent), attach the **Compliance report** if you need it, and make a full **GeoJSON backup** of the farm.
 
 ---
 
