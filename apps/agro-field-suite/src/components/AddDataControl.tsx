@@ -57,7 +57,16 @@ const EXPORT_FORMATI: { format: ExportFormat; label: string }[] = [
  * (Shapefile/PBF/…) passano dal motore DuckDB Spatial, caricato on-demand per
  * non gravare sul bundle iniziale.
  */
-export function AddDataControl() {
+export function AddDataControl({
+  inline = false,
+}: {
+  /**
+   * true → solo il contenuto, sempre aperto e senza pulsante né popover: è la
+   * variante del menu "⋯" su telefono, dove il foglio fornisce già titolo e
+   * chiusura. Il desktop usa il popover (default).
+   */
+  inline?: boolean;
+} = {}) {
   const { t } = useTranslation();
   const addLayer = useAppStore((s) => s.addLayer);
   const layers = useAppStore((s) => s.layers);
@@ -68,7 +77,7 @@ export function AddDataControl() {
   const { countryCode } = useTenantCountry();
   const labelSet = declarativeLabelSet(countryCode);
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(inline);
   const [modo, setModo] = useState<ModoImport>("mappa");
   const [busy, setBusy] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
@@ -77,7 +86,7 @@ export function AddDataControl() {
   const popRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || inline) return;
     const onDown = (e: MouseEvent) => {
       if (popRef.current && !popRef.current.contains(e.target as Node)) {
         setOpen(false);
@@ -90,7 +99,7 @@ export function AddDataControl() {
       window.removeEventListener("mousedown", onDown);
       window.removeEventListener("keydown", onEsc);
     };
-  }, [open]);
+  }, [open, inline]);
 
   /** Legge il file → FeatureCollection (GeoJSON in JS, resto via DuckDB). */
   async function readFeatureCollection(file: File): Promise<FeatureCollection> {
@@ -269,25 +278,35 @@ export function AddDataControl() {
   }
 
   return (
-    <div className="relative" ref={popRef}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        title={t("addDataControl.addDataToMap")}
-        className={cn(
-          "flex min-h-[36px] items-center gap-1.5 rounded-[var(--r-2)] border px-2 text-sm font-medium",
-          open
-            ? "border-[var(--accent)] text-[var(--accent)]"
-            : "border-[var(--line)] text-[var(--ink-2)] hover:bg-[var(--panel-2)]",
-        )}
-      >
-        <Database size={15} className="shrink-0" />
-        <span className="hidden sm:inline">{t("addDataControl.addData")}</span>
-      </button>
+    <div className={inline ? undefined : "relative"} ref={popRef}>
+      {!inline && (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          title={t("addDataControl.addDataToMap")}
+          className={cn(
+            "flex min-h-[36px] items-center gap-1.5 rounded-[var(--r-2)] border px-2 text-sm font-medium",
+            open
+              ? "border-[var(--accent)] text-[var(--accent)]"
+              : "border-[var(--line)] text-[var(--ink-2)] hover:bg-[var(--panel-2)]",
+          )}
+        >
+          <Database size={15} className="shrink-0" />
+          <span className="hidden sm:inline">{t("addDataControl.addData")}</span>
+        </button>
+      )}
 
       {open && (
-        <div className="absolute left-0 top-11 z-50 w-80 overflow-hidden rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--sh-pop)]">
-          <p className="mb-1 text-sm font-semibold">{t("addDataControl.addData")}</p>
+        <div
+          className={
+            inline
+              ? undefined
+              : "absolute left-0 top-11 z-50 w-80 overflow-hidden rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--sh-pop)]"
+          }
+        >
+          {!inline && (
+            <p className="mb-1 text-sm font-semibold">{t("addDataControl.addData")}</p>
+          )}
 
           {/* Selettore modalità: layer cartografico vs import del fascicolo
               grafico. Il nome del fascicolo cambia col paese: "Fascicolo SIAN"

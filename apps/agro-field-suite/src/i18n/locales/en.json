@@ -1064,7 +1064,8 @@
     "station": "Farm weather station: {{model}} (ID {{device}}).",
     "stationNote": "Its readings feed the DSS models; the forecast still comes from Open-Meteo.",
     "configureStation": "Configure weather station",
-    "addStation": "Connect a weather station"
+    "addStation": "Connect a weather station",
+    "noLocation": "Weather is located on the farm headquarters or the first plot: add one to see it."
   },
   "moduleSidebar": {
     "readOnly": "read-only",
@@ -1262,11 +1263,7 @@
       "strong": "Read-Only",
       "suffix": " (Viewer role): you can view and export data, but not modify it."
     },
-    "scoutingTitle": "Field survey (GPS Scouting)",
-    "tabLogbook": "Logbook",
-    "tabModules": "Modules",
-    "tabOffline": "Offline",
-    "tabScouting": "GPS Survey"
+    "scoutingTitle": "Field survey (GPS Scouting)"
   },
   "operationForm": {
     "onSurface": "on {{area}} ha",
@@ -2865,5 +2862,19 @@
       "declarative_fields": "Incomplete campaign declaration data",
       "incomplete_records": "Incomplete logbook records"
     }
+  },
+  "mobileNav": {
+    "label": "Main navigation",
+    "dashboard": "Dashboard",
+    "logbook": "Logbook",
+    "modules": "Modules"
+  },
+  "mobileMenu": {
+    "title": "Menu",
+    "open": "Open menu",
+    "close": "Close",
+    "back": "Back",
+    "weather": "Weather",
+    "theme": "Theme"
   }
 }

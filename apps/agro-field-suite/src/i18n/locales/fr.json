@@ -1064,7 +1064,8 @@
     "station": "Station météo de l'exploitation : {{model}} (ID {{device}}).",
     "stationNote": "Ses relevés alimentent les modèles DSS ; la prévision reste celle d'Open-Meteo.",
     "configureStation": "Configurer la station météo",
-    "addStation": "Connecter une station météo"
+    "addStation": "Connecter une station météo",
+    "noLocation": "La météo se localise sur le siège de l'exploitation ou sur la première parcelle : ajoutez-en une pour la voir."
   },
   "moduleSidebar": {
     "readOnly": "lecture seule",
@@ -1262,11 +1263,7 @@
       "strong": "Lecture Seule",
       "suffix": " (rôle Lecteur) : vous pouvez consulter et exporter les données, mais pas les modifier."
     },
-    "scoutingTitle": "Relevé au champ (Scouting GPS)",
-    "tabLogbook": "Carnet",
-    "tabModules": "Modules",
-    "tabOffline": "Hors ligne",
-    "tabScouting": "Relevé GPS"
+    "scoutingTitle": "Relevé au champ (Scouting GPS)"
   },
   "operationForm": {
     "onSurface": "sur {{area}} ha",
@@ -2865,5 +2862,19 @@
       "declarative_fields": "Données déclaratives de campagne incomplètes",
       "incomplete_records": "Enregistrements du carnet incomplets"
     }
+  },
+  "mobileNav": {
+    "label": "Navigation principale",
+    "dashboard": "Tableau de bord",
+    "logbook": "Carnet",
+    "modules": "Modules"
+  },
+  "mobileMenu": {
+    "title": "Menu",
+    "open": "Ouvrir le menu",
+    "close": "Fermer",
+    "back": "Retour",
+    "weather": "Météo",
+    "theme": "Thème"
   }
 }

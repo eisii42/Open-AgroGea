@@ -25,7 +25,7 @@ import { buildColorbar, type ColorbarModel } from "./colorbar-model";
 export function Colorbar() {
   const layers = useAppStore((s) => s.layers);
   const platform = usePlatform();
-  // Su smartphone il time slider occupa la fascia bassa sopra la tab bar: la
+  // Su smartphone il time slider occupa la fascia bassa della mappa: la
   // legenda sale sopra di esso invece di finirci sotto. Su desktop lo slider è
   // centrato e lascia libera la colonna di destra, quindi nulla cambia.
   const timeline = useIndexTimeline();
@@ -76,7 +76,7 @@ export function Colorbar() {
     <div
       className={cn(
         "pointer-events-none absolute right-3 z-30 flex flex-col gap-2",
-        platform.isMobile && timelineOpen ? "bottom-[12rem]" : "bottom-10",
+        platform.isMobile && timelineOpen ? "bottom-[8rem]" : "bottom-10",
       )}
     >
       {crops.map((crop) => (

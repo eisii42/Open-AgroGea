@@ -30,9 +30,20 @@ import { useDiagnostics } from "./useDiagnostics";
  */
 export function HelpMenu({
   onOpenCommandPalette,
+  inline = false,
+  onItemSelected,
 }: {
   /** Apre la Command Palette globale (equivalente a Ctrl/Cmd+K). */
   onOpenCommandPalette: () => void;
+  /**
+   * true → le sole voci, in elenco, senza pulsante né tendina: è la variante
+   * del menu "⋯" su telefono. Niente Riquadro comandi e scorciatoie, che sono
+   * funzioni da tastiera. Il chiamante deve restare montato perché le finestre
+   * (feedback, informazioni, diagnostica) vivono qui.
+   */
+  inline?: boolean;
+  /** Chiamato dopo la scelta di una voce (variante in linea). */
+  onItemSelected?: () => void;
 }) {
   const { t } = useTranslation();
   const diagnostics = useDiagnostics();
@@ -66,6 +77,52 @@ export function HelpMenu({
     setOpen(false);
     onOpenCommandPalette();
   };
+
+  const modals = (
+    <>
+      <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+      <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
+      <DiagnosticsModal
+        open={diagOpen}
+        diagnostics={diagnostics}
+        onClose={() => setDiagOpen(false)}
+      />
+    </>
+  );
+
+  if (inline) {
+    const pick = (openModal: () => void) => () => {
+      onItemSelected?.();
+      openModal();
+    };
+    return (
+      <>
+        <div role="menu" className="flex flex-col">
+          <HelpItem
+            icon={Bug}
+            label={t("help.diagnostics")}
+            badge={diagnostics.count > 0 ? diagnostics.count : undefined}
+            onClick={pick(() => setDiagOpen(true))}
+            large
+          />
+          <HelpItem
+            icon={MessageSquare}
+            label={t("help.feedback")}
+            onClick={pick(() => setFeedbackOpen(true))}
+            large
+          />
+          <HelpItem
+            icon={Info}
+            label={t("help.about")}
+            onClick={pick(() => setAboutOpen(true))}
+            large
+          />
+        </div>
+        {modals}
+      </>
+    );
+  }
 
   return (
     <>
@@ -139,14 +196,7 @@ export function HelpMenu({
         )}
       </div>
 
-      <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
-      <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
-      <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
-      <DiagnosticsModal
-        open={diagOpen}
-        diagnostics={diagnostics}
-        onClose={() => setDiagOpen(false)}
-      />
+      {modals}
     </>
   );
 }
@@ -157,11 +207,14 @@ function HelpItem({
   label,
   badge,
   onClick,
+  large = false,
 }: {
   icon: typeof Search;
   label: string;
   badge?: number;
   onClick: () => void;
+  /** Riga da 48 px per il tocco (menu mobile). */
+  large?: boolean;
 }) {
   return (
     <button
@@ -170,9 +223,10 @@ function HelpItem({
       onClick={onClick}
       className={cn(
         "flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[var(--ink-2)] hover:bg-[var(--panel-2)]",
+        large && "min-h-12 gap-3 rounded-[var(--r-2)] text-[15px] active:bg-[var(--panel-2)]",
       )}
     >
-      <Icon size={15} className="text-[var(--ink-3)]" />
+      <Icon size={large ? 18 : 15} className="text-[var(--ink-3)]" />
       <span className="flex-1">{label}</span>
       {badge !== undefined && (
         <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--danger)] px-1 text-[10px] font-semibold leading-none text-white">

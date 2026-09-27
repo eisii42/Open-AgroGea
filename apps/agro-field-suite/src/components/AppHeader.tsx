@@ -1,5 +1,4 @@
 import {
-  type AgroTheme,
   type AppView,
   useAgroStore,
   useSettingsStore,
@@ -10,10 +9,9 @@ import {
   CalendarDays,
   LayoutDashboard,
   Map as MapIcon,
-  Moon,
+  MoreHorizontal,
   RefreshCw,
   Settings,
-  Sprout,
   Sun,
   User,
 } from "lucide-react";
@@ -21,8 +19,12 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import agrogeaLogo from "../assets/agrogea-logo.png";
+import { usePlatform } from "../hooks/usePlatform";
 import { AddDataControl } from "./AddDataControl";
 import { HelpMenu } from "./help/HelpMenu";
+import { useDiagnostics } from "./help/useDiagnostics";
+import { MobileAppMenu } from "./MobileAppMenu";
+import { THEME_OPTIONS } from "./theme-options";
 import { WeatherCard } from "../modules/weather/WeatherCard";
 
 /**
@@ -30,12 +32,6 @@ import { WeatherCard } from "../modules/weather/WeatherCard";
  * (verde/ambra/rosso/grigio sull'outbox PGlite), selettore tema e menu profile.
  * Barra fissa in alto; la mappa vive sotto e non viene mai rimontata.
  */
-
-const THEME_OPTIONS: { id: AgroTheme; labelKey: string; Icon: typeof Sun }[] = [
-  { id: "light", labelKey: "nav.themeLight", Icon: Sun },
-  { id: "dark", labelKey: "nav.themeDark", Icon: Moon },
-  { id: "green", labelKey: "nav.themeGreen", Icon: Sprout },
-];
 
 /**
  * Viste di primo livello dello switcher. Ogni vista ha il PROPRIO colore
@@ -109,6 +105,9 @@ export function AppHeader({
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { isMobile } = usePlatform();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const diagnostics = useDiagnostics();
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -125,6 +124,65 @@ export function AppHeader({
       window.removeEventListener("keydown", onEsc);
     };
   }, [menuOpen]);
+
+  // Telefono: header essenziale. Le viste passano alla barra in basso
+  // (MobileBottomNav), il resto (Aggiungi dati, meteo, tema, aiuto, profilo)
+  // al menu "⋯". Il desktop resta com'è.
+  if (isMobile) {
+    return (
+      <header className="flex h-[56px] shrink-0 items-center gap-2 border-b border-[var(--line)] bg-[var(--panel)] pl-3 pr-1">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--r-2)] bg-[var(--accent)] text-white">
+          <img src={agrogeaLogo} alt="AgroGea" className="h-6 w-6 object-contain" />
+        </span>
+        <div
+          className="flex min-w-0 flex-1 items-center gap-1.5"
+          title={company?.business_name ?? undefined}
+        >
+          <Building2 size={15} className="shrink-0 text-[var(--ink-3)]" />
+          <span className="truncate text-[15px] font-semibold">
+            {company?.business_name ?? "-"}
+          </span>
+        </div>
+        {flags.headerSyncLed && (
+          <button
+            type="button"
+            onClick={() => togglePanel("sync")}
+            aria-label={t("nav.syncOpenQueue", { label: led.label })}
+            title={led.label}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--r-2)] active:bg-[var(--panel-2)]"
+          >
+            {sync.state === "syncing" ? (
+              <RefreshCw size={16} className="animate-spin text-[var(--ink-3)]" />
+            ) : (
+              <span
+                className="h-2.5 w-2.5 rounded-full"
+                style={{ background: led.color, boxShadow: `0 0 6px ${led.color}` }}
+              />
+            )}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(true)}
+          aria-label={t("mobileMenu.open")}
+          aria-haspopup="dialog"
+          aria-expanded={mobileMenuOpen}
+          className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--r-2)] text-[var(--ink-2)] active:bg-[var(--panel-2)]"
+        >
+          <MoreHorizontal size={22} />
+          {diagnostics.count > 0 && (
+            <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--danger)] px-1 text-[10px] font-semibold leading-none text-white">
+              {diagnostics.count}
+            </span>
+          )}
+        </button>
+        <MobileAppMenu
+          open={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+        />
+      </header>
+    );
+  }
 
   return (
     <header className="flex h-[56px] shrink-0 items-center gap-1.5 border-b border-[var(--line)] bg-[var(--panel)] px-2 sm:gap-3 sm:px-3">

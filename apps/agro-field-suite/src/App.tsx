@@ -1,6 +1,11 @@
 import { type AppView, isTauriRuntime, useAgroStore } from "@agrogea/core";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { BottomSheet } from "./components/BottomSheet";
+import { MobileBottomNav } from "./components/MobileBottomNav";
+import { ModuleSidebar } from "./components/ModuleSidebar";
 import { UpdateNotice } from "./components/UpdateNotice";
+import { usePlatform } from "./hooks/usePlatform";
 import { InFieldDashboard } from "./modules/field-mode/InFieldDashboard";
 import { PostOperationSummary } from "./modules/field-mode/PostOperationSummary";
 import { FieldDashboard } from "./screens/FieldDashboard";
@@ -61,10 +66,15 @@ function isArrowTargetReserved(target: EventTarget | null): boolean {
  * dimensioni del canvas → nessun resize/flash al rientro.
  */
 export function App() {
+  const { t } = useTranslation();
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const activeView = useAgroStore((s) => s.activeView);
   const profileOpen = useAgroStore((s) => s.openPanels.includes("profile"));
   const togglePanel = useAgroStore((s) => s.togglePanel);
+  const { isMobile } = usePlatform();
+  // Foglio "Moduli" del telefono: vive qui, accanto alla barra in basso, perché
+  // si apre da qualunque vista (non solo dalla mappa).
+  const [modulesOpen, setModulesOpen] = useState(false);
   // Command Center e Calendario si montano alla prima visita e poi restano vivi
   // (lazy + keep-alive): anche i loro filters/stato sopravvivono al cambio vista.
   const ccVisited = useRef(false);
@@ -121,11 +131,8 @@ export function App() {
 
   const mapActive = activeView === "map";
 
-  // Banner di auto-update (solo desktop Tauri; no-op su web/PWA).
-  return (
+  const views = (
     <>
-      {isTauriRuntime() && <UpdateNotice />}
-      <div className="relative h-full">
         <div
           className={
             mapActive
@@ -172,6 +179,11 @@ export function App() {
             <UserProfileSettingsPage onClose={() => togglePanel("profile")} />
           </Suspense>
         )}
+    </>
+  );
+
+  const fieldOverlays = (
+    <>
         {/* Modalità Campo: schermo low-touch a bordo campo, sopra Mappa E
             Command Center (z-index massimo). Si monta da sé quando lo store
             ha una sessione active (IN_PROGRESS/PAUSED): nessun costo quando
@@ -182,6 +194,54 @@ export function App() {
             qui accanto alla dashboard perché la sessione, appena COMPLETED,
             non è più "attiva" e l'InFieldDashboard si smonta. */}
         <PostOperationSummary />
+    </>
+  );
+
+  // Telefono: le viste si fermano sopra la barra in basso, che resta visibile
+  // ovunque (Mappa, Calendario, Dashboard). Il foglio Moduli si apre sopra la
+  // vista attiva; scegliere uno strumento porta alla mappa, dove vivono i
+  // pannelli.
+  if (isMobile) {
+    return (
+      <>
+        {isTauriRuntime() && <UpdateNotice />}
+        <div className="relative flex h-full flex-col">
+          <div className="relative min-h-0 flex-1">
+            {views}
+            <BottomSheet
+              open={modulesOpen}
+              onClose={() => setModulesOpen(false)}
+              title={t("nav.modulesHeading")}
+              maxHeight="75dvh"
+            >
+              <div className="px-2 pb-4">
+                <ModuleSidebar
+                  embedded
+                  onToolSelected={() => {
+                    setModulesOpen(false);
+                    useAgroStore.getState().setActiveView("map");
+                  }}
+                />
+              </div>
+            </BottomSheet>
+          </div>
+          <MobileBottomNav
+            modulesOpen={modulesOpen}
+            onModulesOpenChange={setModulesOpen}
+          />
+          {fieldOverlays}
+        </div>
+      </>
+    );
+  }
+
+  // Banner di auto-update (solo desktop Tauri; no-op su web/PWA).
+  return (
+    <>
+      {isTauriRuntime() && <UpdateNotice />}
+      <div className="relative h-full">
+        {views}
+        {fieldOverlays}
       </div>
     </>
   );

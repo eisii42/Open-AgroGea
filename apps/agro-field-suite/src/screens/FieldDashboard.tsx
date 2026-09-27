@@ -5,15 +5,11 @@ import {
   Fuel,
   Lock,
   MapPin,
-  Menu,
-  NotebookPen,
   PanelLeftClose,
   PanelLeftOpen,
-  Wifi,
 } from "lucide-react";
-import { type ReactNode, lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BottomSheet } from "../components/BottomSheet";
 import { useGeofenceWatch } from "../modules/field-mode/useGeofenceWatch";
 import { usePlatform } from "../hooks/usePlatform";
 import { AppHeader } from "../components/AppHeader";
@@ -151,11 +147,6 @@ const FieldCollectionTool = lazy(() =>
     default: m.FieldCollectionTool,
   })),
 );
-const OfflineAreaDialog = lazy(() =>
-  import("../components/OfflineAreaDialog").then((m) => ({
-    default: m.OfflineAreaDialog,
-  })),
-);
 const FieldDetectionModal = lazy(() =>
   import("../modules/field-mode/FieldDetectionModal").then((m) => ({
     default: m.FieldDetectionModal,
@@ -203,8 +194,6 @@ export function FieldDashboard() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [mapReady, setMapReady] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [offlineOpen, setOfflineOpen] = useState(false);
 
   const platform = usePlatform();
 
@@ -529,12 +518,6 @@ export function FieldDashboard() {
               mapControllerRef={mapControllerRef}
             />
           )}
-          {offlineOpen && (
-            <OfflineAreaDialog
-              onClose={() => setOfflineOpen(false)}
-              mapControllerRef={mapControllerRef}
-            />
-          )}
         </Suspense>
 
         {/* Modalità Campo: modale di rilevamento ingresso in field, sopra ogni
@@ -543,91 +526,7 @@ export function FieldDashboard() {
         <Suspense fallback={null}>
           <FieldDetectionModal />
         </Suspense>
-
-        {/* Tab bar mobile: navigazione principale su smartphone (sostituisce la
-            sidebar laterale che non è usabile con un solo pollice su schermi
-            piccoli). Visibile solo su viewport < 768 px. */}
-        {platform.isMobile && (
-          <nav className="absolute bottom-0 left-0 right-0 z-30 flex items-center justify-around border-t border-[var(--line)] bg-[var(--panel)] px-2 pb-safe pt-2 shadow-[var(--sh-pop)]">
-            <MobileTabBtn
-              label={t("fieldDashboard.tabLogbook")}
-              icon={<NotebookPen size={20} />}
-              active={openPanels.includes("quaderno")}
-              onClick={() => {
-                setMobileSidebarOpen(false);
-                togglePanel("quaderno");
-              }}
-            />
-            <MobileTabBtn
-              label={t("fieldDashboard.tabScouting")}
-              icon={<MapPin size={20} />}
-              active={openPanels.includes("scouting")}
-              onClick={() => {
-                setMobileSidebarOpen(false);
-                togglePanel("scouting");
-              }}
-            />
-            <MobileTabBtn
-              label={t("fieldDashboard.tabOffline")}
-              icon={<Wifi size={20} />}
-              active={offlineOpen}
-              onClick={() => {
-                setMobileSidebarOpen(false);
-                setOfflineOpen((v) => !v);
-              }}
-            />
-            <MobileTabBtn
-              label={t("fieldDashboard.tabModules")}
-              icon={<Menu size={20} />}
-              active={mobileSidebarOpen}
-              onClick={() => setMobileSidebarOpen((v) => !v)}
-            />
-          </nav>
-        )}
-
-        {/* Sidebar moduli come BottomSheet su mobile. */}
-        {platform.isMobile && (
-          <BottomSheet
-            open={mobileSidebarOpen}
-            onClose={() => setMobileSidebarOpen(false)}
-            title={t("nav.modulesHeading")}
-            maxHeight="70dvh"
-          >
-            <div className="px-2 pb-4">
-              <ModuleSidebar
-                embedded
-                onToolSelected={() => setMobileSidebarOpen(false)}
-              />
-            </div>
-          </BottomSheet>
-        )}
       </div>
     </div>
-  );
-}
-
-function MobileTabBtn({
-  label,
-  icon,
-  active,
-  onClick,
-}: {
-  label: string;
-  icon: ReactNode;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex flex-col items-center gap-0.5 px-3 py-1 text-[10px] font-medium",
-        active ? "text-[var(--accent)]" : "text-[var(--ink-3)]",
-      )}
-    >
-      {icon}
-      {label}
-    </button>
   );
 }

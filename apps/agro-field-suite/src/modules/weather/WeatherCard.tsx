@@ -85,7 +85,18 @@ function dayLabel(
   return d.toLocaleDateString(locale, { weekday: "short" });
 }
 
-export function WeatherCard() {
+export function WeatherCard({
+  inline = false,
+  onNavigate,
+}: {
+  /**
+   * true → solo il contenuto della scheda, sempre aperto e senza chip: è la
+   * variante del menu "⋯" su telefono. Il desktop usa chip + popover (default).
+   */
+  inline?: boolean;
+  /** Chiamato quando la scheda porta altrove (configurazione centralina). */
+  onNavigate?: () => void;
+} = {}) {
   const { t, i18n } = useTranslation();
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const weatherConfig = useAgroStore((s) => s.weatherConfig);
@@ -94,7 +105,7 @@ export function WeatherCard() {
 
   const [previsione, setPrevisione] = useState<PrevisioneDashboard | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "errore">("idle");
-  const [aperto, setAperto] = useState(false);
+  const [aperto, setAperto] = useState(inline);
   const cardRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(
@@ -136,7 +147,7 @@ export function WeatherCard() {
 
   // Chiusura del popover su click esterno / Esc.
   useEffect(() => {
-    if (!aperto) return;
+    if (!aperto || inline) return;
     const onDown = (e: MouseEvent) => {
       if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
         setAperto(false);
@@ -149,32 +160,47 @@ export function WeatherCard() {
       window.removeEventListener("mousedown", onDown);
       window.removeEventListener("keydown", onEsc);
     };
-  }, [aperto]);
+  }, [aperto, inline]);
 
-  // Senza coordinate non c'è nulla da localizzare: scheda nascosta.
-  if (!activeCompanyId || !location) return null;
+  // Senza coordinate non c'è nulla da localizzare: scheda nascosta (nel menu
+  // mobile si dice perché, invece di lasciare una pagina vuota).
+  if (!activeCompanyId || !location) {
+    return inline ? (
+      <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] p-3 text-sm text-[var(--ink-3)]">
+        {t("weatherCard.noLocation")}
+      </p>
+    ) : null;
+  }
 
   const current = previsione?.current;
   const currentInfo = weatherCodeInfo(current?.weatherCode);
   const CurrentIcon = currentInfo.Icon;
 
   return (
-    <div className="relative" ref={cardRef}>
+    <div className={inline ? undefined : "relative"} ref={cardRef}>
       {/* Chip compatto nell'header */}
-      <button
-        type="button"
-        onClick={() => setAperto((v) => !v)}
-        title={t("weatherCard.title")}
-        className="flex min-h-[36px] items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] px-2 text-left hover:bg-[var(--panel-2)]"
-      >
-        <CurrentIcon size={17} className="shrink-0 text-[var(--accent)]" />
-        <span className="agro-num text-sm font-medium tabular-nums">
-          {status === "loading" && !previsione ? "…" : gradi(current?.temperatura)}
-        </span>
-      </button>
+      {!inline && (
+        <button
+          type="button"
+          onClick={() => setAperto((v) => !v)}
+          title={t("weatherCard.title")}
+          className="flex min-h-[36px] items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] px-2 text-left hover:bg-[var(--panel-2)]"
+        >
+          <CurrentIcon size={17} className="shrink-0 text-[var(--accent)]" />
+          <span className="agro-num text-sm font-medium tabular-nums">
+            {status === "loading" && !previsione ? "…" : gradi(current?.temperatura)}
+          </span>
+        </button>
+      )}
 
       {aperto && (
-        <div className="absolute left-0 top-11 z-50 w-[300px] overflow-hidden rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--sh-pop)]">
+        <div
+          className={
+            inline
+              ? undefined
+              : "absolute left-0 top-11 z-50 w-[300px] overflow-hidden rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--sh-pop)]"
+          }
+        >
           {/* Intestazione: stato + update */}
           <div className="mb-2 flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
@@ -270,7 +296,10 @@ export function WeatherCard() {
                 : null
             }
             stationDeviceId={weatherConfig?.station_device_id ?? null}
-            onConfigure={() => setAperto(false)}
+            onConfigure={() => {
+              if (!inline) setAperto(false);
+              onNavigate?.();
+            }}
           />
         </div>
       )}

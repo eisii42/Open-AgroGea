@@ -1064,7 +1064,8 @@
     "station": "Centralina aziendale: {{model}} (ID {{device}}).",
     "stationNote": "Le sue letture alimentano i modelli DSS; la previsione resta di Open-Meteo.",
     "configureStation": "Configura centralina meteo",
-    "addStation": "Collega una centralina meteo"
+    "addStation": "Collega una centralina meteo",
+    "noLocation": "Il meteo si localizza sulla sede aziendale o sul primo appezzamento: aggiungine uno per vederlo."
   },
   "moduleSidebar": {
     "readOnly": "sola lettura",
@@ -1262,11 +1263,7 @@
       "strong": "Sola Lettura",
       "suffix": " (ruolo Viewer): puoi consultare ed esportare, ma non modificare i dati."
     },
-    "scoutingTitle": "Rilievo in campo (Scouting GPS)",
-    "tabLogbook": "Quaderno",
-    "tabModules": "Moduli",
-    "tabOffline": "Offline",
-    "tabScouting": "Rilievo GPS"
+    "scoutingTitle": "Rilievo in campo (Scouting GPS)"
   },
   "operationForm": {
     "onSurface": "su {{area}} ha",
@@ -2865,5 +2862,19 @@
       "declarative_fields": "Dati dichiarativi di campagna incompleti",
       "incomplete_records": "Record del Quaderno incompleti"
     }
+  },
+  "mobileNav": {
+    "label": "Navigazione principale",
+    "dashboard": "Dashboard",
+    "logbook": "Quaderno",
+    "modules": "Moduli"
+  },
+  "mobileMenu": {
+    "title": "Menu",
+    "open": "Apri il menu",
+    "close": "Chiudi",
+    "back": "Indietro",
+    "weather": "Meteo",
+    "theme": "Tema"
   }
 }
