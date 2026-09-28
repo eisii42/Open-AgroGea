@@ -687,8 +687,9 @@ export function CustomKpiCards({
         </p>
       ) : (
         // Telefono: una scheda per riga (su due colonne titoli e valori si
-        // troncavano); da 640 px in su la griglia di sempre.
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+        // troncavano). Poi colonne automatiche (schede da almeno 15rem):
+        // tante quante ne entrano, su qualsiasi larghezza.
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-3">
           {cards.map((c, i) => (
             <KpiCard
               key={c.id}

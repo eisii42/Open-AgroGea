@@ -1,4 +1,5 @@
 import { useAgroStore } from "@agrogea/core";
+import { DrawerSlot } from "@agrogea/ui";
 import { MapCanvas, type MapController } from "@geolibre/map";
 import { cn } from "@geolibre/ui";
 import { Lock, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -230,6 +231,12 @@ export function FieldDashboard() {
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   const platform = usePlatform();
+  // Desktop: più moduli aperti insieme nella colonna di destra (modalità
+  // "floating" dello store). Telefono: un foglio alla volta ("docked").
+  const setPanelMode = useAgroStore((s) => s.setPanelMode);
+  useEffect(() => {
+    setPanelMode(platform.isMobile ? "docked" : "floating");
+  }, [platform.isMobile, setPanelMode]);
   const railWidth =
     DESKTOP_MODULE_NAV === "rail" ? RAIL_WIDTH : sidebarCollapsed ? 0 : LIST_WIDTH;
 
@@ -349,6 +356,7 @@ export function FieldDashboard() {
       <div
         ref={mapAreaRef}
         className="agro-map-area relative min-h-0 flex-1 overflow-hidden"
+        data-drawer-bounds
         style={
           platform.isMobile
             ? undefined
@@ -522,90 +530,129 @@ export function FieldDashboard() {
         )}
 
         {/* Pannelli strumenti (bottom-sheet mobile / drawer desktop). Lazy:
-            il fallback è nullo perché sono overlay e il caricamento è breve. */}
+            il fallback è nullo perché sono overlay e il caricamento è breve.
+            Desktop: stanno tutti nella pila della colonna di destra
+            (agro-drawer-dock, index.css), così più moduli restano aperti
+            insieme: l'ultimo in cima, gli altri ridotti all'intestazione. Sul
+            telefono la pila non esiste (display: contents), un foglio alla
+            volta. */}
+        <div className="agro-drawer-dock">
         <Suspense fallback={null}>
           {openPanels.includes("quaderno") && (
-            <LogbookPanel onClose={() => togglePanel("quaderno")} />
+            <DrawerSlot id="quaderno">
+              <LogbookPanel onClose={() => togglePanel("quaderno")} />
+            </DrawerSlot>
           )}
           {/* Scheda dell'appezzamento (tap sul field in mappa): task
               programmate avviabili + operazioni registrate su QUEL field.
               L'ambito aziendale completo resta nel Quaderno, pannello a sé. */}
-          {openPanels.includes("plot-sheet") && <PlotSheet />}
+          {openPanels.includes("plot-sheet") && (
+            <DrawerSlot id="plot-sheet">
+              <PlotSheet />
+            </DrawerSlot>
+          )}
           {openPanels.includes("raccolta") && (
-            <HarvestPanel onClose={() => togglePanel("raccolta")} />
+            <DrawerSlot id="raccolta">
+              <HarvestPanel onClose={() => togglePanel("raccolta")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("magazzino") && (
-            <WarehousePanel
-              onClose={() => togglePanel("magazzino")}
-              mapControllerRef={mapControllerRef}
-            />
+            <DrawerSlot id="magazzino">
+              <WarehousePanel
+                onClose={() => togglePanel("magazzino")}
+                mapControllerRef={mapControllerRef}
+              />
+            </DrawerSlot>
           )}
           {/* Refill carburante: pannello a sé (staccato dal Magazzino), aperto
               solo dal FAB rapido a bordo campo (§6.2). */}
           {openPanels.includes("refill") && (
-            <FuelRefillPanel onClose={() => togglePanel("refill")} />
+            <DrawerSlot id="refill">
+              <FuelRefillPanel onClose={() => togglePanel("refill")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("ndvi") && (
-            <SoilPanel onClose={() => togglePanel("ndvi")} />
+            <DrawerSlot id="ndvi">
+              <SoilPanel onClose={() => togglePanel("ndvi")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("vra") && (
-            <VraPanel onClose={() => togglePanel("vra")} />
+            <DrawerSlot id="vra">
+              <VraPanel onClose={() => togglePanel("vra")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("stampa") && (
-            <PrintComposer
-              onClose={() => togglePanel("stampa")}
-              mapControllerRef={mapControllerRef}
-            />
+            <DrawerSlot id="stampa">
+              <PrintComposer
+                onClose={() => togglePanel("stampa")}
+                mapControllerRef={mapControllerRef}
+              />
+            </DrawerSlot>
           )}
           {/* Adozione di particelle da fonti pubbliche: riceve la mappa per
               leggere il riquadro visibile e per il click puntuale. */}
           {openPanels.includes("parcel-adoption") && (
-            <ParcelAdoptionPanel
-              onClose={() => togglePanel("parcel-adoption")}
-              mapControllerRef={mapControllerRef}
-            />
+            <DrawerSlot id="parcel-adoption">
+              <ParcelAdoptionPanel
+                onClose={() => togglePanel("parcel-adoption")}
+                mapControllerRef={mapControllerRef}
+              />
+            </DrawerSlot>
           )}
           {openPanels.includes("coltura") && (
-            <CropDataPanel onClose={() => togglePanel("coltura")} />
+            <DrawerSlot id="coltura">
+              <CropDataPanel onClose={() => togglePanel("coltura")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("coltura-dss") && (
-            <CropDssPanel onClose={() => togglePanel("coltura-dss")} />
+            <DrawerSlot id="coltura-dss">
+              <CropDssPanel onClose={() => togglePanel("coltura-dss")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("acqua") && (
-            <WaterBalancePanel onClose={() => togglePanel("acqua")} />
+            <DrawerSlot id="acqua">
+              <WaterBalancePanel onClose={() => togglePanel("acqua")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("sync") && (
-            <SyncPanel onClose={() => togglePanel("sync")} />
+            <DrawerSlot id="sync">
+              <SyncPanel onClose={() => togglePanel("sync")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("anagrafica") && (
-            <RegistryPanel onClose={() => togglePanel("anagrafica")} />
+            <DrawerSlot id="anagrafica">
+              <RegistryPanel onClose={() => togglePanel("anagrafica")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("impostazioni") && (
-            <SettingsPanel onClose={() => togglePanel("impostazioni")} />
+            <DrawerSlot id="impostazioni">
+              <SettingsPanel onClose={() => togglePanel("impostazioni")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("geocompliance") && (
-            <GeoCompliancePanel onClose={() => togglePanel("geocompliance")} />
+            <DrawerSlot id="geocompliance">
+              <GeoCompliancePanel onClose={() => togglePanel("geocompliance")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("compliance-monitor") && (
-            <CompliancePanel onClose={() => togglePanel("compliance-monitor")} />
+            <DrawerSlot id="compliance-monitor">
+              <CompliancePanel onClose={() => togglePanel("compliance-monitor")} />
+            </DrawerSlot>
           )}
           {/* Impostazioni Profilo: montate in App.tsx, sopra TUTTE le viste
               (si aprono anche da Calendario e Command Center). */}
-          {/* Riquadro Pianificazione Task / Ricette: pagina a tutto schermo
-              come le Impostazioni Profilo (non un drawer). */}
-          {openPanels.includes("tasks") && (
-            <TaskPlannerPanel onClose={() => togglePanel("tasks")} />
-          )}
           {/* Registro: drawer destro come la scheda dettaglio. Quando un
               elemento è selezionato lascia il posto alla scheda e riappare alla
               sua chiusura, così si possono gestire più elementi di fila. */}
           {openPanels.includes("registro") &&
             !selectedFeature &&
             !pendingGeometry && (
-              <GeometryRegistry
-                onClose={() => togglePanel("registro")}
-                mapControllerRef={mapControllerRef}
-              />
+              <DrawerSlot id="registro">
+                <GeometryRegistry
+                  onClose={() => togglePanel("registro")}
+                  mapControllerRef={mapControllerRef}
+                />
+              </DrawerSlot>
             )}
 
           {/* Scheda dati: si apre automaticamente a fine disegno (Modulo UI §3). */}
@@ -618,6 +665,28 @@ export function FieldDashboard() {
             <DetailEditSheet selected={selectedFeature} />
           )}
         </Suspense>
+        {/* Pannello rilievo GPS (mobile + desktop). */}
+        <Suspense fallback={null}>
+          {openPanels.includes("scouting") && (
+            <DrawerSlot id="scouting">
+              <FieldCollectionTool
+                onClose={() => togglePanel("scouting")}
+                mapControllerRef={mapControllerRef}
+              />
+            </DrawerSlot>
+          )}
+        </Suspense>
+        </div>
+
+        {/* Riquadro Pianificazione Task / Ricette: pagina a tutto schermo
+            come le Impostazioni Profilo (non un drawer). Sta FUORI dalla pila
+            dei pannelli laterali: dentro, il suo `absolute inset-0` prendeva
+            le misure della pila (larga zero senza pannelli) e non si vedeva. */}
+        <Suspense fallback={null}>
+          {openPanels.includes("tasks") && (
+            <TaskPlannerPanel onClose={() => togglePanel("tasks")} />
+          )}
+        </Suspense>
 
         {/* Command Palette globale (Ctrl/Cmd+K): overlay sopra mappa e pannelli. */}
         <CommandPalette
@@ -627,15 +696,6 @@ export function FieldDashboard() {
           undoRedo={undoRedo}
         />
 
-        {/* Pannello rilievo GPS (mobile + desktop). */}
-        <Suspense fallback={null}>
-          {openPanels.includes("scouting") && (
-            <FieldCollectionTool
-              onClose={() => togglePanel("scouting")}
-              mapControllerRef={mapControllerRef}
-            />
-          )}
-        </Suspense>
 
         {/* Modalità Campo: modale di rilevamento ingresso in field, sopra ogni
             altro overlay (z-index massimo). Compare da sé quando il geofencing

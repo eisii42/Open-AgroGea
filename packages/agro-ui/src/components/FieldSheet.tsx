@@ -1,7 +1,23 @@
 import { cn } from "@geolibre/ui";
-import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useBackDismiss } from "../hooks/useBackDismiss";
+import {
+  announceDrawerOpened,
+  DRAWER_FOCUS_EVENT,
+  DRAWER_OPENED_EVENT,
+  type DrawerFocusDetail,
+  type DrawerOpenedDetail,
+  DrawerSlotContext,
+  nextDrawerSeq,
+} from "./DrawerSlot";
 import { useDrawerResize } from "../hooks/useDrawerResize";
 import { useEscapeDismiss } from "../hooks/useEscapeDismiss";
 import { useNarrowViewport } from "../hooks/useNarrowViewport";
@@ -82,8 +98,49 @@ export function FieldSheet({
     return () => document.documentElement.classList.remove("agro-resizing");
   }, [resize.dragging]);
 
-  const parentHeight = () =>
-    sectionRef.current?.parentElement?.clientHeight ?? window.innerHeight;
+  // Desktop: più pannelli nella colonna di destra (DrawerSlot). Chi si apre va
+  // in cima (`order`) e riduce gli altri all'intestazione; "porta in primo
+  // piano" lo riespande e lo rimette in cima.
+  const slot = useContext(DrawerSlotContext);
+  const [seq, setSeq] = useState(nextDrawerSeq);
+  const seqRef = useRef(seq);
+  seqRef.current = seq;
+  useEffect(() => {
+    if (!resizable) return;
+    announceDrawerOpened(seqRef.current);
+    const onOpened = (e: Event) => {
+      const { detail } = e as CustomEvent<DrawerOpenedDetail>;
+      // Solo un pannello PIÙ recente riduce gli altri: un pannello già aperto
+      // che ripete l'annuncio (es. rimostrato dopo il caricamento lazy di un
+      // altro modulo nello stesso Suspense) non deve ridurre il nuovo.
+      if (detail.seq > seqRef.current) setCollapsed(true);
+    };
+    const onFocus = (e: Event) => {
+      const { detail } = e as CustomEvent<DrawerFocusDetail>;
+      if (!slot || detail.id !== slot) return;
+      detail.handled = true;
+      const next = nextDrawerSeq();
+      seqRef.current = next;
+      setSeq(next);
+      setCollapsed(false);
+      announceDrawerOpened(next);
+    };
+    window.addEventListener(DRAWER_OPENED_EVENT, onOpened);
+    window.addEventListener(DRAWER_FOCUS_EVENT, onFocus);
+    return () => {
+      window.removeEventListener(DRAWER_OPENED_EVENT, onOpened);
+      window.removeEventListener(DRAWER_FOCUS_EVENT, onFocus);
+    };
+  }, [resizable, slot]);
+
+  // Altezza dell'area che contiene il foglio. Il genitore diretto può essere
+  // la pila dei pannelli, che sul telefono è `display: contents` (altezza 0):
+  // si risale al primo antenato con un'altezza vera.
+  const parentHeight = () => {
+    let el = sectionRef.current?.parentElement ?? null;
+    while (el && el.clientHeight === 0) el = el.parentElement;
+    return el?.clientHeight ?? window.innerHeight;
+  };
   const headerHeight = () => headerRef.current?.offsetHeight ?? 56;
 
   const drag = useSheetDrag({
@@ -136,7 +193,8 @@ export function FieldSheet({
   return (
     <section
       ref={sectionRef}
-      style={sheetStyle}
+      style={resizable ? { order: -seq } : sheetStyle}
+      data-collapsed={showCollapsed ? "true" : undefined}
       className={cn(
         "z-40 flex flex-col border border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-pop)]",
         wide

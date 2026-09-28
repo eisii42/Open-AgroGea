@@ -8,6 +8,10 @@ export {
   type TreatmentFormProps,
   type TreatmentFormValues,
 } from "./components/TreatmentForm";
+export {
+  DrawerSlot,
+  requestDrawerFocus,
+} from "./components/DrawerSlot";
 export { useBackDismiss } from "./hooks/useBackDismiss";
 export {
   DRAWER_DEFAULT_WIDTH,

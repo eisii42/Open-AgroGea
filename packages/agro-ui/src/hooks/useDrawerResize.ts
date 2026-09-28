@@ -83,8 +83,14 @@ export function useDrawerResize(enabled: boolean): DrawerResize {
     if (enabled) applyWidth(width);
   }, [enabled, width]);
 
-  const containerWidth = (el: HTMLElement) =>
-    el.closest("section")?.parentElement?.clientWidth ?? window.innerWidth;
+  // Area in cui sta il drawer (la mappa): la marca `data-drawer-bounds`. Il
+  // genitore diretto non va bene, perché è la pila dei pannelli, larga quanto
+  // il drawer stesso.
+  const bounds = (el: HTMLElement) =>
+    el.closest<HTMLElement>("[data-drawer-bounds]") ??
+    el.closest("section")?.parentElement ??
+    null;
+  const containerWidth = (el: HTMLElement) => bounds(el)?.clientWidth ?? window.innerWidth;
 
   const commit = (next: number) => {
     setWidth(next);
@@ -92,7 +98,7 @@ export function useDrawerResize(enabled: boolean): DrawerResize {
   };
 
   const fromPointer = (e: ReactPointerEvent<HTMLElement>) => {
-    const parent = e.currentTarget.closest("section")?.parentElement;
+    const parent = bounds(e.currentTarget);
     const right = parent?.getBoundingClientRect().right ?? window.innerWidth;
     return clamp(right - e.clientX, containerWidth(e.currentTarget));
   };

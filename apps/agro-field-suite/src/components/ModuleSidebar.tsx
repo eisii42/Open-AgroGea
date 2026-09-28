@@ -7,7 +7,7 @@ import {
   useAgroStore,
   useSettingsStore,
 } from "@agrogea/core";
-import { useBackDismiss, useEscapeDismiss } from "@agrogea/ui";
+import { requestDrawerFocus, useBackDismiss, useEscapeDismiss } from "@agrogea/ui";
 import { disableGeoEditorModes } from "@geolibre/plugins";
 import { cn } from "@geolibre/ui";
 import {
@@ -64,7 +64,8 @@ import { buildTaskCompletenessEntries } from "../modules/tasks/task-completeness
 type ToolAction =
   | { kind: "panel"; panel: FieldPanel }
   | { kind: "draw"; intent: DrawnGeometry }
-  | { kind: "run"; run: () => void }
+  /** `panel`: pannello che l'azione apre (per portarlo in primo piano). */
+  | { kind: "run"; run: () => void; panel?: FieldPanel }
   | { kind: "soon" };
 
 interface ToolDef {
@@ -305,7 +306,11 @@ export function ModuleSidebar({
           // Dal modulo il Quaderno mostra SEMPRE il registro dell'intera
           // azienda: `openLogbookAllOperations` azzera i filtri anche se il
           // pannello è già aperto e filtrato su un appezzamento.
-          action: { kind: "run", run: () => openLogbookAllOperations() },
+          action: {
+            kind: "run",
+            run: () => openLogbookAllOperations(),
+            panel: "quaderno",
+          },
           flag: "panelQuaderno",
         },
         {
@@ -334,14 +339,22 @@ export function ModuleSidebar({
           id: "magazzino",
           labelKey: "nav.toolWarehouse",
           Icon: Warehouse,
-          action: { kind: "run", run: () => openWarehouseTab("products") },
+          action: {
+            kind: "run",
+            run: () => openWarehouseTab("products"),
+            panel: "magazzino",
+          },
           flag: "panelMagazzino",
         },
         {
           id: "mezzi",
           labelKey: "nav.toolMachinery",
           Icon: Tractor,
-          action: { kind: "run", run: () => openWarehouseTab("machines") },
+          action: {
+            kind: "run",
+            run: () => openWarehouseTab("machines"),
+            panel: "magazzino",
+          },
           flag: "panelMezzi",
         },
       ],
@@ -385,35 +398,55 @@ export function ModuleSidebar({
           id: "compliance-eligibility",
           labelKey: "compliance.group.eligibility",
           Icon: LandPlot,
-          action: { kind: "run", run: () => openComplianceGroup("eligibility") },
+          action: {
+            kind: "run",
+            run: () => openComplianceGroup("eligibility"),
+            panel: "compliance-monitor",
+          },
           flag: "panelGeoCompliance",
         },
         {
           id: "compliance-conditionality",
           labelKey: "compliance.group.conditionality",
           Icon: ShieldCheck,
-          action: { kind: "run", run: () => openComplianceGroup("conditionality") },
+          action: {
+            kind: "run",
+            run: () => openComplianceGroup("conditionality"),
+            panel: "compliance-monitor",
+          },
           flag: "panelGeoCompliance",
         },
         {
           id: "compliance-eco-schemes",
           labelKey: "compliance.group.ecoSchemes",
           Icon: Sprout,
-          action: { kind: "run", run: () => openComplianceGroup("ecoSchemes") },
+          action: {
+            kind: "run",
+            run: () => openComplianceGroup("ecoSchemes"),
+            panel: "compliance-monitor",
+          },
           flag: "panelGeoCompliance",
         },
         {
           id: "compliance-transversal",
           labelKey: "compliance.group.transversal",
           Icon: Satellite,
-          action: { kind: "run", run: () => openComplianceGroup("transversal") },
+          action: {
+            kind: "run",
+            run: () => openComplianceGroup("transversal"),
+            panel: "compliance-monitor",
+          },
           flag: "panelGeoCompliance",
         },
         {
           id: "compliance-organic",
           labelKey: "compliance.group.organic",
           Icon: Leaf,
-          action: { kind: "run", run: () => openComplianceGroup("organic") },
+          action: {
+            kind: "run",
+            run: () => openComplianceGroup("organic"),
+            panel: "compliance-monitor",
+          },
           flag: "panelGeoCompliance",
         },
         {
@@ -449,7 +482,15 @@ export function ModuleSidebar({
       (tool.action.kind === "panel" && tool.action.panel === "registro");
     const lockedReadOnly = readOnly && mutating;
     const disabled = tool.action.kind === "soon" || lockedReadOnly;
-    return { active, lockedReadOnly, disabled };
+    // Il modulo resta evidenziato nella barra anche quando il suo pannello
+    // è aperto da un'azione (es. Normativa → famiglia di schede), senza
+    // accendere le singole voci dell'elenco.
+    const moduleActive =
+      active ||
+      (tool.action.kind === "run" &&
+        tool.action.panel !== undefined &&
+        openPanels.includes(tool.action.panel));
+    return { active, moduleActive, lockedReadOnly, disabled };
   };
 
   const runTool = (tool: ToolDef) => {
@@ -462,7 +503,13 @@ export function ModuleSidebar({
         setDrawIntent(null);
         disableGeoEditorModes();
       }
-      togglePanel(action.panel);
+      // Desktop, più moduli aperti insieme: un modulo già aperto (magari
+      // ridotto all'intestazione) torna in primo piano invece di chiudersi.
+      const focused =
+        !embedded &&
+        openPanels.includes(action.panel) &&
+        requestDrawerFocus(action.panel);
+      if (!focused) togglePanel(action.panel);
     } else if (action.kind === "draw") {
       // Apre la suite di disegno (attiva il GeoEditor) e
       // imposta la modalità geometrica richiesta.
@@ -472,6 +519,7 @@ export function ModuleSidebar({
       setDrawIntent(action.intent);
     } else if (action.kind === "run") {
       action.run();
+      if (!embedded && action.panel) requestDrawerFocus(action.panel);
     }
     // Riaprendo il foglio Moduli si riparte dalla griglia.
     setOpenModuleId(null);
@@ -781,6 +829,7 @@ function ModuleRail({
   setOpenModuleId: (id: string | null) => void;
   toolState: (tool: ToolDef) => {
     active: boolean;
+    moduleActive: boolean;
     lockedReadOnly: boolean;
     disabled: boolean;
   };
@@ -823,7 +872,7 @@ function ModuleRail({
       >
         {modules.map(({ mod, tools }) => {
           const open = mod.id === openModuleId;
-          const active = tools.some((tool) => toolState(tool).active);
+          const active = tools.some((tool) => toolState(tool).moduleActive);
           const badge = moduleBadge(mod.id);
           return (
             <button

@@ -1,4 +1,5 @@
 import { type SelectableKind, useAgroStore } from "@agrogea/core";
+import { requestDrawerFocus } from "@agrogea/ui";
 import {
   circleLayerId,
   fillLayerId,
@@ -157,7 +158,12 @@ export function useFeatureSelection(
       if (layerKind.kind === "appezzamento") {
         const onPlotTap = optionsRef.current.onPlotTap;
         if (onPlotTap) onPlotTap(id);
-        else openPlotSheet(id);
+        else {
+          openPlotSheet(id);
+          // Desktop con più pannelli: se la scheda era già aperta (magari
+          // ridotta all'intestazione) torna in primo piano sul nuovo campo.
+          requestDrawerFocus("plot-sheet");
+        }
       } else {
         void selectFeatureOnMap({ kind: layerKind.kind, id });
       }

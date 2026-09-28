@@ -684,7 +684,9 @@ export function CustomDashboard({
           {t("customDashboard.noCharts")}
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        // Colonne automatiche (grafici da almeno 30rem): una sul telefono,
+        // due dal desktop, tre sugli schermi larghi.
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,30rem),1fr))] gap-3">
           {charts.map((c, i) => (
             <ChartCard
               key={c.id}

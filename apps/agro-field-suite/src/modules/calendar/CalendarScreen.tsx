@@ -20,6 +20,7 @@ import {
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppHeader } from "../../components/AppHeader";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { usePlatform } from "../../hooks/usePlatform";
 import { weatherCodeInfo } from "../../lib/weather-codes";
 import { taskOperationLabel } from "../tasks/TaskForm";
@@ -126,6 +127,10 @@ export function CalendarScreen() {
   );
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const { isMobile } = usePlatform();
+  // Desktop largo: agenda del giorno fissa a destra della griglia (oggi
+  // all'apertura), invece del pannello che copriva la vista.
+  const wide = useMediaQuery("(min-width: 1280px)");
+  const agendaDocked = !isMobile && wide;
   // Telefono: giorno mostrato nell'agenda sotto la griglia (oggi all'apertura).
   const [agendaDay, setAgendaDay] = useState(() => todayKey(new Date()));
   // Dialoghi di inserimento: la data è SEMPRE quella del giorno aperto.
@@ -465,6 +470,7 @@ export function CalendarScreen() {
         )}
       </div>
 
+      <div className="flex min-h-0 flex-1">
       <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--bg)] p-3">
         {isMobile ? (
           <CalendarMobileMonth
@@ -494,6 +500,8 @@ export function CalendarScreen() {
             if (!day) return <div key={`empty-${index}`} />;
             const dayEvents = eventsByDay.get(day) ?? [];
             const isToday = day === today;
+            // Con l'agenda fissa si vede quale giorno sta mostrando.
+            const isAgendaDay = agendaDocked && day === (selectedDay ?? today);
             const forecast = weather.get(day);
             const info = weatherCodeInfo(forecast?.weatherCode);
             const WeatherIcon = info.Icon;
@@ -507,7 +515,9 @@ export function CalendarScreen() {
                   isToday
                     ? "border-[var(--accent)] bg-[var(--accent-l)]"
                     : "border-[var(--line)] bg-[var(--panel)] hover:bg-[var(--panel-2)]",
+                  isAgendaDay && "ring-2 ring-inset ring-[var(--accent)]",
                 )}
+                aria-pressed={agendaDocked ? isAgendaDay : undefined}
               >
                 <div className="flex items-start justify-between gap-1">
                   <span
@@ -567,8 +577,29 @@ export function CalendarScreen() {
         </div>
         )}
       </div>
+      {agendaDocked && (
+        <CalendarDayPanel
+          docked
+          day={selectedDay ?? today}
+          events={eventsByDay.get(selectedDay ?? today) ?? []}
+          weather={weather.get(selectedDay ?? today)}
+          treatments={treatments}
+          harvests={harvests}
+          plannedTasks={plannedTasks}
+          dssResults={data.dssResults}
+          soilIndices={data.soilIndices}
+          readOnly={readOnly}
+          onClose={() => setSelectedDay(null)}
+          onAddTask={() => openTaskDialog(selectedDay ?? today)}
+          onAddOperation={() => openOperationDialog(selectedDay ?? today)}
+          onEditTask={(task) =>
+            openTaskDialog(task.planned_date ?? selectedDay ?? today, task)
+          }
+        />
+      )}
+      </div>
 
-      {selectedDay && (
+      {selectedDay && !agendaDocked && (
         <CalendarDayPanel
           day={selectedDay}
           events={eventsByDay.get(selectedDay) ?? []}

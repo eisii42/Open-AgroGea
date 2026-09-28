@@ -381,6 +381,47 @@ html.dark .agro-field-map .geolibre-measure-control {
   .agro-index-timeline {
     transition: right 0.2s ease-out;
   }
+
+  /* Pila dei pannelli laterali (FieldDashboard): più moduli aperti insieme
+     nella colonna di destra. L'ultimo aperto sta in cima (FieldSheet imposta
+     `order`), gli altri ridotti all'intestazione; gli espansi si dividono
+     l'altezza. La pila è alta quanto la mappa solo se c'è un pannello espanso:
+     con tutti ridotti occupa le sole intestazioni e la mappa sotto resta
+     cliccabile. Niente z-index qui: i pannelli e le finestre che aprono
+     restano nello stesso ordine di sovrapposizione di prima. */
+  .agro-drawer-dock {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .agro-drawer-dock:has(.agro-drawer) {
+    width: var(--agro-drawer-w, 380px);
+  }
+  .agro-drawer-dock:has(.agro-drawer:not([data-collapsed])) {
+    bottom: 0;
+  }
+  /* Un pannello avvolto in un elemento proprio: il contenitore sparisce dal
+     layout, il pannello resta un elemento della pila. */
+  .agro-drawer-dock > :not(.agro-drawer):has(> .agro-drawer) {
+    display: contents;
+  }
+  .agro-drawer-dock .agro-drawer {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-height: none !important;
+    flex: 1 1 0%;
+    min-height: 0;
+    border-top-width: 1px !important;
+    border-bottom-width: 1px !important;
+    border-bottom-left-radius: var(--r-3) !important;
+  }
+  .agro-drawer-dock .agro-drawer[data-collapsed] {
+    flex: 0 0 auto;
+  }
   .agro-map-area:has(.agro-drawer) .agro-index-timeline {
     right: calc(var(--agro-drawer-w, 380px) + 13rem) !important;
   }
@@ -479,4 +520,12 @@ html.dark .agro-field-map .geolibre-measure-control {
    sono pannelli standalone INDIPENDENTI da questa griglia e restano attive. */
 .agro-field-map .geolibre-components-control {
   display: none !important;
+}
+
+/* Telefono: la pila dei pannelli non esiste, i fogli dal basso si posizionano
+   sull'area mappa come sempre (uno alla volta). */
+@media (max-width: 767px) {
+  .agro-drawer-dock {
+    display: contents;
+  }
 }

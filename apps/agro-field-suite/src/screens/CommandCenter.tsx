@@ -253,6 +253,12 @@ export function CommandCenter() {
           isMobile ? "px-2 [&>button]:min-h-11 [&>button]:flex-1" : "px-4",
         )}
       >
+        <div
+          className={cn(
+            "flex items-end gap-1",
+            isMobile ? "w-full [&>button]:min-h-11 [&>button]:flex-1" : "mx-auto w-full max-w-[1600px]",
+          )}
+        >
         {(
           [
             ["crops", t("commandCenter.pageCrops")],
@@ -273,6 +279,7 @@ export function CommandCenter() {
             {label}
           </button>
         ))}
+        </div>
       </div>
 
       <div
@@ -281,6 +288,9 @@ export function CommandCenter() {
           isMobile ? "p-3" : "p-4",
         )}
       >
+        {/* Desktop: contenuto centrato, largo al massimo 1600 px — su schermi
+            ampi le schede non si stirano fino ai bordi. */}
+        <div className="mx-auto w-full max-w-[1600px]">
         {/* Banner Sola Lettura (ruolo VIEWER): l'intera vista è in read-only. */}
         {readOnly && (
           <div className="mb-4 flex items-center gap-2 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel-2)] px-3 py-2 text-sm text-[var(--ink-2)]">
@@ -407,9 +417,11 @@ export function CommandCenter() {
           </div>
         )}
 
-        {/* Barra filters gerarchici + summary + export */}
+        {/* Barra filters gerarchici + summary + export. Desktop: resta in alto
+            mentre si scorrono schede e grafici (sticky), così annata, coltura
+            e appezzamenti si cambiano senza tornare su. */}
         {!isMobile && (
-        <div className="mb-4 flex flex-wrap items-end gap-3">
+        <div className="sticky -top-4 z-20 -mx-4 -mt-4 mb-4 flex flex-wrap items-end gap-3 border-b border-[var(--line)] bg-[var(--bg)] px-4 pb-3 pt-4">
           <label className="flex flex-col gap-1 text-[11px] text-[var(--ink-3)]">
             {t("commandCenter.campaignYear")}
             <select
@@ -486,10 +498,10 @@ export function CommandCenter() {
               onClick={() => data.refresh()}
               disabled={data.loading || fullRecalc.state.running}
               title={t("commandCenter.refreshTitle")}
-              className="flex items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-sm font-medium text-[var(--ink-2)] hover:bg-[var(--panel-2)] disabled:opacity-50"
+              aria-label={t("commandCenter.refresh")}
+              className="flex h-9 w-9 items-center justify-center rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] text-[var(--ink-2)] hover:bg-[var(--panel-2)] disabled:opacity-50"
             >
               <RefreshCw size={15} className={cn(data.loading && "animate-spin")} />
-              {t("commandCenter.refresh")}
             </button>
             <button
               type="button"
@@ -576,6 +588,7 @@ export function CommandCenter() {
         )}
           </>
         )}
+        </div>
       </div>
     </div>
   );
