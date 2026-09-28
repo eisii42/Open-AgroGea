@@ -254,7 +254,9 @@ export function AppHeader({
               }
             >
               <Icon size={14} />
-              <span className="hidden md:inline">{t(labelKey as never)}</span>
+              {/* Etichette solo da 1280 px: sotto l'header sforava (a 1024 il
+                  Profilo usciva dallo schermo); restano icona e tooltip. */}
+              <span className="hidden xl:inline">{t(labelKey as never)}</span>
             </button>
           );
         })}
@@ -276,7 +278,7 @@ export function AppHeader({
             {sync.state === "syncing" ? (
               <RefreshCw size={13} className="animate-spin text-[var(--ink-3)]" />
             ) : (
-              <span className="hidden text-xs text-[var(--ink-3)] md:inline">
+              <span className="hidden text-xs text-[var(--ink-3)] xl:inline">
                 {led.label}
               </span>
             )}

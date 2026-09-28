@@ -81,7 +81,7 @@ export function Colorbar() {
         // rapide (Rilievo GPS). Desktop invariato.
         platform.isMobile
           ? cn("left-3", timelineOpen ? "bottom-[8rem]" : "bottom-9")
-          : "bottom-10 right-3",
+          : "agro-right-overlay bottom-10 right-3",
       )}
     >
       {crops.map((crop) => (

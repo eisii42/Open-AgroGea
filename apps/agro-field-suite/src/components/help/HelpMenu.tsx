@@ -137,7 +137,7 @@ export function HelpMenu({
           title={t("help.menu")}
         >
           <CircleHelp size={17} />
-          <span className="hidden text-sm font-medium md:inline">
+          <span className="hidden text-sm font-medium xl:inline">
             {t("help.menu")}
           </span>
           {diagnostics.count > 0 && (

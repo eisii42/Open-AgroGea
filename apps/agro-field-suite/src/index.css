@@ -314,6 +314,28 @@ html.dark .agro-field-map .geolibre-measure-control {
 .agro-field-map[data-mobile="true"] .maplibregl-ctrl-layer-control {
   display: none;
 }
+/* Desktop: con un pannello laterale aperto (`agro-drawer`, FieldSheet) i
+   controlli di destra della mappa — zoom, bussola, livelli, cerca, posizione,
+   attribuzione — e gli overlay a destra (legenda indici, feed attività) si
+   spostano alla sua sinistra. Prima restavano SOTTO il pannello e non si
+   potevano usare. La larghezza arriva da `--agro-drawer-w` (380 px).
+   `!important`: questo foglio sta in un cascade layer, quello di MapLibre (che
+   fissa `right: 0` ai contenitori dei controlli) no. */
+@media (min-width: 768px) {
+  .agro-field-map :is(.maplibregl-ctrl-top-right, .maplibregl-ctrl-bottom-right),
+  .agro-right-overlay {
+    transition: right 0.2s ease-out;
+  }
+  .agro-map-area:has(.agro-drawer)
+    .agro-field-map
+    :is(.maplibregl-ctrl-top-right, .maplibregl-ctrl-bottom-right) {
+    right: var(--agro-drawer-w, 380px) !important;
+  }
+  .agro-map-area:has(.agro-drawer) .agro-right-overlay {
+    right: calc(var(--agro-drawer-w, 380px) + 12px) !important;
+  }
+}
+
 /* Telefono: rifinitura tipografica e di tocco, valida solo sotto i 768 px (il
    desktop resta com'è).
    - I testi da 9–11 px salgono a 12 px: sotto non si leggono a braccio, in

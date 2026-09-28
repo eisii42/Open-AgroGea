@@ -138,9 +138,15 @@ export function FieldSheet({
               sheetMode && !drag.dragging && "transition-[height,max-height] duration-200 ease-out",
               // Telefono: all'apertura il foglio sale dal basso (tokens.css).
               sheetMode && "agro-sheet-enter",
-              // ≥ md: drawer docked a destra, altezza piena.
-              "md:inset-x-auto md:inset-y-0 md:right-0 md:max-h-none md:w-[380px]",
+              // ≥ md: drawer docked a destra, altezza piena. `agro-drawer`: il CSS
+              // della mappa sposta i controlli di destra alla sua sinistra
+              // (altrimenti restavano sotto il pannello, inutilizzabili).
+              "agro-drawer md:inset-x-auto md:inset-y-0 md:right-0 md:max-h-none md:w-[380px]",
               "md:rounded-none md:rounded-l-[var(--r-3)] md:border-y-0 md:border-r-0",
+              // Ridotto all'intestazione (clic sul titolo): si accorcia davvero,
+              // invece di restare alto a schermo intero e vuoto.
+              showCollapsed &&
+                "md:bottom-auto md:rounded-bl-[var(--r-3)] md:border-b",
             ),
         className,
       )}

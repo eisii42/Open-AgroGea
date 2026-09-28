@@ -45,6 +45,7 @@ import { useMapZoomLimits } from "../hooks/useMapZoomLimits";
 import { useNativeMapI18n } from "../hooks/useNativeMapI18n";
 import { useLayerAttributions } from "../hooks/useLayerAttributions";
 import { useWmsBasemapRestore } from "../hooks/useWmsBasemapRestore";
+import { useDrawerMapPadding } from "../hooks/useDrawerMapPadding";
 
 /**
  * Pannelli overlay caricati on-demand (code-splitting): non servono al primo
@@ -210,6 +211,8 @@ export function FieldDashboard() {
   // Contenitore della mappa: ci vivono i controlli NATIVI (righello, gestore
   // livelli), che si localizzano a valle — vedi useNativeMapI18n.
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  // Area mappa (mappa + pannelli laterali): osservata per il padding del drawer.
+  const mapAreaRef = useRef<HTMLDivElement>(null);
   const [mapReady, setMapReady] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
 
@@ -298,6 +301,9 @@ export function FieldDashboard() {
   useNativeMapI18n(mapContainerRef);
   // Bussola: segnala la vista orientata a nord (piccola "N" + colore).
   useCompassNorth(mapControllerRef, mapContainerRef);
+  // Desktop: con un pannello laterale aperto la mappa centra e zooma sull'area
+  // visibile, non sotto il pannello.
+  useDrawerMapPadding(mapControllerRef, mapReady, mapAreaRef, !platform.isMobile);
 
   return (
     <div className="flex h-full flex-col">
@@ -312,7 +318,12 @@ export function FieldDashboard() {
         </div>
       )}
 
-      <div className="relative min-h-0 flex-1 overflow-hidden">
+      {/* agro-map-area: con un pannello laterale aperto (agro-drawer) il CSS
+          sposta i controlli di destra alla sua sinistra, vedi index.css. */}
+      <div
+        ref={mapAreaRef}
+        className="agro-map-area relative min-h-0 flex-1 overflow-hidden"
+      >
         {/* Mappa persistente: mai rimontata, mai ridimensionata dai pannelli.
             `data-sidebar` permette al CSS di scostare i controlli nativi top-left
             (es. pannello Misura) a destra della colonna bottoni, così la scheda
@@ -487,7 +498,7 @@ export function FieldDashboard() {
             "pointer-events-none absolute z-20 flex max-w-[min(20rem,70vw)] flex-col gap-1",
             platform.isMobile
               ? "left-3 top-3 items-start"
-              : "bottom-3 right-3 items-end",
+              : "agro-right-overlay bottom-3 right-3 items-end",
           )}
         >
           <TransferTagsFeed
