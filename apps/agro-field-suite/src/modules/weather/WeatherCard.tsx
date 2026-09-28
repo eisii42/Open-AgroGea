@@ -1,7 +1,9 @@
 import { centroid, useAgroStore } from "@agrogea/core";
 import { useEscapeDismiss } from "@agrogea/ui";
+import { BottomSheet } from "../../components/BottomSheet";
 import { cn } from "@geolibre/ui";
 import {
+  CloudSun,
   Droplets,
   MapPin,
   RadioTower,
@@ -9,7 +11,15 @@ import {
   Settings,
   Wind,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { openExternal } from "../../components/help/helpActions";
 import {
@@ -64,6 +74,19 @@ function useCompanyCoordinates(): WeatherLocation | null {
 
 const OPEN_METEO_URL = "https://open-meteo.com/";
 
+/**
+ * Foglio del telefono aperto dall'header: si monta nell'area sopra la barra in
+ * basso (`#agro-sheet-host`, App.tsx), come il foglio Moduli. Dentro l'header
+ * resterebbe coperto dalla barra.
+ */
+function SheetPortal({ children }: { children: ReactNode }) {
+  const host =
+    typeof document === "undefined"
+      ? null
+      : (document.getElementById("agro-sheet-host") ?? document.body);
+  return host ? createPortal(children, host) : null;
+}
+
 /** Coordinata in gradi decimali con emisfero (4 decimali ≈ 11 m). */
 function formatCoordinate(value: number, positive: string, negative: string): string {
   return `${Math.abs(value).toFixed(4)}° ${value >= 0 ? positive : negative}`;
@@ -88,11 +111,20 @@ function dayLabel(
 
 export function WeatherCard({
   inline = false,
+  sheet = false,
   onNavigate,
 }: {
   /**
-   * true → solo il contenuto della scheda, sempre aperto e senza chip: è la
-   * variante del menu "⋯" su telefono. Il desktop usa chip + popover (default).
+   * true → telefono: chip grande nell'header (temperatura e pioggia di oggi)
+   * e, al tocco, la scheda completa in un foglio dal basso. Il meteo è la
+   * cosa che l'agricoltore guarda più spesso: sta sempre in vista, non dentro
+   * al menu "⋯".
+   */
+  sheet?: boolean;
+  /**
+   * true → solo il contenuto della scheda, sempre aperto e senza chip (da
+   * incorporare in un altro contenitore). Il desktop usa chip + popover
+   * (default), il telefono chip + foglio (`sheet`).
    */
   inline?: boolean;
   /** Chiamato quando la scheda porta altrove (configurazione centralina). */
@@ -148,7 +180,7 @@ export function WeatherCard({
 
   // Chiusura del popover su click esterno / Esc.
   useEffect(() => {
-    if (!aperto || inline) return;
+    if (!aperto || inline || sheet) return;
     const onDown = (e: MouseEvent) => {
       if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
         setAperto(false);
@@ -156,27 +188,187 @@ export function WeatherCard({
     };
     window.addEventListener("mousedown", onDown);
     return () => window.removeEventListener("mousedown", onDown);
-  }, [aperto, inline]);
-  useEscapeDismiss(() => setAperto(false), aperto && !inline);
+  }, [aperto, inline, sheet]);
+  // Il foglio del telefono gestisce Esc da sé (BottomSheet).
+  useEscapeDismiss(() => setAperto(false), aperto && !inline && !sheet);
 
   // Senza coordinate non c'è nulla da localizzare: scheda nascosta (nel menu
   // mobile si dice perché, invece di lasciare una pagina vuota).
   if (!activeCompanyId || !location) {
-    return inline ? (
+    const noLocation = (
       <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] p-3 text-sm text-[var(--ink-3)]">
         {t("weatherCard.noLocation")}
       </p>
-    ) : null;
+    );
+    // Telefono: il chip resta in vista anche senza posizione e, toccato,
+    // spiega cosa serve (invece di sparire senza motivo).
+    if (sheet && activeCompanyId) {
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => setAperto(true)}
+            aria-label={t("weatherCard.title")}
+            aria-haspopup="dialog"
+            aria-expanded={aperto}
+            className="flex h-11 shrink-0 items-center gap-1.5 rounded-[var(--r-2)] bg-[var(--panel-2)] px-2.5 text-[var(--ink-3)] active:bg-[var(--panel-3)]"
+          >
+            <CloudSun size={20} className="shrink-0" />
+            <span className="agro-num text-[16px] font-semibold">—°</span>
+          </button>
+          <SheetPortal>
+            <BottomSheet
+              open={aperto}
+              onClose={() => setAperto(false)}
+              title={t("weatherCard.title")}
+            >
+              <div className="px-4 pb-4 pt-2">{noLocation}</div>
+            </BottomSheet>
+          </SheetPortal>
+        </>
+      );
+    }
+    return inline ? noLocation : null;
   }
 
   const current = previsione?.current;
   const currentInfo = weatherCodeInfo(current?.weatherCode);
   const CurrentIcon = currentInfo.Icon;
 
+  const todayRain = previsione?.days?.[0]?.pioggiaMm ?? null;
+
+  const body = (
+    <>
+      {/* Intestazione: stato + update */}
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
+          {currentInfo.label}
+        </p>
+        <button
+          type="button"
+          onClick={() => void load(true)}
+          title={t("weatherCard.refreshNow")}
+          className="flex h-7 w-7 items-center justify-center rounded-[var(--r-1)] text-[var(--ink-3)] hover:bg-[var(--panel-2)]"
+        >
+          <RefreshCw
+            size={13}
+            className={cn(status === "loading" && "animate-spin")}
+          />
+        </button>
+      </div>
+
+      {status === "errore" && !previsione ? (
+        <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] p-2 text-sm text-[var(--ink-3)]">
+          {t("weatherCard.unavailable")}
+        </p>
+      ) : (
+        <>
+          {/* Condizioni correnti */}
+          <div className="flex items-center gap-3">
+            <CurrentIcon size={40} className="shrink-0 text-[var(--accent)]" />
+            <div className="min-w-0 flex-1">
+              <p className="agro-num text-[28px] font-semibold leading-none tabular-nums">
+                {gradi(current?.temperatura)}
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-[var(--ink-3)]">
+                <span className="flex items-center gap-1">
+                  <Droplets size={12} />
+                  {current?.umidita == null
+                    ? "—"
+                    : `${Math.round(current.umidita)}%`}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Wind size={12} />
+                  {current?.vento == null
+                    ? "—"
+                    : `${Math.round(current.vento)} km/h`}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Droplets size={12} className="text-[var(--accent)]" />
+                  {current?.rain == null
+                    ? "—"
+                    : `${current.rain.toFixed(1)} mm`}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Previsione giornaliera (oggi + successivi) */}
+          <div className="mt-3 grid grid-cols-5 gap-1 border-t border-[var(--line)] pt-2.5">
+            {(previsione?.days ?? []).map((g, i) => {
+              const info = weatherCodeInfo(g.weatherCode);
+              const Icona = info.Icon;
+              return (
+                <div
+                  key={g.data}
+                  className="flex flex-col items-center gap-1"
+                  title={`${info.label}${
+                    g.pioggiaMm != null
+                      ? ` · ${g.pioggiaMm.toFixed(1)} mm`
+                      : ""
+                  }`}
+                >
+                  <span className="text-[11px] font-medium capitalize text-[var(--ink-3)]">
+                    {dayLabel(g.data, i, i18n.language, t("weatherCard.today"))}
+                  </span>
+                  <Icona size={20} className="text-[var(--ink-2)]" />
+                  <span className="agro-num text-xs font-semibold tabular-nums">
+                    {gradi(g.tMax)}
+                  </span>
+                  <span className="agro-num text-[11px] tabular-nums text-[var(--ink-4)]">
+                    {gradi(g.tMin)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Provenienza: servizio, punto localizzato, centralina aziendale. */}
+      <WeatherSourceInfo
+        location={location}
+        stationModel={
+          weatherConfig?.data_source === "private_station"
+            ? (weatherConfig.station_model ?? "")
+            : null
+        }
+        stationDeviceId={weatherConfig?.station_device_id ?? null}
+        onConfigure={() => {
+          if (!inline) setAperto(false);
+          onNavigate?.();
+        }}
+      />
+    </>
+  );
+
   return (
-    <div className={inline ? undefined : "relative"} ref={cardRef}>
+    // `relative` solo per il popover desktop: col foglio del telefono farebbe da
+    // riferimento al foglio stesso, che resterebbe chiuso dentro al chip.
+    <div className={inline || sheet ? undefined : "relative"} ref={cardRef}>
       {/* Chip compatto nell'header */}
-      {!inline && (
+      {!inline && sheet && (
+        <button
+          type="button"
+          onClick={() => setAperto(true)}
+          aria-label={`${t("weatherCard.title")}: ${currentInfo.label}`}
+          aria-haspopup="dialog"
+          aria-expanded={aperto}
+          className="flex h-11 shrink-0 items-center gap-1.5 rounded-[var(--r-2)] bg-[var(--panel-2)] px-2.5 active:bg-[var(--panel-3)]"
+        >
+          <CurrentIcon size={20} className="shrink-0 text-[var(--accent)]" />
+          <span className="agro-num text-[16px] font-semibold tabular-nums">
+            {status === "loading" && !previsione ? "…" : gradi(current?.temperatura)}
+          </span>
+          {todayRain != null && todayRain >= 0.1 && (
+            <span className="agro-num flex items-center gap-0.5 text-[12px] font-medium tabular-nums text-[#0284c7]">
+              <Droplets size={12} />
+              {todayRain.toFixed(1)}
+            </span>
+          )}
+        </button>
+      )}
+      {!inline && !sheet && (
         <button
           type="button"
           onClick={() => setAperto((v) => !v)}
@@ -190,115 +382,28 @@ export function WeatherCard({
         </button>
       )}
 
-      {aperto && (
-        <div
-          className={
-            inline
-              ? undefined
-              : "absolute right-0 top-11 z-50 w-[300px] overflow-hidden rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--sh-pop)]"
-          }
-        >
-          {/* Intestazione: stato + update */}
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">
-              {currentInfo.label}
-            </p>
-            <button
-              type="button"
-              onClick={() => void load(true)}
-              title={t("weatherCard.refreshNow")}
-              className="flex h-7 w-7 items-center justify-center rounded-[var(--r-1)] text-[var(--ink-3)] hover:bg-[var(--panel-2)]"
-            >
-              <RefreshCw
-                size={13}
-                className={cn(status === "loading" && "animate-spin")}
-              />
-            </button>
-          </div>
-
-          {status === "errore" && !previsione ? (
-            <p className="rounded-[var(--r-2)] bg-[var(--panel-2)] p-2 text-sm text-[var(--ink-3)]">
-              {t("weatherCard.unavailable")}
-            </p>
-          ) : (
-            <>
-              {/* Condizioni correnti */}
-              <div className="flex items-center gap-3">
-                <CurrentIcon size={40} className="shrink-0 text-[var(--accent)]" />
-                <div className="min-w-0 flex-1">
-                  <p className="agro-num text-[28px] font-semibold leading-none tabular-nums">
-                    {gradi(current?.temperatura)}
-                  </p>
-                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-[var(--ink-3)]">
-                    <span className="flex items-center gap-1">
-                      <Droplets size={12} />
-                      {current?.umidita == null
-                        ? "—"
-                        : `${Math.round(current.umidita)}%`}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Wind size={12} />
-                      {current?.vento == null
-                        ? "—"
-                        : `${Math.round(current.vento)} km/h`}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Droplets size={12} className="text-[var(--accent)]" />
-                      {current?.rain == null
-                        ? "—"
-                        : `${current.rain.toFixed(1)} mm`}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Previsione giornaliera (oggi + successivi) */}
-              <div className="mt-3 grid grid-cols-5 gap-1 border-t border-[var(--line)] pt-2.5">
-                {(previsione?.days ?? []).map((g, i) => {
-                  const info = weatherCodeInfo(g.weatherCode);
-                  const Icona = info.Icon;
-                  return (
-                    <div
-                      key={g.data}
-                      className="flex flex-col items-center gap-1"
-                      title={`${info.label}${
-                        g.pioggiaMm != null
-                          ? ` · ${g.pioggiaMm.toFixed(1)} mm`
-                          : ""
-                      }`}
-                    >
-                      <span className="text-[11px] font-medium capitalize text-[var(--ink-3)]">
-                        {dayLabel(g.data, i, i18n.language, t("weatherCard.today"))}
-                      </span>
-                      <Icona size={20} className="text-[var(--ink-2)]" />
-                      <span className="agro-num text-xs font-semibold tabular-nums">
-                        {gradi(g.tMax)}
-                      </span>
-                      <span className="agro-num text-[11px] tabular-nums text-[var(--ink-4)]">
-                        {gradi(g.tMin)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-          {/* Provenienza: servizio, punto localizzato, centralina aziendale. */}
-          <WeatherSourceInfo
-            location={location}
-            stationModel={
-              weatherConfig?.data_source === "private_station"
-                ? (weatherConfig.station_model ?? "")
-                : null
+      {sheet ? (
+        <SheetPortal>
+          <BottomSheet
+            open={aperto}
+            onClose={() => setAperto(false)}
+            title={t("weatherCard.title")}
+          >
+            <div className="px-4 pb-4 pt-2">{body}</div>
+          </BottomSheet>
+        </SheetPortal>
+      ) : (
+        aperto && (
+          <div
+            className={
+              inline
+                ? undefined
+                : "absolute right-0 top-11 z-50 w-[300px] overflow-hidden rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--sh-pop)]"
             }
-            stationDeviceId={weatherConfig?.station_device_id ?? null}
-            onConfigure={() => {
-              if (!inline) setAperto(false);
-              onNavigate?.();
-            }}
-          />
-        </div>
+          >
+            {body}
+          </div>
+        )
       )}
     </div>
   );

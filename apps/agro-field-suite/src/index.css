@@ -427,23 +427,45 @@ html.dark .agro-field-map .geolibre-measure-control {
   }
 }
 
-/* Telefono: rifinitura tipografica e di tocco, valida solo sotto i 768 px (il
-   desktop resta com'è).
-   - I testi da 9–11 px salgono a 12 px: sotto non si leggono a braccio, in
-     campo, alla luce del sole. Restano esclusi la mappa (marker, controlli), la
-     legenda degli indici e il time slider, dove lo spazio è misurato al pixel
-     (classe `agro-keep-size`).
+/* Testo minimo 12 px, su telefono e desktop: i testi da 9–11 px salgono a
+   12 px (sotto non si leggono a braccio, in campo, alla luce del sole — e
+   nemmeno comodamente a monitor). Restano esclusi la mappa (marker,
+   controlli), la legenda degli indici e il time slider, dove lo spazio è
+   misurato al pixel (classe `agro-keep-size`). Per tornare al desktop di
+   prima basta rimettere questa regola dentro il blocco del telefono sotto. */
+:is(.text-\[9px\], .text-\[10px\], .text-\[11px\]):not(
+    .agro-field-map *,
+    .agro-keep-size,
+    .agro-keep-size *
+  ) {
+  font-size: 12px;
+}
+
+/* Focus visibile per chi usa la tastiera (Tab): contorno nel colore
+   d'accento su pulsanti, link, campi e voci di menu. Solo `:focus-visible`,
+   quindi il clic col mouse o il tocco non lo mostrano. `:where` tiene la
+   specificità a zero: i componenti con un proprio anello di focus vincono. */
+:where(
+    button,
+    a[href],
+    input,
+    select,
+    textarea,
+    summary,
+    [role="button"],
+    [role="menuitem"],
+    [role="separator"],
+    [tabindex]:not([tabindex="-1"])
+  ):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Telefono: rifinitura di tocco, valida solo sotto i 768 px.
    - I campi dei moduli hanno 44 px d'altezza e testo a 16 px: sotto i 16 px
      iOS ingrandisce la pagina a ogni focus, e il modulo "salta".
    - Caselle di spunta e radio più grandi, centrabili col pollice. */
 @media (max-width: 767px) {
-  :is(.text-\[9px\], .text-\[10px\], .text-\[11px\]):not(
-      .agro-field-map *,
-      .agro-keep-size,
-      .agro-keep-size *
-    ) {
-    font-size: 12px;
-  }
   :is(
       input:not(
           [type="checkbox"],

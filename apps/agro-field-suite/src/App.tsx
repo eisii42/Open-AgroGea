@@ -213,7 +213,9 @@ export function App() {
       <>
         {isTauriRuntime() && <UpdateNotice />}
         <div className="relative flex h-full flex-col">
-          <div className="relative min-h-0 flex-1">
+          {/* `agro-sheet-host`: area sopra la barra in basso dove si aprono i
+              fogli dal basso (Moduli qui sotto, meteo dall'header via portal). */}
+          <div id="agro-sheet-host" className="relative min-h-0 flex-1">
             {views}
             <BottomSheet
               open={modulesOpen}

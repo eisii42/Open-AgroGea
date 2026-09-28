@@ -2872,7 +2872,6 @@
     "open": "Ouvrir le menu",
     "close": "Fermer",
     "back": "Retour",
-    "weather": "Météo",
     "theme": "Thème"
   },
   "mapLayers": {
@@ -2912,6 +2911,7 @@
     "close": "Fermer le panneau",
     "resize": "Faites glisser pour redimensionner (double-clic : largeur standard)",
     "collapse": "Réduire le panneau",
-    "expand": "Développer le panneau"
+    "expand": "Développer le panneau",
+    "loading": "Chargement…"
   }
 }

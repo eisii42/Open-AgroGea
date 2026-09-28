@@ -8,10 +8,8 @@ export {
   type TreatmentFormProps,
   type TreatmentFormValues,
 } from "./components/TreatmentForm";
-export {
-  DrawerSlot,
-  requestDrawerFocus,
-} from "./components/DrawerSlot";
+export { DrawerSlot } from "./components/DrawerSlot";
+export { requestDrawerFocus } from "./components/drawer-stack";
 export { useBackDismiss } from "./hooks/useBackDismiss";
 export {
   DRAWER_DEFAULT_WIDTH,
@@ -20,6 +18,7 @@ export {
   useDrawerResize,
 } from "./hooks/useDrawerResize";
 export { useEscapeDismiss } from "./hooks/useEscapeDismiss";
+export { useMenuKeyboard } from "./hooks/useMenuKeyboard";
 export { useModalBehavior } from "./hooks/useModalBehavior";
 export { useNarrowViewport } from "./hooks/useNarrowViewport";
 export { type SheetDrag, type SheetDragOptions, useSheetDrag } from "./hooks/useSheetDrag";

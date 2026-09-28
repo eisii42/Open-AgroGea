@@ -2872,7 +2872,6 @@
     "open": "Open menu",
     "close": "Close",
     "back": "Back",
-    "weather": "Weather",
     "theme": "Theme"
   },
   "mapLayers": {
@@ -2912,6 +2911,7 @@
     "close": "Close panel",
     "resize": "Drag to resize (double-click: default width)",
     "collapse": "Collapse panel",
-    "expand": "Expand panel"
+    "expand": "Expand panel",
+    "loading": "Loading…"
   }
 }

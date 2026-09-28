@@ -277,6 +277,7 @@ export function CalendarScreen() {
               type="button"
               onClick={() => shiftMonth(-1)}
               aria-label={t("calendar.previousMonth")}
+              title={t("calendar.previousMonth")}
               className="flex h-11 w-11 items-center justify-center rounded-[var(--r-2)] text-[var(--ink-3)] active:bg-[var(--panel-2)]"
             >
               <ChevronLeft size={20} />
@@ -288,6 +289,7 @@ export function CalendarScreen() {
               type="button"
               onClick={() => shiftMonth(1)}
               aria-label={t("calendar.nextMonth")}
+              title={t("calendar.nextMonth")}
               className="flex h-11 w-11 items-center justify-center rounded-[var(--r-2)] text-[var(--ink-3)] active:bg-[var(--panel-2)]"
             >
               <ChevronRight size={20} />
@@ -339,6 +341,7 @@ export function CalendarScreen() {
             type="button"
             onClick={() => shiftMonth(-1)}
             aria-label={t("calendar.previousMonth")}
+            title={t("calendar.previousMonth")}
             className="flex h-8 w-8 items-center justify-center rounded-[var(--r-1)] text-[var(--ink-3)] hover:bg-[var(--panel-2)]"
           >
             <ChevronLeft size={16} />
@@ -350,6 +353,7 @@ export function CalendarScreen() {
             type="button"
             onClick={() => shiftMonth(1)}
             aria-label={t("calendar.nextMonth")}
+            title={t("calendar.nextMonth")}
             className="flex h-8 w-8 items-center justify-center rounded-[var(--r-1)] text-[var(--ink-3)] hover:bg-[var(--panel-2)]"
           >
             <ChevronRight size={16} />

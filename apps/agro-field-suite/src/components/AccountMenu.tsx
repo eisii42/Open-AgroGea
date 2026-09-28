@@ -1,5 +1,5 @@
 import { useAgroStore } from "@agrogea/core";
-import { useEscapeDismiss } from "@agrogea/ui";
+import { useEscapeDismiss, useMenuKeyboard } from "@agrogea/ui";
 import { cn } from "@geolibre/ui";
 import { Settings, User } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
@@ -22,6 +22,9 @@ export function AccountMenu() {
   const diagnostics = useDiagnostics();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  // Frecce fra tutte le voci del menu, tema compreso.
+  useMenuKeyboard(menuRef, open, "button");
 
   useEffect(() => {
     if (!open) return;
@@ -63,6 +66,7 @@ export function AccountMenu() {
       </button>
 
       <div
+        ref={menuRef}
         role="menu"
         className={cn(
           "absolute right-0 top-11 z-50 flex w-72 flex-col gap-3 rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] p-2 shadow-[var(--sh-pop)]",

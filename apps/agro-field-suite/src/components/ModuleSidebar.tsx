@@ -7,7 +7,12 @@ import {
   useAgroStore,
   useSettingsStore,
 } from "@agrogea/core";
-import { requestDrawerFocus, useBackDismiss, useEscapeDismiss } from "@agrogea/ui";
+import {
+  requestDrawerFocus,
+  useBackDismiss,
+  useEscapeDismiss,
+  useMenuKeyboard,
+} from "@agrogea/ui";
 import { disableGeoEditorModes } from "@geolibre/plugins";
 import { cn } from "@geolibre/ui";
 import {
@@ -839,7 +844,11 @@ function ModuleRail({
 }) {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
   const flyoutRef = useRef<HTMLDivElement>(null);
+  // Aperta da tastiera (Invio/Spazio sul modulo): il focus passa alla prima
+  // voce dell'elenco, così si prosegue con le frecce.
+  const focusFirstRef = useRef(false);
   const [anchorTop, setAnchorTop] = useState(0);
   const [flyoutTop, setFlyoutTop] = useState(0);
   const current = modules.find((m) => m.mod.id === openModuleId) ?? null;
@@ -854,6 +863,9 @@ function ModuleRail({
     return () => window.removeEventListener("mousedown", onDown);
   }, [isOpen, setOpenModuleId]);
   useEscapeDismiss(() => setOpenModuleId(null), isOpen);
+  // Frecce: fra i moduli nella barra, fra gli strumenti nell'elenco.
+  useMenuKeyboard(navRef, true, "button");
+  useMenuKeyboard(flyoutRef, isOpen);
 
   // La scheda parte all'altezza della voce, ma non esce dal fondo della mappa.
   useLayoutEffect(() => {
@@ -862,11 +874,16 @@ function ModuleRail({
     if (!flyout || !root) return;
     const maxTop = root.clientHeight - flyout.offsetHeight - 8;
     setFlyoutTop(Math.max(8, Math.min(anchorTop, maxTop)));
+    if (focusFirstRef.current) {
+      focusFirstRef.current = false;
+      flyout.querySelector<HTMLElement>('[role="menuitem"]:not([disabled])')?.focus();
+    }
   }, [anchorTop, openModuleId]);
 
   return (
     <div ref={rootRef} className="relative h-full">
       <nav
+        ref={navRef}
         aria-label={t("nav.modulesHeading")}
         className="no-scrollbar flex h-full w-[76px] flex-col items-center gap-1 overflow-y-auto border-r border-[var(--line)] bg-[var(--panel)] py-2"
       >
@@ -888,6 +905,8 @@ function ModuleRail({
                 }
                 const nav = e.currentTarget.parentElement;
                 setAnchorTop(e.currentTarget.offsetTop - (nav?.scrollTop ?? 0));
+                // detail 0: clic generato da tastiera, non dal mouse.
+                focusFirstRef.current = e.detail === 0;
                 setOpenModuleId(mod.id);
               }}
               className={cn(

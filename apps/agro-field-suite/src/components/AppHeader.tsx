@@ -96,8 +96,8 @@ export function AppHeader() {
   const diagnostics = useDiagnostics();
 
   // Telefono: header essenziale. Le viste passano alla barra in basso
-  // (MobileBottomNav), il resto (Aggiungi dati, meteo, tema, aiuto, profilo)
-  // al menu "⋯".
+  // (MobileBottomNav), il resto (Aggiungi dati, tema, aiuto, profilo) al menu
+  // "⋯". Il meteo invece resta in vista, qui: è la cosa più consultata.
   if (isMobile) {
     return (
       // Margine per la barra di stato/notch (Android edge-to-edge, iPhone):
@@ -115,6 +115,7 @@ export function AppHeader() {
             {company?.business_name ?? "-"}
           </span>
         </div>
+        {flags.headerMeteoCard && <WeatherCard sheet />}
         {flags.headerSyncLed && (
           <button
             type="button"

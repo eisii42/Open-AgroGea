@@ -3,7 +3,6 @@ import { cn } from "@geolibre/ui";
 import {
   ChevronLeft,
   ChevronRight,
-  CloudSun,
   Database,
   Settings,
   X,
@@ -11,21 +10,21 @@ import {
 import { useBackDismiss, useEscapeDismiss, useSheetDrag } from "@agrogea/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { WeatherCard } from "../modules/weather/WeatherCard";
 import { AddDataControl } from "./AddDataControl";
 import { HelpMenu } from "./help/HelpMenu";
 import { ThemePicker } from "./ThemePicker";
 
-type MenuPage = "root" | "addData" | "weather";
+type MenuPage = "root" | "addData";
 
 /**
  * Menu "⋯" dell'header su telefono: raccoglie ciò che sul desktop sta in fila
- * nell'header (Aggiungi dati, meteo, tema, aiuto, profilo) e che su 375 px o
- * spariva o si riduceva a icone da 32 px.
+ * nell'header (Aggiungi dati, tema, aiuto, profilo) e che su 375 px o
+ * spariva o si riduceva a icone da 32 px. Il meteo no: sta nell'header del
+ * telefono, sempre in vista (WeatherCard `sheet`).
  *
- * Foglio dal basso, raggiungibile col pollice; le voci ricche (Aggiungi dati,
- * Meteo) si aprono come pagina interna con "indietro", riusando i componenti
- * del desktop nella variante `inline`.
+ * Foglio dal basso, raggiungibile col pollice; le voci ricche (Aggiungi dati)
+ * si aprono come pagina interna con "indietro", riusando i componenti del
+ * desktop nella variante `inline`.
  *
  * Resta SEMPRE montato e si nasconde via transform: le finestre dell'Aiuto
  * (feedback, informazioni, diagnostica) vivono dentro `HelpMenu`, e smontarlo
@@ -78,11 +77,7 @@ export function MobileAppMenu({
   };
 
   const title =
-    page === "addData"
-      ? t("addDataControl.addData")
-      : page === "weather"
-        ? t("mobileMenu.weather")
-        : t("mobileMenu.title");
+    page === "addData" ? t("addDataControl.addData") : t("mobileMenu.title");
 
   return (
     <div
@@ -146,29 +141,19 @@ export function MobileAppMenu({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-[calc(12px+env(safe-area-inset-bottom))] pt-2">
           {page === "addData" && <AddDataControl inline />}
-          {page === "weather" && <WeatherCard inline onNavigate={onClose} />}
 
           {/* Elenco principale: nascosto (non smontato) nelle pagine interne,
               perché contiene l'Aiuto con le sue finestre. */}
           <div className={cn("flex flex-col gap-3", page !== "root" && "hidden")}>
-            {(flags.headerAddData || flags.headerMeteoCard) && (
+            {/* Il meteo non sta qui: è nell'header, sempre in vista. */}
+            {flags.headerAddData && (
               <MenuSection>
-                {flags.headerAddData && (
-                  <MenuRow
-                    icon={<Database size={18} />}
-                    label={t("addDataControl.addData")}
-                    onClick={() => setPage("addData")}
-                    chevron
-                  />
-                )}
-                {flags.headerMeteoCard && (
-                  <MenuRow
-                    icon={<CloudSun size={18} />}
-                    label={t("mobileMenu.weather")}
-                    onClick={() => setPage("weather")}
-                    chevron
-                  />
-                )}
+                <MenuRow
+                  icon={<Database size={18} />}
+                  label={t("addDataControl.addData")}
+                  onClick={() => setPage("addData")}
+                  chevron
+                />
               </MenuSection>
             )}
 

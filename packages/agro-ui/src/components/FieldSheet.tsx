@@ -17,7 +17,7 @@ import {
   type DrawerOpenedDetail,
   DrawerSlotContext,
   nextDrawerSeq,
-} from "./DrawerSlot";
+} from "./drawer-stack";
 import { useDrawerResize } from "../hooks/useDrawerResize";
 import { useEscapeDismiss } from "../hooks/useEscapeDismiss";
 import { useNarrowViewport } from "../hooks/useNarrowViewport";

@@ -2872,7 +2872,6 @@
     "open": "Abrir el menú",
     "close": "Cerrar",
     "back": "Atrás",
-    "weather": "Tiempo",
     "theme": "Tema"
   },
   "mapLayers": {
@@ -2912,6 +2911,7 @@
     "close": "Cerrar panel",
     "resize": "Arrastra para redimensionar (doble clic: ancho estándar)",
     "collapse": "Contraer panel",
-    "expand": "Expandir panel"
+    "expand": "Expandir panel",
+    "loading": "Cargando…"
   }
 }

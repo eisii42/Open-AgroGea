@@ -1,4 +1,7 @@
-import { createContext, type ReactNode } from "react";
+import { type ReactNode, Suspense } from "react";
+import { useTranslation } from "react-i18next";
+import { DrawerSlotContext } from "./drawer-stack";
+import { FieldSheet } from "./FieldSheet";
 
 /**
  * Pila dei pannelli laterali sul desktop: più moduli aperti insieme nella
@@ -10,49 +13,33 @@ import { createContext, type ReactNode } from "react";
  *   aperto si espande e torna in cima, invece di chiudersi o restare ridotto.
  *   Per sapere a quale modulo appartiene, il FieldSheet legge l'id dal
  *   `DrawerSlot` che lo avvolge.
+ * - Ogni modulo ha il suo Suspense: mentre il codice del pannello si carica
+ *   compare un pannello "Caricamento…" al suo posto, e gli altri pannelli
+ *   aperti restano dove sono (con un Suspense unico sparivano per un attimo).
  */
-
-export const DrawerSlotContext = createContext<string | null>(null);
 
 /** Avvolge il pannello di un modulo: l'id è quello del pannello nello store. */
 export function DrawerSlot({ id, children }: { id: string; children: ReactNode }) {
-  return <DrawerSlotContext.Provider value={id}>{children}</DrawerSlotContext.Provider>;
-}
-
-export const DRAWER_OPENED_EVENT = "agro:drawer-opened";
-export const DRAWER_FOCUS_EVENT = "agro:drawer-focus";
-
-export interface DrawerOpenedDetail {
-  seq: number;
-}
-
-export interface DrawerFocusDetail {
-  id: string;
-  handled: boolean;
-}
-
-let lastSeq = 0;
-
-/** Numero d'ordine del prossimo pannello aperto o portato in primo piano. */
-export function nextDrawerSeq(): number {
-  lastSeq += 1;
-  return lastSeq;
-}
-
-/** Il pannello `seq` è ora in cima: gli altri si riducono. */
-export function announceDrawerOpened(seq: number): void {
-  window.dispatchEvent(
-    new CustomEvent<DrawerOpenedDetail>(DRAWER_OPENED_EVENT, { detail: { seq } }),
+  return (
+    <DrawerSlotContext.Provider value={id}>
+      <Suspense fallback={<DrawerLoading />}>{children}</Suspense>
+    </DrawerSlotContext.Provider>
   );
 }
 
-/**
- * Porta in primo piano il pannello del modulo `id`, se è aperto. Restituisce
- * false se nessun pannello ha risposto (non aperto, o senza `DrawerSlot`):
- * il chiamante può allora aprirlo come prima.
- */
-export function requestDrawerFocus(id: string): boolean {
-  const detail: DrawerFocusDetail = { id, handled: false };
-  window.dispatchEvent(new CustomEvent<DrawerFocusDetail>(DRAWER_FOCUS_EVENT, { detail }));
-  return detail.handled;
+/** Segnaposto del pannello mentre il suo codice si carica. */
+function DrawerLoading() {
+  const { t } = useTranslation();
+  return (
+    <FieldSheet title={t("fieldSheet.loading")} onClose={() => {}}>
+      <div className="flex items-center justify-center gap-2 p-8 text-sm text-[var(--ink-3)]">
+        <span
+          aria-hidden="true"
+          className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--line)] border-t-[var(--accent)]"
+        />
+        {t("fieldSheet.loading")}
+      </div>
+    </FieldSheet>
+  );
 }
+
