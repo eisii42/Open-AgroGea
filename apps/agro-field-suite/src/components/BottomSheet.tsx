@@ -1,4 +1,4 @@
-import { useBackDismiss, useSheetDrag } from "@agrogea/ui";
+import { useBackDismiss, useEscapeDismiss, useSheetDrag } from "@agrogea/ui";
 import { cn } from "@geolibre/ui";
 import { X } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
@@ -48,14 +48,7 @@ export function BottomSheet({
 
   useBackDismiss(onClose, open);
 
-  useEffect(() => {
-    if (!open) return;
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onEsc);
-    return () => window.removeEventListener("keydown", onEsc);
-  }, [open, onClose]);
+  useEscapeDismiss(onClose, open);
 
   const drag = useSheetDrag({
     enabled: open,

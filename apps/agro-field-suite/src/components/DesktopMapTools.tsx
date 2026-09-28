@@ -1,4 +1,5 @@
 import { useSettingsStore } from "@agrogea/core";
+import { useEscapeDismiss } from "@agrogea/ui";
 import type { MapController } from "@geolibre/map";
 import { cn } from "@geolibre/ui";
 import { History, Layers, Ruler, SlidersHorizontal, X } from "lucide-react";
@@ -52,14 +53,10 @@ export function DesktopMapTools({
       }
       setLayersOpen(false);
     };
-    const onEsc = (e: KeyboardEvent) => e.key === "Escape" && setLayersOpen(false);
     window.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onEsc);
-    return () => {
-      window.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onEsc);
-    };
+    return () => window.removeEventListener("mousedown", onDown);
   }, [layersOpen]);
+  useEscapeDismiss(() => setLayersOpen(false), layersOpen);
 
   const openAdvanced = () => {
     setLayersOpen(false);

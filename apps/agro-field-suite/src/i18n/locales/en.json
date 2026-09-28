@@ -2895,5 +2895,23 @@
   },
   "accountMenu": {
     "label": "Account and settings"
+  },
+  "moduleRail": {
+    "soil": "Soil",
+    "crop": "Crop",
+    "water": "Water",
+    "draw": "Draw",
+    "tasks": "Tasks",
+    "logbook": "Logbook",
+    "warehouse": "Warehouse",
+    "company": "Company",
+    "compliance": "Compliance",
+    "close": "Close list"
+  },
+  "fieldSheet": {
+    "close": "Close panel",
+    "resize": "Drag to resize (double-click: default width)",
+    "collapse": "Collapse panel",
+    "expand": "Expand panel"
   }
 }

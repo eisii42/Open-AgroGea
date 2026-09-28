@@ -2,7 +2,15 @@ import { useAgroStore } from "@agrogea/core";
 import { MapCanvas, type MapController } from "@geolibre/map";
 import { cn } from "@geolibre/ui";
 import { Lock, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { type ComponentType, lazy, Suspense, useEffect, useRef, useState } from "react";
+import {
+  type ComponentType,
+  type CSSProperties,
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useGeofenceWatch } from "../modules/field-mode/useGeofenceWatch";
 import { usePlatform } from "../hooks/usePlatform";
@@ -181,6 +189,18 @@ const IndexTimeSlider = lazyPanel(() =>
  * non si ridimensiona), mappa persistente a tutto schermo, controlli nativi
  * (layer-control, terrain, measure) e tooltip hover sopra di essa.
  */
+/**
+ * Navigazione moduli sul desktop: "rail" = barra di icone da 76 px con
+ * l'elenco degli strumenti a comparsa (fase D4 del redesign); "list" = la
+ * lista a fisarmonica da 260 px, a scomparsa col bottone in alto a sinistra.
+ * Per tornare alla lista basta cambiare questo valore.
+ */
+const DESKTOP_MODULE_NAV = "rail" as "rail" | "list";
+/** Larghezza della barra di icone (w-[76px] in ModuleSidebar). */
+const RAIL_WIDTH = 76;
+/** Larghezza della lista moduli (w-[260px] in ModuleSidebar). */
+const LIST_WIDTH = 260;
+
 export function FieldDashboard() {
   const { t } = useTranslation();
   const openPanels = useAgroStore((s) => s.openPanels);
@@ -210,6 +230,8 @@ export function FieldDashboard() {
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   const platform = usePlatform();
+  const railWidth =
+    DESKTOP_MODULE_NAV === "rail" ? RAIL_WIDTH : sidebarCollapsed ? 0 : LIST_WIDTH;
 
   // Su mobile forziamo la sidebar collassata al primo render.
   // biome-ignore lint/correctness/useExhaustiveDependencies: solo al mount
@@ -321,9 +343,17 @@ export function FieldDashboard() {
 
       {/* agro-map-area: con un pannello laterale aperto (agro-drawer) il CSS
           sposta i controlli di destra alla sua sinistra, vedi index.css. */}
+      {/* `--agro-rail-w`: spazio occupato a sinistra dalla navigazione moduli
+          (desktop). Lo leggono gli elementi ancorati a sinistra — strumenti di
+          modifica, legenda colture, time slider, scala — per non finirle sotto. */}
       <div
         ref={mapAreaRef}
         className="agro-map-area relative min-h-0 flex-1 overflow-hidden"
+        style={
+          platform.isMobile
+            ? undefined
+            : ({ "--agro-rail-w": `${railWidth}px` } as CSSProperties)
+        }
       >
         {/* Mappa persistente: mai rimontata, mai ridimensionata dai pannelli. */}
         <div
@@ -360,9 +390,15 @@ export function FieldDashboard() {
           </>
         )}
 
-        {/* Sidebar moduli: overlay che scorre fuori schermo via transform.
-            Solo desktop: su telefono i moduli sono nel foglio della barra in basso. */}
-        {!platform.isMobile && (
+        {/* Navigazione moduli desktop: barra di icone sempre visibile, oppure
+            (DESKTOP_MODULE_NAV = "list") la lista che scorre fuori schermo via
+            transform. Su telefono i moduli sono nel foglio della barra in basso. */}
+        {!platform.isMobile && DESKTOP_MODULE_NAV === "rail" && (
+          <div className="absolute inset-y-0 left-0 z-[35]">
+            <ModuleSidebar rail />
+          </div>
+        )}
+        {!platform.isMobile && DESKTOP_MODULE_NAV === "list" && (
           <div
             className={cn(
               "absolute inset-y-0 left-0 z-20 transition-transform duration-300 ease-in-out",
@@ -377,8 +413,8 @@ export function FieldDashboard() {
             (Livelli · Misura · Wayback in testa, poi zoom, bussola, schermo
             intero, terreno, posizione, cerca luogo). A sinistra resta solo il
             comando della barra moduli, più gli strumenti di modifica durante
-            l'editing geometrico. Rilievo GPS e carburante stanno in basso a
-            destra (DesktopMapFabs). */}
+            l'editing geometrico (con la barra di icone solo questi ultimi).
+            Rilievo GPS e carburante stanno in basso a destra (DesktopMapFabs). */}
         {!platform.isMobile && (
           <DesktopMapTools mapControllerRef={mapControllerRef} />
         )}
@@ -387,12 +423,8 @@ export function FieldDashboard() {
             animata anche la visibility ereditata, e uscendo dalla vista mappa
             (nascosta con visibility:hidden) i bottoni restavano a schermo per
             tutta la durata dell’animazione. */
-        <div
-          className={cn(
-            "absolute top-3 z-30 flex flex-col gap-2 transition-[left] duration-300 ease-in-out",
-            sidebarCollapsed ? "left-3" : "left-[272px]",
-          )}
-        >
+        <div className="absolute left-[calc(var(--agro-rail-w,0px)+0.75rem)] top-3 z-30 flex flex-col gap-2 transition-[left] duration-300 ease-in-out">
+          {DESKTOP_MODULE_NAV === "list" && (
           <button
             type="button"
             onClick={toggleSidebar}
@@ -409,6 +441,7 @@ export function FieldDashboard() {
               <PanelLeftClose size={18} />
             )}
           </button>
+          )}
           {/* Strumenti di MODIFICA: compaiono a lato dei moduli solo durante
               l'editing geometrico, con i soli tool di modifica (non di disegno). */}
           <GeometryEditToolbar />

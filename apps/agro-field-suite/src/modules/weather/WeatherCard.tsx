@@ -1,4 +1,5 @@
 import { centroid, useAgroStore } from "@agrogea/core";
+import { useEscapeDismiss } from "@agrogea/ui";
 import { cn } from "@geolibre/ui";
 import {
   Droplets,
@@ -153,14 +154,10 @@ export function WeatherCard({
         setAperto(false);
       }
     };
-    const onEsc = (e: KeyboardEvent) => e.key === "Escape" && setAperto(false);
     window.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onEsc);
-    return () => {
-      window.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onEsc);
-    };
+    return () => window.removeEventListener("mousedown", onDown);
   }, [aperto, inline]);
+  useEscapeDismiss(() => setAperto(false), aperto && !inline);
 
   // Senza coordinate non c'è nulla da localizzare: scheda nascosta (nel menu
   // mobile si dice perché, invece di lasciare una pagina vuota).

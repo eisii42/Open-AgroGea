@@ -17,9 +17,9 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useBackDismiss } from "@agrogea/ui";
+import { useBackDismiss, useModalBehavior } from "@agrogea/ui";
 import type { ForecastDay } from "../../lib/WeatherSyncService";
 import { weatherCodeInfo } from "../../lib/weather-codes";
 import { HarvestDetailCard } from "../field-logbook/HarvestDetailCard";
@@ -68,6 +68,9 @@ export function CalendarDayPanel({
   onAddOperation: () => void;
   onEditTask: (task: PlannedTask) => void;
 }) {
+  // Stesso modello di tutte le finestre: Esc, focus dentro, focus restituito.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(dialogRef, onClose);
   const { t, i18n } = useTranslation();
   const plots = useAgroStore((s) => s.plots);
   // Scheda aperta in sola lettura (operazione o raccolta).
@@ -103,6 +106,9 @@ export function CalendarDayPanel({
       onMouseDown={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
         className="flex h-full w-full max-w-md flex-col border-l border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-pop)]"
         onMouseDown={(e) => e.stopPropagation()}
       >

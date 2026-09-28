@@ -1,7 +1,8 @@
 import type { PlannedTask } from "@agrogea/core";
 import { X } from "lucide-react";
+import { useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { useBackDismiss } from "@agrogea/ui";
+import { useBackDismiss, useModalBehavior } from "@agrogea/ui";
 import { TaskForm } from "../tasks/TaskForm";
 
 /**
@@ -23,6 +24,9 @@ export function CalendarTaskDialog({
   defaultPlotId?: string;
   onClose: () => void;
 }) {
+  // Stesso modello di tutte le finestre: Esc, focus dentro, focus restituito.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(dialogRef, onClose);
   const { t } = useTranslation();
 
   // Tasto indietro di Android: chiude il dialogo (no-op altrove).
@@ -34,6 +38,9 @@ export function CalendarTaskDialog({
       onMouseDown={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
         className="flex min-h-full w-full max-w-[640px] flex-col bg-[var(--panel)] shadow-[var(--sh-pop)] md:my-auto md:min-h-0 md:rounded-[var(--r-3)] md:border md:border-[var(--line)]"
         onMouseDown={(e) => e.stopPropagation()}
       >

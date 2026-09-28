@@ -1626,7 +1626,7 @@
   "commandCenter": {
     "allCrops": "Toutes les cultures",
     "campaignYear": "Campagne agricole",
-    "company": "Exploitation",
+    "company": "Ferme",
     "crop": "Culture",
     "downloadReport": "Télécharger le rapport de synthèse",
     "noPlotsInScope": "Aucune parcelle dans le périmètre.",
@@ -2895,5 +2895,23 @@
   },
   "accountMenu": {
     "label": "Compte et paramètres"
+  },
+  "moduleRail": {
+    "soil": "Sol",
+    "crop": "Culture",
+    "water": "Eau",
+    "draw": "Dessin",
+    "tasks": "Tâches",
+    "logbook": "Registre",
+    "warehouse": "Stock",
+    "company": "Ferme",
+    "compliance": "Normes",
+    "close": "Fermer la liste"
+  },
+  "fieldSheet": {
+    "close": "Fermer le panneau",
+    "resize": "Faites glisser pour redimensionner (double-clic : largeur standard)",
+    "collapse": "Réduire le panneau",
+    "expand": "Développer le panneau"
   }
 }

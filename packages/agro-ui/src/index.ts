@@ -9,5 +9,13 @@ export {
   type TreatmentFormValues,
 } from "./components/TreatmentForm";
 export { useBackDismiss } from "./hooks/useBackDismiss";
+export {
+  DRAWER_DEFAULT_WIDTH,
+  DRAWER_MAX_WIDTH,
+  DRAWER_MIN_WIDTH,
+  useDrawerResize,
+} from "./hooks/useDrawerResize";
+export { useEscapeDismiss } from "./hooks/useEscapeDismiss";
+export { useModalBehavior } from "./hooks/useModalBehavior";
 export { useNarrowViewport } from "./hooks/useNarrowViewport";
 export { type SheetDrag, type SheetDragOptions, useSheetDrag } from "./hooks/useSheetDrag";

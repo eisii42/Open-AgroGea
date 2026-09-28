@@ -6,8 +6,9 @@
  * sezione mostra solo i campi valorizzati e sparisce se non ha nulla da dire.
  */
 import type { TreatmentLog, OperationType } from "@agrogea/core";
+import { useModalBehavior } from "@agrogea/ui";
 import { Trash2, X } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 
@@ -53,6 +54,9 @@ export function OperationDetailCard({
    */
   onDelete?: () => void | Promise<void>;
 }) {
+  // Stesso modello di tutte le finestre: Esc, focus dentro, focus restituito.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(dialogRef, onClose);
   const { t } = useTranslation();
   const o = operation;
   const dose =
@@ -105,6 +109,9 @@ export function OperationDetailCard({
       onMouseDown={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
         className="flex max-h-[85dvh] w-full max-w-lg flex-col overflow-hidden rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-pop)]"
         onMouseDown={(e) => e.stopPropagation()}
       >

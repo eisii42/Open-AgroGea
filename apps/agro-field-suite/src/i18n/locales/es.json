@@ -2895,5 +2895,23 @@
   },
   "accountMenu": {
     "label": "Cuenta y ajustes"
+  },
+  "moduleRail": {
+    "soil": "Suelo",
+    "crop": "Cultivo",
+    "water": "Agua",
+    "draw": "Dibujo",
+    "tasks": "Tareas",
+    "logbook": "Cuaderno",
+    "warehouse": "Almacén",
+    "company": "Empresa",
+    "compliance": "Normativa",
+    "close": "Cerrar lista"
+  },
+  "fieldSheet": {
+    "close": "Cerrar panel",
+    "resize": "Arrastra para redimensionar (doble clic: ancho estándar)",
+    "collapse": "Contraer panel",
+    "expand": "Expandir panel"
   }
 }

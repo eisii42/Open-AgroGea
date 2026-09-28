@@ -1,6 +1,9 @@
 import { cn } from "@geolibre/ui";
-import { type CSSProperties, type ReactNode, useRef, useState } from "react";
+import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useBackDismiss } from "../hooks/useBackDismiss";
+import { useDrawerResize } from "../hooks/useDrawerResize";
+import { useEscapeDismiss } from "../hooks/useEscapeDismiss";
 import { useNarrowViewport } from "../hooks/useNarrowViewport";
 import { useSheetDrag } from "../hooks/useSheetDrag";
 
@@ -15,7 +18,7 @@ import { useSheetDrag } from "../hooks/useSheetDrag";
  * aggancia all'altezza più vicina (un colpo veloce passa alla successiva);
  * trascinato sotto l'intestazione si chiude. Il tasto indietro di Android lo
  * chiude (vedi `useBackDismiss`). Sul desktop nulla di tutto questo: il drawer
- * resta com'era.
+ * si allarga o restringe trascinandone il bordo sinistro (`useDrawerResize`).
  */
 
 export interface FieldSheetProps {
@@ -51,6 +54,7 @@ export function FieldSheet({
   className,
   wide = false,
 }: FieldSheetProps) {
+  const { t } = useTranslation();
   const narrow = useNarrowViewport();
   // Desktop: il tocco sul titolo alterna il collasso (comportamento storico).
   const [collapsed, setCollapsed] = useState(false);
@@ -64,6 +68,19 @@ export function FieldSheet({
   const showCollapsed = sheetMode ? snap === "collapsed" : collapsed && !wide;
 
   useBackDismiss(onClose, narrow);
+  // Esc chiude il pannello, se sopra non c'è altro di aperto (menu, finestre).
+  useEscapeDismiss(onClose);
+
+  // Desktop: drawer ridimensionabile. Durante il trascinamento niente
+  // transizioni (i controlli della mappa seguono il bordo senza ritardo) né
+  // selezione del testo (tokens.css, classe `agro-resizing`).
+  const resizable = !narrow && !wide;
+  const resize = useDrawerResize(resizable);
+  useEffect(() => {
+    if (!resize.dragging) return;
+    document.documentElement.classList.add("agro-resizing");
+    return () => document.documentElement.classList.remove("agro-resizing");
+  }, [resize.dragging]);
 
   const parentHeight = () =>
     sectionRef.current?.parentElement?.clientHeight ?? window.innerHeight;
@@ -141,7 +158,7 @@ export function FieldSheet({
               // ≥ md: drawer docked a destra, altezza piena. `agro-drawer`: il CSS
               // della mappa sposta i controlli di destra alla sua sinistra
               // (altrimenti restavano sotto il pannello, inutilizzabili).
-              "agro-drawer md:inset-x-auto md:inset-y-0 md:right-0 md:max-h-none md:w-[380px]",
+              "agro-drawer md:inset-x-auto md:inset-y-0 md:right-0 md:max-h-none md:w-[var(--agro-drawer-w,380px)]",
               "md:rounded-none md:rounded-l-[var(--r-3)] md:border-y-0 md:border-r-0",
               // Ridotto all'intestazione (clic sul titolo): si accorcia davvero,
               // invece di restare alto a schermo intero e vuoto.
@@ -151,6 +168,28 @@ export function FieldSheet({
         className,
       )}
     >
+      {/* Maniglia di ridimensionamento (desktop): striscia sul bordo sinistro,
+          si evidenzia al passaggio. */}
+      {resizable && !showCollapsed && (
+        <div
+          {...resize.handleProps}
+          aria-label={t("fieldSheet.resize")}
+          title={t("fieldSheet.resize")}
+          className={cn(
+            "group absolute inset-y-0 -left-1.5 z-10 hidden w-3 cursor-col-resize touch-none md:block",
+            "focus-visible:outline-none",
+          )}
+        >
+          <span
+            className={cn(
+              "absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 transition-colors",
+              resize.dragging
+                ? "bg-[var(--accent)]"
+                : "bg-transparent group-hover:bg-[var(--accent)] group-focus-visible:bg-[var(--accent)]",
+            )}
+          />
+        </div>
+      )}
       <header ref={headerRef} className="shrink-0 border-b border-[var(--line)]">
         {/* Maniglia centrata (telefono): trascina per cambiare altezza o
             chiudere, tocca per salire di un'altezza. */}
@@ -191,13 +230,54 @@ export function FieldSheet({
               {title}
             </h2>
           </button>
+          {/* Desktop: riduci all'intestazione / riapri, come il tocco sul
+              titolo ma visibile. */}
+          {!sheetMode && !wide && (
+            <button
+              type="button"
+              aria-label={collapsed ? t("fieldSheet.expand") : t("fieldSheet.collapse")}
+              title={collapsed ? t("fieldSheet.expand") : t("fieldSheet.collapse")}
+              aria-expanded={!collapsed}
+              onClick={() => setCollapsed((c) => !c)}
+              className="flex h-9 w-9 items-center justify-center rounded-[var(--r-2)] text-[var(--ink-3)] hover:bg-[var(--panel-2)]"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                className={cn("transition-transform", collapsed && "rotate-180")}
+              >
+                <path d="m18 15-6-6-6 6" />
+              </svg>
+            </button>
+          )}
           <button
             type="button"
-            aria-label="Chiudi pannello"
+            aria-label={t("fieldSheet.close")}
+            title={t("fieldSheet.close")}
             onClick={onClose}
-            className="flex min-h-[var(--touch-min)] min-w-[var(--touch-min)] items-center justify-center rounded-[var(--r-2)] text-[var(--ink-3)] active:bg-[var(--panel-2)]"
+            className="flex min-h-[var(--touch-min)] min-w-[var(--touch-min)] items-center justify-center rounded-[var(--r-2)] text-[var(--ink-3)] active:bg-[var(--panel-2)] md:h-9 md:min-h-0 md:w-9 md:min-w-0 md:hover:bg-[var(--panel-2)]"
           >
-            ✕
+            <svg
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
           </button>
         </div>
       </header>

@@ -1,4 +1,5 @@
 import { useAgroStore } from "@agrogea/core";
+import { useEscapeDismiss } from "@agrogea/ui";
 import { cn } from "@geolibre/ui";
 import { Settings, User } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
@@ -27,14 +28,10 @@ export function AccountMenu() {
     const onDown = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    const onEsc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     window.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onEsc);
-    return () => {
-      window.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onEsc);
-    };
+    return () => window.removeEventListener("mousedown", onDown);
   }, [open]);
+  useEscapeDismiss(() => setOpen(false), open);
 
   const openProfile = () => {
     setOpen(false);

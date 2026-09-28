@@ -3,6 +3,7 @@ import {
   type FileFormat,
   useAgroStore,
 } from "@agrogea/core";
+import { useEscapeDismiss } from "@agrogea/ui";
 import { useTenantCountry } from "../hooks/useTenantCountry";
 import {
   DEFAULT_LAYER_STYLE,
@@ -92,14 +93,10 @@ export function AddDataControl({
         setOpen(false);
       }
     };
-    const onEsc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     window.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onEsc);
-    return () => {
-      window.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onEsc);
-    };
+    return () => window.removeEventListener("mousedown", onDown);
   }, [open, inline]);
+  useEscapeDismiss(() => setOpen(false), open && !inline);
 
   /** Legge il file → FeatureCollection (GeoJSON in JS, resto via DuckDB). */
   async function readFeatureCollection(file: File): Promise<FeatureCollection> {

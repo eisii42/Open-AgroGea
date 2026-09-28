@@ -428,7 +428,10 @@ function InspectorTable({
                           onBlur={() => void commit()}
                           onKeyDown={(e) => {
                             if (e.key === "Enter") void commit();
-                            if (e.key === "Escape") setEditing(null);
+                            if (e.key === "Escape") {
+                              e.preventDefault();
+                              setEditing(null);
+                            }
                           }}
                           className="w-full rounded-[var(--r-1)] border border-[var(--accent)] bg-[var(--panel)] px-1 py-0.5 text-[13px] outline-none"
                         />

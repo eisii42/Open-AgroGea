@@ -8,7 +8,7 @@ import {
   Settings,
   X,
 } from "lucide-react";
-import { useBackDismiss, useSheetDrag } from "@agrogea/ui";
+import { useBackDismiss, useEscapeDismiss, useSheetDrag } from "@agrogea/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { WeatherCard } from "../modules/weather/WeatherCard";
@@ -48,12 +48,7 @@ export function MobileAppMenu({
     if (open) setPage("root");
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onEsc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onEsc);
-    return () => window.removeEventListener("keydown", onEsc);
-  }, [open, onClose]);
+  useEscapeDismiss(onClose, open);
 
   // Tasto indietro: da una pagina interna torna all'elenco, dall'elenco chiude.
   useBackDismiss(() => (page !== "root" ? setPage("root") : onClose()), open);

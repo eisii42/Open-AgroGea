@@ -8,7 +8,7 @@
  * il field foto è nascosto e l'osservazione si save senza immagine.
  */
 import { controlPlane, type ScoutingObservation, useAgroStore } from "@agrogea/core";
-import { FieldSheet } from "@agrogea/ui";
+import { FieldSheet, useModalBehavior } from "@agrogea/ui";
 import {
   DEFAULT_LAYER_STYLE,
   type GeoLibreLayer,
@@ -516,6 +516,9 @@ function ScoutingDetailCard({
   onClose: () => void;
   onDelete: () => void | Promise<void>;
 }) {
+  // Stesso modello di tutte le finestre: Esc, focus dentro, focus restituito.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(dialogRef, onClose);
   const { t } = useTranslation();
   return (
     <div
@@ -523,6 +526,9 @@ function ScoutingDetailCard({
       onMouseDown={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
         className="flex max-h-[85dvh] w-full max-w-sm flex-col overflow-hidden rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-pop)]"
         onMouseDown={(e) => e.stopPropagation()}
       >

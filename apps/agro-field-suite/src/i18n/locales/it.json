@@ -2895,5 +2895,23 @@
   },
   "accountMenu": {
     "label": "Account e impostazioni"
+  },
+  "moduleRail": {
+    "soil": "Suolo",
+    "crop": "Coltura",
+    "water": "Acqua",
+    "draw": "Disegno",
+    "tasks": "Attività",
+    "logbook": "Quaderno",
+    "warehouse": "Magazzino",
+    "company": "Azienda",
+    "compliance": "Normativa",
+    "close": "Chiudi elenco"
+  },
+  "fieldSheet": {
+    "close": "Chiudi pannello",
+    "resize": "Trascina per ridimensionare (doppio clic: larghezza standard)",
+    "collapse": "Riduci pannello",
+    "expand": "Espandi pannello"
   }
 }

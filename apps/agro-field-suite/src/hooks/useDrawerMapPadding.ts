@@ -12,6 +12,10 @@ import { type RefObject, useEffect } from "react";
  * "saltare" la vista, nello stesso istante il centro diventa il punto che era
  * già al centro dell'area visibile. Chi guarda non vede nulla muoversi.
  *
+ * Il padding segue anche la larghezza del drawer quando lo si ridimensiona
+ * (ResizeObserver sul drawer corrente, oltre al MutationObserver che ne vede
+ * apertura e chiusura).
+ *
  * Sul telefono i pannelli sono fogli dal basso: nessun padding.
  */
 export function useDrawerMapPadding(
@@ -26,10 +30,17 @@ export function useDrawerMapPadding(
     if (!mapReady || !area || !map) return;
 
     let current = 0;
+    let observed: HTMLElement | null = null;
+    const resizeObserver = new ResizeObserver(() => apply());
     const apply = () => {
       const drawer = enabled
         ? area.querySelector<HTMLElement>(":scope .agro-drawer")
         : null;
+      if (drawer !== observed) {
+        if (observed) resizeObserver.unobserve(observed);
+        if (drawer) resizeObserver.observe(drawer);
+        observed = drawer;
+      }
       const next = drawer ? Math.round(drawer.getBoundingClientRect().width) : 0;
       if (next === current) return;
       const canvas = map.getCanvas();
@@ -51,6 +62,7 @@ export function useDrawerMapPadding(
     observer.observe(area, { childList: true, subtree: true });
     return () => {
       observer.disconnect();
+      resizeObserver.disconnect();
       if (current !== 0) {
         const canvas = map.getCanvas();
         const center = map.unproject([canvas.clientWidth / 2, canvas.clientHeight / 2]);

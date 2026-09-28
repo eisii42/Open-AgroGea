@@ -117,7 +117,6 @@ export function IndexTimeSlider() {
   const platform = usePlatform();
   const timeline = useIndexTimeline();
   const plots = useAgroStore((s) => s.plots);
-  const sidebarCollapsed = useAgroStore((s) => s.sidebarCollapsed);
 
   const [collapsed, setCollapsed] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -295,10 +294,9 @@ export function IndexTimeSlider() {
         // accorcia con lei (agro-index-timeline, index.css).
         platform.isMobile
           ? "bottom-2 left-2 right-2"
-          : cn(
-              "agro-index-timeline bottom-3 right-[13rem]",
-              sidebarCollapsed ? "left-3" : "left-[272px]",
-            ),
+          : // A sinistra parte dopo la navigazione moduli (--agro-rail-w,
+            // FieldDashboard).
+            "agro-index-timeline bottom-3 left-[calc(var(--agro-rail-w,0px)+0.75rem)] right-[13rem]",
       )}
     >
       <div className="pointer-events-auto w-full max-w-3xl rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-pop)]">

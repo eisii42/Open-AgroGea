@@ -7,7 +7,7 @@ import {
   useAgroStore,
   useSettingsStore,
 } from "@agrogea/core";
-import { useBackDismiss } from "@agrogea/ui";
+import { useBackDismiss, useEscapeDismiss } from "@agrogea/ui";
 import { disableGeoEditorModes } from "@geolibre/plugins";
 import { cn } from "@geolibre/ui";
 import {
@@ -38,8 +38,16 @@ import {
   Tractor,
   Warehouse,
   Wheat,
+  X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useReadOnly } from "@agrogea/core";
 import { SianExportDialog } from "../modules/sian/SianExportDialog";
@@ -71,14 +79,23 @@ interface ToolDef {
 interface ModuleDef {
   id: string;
   labelKey: string;
+  /** Etichetta breve sotto l'icona nella barra desktop (una parola). */
+  railLabelKey: string;
   Icon: LucideIcon;
   tools: ToolDef[];
 }
 
 export function ModuleSidebar({
   embedded = false,
+  rail = false,
   onToolSelected,
 }: {
+  /**
+   * Desktop: barra di icone (76 px) con l'elenco degli strumenti a comparsa a
+   * fianco del modulo scelto, invece della lista a fisarmonica da 260 px. La
+   * lista resta disponibile (FieldDashboard, `DESKTOP_MODULE_NAV`).
+   */
+  rail?: boolean;
   /**
    * Chiamato dopo aver attivato uno strumento. Su mobile chiude il BottomSheet
    * "Moduli": altrimenti resta sopra al pannello appena aperto e lo copre, e
@@ -150,6 +167,7 @@ export function ModuleSidebar({
     {
       id: "suolo",
       labelKey: "nav.moduleSoil",
+      railLabelKey: "moduleRail.soil",
       Icon: Sprout,
       tools: [
         // La lista degli elementi tracciati vive QUI e non nel module di
@@ -183,6 +201,7 @@ export function ModuleSidebar({
     {
       id: "coltura",
       labelKey: "nav.moduleCrop",
+      railLabelKey: "moduleRail.crop",
       Icon: Leaf,
       tools: [
         {
@@ -204,6 +223,7 @@ export function ModuleSidebar({
     {
       id: "acqua",
       labelKey: "nav.moduleWater",
+      railLabelKey: "moduleRail.water",
       Icon: Droplets,
       tools: [
         {
@@ -218,6 +238,7 @@ export function ModuleSidebar({
     {
       id: "disegno",
       labelKey: "nav.moduleDraw",
+      railLabelKey: "moduleRail.draw",
       Icon: PencilRuler,
       tools: [
         // Primo della lista perché è il flusso PRINCIPALE: in gran parte
@@ -259,6 +280,7 @@ export function ModuleSidebar({
     {
       id: "tasks",
       labelKey: "nav.moduleTasks",
+      railLabelKey: "moduleRail.tasks",
       Icon: ClipboardList,
       tools: [
         {
@@ -273,6 +295,7 @@ export function ModuleSidebar({
     {
       id: "qdc",
       labelKey: "nav.moduleLogbook",
+      railLabelKey: "moduleRail.logbook",
       Icon: NotebookPen,
       tools: [
         {
@@ -304,6 +327,7 @@ export function ModuleSidebar({
     {
       id: "magazzino",
       labelKey: "nav.moduleWarehouse",
+      railLabelKey: "moduleRail.warehouse",
       Icon: Warehouse,
       tools: [
         {
@@ -325,6 +349,7 @@ export function ModuleSidebar({
     {
       id: "impostazioni",
       labelKey: "nav.moduleSettings",
+      railLabelKey: "moduleRail.company",
       Icon: Settings,
       tools: [
         {
@@ -351,6 +376,7 @@ export function ModuleSidebar({
       // delle origini, che è un'altra cosa (marcare i layer vincolanti).
       id: "normativa",
       labelKey: "nav.moduleCompliance",
+      railLabelKey: "moduleRail.compliance",
       Icon: ScanEye,
       tools: [
         // Una voce per famiglia di schede: l'utente sceglie l'ambito e il
@@ -577,6 +603,26 @@ export function ModuleSidebar({
     );
   }
 
+  if (rail) {
+    return (
+      <ModuleRail
+        modules={moduli
+          .map((mod) => ({
+            mod,
+            tools: mod.tools.filter((tool) => !tool.flag || flags[tool.flag]),
+          }))
+          .filter((m) => m.tools.length > 0)}
+        openModuleId={openModuleId}
+        setOpenModuleId={setOpenModuleId}
+        toolState={toolState}
+        runTool={runTool}
+        moduleBadge={moduleBadge}
+      >
+        <SianExportDialog open={sianOpen} onClose={() => setSianOpen(false)} />
+      </ModuleRail>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -702,6 +748,186 @@ export function ModuleSidebar({
       })}
 
       <SianExportDialog open={sianOpen} onClose={() => setSianOpen(false)} />
+    </div>
+  );
+}
+
+interface RailModule {
+  mod: ModuleDef;
+  tools: ToolDef[];
+}
+
+/**
+ * Barra moduli desktop: una colonna di icone con etichetta breve e, al clic,
+ * l'elenco degli strumenti del modulo in una scheda a comparsa accanto alla
+ * voce (lo stesso "entra nel modulo" della griglia del telefono). La mappa
+ * guadagna i 200 px che la lista a fisarmonica occupava sempre.
+ *
+ * La scheda si chiude scegliendo uno strumento, cliccando fuori, con Esc o
+ * cliccando di nuovo sul modulo. Un modulo con uno strumento attivo (pannello
+ * aperto, disegno in corso) resta evidenziato anche a scheda chiusa.
+ */
+function ModuleRail({
+  modules,
+  openModuleId,
+  setOpenModuleId,
+  toolState,
+  runTool,
+  moduleBadge,
+  children,
+}: {
+  modules: RailModule[];
+  openModuleId: string | null;
+  setOpenModuleId: (id: string | null) => void;
+  toolState: (tool: ToolDef) => {
+    active: boolean;
+    lockedReadOnly: boolean;
+    disabled: boolean;
+  };
+  runTool: (tool: ToolDef) => void;
+  moduleBadge: (id: string) => { count: number; title: string } | null;
+  children?: ReactNode;
+}) {
+  const { t } = useTranslation();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const flyoutRef = useRef<HTMLDivElement>(null);
+  const [anchorTop, setAnchorTop] = useState(0);
+  const [flyoutTop, setFlyoutTop] = useState(0);
+  const current = modules.find((m) => m.mod.id === openModuleId) ?? null;
+  const isOpen = current !== null;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpenModuleId(null);
+    };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [isOpen, setOpenModuleId]);
+  useEscapeDismiss(() => setOpenModuleId(null), isOpen);
+
+  // La scheda parte all'altezza della voce, ma non esce dal fondo della mappa.
+  useLayoutEffect(() => {
+    const flyout = flyoutRef.current;
+    const root = rootRef.current;
+    if (!flyout || !root) return;
+    const maxTop = root.clientHeight - flyout.offsetHeight - 8;
+    setFlyoutTop(Math.max(8, Math.min(anchorTop, maxTop)));
+  }, [anchorTop, openModuleId]);
+
+  return (
+    <div ref={rootRef} className="relative h-full">
+      <nav
+        aria-label={t("nav.modulesHeading")}
+        className="no-scrollbar flex h-full w-[76px] flex-col items-center gap-1 overflow-y-auto border-r border-[var(--line)] bg-[var(--panel)] py-2"
+      >
+        {modules.map(({ mod, tools }) => {
+          const open = mod.id === openModuleId;
+          const active = tools.some((tool) => toolState(tool).active);
+          const badge = moduleBadge(mod.id);
+          return (
+            <button
+              key={mod.id}
+              type="button"
+              title={t(mod.labelKey as never)}
+              aria-expanded={open}
+              aria-haspopup="menu"
+              onClick={(e) => {
+                if (open) {
+                  setOpenModuleId(null);
+                  return;
+                }
+                const nav = e.currentTarget.parentElement;
+                setAnchorTop(e.currentTarget.offsetTop - (nav?.scrollTop ?? 0));
+                setOpenModuleId(mod.id);
+              }}
+              className={cn(
+                "relative flex w-[68px] shrink-0 flex-col items-center gap-1 rounded-[var(--r-2)] px-0.5 py-2 text-center",
+                open || active
+                  ? "bg-[var(--accent-l)] text-[var(--accent)]"
+                  : "text-[var(--ink-3)] hover:bg-[var(--panel-2)] hover:text-[var(--ink-2)]",
+              )}
+            >
+              <mod.Icon size={20} />
+              <span className="w-full truncate text-[11px] font-medium leading-tight">
+                {t(mod.railLabelKey as never)}
+              </span>
+              {badge && (
+                <span
+                  title={badge.title}
+                  className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--warn)] px-1 text-[10px] font-semibold leading-none text-white"
+                >
+                  {badge.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
+      {current && (
+        <div
+          ref={flyoutRef}
+          role="menu"
+          aria-label={t(current.mod.labelKey as never)}
+          style={{ top: flyoutTop }}
+          className="absolute left-[calc(100%+8px)] z-10 flex max-h-[calc(100%-16px)] w-64 flex-col overflow-hidden rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-pop)]"
+        >
+          <div className="flex items-center gap-2 border-b border-[var(--line)] py-1.5 pl-3 pr-1.5">
+            <current.mod.Icon size={16} className="shrink-0 text-[var(--accent)]" />
+            <h2 className="flex-1 truncate text-sm font-semibold text-[var(--ink)]">
+              {t(current.mod.labelKey as never)}
+            </h2>
+            <button
+              type="button"
+              onClick={() => setOpenModuleId(null)}
+              aria-label={t("moduleRail.close")}
+              title={t("moduleRail.close")}
+              className="flex h-7 w-7 items-center justify-center rounded-[var(--r-2)] text-[var(--ink-3)] hover:bg-[var(--panel-2)]"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <div className="flex min-h-0 flex-col gap-0.5 overflow-y-auto p-1.5">
+            {current.tools.map((tool) => {
+              const { active, lockedReadOnly, disabled } = toolState(tool);
+              return (
+                <button
+                  key={tool.id}
+                  type="button"
+                  role="menuitem"
+                  disabled={disabled}
+                  title={
+                    lockedReadOnly ? t("moduleSidebar.readOnlyUnavailable") : undefined
+                  }
+                  onClick={() => runTool(tool)}
+                  className={cn(
+                    "flex min-h-9 items-center gap-2.5 rounded-[var(--r-2)] px-2.5 py-1.5 text-left text-[13px]",
+                    active
+                      ? "bg-[var(--accent-l)] font-medium text-[var(--accent)]"
+                      : "text-[var(--ink-2)] hover:bg-[var(--panel-2)]",
+                    disabled && "cursor-not-allowed opacity-50",
+                  )}
+                >
+                  <tool.Icon size={16} className="shrink-0" />
+                  <span className="flex-1">{t(tool.labelKey as never)}</span>
+                  {tool.action.kind === "soon" && (
+                    <span className="rounded-full bg-[var(--panel-3)] px-1.5 text-[10px] text-[var(--ink-4)]">
+                      {t("nav.soon")}
+                    </span>
+                  )}
+                  {lockedReadOnly && (
+                    <span className="rounded-full bg-[var(--panel-3)] px-1.5 text-[10px] text-[var(--ink-4)]">
+                      {t("moduleSidebar.readOnly")}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {children}
     </div>
   );
 }

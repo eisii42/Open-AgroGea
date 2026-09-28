@@ -128,7 +128,7 @@ export function CropLegend({
   if (entries.length === 0 && uncropped === 0) return null;
 
   return (
-    <div className="pointer-events-auto absolute bottom-10 left-3 z-10 max-w-[200px] rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-1)]">
+    <div className="pointer-events-auto absolute bottom-10 left-[calc(var(--agro-rail-w,0px)+0.75rem)] z-10 max-w-[200px] rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-1)]">
       <button
         type="button"
         onClick={() => setCollapsed((v) => !v)}

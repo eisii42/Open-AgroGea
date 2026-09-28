@@ -203,6 +203,12 @@ select {
     right: 0;
     transition: right 0.2s ease-out;
   }
+  /* I controlli di sinistra (scala in basso, eventuali plugin in alto)
+     partono dopo la navigazione moduli (`--agro-rail-w`, FieldDashboard). */
+  .agro-field-map:not([data-mobile])
+    :is(.maplibregl-ctrl-top-left, .maplibregl-ctrl-bottom-left) {
+    left: var(--agro-rail-w, 0px) !important;
+  }
   .agro-map-area:has(.agro-drawer)
     .agro-field-map:not([data-mobile])
     .maplibregl-ctrl-top-left {

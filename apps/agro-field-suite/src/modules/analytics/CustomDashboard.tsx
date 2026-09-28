@@ -1,7 +1,8 @@
+import { useModalBehavior } from "@agrogea/ui";
 import { cn } from "@geolibre/ui";
 import type { TFunction } from "i18next";
 import { GripVertical, Pencil, Plus, Trash2, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -273,6 +274,9 @@ function ChartEditModal({
   onSave: (chart: CustomChart) => void;
   onClose: () => void;
 }) {
+  // Stesso modello di tutte le finestre: Esc, focus dentro, focus restituito.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(dialogRef, onClose);
   const { t } = useTranslation();
   const [title, setTitle] = useState(initial?.title ?? "");
   const [kind, setKind] = useState<"preset" | "query">(initial?.kind ?? "query");
@@ -367,6 +371,9 @@ function ChartEditModal({
       onMouseDown={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
         className="w-full max-w-sm rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--sh-pop)]"
         onMouseDown={(e) => e.stopPropagation()}
       >
