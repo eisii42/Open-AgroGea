@@ -11,25 +11,23 @@ import {
   Map as MapIcon,
   MoreHorizontal,
   RefreshCw,
-  Settings,
-  Sun,
-  User,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import agrogeaLogo from "../assets/agrogea-logo.png";
 import { usePlatform } from "../hooks/usePlatform";
+import { AccountMenu } from "./AccountMenu";
 import { AddDataControl } from "./AddDataControl";
-import { HelpMenu } from "./help/HelpMenu";
+import { HeaderSearch } from "./HeaderSearch";
 import { useDiagnostics } from "./help/useDiagnostics";
 import { MobileAppMenu } from "./MobileAppMenu";
-import { THEME_OPTIONS } from "./theme-options";
 import { WeatherCard } from "../modules/weather/WeatherCard";
 
 /**
- * Header della suite (Modulo UI §6): logo, switcher company, LED di stato sync
- * (verde/ambra/rosso/grigio sull'outbox PGlite), selettore tema e menu profile.
+ * Header della suite (Modulo UI §6): logo, azienda, campo "Cerca… Ctrl K",
+ * viste, LED di stato sync (verde/ambra/rosso/grigio sull'outbox PGlite),
+ * meteo, Aggiungi dati e menu account (tema, aiuto, profilo).
  * Barra fissa in alto; la mappa vive sotto e non viene mai rimontata.
  */
 
@@ -80,21 +78,11 @@ function syncLed(
   return { color: "var(--ok)", label: t("nav.synced") };
 }
 
-export function AppHeader({
-  onOpenCommandPalette,
-}: {
-  /**
-   * Apre la Command Palette globale (gestita dalla FieldDashboard). Assente nel
-   * Data Command Center, dove la palette mappa-centrica non è available.
-   */
-  onOpenCommandPalette?: () => void;
-}) {
+export function AppHeader() {
   const { t } = useTranslation();
   const companies = useAgroStore((s) => s.companies);
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const sync = useAgroStore((s) => s.sync);
-  const theme = useAgroStore((s) => s.theme);
-  const setTheme = useAgroStore((s) => s.setTheme);
   const togglePanel = useAgroStore((s) => s.togglePanel);
   const activeView = useAgroStore((s) => s.activeView);
   const setActiveView = useAgroStore((s) => s.setActiveView);
@@ -103,31 +91,13 @@ export function AppHeader({
   const company = companies.find((a) => a.id === activeCompanyId);
   const led = syncLed(sync.state, sync.pendingCount, t);
 
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const { isMobile } = usePlatform();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const diagnostics = useDiagnostics();
 
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onDown = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    const onEsc = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
-    window.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onEsc);
-    return () => {
-      window.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onEsc);
-    };
-  }, [menuOpen]);
-
   // Telefono: header essenziale. Le viste passano alla barra in basso
   // (MobileBottomNav), il resto (Aggiungi dati, meteo, tema, aiuto, profilo)
-  // al menu "⋯". Il desktop resta com'è.
+  // al menu "⋯".
   if (isMobile) {
     return (
       // Margine per la barra di stato/notch (Android edge-to-edge, iPhone):
@@ -186,21 +156,22 @@ export function AppHeader({
     );
   }
 
+  // Desktop: logo · azienda · Cerca · viste | sync · meteo · Aggiungi dati ·
+  // account. Il tema, l'aiuto e il profilo stanno nel menu account (come nel
+  // "⋯" del telefono); il Riquadro comandi ha il suo campo "Cerca… Ctrl K".
   return (
-    <header className="flex h-[56px] shrink-0 items-center gap-1.5 border-b border-[var(--line)] bg-[var(--panel)] px-2 sm:gap-3 sm:px-3">
+    <header className="flex h-[56px] shrink-0 items-center gap-2 border-b border-[var(--line)] bg-[var(--panel)] px-3 lg:gap-3">
       {/* Logo + brand */}
       <div className="flex shrink-0 items-center gap-2">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--r-2)] bg-[var(--accent)] text-white">
           <img src={agrogeaLogo} alt="AgroGea" className="h-6 w-6 object-contain" />
         </span>
-        <span className="hidden text-[15px] font-semibold tracking-tight sm:inline">
+        <span className="hidden text-[15px] font-semibold tracking-tight lg:inline">
           AgroGea
         </span>
       </div>
 
-      {/* Indicatore company: una sola company attiva, nessun cambio possibile.
-          Display statico (non più un pulsante): mostra "-" finché il name non è
-          impostato, poi il name dell'azienda. */}
+      {/* Azienda attiva: una sola, nessun cambio possibile (display statico). */}
       <div
         className="flex min-h-[36px] min-w-0 shrink items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] px-2 text-left"
         title={company?.business_name ?? undefined}
@@ -211,27 +182,12 @@ export function AppHeader({
         </span>
       </div>
 
-      {/* Add Data globale (GeoLibre 1.2): ingresso unico dei file esterni.
-          Nascosto sotto sm: sui telefoni la barra si affollava troppo, e
-          l'import dati esterni non è un'azione da field di before necessità. */}
-      {flags.headerAddData && (
-        <div className="hidden shrink-0 sm:block">
-          <AddDataControl />
-        </div>
-      )}
-
-      {/* Scheda meteo: condizioni del giorno + previsione 4 giorni (Open-Meteo).
-          Nascosta sotto sm per lo stesso motivo dell'Add Data. */}
-      {flags.headerMeteoCard && (
-        <div className="hidden shrink-0 sm:block">
-          <WeatherCard />
-        </div>
-      )}
+      <HeaderSearch />
 
       {/* Switcher di vista (Modulo 1): Mappa ↔ Calendario ↔ Data Command
           Center. Cambiare vista nasconde la mappa (keep-alive) ma conserva il
           contesto aziendale. */}
-      <div className="ml-0 flex shrink-0 items-center gap-0.5 rounded-[var(--r-2)] bg-[var(--panel-2)] p-0.5 sm:ml-2">
+      <div className="flex shrink-0 items-center gap-0.5 rounded-[var(--r-2)] bg-[var(--panel-2)] p-0.5">
         {VIEW_OPTIONS.map(({ id, labelKey, titleKey, Icon, color }) => {
           const active = activeView === id;
           return (
@@ -254,21 +210,21 @@ export function AppHeader({
               }
             >
               <Icon size={14} />
-              {/* Etichette solo da 1280 px: sotto l'header sforava (a 1024 il
-                  Profilo usciva dallo schermo); restano icona e tooltip. */}
+              {/* Etichette solo da 1280 px: sotto l'header sforava; restano
+                  icona e tooltip. */}
               <span className="hidden xl:inline">{t(labelKey as never)}</span>
             </button>
           );
         })}
       </div>
 
-      <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-1.5 lg:gap-2">
         {/* LED stato sync → apre la coda di sincronizzazione */}
         {flags.headerSyncLed && (
           <button
             type="button"
             onClick={() => togglePanel("sync")}
-            className="flex items-center gap-1.5 rounded-[var(--r-2)] px-2 py-1.5 hover:bg-[var(--panel-2)]"
+            className="flex h-9 items-center gap-1.5 rounded-[var(--r-2)] px-2 hover:bg-[var(--panel-2)]"
             title={t("nav.syncOpenQueue", { label: led.label })}
           >
             <span
@@ -285,76 +241,13 @@ export function AppHeader({
           </button>
         )}
 
-        {/* Selettore tema: su mobile solo l'icona del tema active (tap = ciclo
-            tra i 3 temi) per non affollare l'header; da sm in su tutti e 3. */}
-        <div className="hidden items-center gap-0.5 rounded-[var(--r-2)] bg-[var(--panel-2)] p-0.5 sm:flex">
-          {THEME_OPTIONS.map(({ id, labelKey, Icon }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setTheme(id)}
-              title={t("nav.themeTooltip", { name: t(labelKey as never) })}
-              className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-[var(--r-1)]",
-                theme === id
-                  ? "bg-[var(--panel)] text-[var(--accent)] shadow-[var(--sh-1)]"
-                  : "text-[var(--ink-3)]",
-              )}
-            >
-              <Icon size={15} />
-            </button>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            const idx = THEME_OPTIONS.findIndex((o) => o.id === theme);
-            setTheme(THEME_OPTIONS[(idx + 1) % THEME_OPTIONS.length].id);
-          }}
-          title={t("nav.themeTooltip", {
-            name: t(THEME_OPTIONS.find((o) => o.id === theme)?.labelKey as never),
-          })}
-          className="flex h-8 w-8 items-center justify-center rounded-[var(--r-2)] bg-[var(--panel-2)] text-[var(--ink-2)] sm:hidden"
-        >
-          {(() => {
-            const ActiveIcon =
-              THEME_OPTIONS.find((o) => o.id === theme)?.Icon ?? Sun;
-            return <ActiveIcon size={15} />;
-          })()}
-        </button>
+        {/* Scheda meteo: condizioni del giorno + previsione (Open-Meteo). */}
+        {flags.headerMeteoCard && <WeatherCard />}
 
-        {/* Menu di Aiuto: Command Palette, scorciatoie, diagnostica, feedback,
-            aggiornamenti, informazioni. Accanto al menu profile. */}
-        <HelpMenu onOpenCommandPalette={onOpenCommandPalette ?? (() => {})} />
+        {/* Add Data globale: ingresso unico dei file esterni. */}
+        {flags.headerAddData && <AddDataControl />}
 
-        {/* Menu profile */}
-        <div className="relative" ref={menuRef}>
-          <button
-            type="button"
-            onClick={() => setMenuOpen((o) => !o)}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--panel-2)] text-[var(--ink-2)] hover:bg-[var(--panel-3)]"
-            title={t("nav.profile")}
-          >
-            <User size={17} />
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 top-11 z-50 w-52 overflow-hidden rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] py-1 shadow-[var(--sh-pop)]">
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  if (!useAgroStore.getState().openPanels.includes("profile")) {
-                    togglePanel("profile");
-                  }
-                }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--panel-2)]"
-              >
-                <Settings size={15} className="text-[var(--ink-3)]" />
-                {t("commandPalette.actions.profileSettings")}
-              </button>
-            </div>
-          )}
-        </div>
+        <AccountMenu />
       </div>
     </header>
   );

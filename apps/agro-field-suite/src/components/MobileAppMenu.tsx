@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { WeatherCard } from "../modules/weather/WeatherCard";
 import { AddDataControl } from "./AddDataControl";
 import { HelpMenu } from "./help/HelpMenu";
-import { THEME_OPTIONS } from "./theme-options";
+import { ThemePicker } from "./ThemePicker";
 
 type MenuPage = "root" | "addData" | "weather";
 
@@ -39,8 +39,6 @@ export function MobileAppMenu({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const theme = useAgroStore((s) => s.theme);
-  const setTheme = useAgroStore((s) => s.setTheme);
   const togglePanel = useAgroStore((s) => s.togglePanel);
   const flags = useSettingsStore((s) => s.dashboardLayout);
   const [page, setPage] = useState<MenuPage>("root");
@@ -180,33 +178,11 @@ export function MobileAppMenu({
             )}
 
             <MenuSection title={t("mobileMenu.theme")}>
-              <div className="grid grid-cols-3 gap-1 rounded-[var(--r-2)] bg-[var(--panel-2)] p-1">
-                {THEME_OPTIONS.map(({ id, labelKey, Icon }) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setTheme(id)}
-                    aria-pressed={theme === id}
-                    className={cn(
-                      "flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-[var(--r-1)] text-[12px] font-medium",
-                      theme === id
-                        ? "bg-[var(--panel)] text-[var(--accent)] shadow-[var(--sh-1)]"
-                        : "text-[var(--ink-3)]",
-                    )}
-                  >
-                    <Icon size={16} />
-                    {t(labelKey as never)}
-                  </button>
-                ))}
-              </div>
+              <ThemePicker />
             </MenuSection>
 
             <MenuSection title={t("help.menu")}>
-              <HelpMenu
-                inline
-                onOpenCommandPalette={() => {}}
-                onItemSelected={onClose}
-              />
+              <HelpMenu onItemSelected={onClose} />
             </MenuSection>
 
             <MenuSection>

@@ -446,13 +446,11 @@
     }
   },
   "nav": {
-    "profile": "Perfil",
     "settings": "Ajustes",
     "logout": "Salir",
     "themeLight": "Claro",
     "themeDark": "Oscuro",
     "themeGreen": "Agronómico",
-    "themeTooltip": "Tema {{name}}",
     "syncError": "Error de sync",
     "syncOffline": "Sin conexión",
     "syncing": "Sincronizando…",
@@ -493,7 +491,6 @@
   },
   "help": {
     "menu": "Ayuda",
-    "commandPalette": "Paleta de comandos",
     "shortcuts": "Atajos de teclado",
     "diagnostics": "Diagnóstico",
     "feedback": "Enviar comentarios",
@@ -2889,5 +2886,12 @@
   },
   "mobileCalendar": {
     "addOperationShort": "Registrar"
+  },
+  "headerSearch": {
+    "label": "Buscar parcelas, módulos y acciones",
+    "placeholder": "Buscar…"
+  },
+  "accountMenu": {
+    "label": "Cuenta y ajustes"
   }
 }

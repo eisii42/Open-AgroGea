@@ -446,13 +446,11 @@
     }
   },
   "nav": {
-    "profile": "Profilo",
     "settings": "Impostazioni",
     "logout": "Esci",
     "themeLight": "Chiaro",
     "themeDark": "Scuro",
     "themeGreen": "Agronomico",
-    "themeTooltip": "Tema {{name}}",
     "syncError": "Errore sync",
     "syncOffline": "Offline",
     "syncing": "Sincronizzazione…",
@@ -493,7 +491,6 @@
   },
   "help": {
     "menu": "Aiuto",
-    "commandPalette": "Riquadro comandi",
     "shortcuts": "Scorciatoie da tastiera",
     "diagnostics": "Diagnostica",
     "feedback": "Invia feedback",
@@ -2889,5 +2886,12 @@
   },
   "mobileCalendar": {
     "addOperationShort": "Registra"
+  },
+  "headerSearch": {
+    "label": "Cerca appezzamenti, moduli e azioni",
+    "placeholder": "Cerca…"
+  },
+  "accountMenu": {
+    "label": "Account e impostazioni"
   }
 }

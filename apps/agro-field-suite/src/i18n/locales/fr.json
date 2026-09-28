@@ -446,13 +446,11 @@
     }
   },
   "nav": {
-    "profile": "Profil",
     "settings": "Paramètres",
     "logout": "Déconnexion",
     "themeLight": "Clair",
     "themeDark": "Sombre",
     "themeGreen": "Agronomique",
-    "themeTooltip": "Thème {{name}}",
     "syncError": "Erreur de synchronisation",
     "syncOffline": "Hors ligne",
     "syncing": "Synchronisation…",
@@ -493,7 +491,6 @@
   },
   "help": {
     "menu": "Aide",
-    "commandPalette": "Palette de commandes",
     "shortcuts": "Raccourcis clavier",
     "diagnostics": "Diagnostic",
     "feedback": "Envoyer un retour",
@@ -2889,5 +2886,12 @@
   },
   "mobileCalendar": {
     "addOperationShort": "Enregistrer"
+  },
+  "headerSearch": {
+    "label": "Rechercher parcelles, modules et actions",
+    "placeholder": "Rechercher…"
+  },
+  "accountMenu": {
+    "label": "Compte et paramètres"
   }
 }

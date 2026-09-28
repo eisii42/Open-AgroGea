@@ -198,7 +198,7 @@ export function WeatherCard({
           className={
             inline
               ? undefined
-              : "absolute left-0 top-11 z-50 w-[300px] overflow-hidden rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--sh-pop)]"
+              : "absolute right-0 top-11 z-50 w-[300px] overflow-hidden rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--sh-pop)]"
           }
         >
           {/* Intestazione: stato + update */}

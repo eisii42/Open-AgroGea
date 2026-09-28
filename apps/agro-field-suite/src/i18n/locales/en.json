@@ -446,13 +446,11 @@
     }
   },
   "nav": {
-    "profile": "Profile",
     "settings": "Settings",
     "logout": "Log out",
     "themeLight": "Light",
     "themeDark": "Dark",
     "themeGreen": "Agronomic",
-    "themeTooltip": "{{name}} theme",
     "syncError": "Sync error",
     "syncOffline": "Offline",
     "syncing": "Syncing…",
@@ -493,7 +491,6 @@
   },
   "help": {
     "menu": "Help",
-    "commandPalette": "Command palette",
     "shortcuts": "Keyboard shortcuts",
     "diagnostics": "Diagnostics",
     "feedback": "Send feedback",
@@ -2889,5 +2886,12 @@
   },
   "mobileCalendar": {
     "addOperationShort": "Record"
+  },
+  "headerSearch": {
+    "label": "Search plots, modules and actions",
+    "placeholder": "Search…"
+  },
+  "accountMenu": {
+    "label": "Account and settings"
   }
 }

@@ -18,6 +18,10 @@ import { CropLegend } from "../modules/crops/CropLegend";
 import { GeometryEditToolbar } from "../components/GeometryEditToolbar";
 import { Colorbar } from "../modules/colorbar/Colorbar";
 import { CommandPalette } from "../modules/command-palette/CommandPalette";
+import {
+  OPEN_COMMAND_PALETTE_EVENT,
+  requestCommandPalette,
+} from "../modules/command-palette/open-command-palette";
 import { MapControls } from "../components/MapControls";
 import { MapSearchControl } from "../components/MapSearchControl";
 import { MobileMapFabs } from "../components/MobileMapFabs";
@@ -227,20 +231,28 @@ export function FieldDashboard() {
   // Undo/Redo geometrie + scorciatoie globali (Ctrl/Cmd+Z, Y).
   const undoRedo = useGeometryUndoRedo();
 
-  // Command Palette globale: Ctrl/Cmd+K apre/chiude. La dashboard resta
-  // montata anche col Command Center in primo piano (keep-alive in App.tsx):
-  // la palette risponde solo quando la vista mappa è quella attiva, altrimenti
-  // si aprirebbe invisibile sotto l'altra vista.
+  // Command Palette globale: Ctrl/Cmd+K apre/chiude, da QUALUNQUE vista. La
+  // dashboard resta montata anche con Calendario o Command Center in primo
+  // piano (keep-alive in App.tsx): da lì si torna sulla mappa e la si apre
+  // (requestCommandPalette), invece di ignorare il tasto. Lo stesso evento lo
+  // lancia il campo "Cerca… Ctrl K" dell'header.
+  const paletteOpenRef = useRef(false);
+  paletteOpenRef.current = paletteOpen;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
-        if (useAgroStore.getState().activeView !== "map") return;
         e.preventDefault();
-        setPaletteOpen((v) => !v);
+        if (paletteOpenRef.current) setPaletteOpen(false);
+        else requestCommandPalette();
       }
     };
+    const onOpenRequest = () => setPaletteOpen(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpenRequest);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpenRequest);
+    };
   }, []);
 
   // Cambio/aggiunta basemap → lo stile MapLibre riparte da zero: questo epoch
@@ -307,7 +319,7 @@ export function FieldDashboard() {
 
   return (
     <div className="flex h-full flex-col">
-      <AppHeader onOpenCommandPalette={() => setPaletteOpen(true)} />
+      <AppHeader />
 
       {readOnly && (
         <div className="flex items-center gap-2 border-b border-[var(--line)] bg-[var(--panel-2)] px-3 py-1.5 text-xs text-[var(--ink-2)]">
