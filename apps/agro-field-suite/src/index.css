@@ -192,21 +192,34 @@ select {
   }
 }
 
-/* Pannello Misura nativo (controllo top-left): toggle nativo nascosto (apertura
-   pilotata dal bottone custom della colonna) e scheda scostata a DESTRA della
-   colonna bottoni così si apre di fianco al suo bottone, senza sovrapporsi e
-   senza finire dietro la barra moduli. L'offset segue lo stato della sidebar
-   (data-sidebar su .agro-field-map): a barra chiusa supera la colonna bottoni, a
-   barra aperta anche i 272px del pannello moduli. */
-.agro-field-map .geolibre-measure-control {
-  position: relative;
-  transition: margin-left 0.3s ease-in-out;
-}
-.agro-field-map[data-sidebar="collapsed"] .geolibre-measure-control {
-  margin-left: 60px;
-}
-.agro-field-map[data-sidebar="open"] .geolibre-measure-control {
-  margin-left: 320px;
+/* Pannello Misura nativo: il vendor lo monta fra i controlli top-left, ma il
+   suo bottone sta nella colonna di destra (DesktopMapTools). Sul desktop il
+   contenitore top-left si allarga a tutta la mappa (resta trasparente ai clic,
+   come tutti i contenitori MapLibre) e la scheda si ancora a DESTRA, a fianco
+   della colonna, come il popover Livelli; col pannello laterale aperto si
+   sposta con la colonna. Sul telefono resta in alto a sinistra (sotto). */
+@media (min-width: 768px) {
+  .agro-field-map:not([data-mobile]) .maplibregl-ctrl-top-left {
+    right: 0;
+    transition: right 0.2s ease-out;
+  }
+  .agro-map-area:has(.agro-drawer)
+    .agro-field-map:not([data-mobile])
+    .maplibregl-ctrl-top-left {
+    right: var(--agro-drawer-w, 380px) !important;
+  }
+  .agro-field-map:not([data-mobile]) .geolibre-measure-control {
+    position: absolute;
+    top: 10px;
+    right: 62px;
+    margin: 0;
+  }
+  /* Il vendor apre la scheda verso destra (classe `right`): qui verso sinistra,
+     dal bordo della colonna. `!important`: il CSS vendor non sta in un layer. */
+  .agro-field-map:not([data-mobile]) .geolibre-measure-control .measure-panel {
+    left: auto !important;
+    right: 0 !important;
+  }
 }
 /* Misura: il toggle nativo si rimuove del tutto (il pannello è ancorato via CSS
    al container, non dipende dal toggle). */
@@ -298,7 +311,8 @@ html.dark .agro-field-map .geolibre-measure-control {
    sola colonna di controlli a destra. Via +/− (si zooma col pizzico), schermo
    intero, terreno 3D e Gestore livelli (sostituito dal foglio Livelli di
    MobileMapTools); la bussola compare solo a mappa ruotata, quando serve a
-   rimettere il nord in alto. Restano Livelli, Misura e Cerca luogo. */
+   rimettere il nord in alto. Restano Livelli, Misura e Cerca luogo. Il
+   bottone del Gestore livelli è nascosto anche sul desktop (vedi sotto). */
 .agro-field-map[data-mobile="true"] .maplibregl-ctrl-zoom-in,
 .agro-field-map[data-mobile="true"] .maplibregl-ctrl-zoom-out,
 .agro-field-map[data-mobile="true"]
@@ -310,9 +324,33 @@ html.dark .agro-field-map .geolibre-measure-control {
 .agro-field-map[data-mobile="true"]
   .maplibregl-ctrl-group:has(> .maplibregl-ctrl-terrain),
 .agro-field-map[data-mobile="true"]
-  .maplibregl-ctrl-group:has(> .maplibregl-ctrl-terrain-enabled),
-.agro-field-map[data-mobile="true"] .maplibregl-ctrl-layer-control {
+  .maplibregl-ctrl-group:has(> .maplibregl-ctrl-terrain-enabled) {
   display: none;
+}
+
+/* Gestore livelli NATIVO: il suo bottone non compare mai. Sul telefono lo
+   sostituisce il foglio Livelli; sul desktop il popover Livelli
+   (DesktopMapTools), che lo apre da "Gestione avanzata". Il controllo resta
+   montato e il suo pannello (appeso al contenitore della mappa, posizionato
+   sotto il bottone) viene ancorato alla colonna dei controlli come il popover:
+   a fianco, allineato in alto, e a sinistra del pannello laterale se aperto.
+   `!important` batte lo stile inline del vendor. */
+.agro-field-map .maplibregl-ctrl-layer-control {
+  display: none;
+}
+@media (min-width: 768px) {
+  .agro-ctrl-popover,
+  .agro-field-map .layer-control-panel {
+    top: 10px !important;
+    right: 62px !important;
+    bottom: auto !important;
+    left: auto !important;
+    transition: right 0.2s ease-out;
+  }
+  .agro-map-area:has(.agro-drawer)
+    :is(.agro-ctrl-popover, .agro-field-map .layer-control-panel) {
+    right: calc(var(--agro-drawer-w, 380px) + 62px) !important;
+  }
 }
 /* Desktop: con un pannello laterale aperto (`agro-drawer`, FieldSheet) i
    controlli di destra della mappa — zoom, bussola, livelli, cerca, posizione,
@@ -333,6 +371,12 @@ html.dark .agro-field-map .geolibre-measure-control {
   }
   .agro-map-area:has(.agro-drawer) .agro-right-overlay {
     right: calc(var(--agro-drawer-w, 380px) + 12px) !important;
+  }
+  .agro-index-timeline {
+    transition: right 0.2s ease-out;
+  }
+  .agro-map-area:has(.agro-drawer) .agro-index-timeline {
+    right: calc(var(--agro-drawer-w, 380px) + 13rem) !important;
   }
 }
 
@@ -383,10 +427,6 @@ html.dark .agro-field-map .geolibre-measure-control {
   display: none;
 }
 
-/* Senza colonna di sinistra il pannello Misura si apre dal bordo. */
-.agro-field-map[data-mobile="true"] .geolibre-measure-control {
-  margin-left: 0;
-}
 
 /* Toolbar del GeoEditor: l'icona SVG dei pulsanti deve riempire il bottone e
    restare centrata (allineato al desktop GeoLibre). Senza queste regole — anche

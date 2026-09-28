@@ -290,10 +290,15 @@ export function IndexTimeSlider() {
         "agro-keep-size pointer-events-none absolute z-30 flex justify-center",
         // Mobile: in fondo alla mappa, a tutta larghezza (la barra di
         // navigazione ora sta sotto la mappa, non sopra). Desktop: allineato
-        // alla colonna dei moduli e libero dalla colorbar (che sta a destra).
+        // alla colonna dei moduli e libero dalla pila in basso a destra
+        // (legende + Rilievo GPS/carburante); col pannello laterale aperto si
+        // accorcia con lei (agro-index-timeline, index.css).
         platform.isMobile
           ? "bottom-2 left-2 right-2"
-          : cn("bottom-3 right-32", sidebarCollapsed ? "left-3" : "left-[272px]"),
+          : cn(
+              "agro-index-timeline bottom-3 right-[13rem]",
+              sidebarCollapsed ? "left-3" : "left-[272px]",
+            ),
       )}
     >
       <div className="pointer-events-auto w-full max-w-3xl rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-pop)]">

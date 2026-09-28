@@ -22,7 +22,7 @@ export interface MapTools {
 /**
  * Strumenti di mappa NATIVI di GeoLibre pilotati dalla colonna AgroGea: il
  * righello (pannello Misura) e l'imagery storica Esri Wayback. Condiviso dalla
- * colonna desktop (`MapControls`) e da quella mobile (`MobileMapTools`): va
+ * colonna desktop (`DesktopMapTools`) e da quella mobile (`MobileMapTools`): va
  * montato in UN solo punto alla volta, perché lo stato di Wayback è locale.
  */
 export function useMapTools(

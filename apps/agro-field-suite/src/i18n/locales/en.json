@@ -1009,7 +1009,6 @@
     }
   },
   "basemapSwitcher": {
-    "basemap": "Basemap",
     "overlay": "Overlay",
     "background": "Basemap background",
     "cadastre": "Cadastre (WMS)",
@@ -1260,7 +1259,8 @@
       "strong": "Read-Only",
       "suffix": " (Viewer role): you can view and export data, but not modify it."
     },
-    "scoutingTitle": "Field survey (GPS Scouting)"
+    "scoutingTitle": "Field survey (GPS Scouting)",
+    "scoutingShort": "GPS scouting"
   },
   "operationForm": {
     "onSurface": "on {{area}} ha",
@@ -2878,7 +2878,9 @@
   "mapLayers": {
     "title": "Layers",
     "dataLayers": "Farm layers",
-    "empty": "No layers to show."
+    "empty": "No layers to show.",
+    "advanced": "Advanced layer management",
+    "close": "Close Layers"
   },
   "plotPeek": {
     "openSheet": "Open plot sheet",

@@ -36,7 +36,7 @@ export interface BasemapControls {
 /**
  * Stato e comandi dello sfondo della mappa: basemap mutuamente esclusivi
  * (stradario · satellite · WMS salvati) e overlay catastale. Condiviso dal
- * selettore desktop (`BasemapSwitcher`) e dal foglio Livelli del telefono
+ * popover Livelli del desktop (`DesktopMapTools`) e dal foglio Livelli del telefono
  * (`MapLayersSheet`): stessa logica, due vesti.
  *
  * La disponibilità di satellite / catasto è governata dai flag del layout

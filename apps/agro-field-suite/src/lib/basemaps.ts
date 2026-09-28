@@ -49,7 +49,7 @@ const ESRI_WORLD_IMAGERY =
  * Imagery. Oltre a questo il servizio risponde con tile vuote/errore su buona
  * parte del territorio, e la vista satellitare "si buca": finché il satellite è
  * active la mappa viene quindi limitata a questo zoom (vedi l'effetto di
- * clamp in `BasemapSwitcher`). Al valore massimo della mappa (24) il limite è
+ * clamp in `useMapZoomLimits`). Al valore massimo della mappa (24) il limite è
  * di fatto disattivato.
  */
 export const SATELLITE_MAX_ZOOM = 18;

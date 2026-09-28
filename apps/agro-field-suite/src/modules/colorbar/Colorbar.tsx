@@ -22,7 +22,7 @@ import { buildColorbar, type ColorbarModel } from "./colorbar-model";
  * RELATIVA al dominio calcolato nella run (`metadata.domain`), così le tacche
  * mostrano il min/max reale dei value invece della scala assoluta 0..1.
  */
-export function Colorbar() {
+export function Colorbar({ stacked = false }: { stacked?: boolean }) {
   const layers = useAppStore((s) => s.layers);
   const platform = usePlatform();
   // Su smartphone il time slider occupa la fascia bassa della mappa: la
@@ -76,12 +76,18 @@ export function Colorbar() {
     <div
       className={cn(
         // agro-keep-size: tacche misurate al pixel, escluse dalla scala mobile.
-        "agro-keep-size pointer-events-none absolute z-30 flex flex-col gap-2",
+        "agro-keep-size pointer-events-none flex flex-col gap-2",
         // Telefono: a sinistra, sopra la scala — a destra ci sono le azioni
-        // rapide (Rilievo GPS). Desktop invariato.
-        platform.isMobile
-          ? cn("left-3", timelineOpen ? "bottom-[8rem]" : "bottom-9")
-          : "agro-right-overlay bottom-10 right-3",
+        // rapide (Rilievo GPS). Desktop: dentro la pila in basso a destra di
+        // FieldDashboard, sopra le azioni rapide di campo (`stacked`).
+        stacked
+          ? "items-end"
+          : cn(
+              "absolute z-30",
+              platform.isMobile
+                ? cn("left-3", timelineOpen ? "bottom-[8rem]" : "bottom-9")
+                : "agro-right-overlay bottom-10 right-3",
+            ),
       )}
     >
       {crops.map((crop) => (

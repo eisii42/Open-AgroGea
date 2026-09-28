@@ -1009,7 +1009,6 @@
     }
   },
   "basemapSwitcher": {
-    "basemap": "Basemap",
     "overlay": "Overlay",
     "background": "Sfondo cartografico",
     "cadastre": "Catasto (WMS)",
@@ -1260,7 +1259,8 @@
       "strong": "Sola Lettura",
       "suffix": " (ruolo Viewer): puoi consultare ed esportare, ma non modificare i dati."
     },
-    "scoutingTitle": "Rilievo in campo (Scouting GPS)"
+    "scoutingTitle": "Rilievo in campo (Scouting GPS)",
+    "scoutingShort": "Rilievo GPS"
   },
   "operationForm": {
     "onSurface": "su {{area}} ha",
@@ -2878,7 +2878,9 @@
   "mapLayers": {
     "title": "Livelli",
     "dataLayers": "Livelli dell'azienda",
-    "empty": "Nessun livello da mostrare."
+    "empty": "Nessun livello da mostrare.",
+    "advanced": "Gestione avanzata livelli",
+    "close": "Chiudi Livelli"
   },
   "plotPeek": {
     "openSheet": "Apri la scheda",

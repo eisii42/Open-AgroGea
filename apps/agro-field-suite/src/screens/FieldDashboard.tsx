@@ -1,19 +1,12 @@
-import { useAgroStore, useSettingsStore } from "@agrogea/core";
+import { useAgroStore } from "@agrogea/core";
 import { MapCanvas, type MapController } from "@geolibre/map";
 import { cn } from "@geolibre/ui";
-import {
-  Fuel,
-  Lock,
-  MapPin,
-  PanelLeftClose,
-  PanelLeftOpen,
-} from "lucide-react";
+import { Lock, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { type ComponentType, lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useGeofenceWatch } from "../modules/field-mode/useGeofenceWatch";
 import { usePlatform } from "../hooks/usePlatform";
 import { AppHeader } from "../components/AppHeader";
-import { BasemapSwitcher } from "../components/BasemapSwitcher";
 import { CropLegend } from "../modules/crops/CropLegend";
 import { GeometryEditToolbar } from "../components/GeometryEditToolbar";
 import { Colorbar } from "../modules/colorbar/Colorbar";
@@ -22,7 +15,8 @@ import {
   OPEN_COMMAND_PALETTE_EVENT,
   requestCommandPalette,
 } from "../modules/command-palette/open-command-palette";
-import { MapControls } from "../components/MapControls";
+import { DesktopMapFabs } from "../components/DesktopMapFabs";
+import { DesktopMapTools } from "../components/DesktopMapTools";
 import { MapSearchControl } from "../components/MapSearchControl";
 import { MobileMapFabs } from "../components/MobileMapFabs";
 import { MobileMapTools } from "../components/MobileMapTools";
@@ -195,11 +189,6 @@ export function FieldDashboard() {
   const readOnly = useReadOnly(activeCompanyId);
   const sidebarCollapsed = useAgroStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useAgroStore((s) => s.toggleSidebar);
-  const openRefillPanel = useAgroStore((s) => s.openRefillPanel);
-  // Accesso rapido al refill a bordo campo (§6.2): il pannello Refill è staccato
-  // dal Magazzino e raggiungibile SOLO da questo FAB, visibile se abilitato in
-  // Impostazioni del profilo.
-  const refillEnabled = useSettingsStore((s) => s.dashboardLayout.panelRefill);
   const pendingGeometry = useAgroStore((s) => s.pendingGeometry);
   const selectedFeature = useAgroStore((s) => s.selectedFeature);
   // Geofencing GPS: rilevamento AUTOMATICO dell'ingresso in un appezzamento.
@@ -336,14 +325,10 @@ export function FieldDashboard() {
         ref={mapAreaRef}
         className="agro-map-area relative min-h-0 flex-1 overflow-hidden"
       >
-        {/* Mappa persistente: mai rimontata, mai ridimensionata dai pannelli.
-            `data-sidebar` permette al CSS di scostare i controlli nativi top-left
-            (es. pannello Misura) a destra della colonna bottoni, così la scheda
-            si apre di fianco al bottone without finire dietro la barra moduli. */}
+        {/* Mappa persistente: mai rimontata, mai ridimensionata dai pannelli. */}
         <div
           ref={mapContainerRef}
           className="agro-field-map absolute inset-0"
-          data-sidebar={sidebarCollapsed ? "collapsed" : "open"}
           // Telefono: il CSS sfoltisce la colonna dei controlli nativi (vedi
           // index.css, sezione "Mappa su telefono").
           data-mobile={platform.isMobile ? "true" : undefined}
@@ -388,9 +373,17 @@ export function FieldDashboard() {
           </div>
         )}
 
+        {/* Desktop: UNA colonna di controlli mappa, a destra, come sul telefono
+            (Livelli · Misura · Wayback in testa, poi zoom, bussola, schermo
+            intero, terreno, posizione, cerca luogo). A sinistra resta solo il
+            comando della barra moduli, più gli strumenti di modifica durante
+            l'editing geometrico. Rilievo GPS e carburante stanno in basso a
+            destra (DesktopMapFabs). */}
         {!platform.isMobile && (
-        /* Colonna fluttuante: toggle sidebar + controlli mappa nativi.
-            La transizione è sulla SOLA posizione: con `transition-all` veniva
+          <DesktopMapTools mapControllerRef={mapControllerRef} />
+        )}
+        {!platform.isMobile && (
+        /* La transizione è sulla SOLA posizione: con `transition-all` veniva
             animata anche la visibility ereditata, e uscendo dalla vista mappa
             (nascosta con visibility:hidden) i bottoni restavano a schermo per
             tutta la durata dell’animazione. */
@@ -416,40 +409,6 @@ export function FieldDashboard() {
               <PanelLeftClose size={18} />
             )}
           </button>
-          <MapControls mapControllerRef={mapControllerRef} />
-          <BasemapSwitcher mapControllerRef={mapControllerRef} />
-          {mapReady && (
-            <button
-              type="button"
-              onClick={() => togglePanel("scouting")}
-              title={t("fieldDashboard.scoutingTitle")}
-              className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-[var(--r-2)] border shadow-[var(--sh-1)]",
-                openPanels.includes("scouting")
-                  ? "border-[var(--accent)] bg-[var(--accent)] text-white"
-                  : "border-[var(--line)] bg-[var(--panel)] text-[var(--ink-2)] hover:bg-[var(--panel-2)]",
-              )}
-            >
-              <MapPin size={18} />
-            </button>
-          )}
-          {/* Accesso rapido al refill carburante a bordo campo (§6.2): apre la
-              sotto-scheda Refill del Magazzino con il form già precompilato. */}
-          {mapReady && refillEnabled && (
-            <button
-              type="button"
-              onClick={() => openRefillPanel({ quickRefill: true })}
-              title={t("machineryRefill.quickAction")}
-              aria-label={t("machineryRefill.quickAction")}
-              className="flex h-10 w-10 items-center justify-center rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] text-[var(--ink-2)] shadow-[var(--sh-1)] hover:bg-[var(--panel-2)]"
-            >
-              <Fuel size={18} />
-            </button>
-          )}
-          {/* Nessun pulsante per il geofencing: il rilevamento è automatico e
-              il GPS "mostrami sulla mappa" è già il controllo nativo in alto a
-              destra. Lo stato del watch è consultabile nel Riquadro
-              Pianificazione Task, non come chrome di mappa. */}
           {/* Strumenti di MODIFICA: compaiono a lato dei moduli solo durante
               l'editing geometrico, con i soli tool di modifica (non di disegno). */}
           <GeometryEditToolbar />
@@ -487,8 +446,9 @@ export function FieldDashboard() {
           <MapTooltip hover={hover} />
         )}
 
-        {/* Legenda a gradiente degli indici: compare con gli overlay attivi. */}
-        <Colorbar />
+        {/* Legenda a gradiente degli indici: compare con gli overlay attivi.
+            Desktop: dentro la pila in basso a destra (sotto). */}
+        {platform.isMobile && <Colorbar />}
 
         {/* Time slider degli indici: compare in basso dopo un calcolo e resta
             navigabile anche a pannello Suolo chiuso. */}
@@ -502,26 +462,31 @@ export function FieldDashboard() {
         )}
 
         {/* Feed attività: tag temporali degli ultimi import/export (FIX 2).
-            Si nasconde quando non c'è nulla da mostrare. */}
-        {/* Su telefono in alto a sinistra: in basso a destra ci sono le azioni
-            rapide, e il feed ci finirebbe sopra. */}
-        <div
-          className={cn(
-            "pointer-events-none absolute z-20 flex max-w-[min(20rem,70vw)] flex-col gap-1",
-            platform.isMobile
-              ? "left-3 top-3 items-start"
-              : "agro-right-overlay bottom-3 right-3 items-end",
-          )}
-        >
-          <TransferTagsFeed
-            limit={3}
-            autoHideMs={10000}
-            className={cn(
-              "flex flex-col gap-1",
-              platform.isMobile ? "items-start" : "items-end",
-            )}
-          />
-        </div>
+            Si nasconde quando non c'è nulla da mostrare. Su telefono in alto a
+            sinistra: in basso a destra ci sono le azioni rapide. */}
+        {platform.isMobile ? (
+          <div className="pointer-events-none absolute left-3 top-3 z-20 flex max-w-[min(20rem,70vw)] flex-col items-start gap-1">
+            <TransferTagsFeed
+              limit={3}
+              autoHideMs={10000}
+              className="flex flex-col items-start gap-1"
+            />
+          </div>
+        ) : (
+          /* Desktop: una sola pila in basso a destra, sopra le attribuzioni —
+             feed attività, legende degli indici, azioni rapide di campo — che
+             si sposta a fianco del pannello laterale quando è aperto
+             (agro-right-overlay, index.css). */
+          <div className="agro-right-overlay pointer-events-none absolute bottom-9 right-3 z-30 flex max-w-[20rem] flex-col items-end gap-2">
+            <TransferTagsFeed
+              limit={3}
+              autoHideMs={10000}
+              className="flex flex-col items-end gap-1"
+            />
+            <Colorbar stacked />
+            {mapReady && <DesktopMapFabs />}
+          </div>
+        )}
 
         {/* Pannelli strumenti (bottom-sheet mobile / drawer desktop). Lazy:
             il fallback è nullo perché sono overlay e il caricamento è breve. */}

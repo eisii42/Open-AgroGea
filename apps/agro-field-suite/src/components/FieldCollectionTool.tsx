@@ -144,7 +144,12 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
         },
       }));
       const fc: FeatureCollection = { type: "FeatureCollection", features };
-      const existing = layers.find((l) => l.id === SCOUTING_LAYER_ID);
+      // Stato CORRENTE dello store, non quello catturato alla creazione della
+      // callback: due caricamenti ravvicinati (apertura del pannello, doppio
+      // effetto) vedevano entrambi "nessun layer" e lo aggiungevano due volte.
+      const existing = useAppStore
+        .getState()
+        .layers.find((l) => l.id === SCOUTING_LAYER_ID);
       if (existing) {
         updateLayer(SCOUTING_LAYER_ID, { geojson: fc });
       } else {
@@ -163,7 +168,7 @@ export function FieldCollectionTool({ onClose, mapControllerRef }: Props) {
         addLayer(layer);
       }
     },
-    [layers, addLayer, updateLayer],
+    [addLayer, updateLayer],
   );
 
   // Click handler tap-mappa. Mentre è armato, segnaliamo allo store la modalità

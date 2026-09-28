@@ -1,10 +1,11 @@
 import type { MapController } from "@geolibre/map";
 import { cn } from "@geolibre/ui";
 import { History, Layers, Ruler } from "lucide-react";
-import { type RefObject, useEffect, useState } from "react";
+import { type RefObject, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useMapTools } from "../hooks/useMapTools";
+import { useTopRightControlGroup } from "../hooks/useTopRightControlGroup";
 import { MapLayersSheet } from "./MapLayersSheet";
 
 /**
@@ -16,8 +17,8 @@ import { MapLayersSheet } from "./MapLayersSheet";
  * quello che resta è un'unica colonna, invece delle due di prima ai lati.
  *
  * Il gruppo è un `maplibregl-ctrl-group` anteposto agli altri, così eredita la
- * veste dei controlli nativi; MapLibre appende in fondo ciò che rimonta, quindi
- * il primo posto resta stabile.
+ * veste dei controlli nativi (vedi `useTopRightControlGroup`). Sul desktop la
+ * stessa colonna la monta `DesktopMapTools`, con Livelli in un popover.
  */
 export function MobileMapTools({
   mapControllerRef,
@@ -26,29 +27,8 @@ export function MobileMapTools({
 }) {
   const { t } = useTranslation();
   const tools = useMapTools(mapControllerRef);
-  const [host, setHost] = useState<HTMLElement | null>(null);
+  const host = useTopRightControlGroup();
   const [layersOpen, setLayersOpen] = useState(false);
-
-  useEffect(() => {
-    const container = document.querySelector<HTMLElement>(
-      ".agro-field-map .maplibregl-ctrl-top-right",
-    );
-    if (!container) return;
-    const group = document.createElement("div");
-    group.className = "maplibregl-ctrl maplibregl-ctrl-group";
-    const place = () => {
-      if (container.firstElementChild !== group) container.prepend(group);
-    };
-    place();
-    setHost(group);
-    const keepFirst = new MutationObserver(place);
-    keepFirst.observe(container, { childList: true });
-    return () => {
-      keepFirst.disconnect();
-      group.remove();
-      setHost(null);
-    };
-  }, []);
 
   return (
     <>

@@ -1009,7 +1009,6 @@
     }
   },
   "basemapSwitcher": {
-    "basemap": "Fond de carte",
     "overlay": "Superposition",
     "background": "Fond cartographique",
     "cadastre": "Cadastre (WMS)",
@@ -1260,7 +1259,8 @@
       "strong": "Lecture Seule",
       "suffix": " (rôle Lecteur) : vous pouvez consulter et exporter les données, mais pas les modifier."
     },
-    "scoutingTitle": "Relevé au champ (Scouting GPS)"
+    "scoutingTitle": "Relevé au champ (Scouting GPS)",
+    "scoutingShort": "Relevé GPS"
   },
   "operationForm": {
     "onSurface": "sur {{area}} ha",
@@ -2878,7 +2878,9 @@
   "mapLayers": {
     "title": "Couches",
     "dataLayers": "Couches de l'exploitation",
-    "empty": "Aucune couche à afficher."
+    "empty": "Aucune couche à afficher.",
+    "advanced": "Gestion avancée des couches",
+    "close": "Fermer Couches"
   },
   "plotPeek": {
     "openSheet": "Ouvrir la fiche",

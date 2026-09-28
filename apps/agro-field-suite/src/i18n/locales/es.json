@@ -1009,7 +1009,6 @@
     }
   },
   "basemapSwitcher": {
-    "basemap": "Mapa base",
     "overlay": "Superposición",
     "background": "Fondo cartográfico",
     "cadastre": "Catastro (WMS)",
@@ -1260,7 +1259,8 @@
       "strong": "Solo Lectura",
       "suffix": " (rol de Visualizador): puedes consultar y exportar, pero no modificar los datos."
     },
-    "scoutingTitle": "Relevamiento en campo (Scouting GPS)"
+    "scoutingTitle": "Relevamiento en campo (Scouting GPS)",
+    "scoutingShort": "Relevamiento GPS"
   },
   "operationForm": {
     "onSurface": "en {{area}} ha",
@@ -2878,7 +2878,9 @@
   "mapLayers": {
     "title": "Capas",
     "dataLayers": "Capas de la explotación",
-    "empty": "No hay capas que mostrar."
+    "empty": "No hay capas que mostrar.",
+    "advanced": "Gestión avanzada de capas",
+    "close": "Cerrar Capas"
   },
   "plotPeek": {
     "openSheet": "Abrir la ficha",
