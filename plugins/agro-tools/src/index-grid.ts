@@ -15,7 +15,7 @@
 import type { Feature, FeatureCollection, Polygon } from "geojson";
 import type { RasterWindow } from "./clip";
 import type { VegetationIndex } from "./indices";
-import { rampForIndex } from "./indices";
+import { isVegetationIndex, rampForIndex } from "./indices";
 import type { ColorRamp } from "./overlay";
 import { utmToLonLat } from "./utm";
 
@@ -90,7 +90,7 @@ export function rasterToIndexCells(
       };
       for (const layer of layers) {
         const v = layer.values[idx];
-        if (Number.isFinite(v)) {
+        if (Number.isFinite(v) && isVegetationIndex(layer.index)) {
           properties[layer.index] = round3(v);
         }
       }

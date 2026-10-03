@@ -207,75 +207,94 @@ pub struct PushResult {
 // Connessione PostgreSQL on-premise (TLS opzionale via sslmode)
 // ---------------------------------------------------------------------------
 
-/// Modalità TLS desunta da `sslmode` nella stringa di connessione.
+/// Modalità TLS desunta da `sslmode` nella stringa di connessione (semantica
+/// libpq).
+#[derive(Debug, PartialEq)]
 enum SslMode {
-    /// Nessun TLS (rete locale/VPN). Default storico se `sslmode` è assente.
+    /// Nessun TLS (`disable`): solo su scelta esplicita.
     Disable,
-    /// Cifra senza verificare il certificato (server privato/self-signed).
+    /// TLS se il server lo offre, altrimenti in chiaro, senza verifica del
+    /// certificato (`prefer`/`allow`; default libpq se `sslmode` è assente).
+    Prefer,
+    /// TLS obbligatorio senza verifica del certificato (`require`: server
+    /// privato/self-signed).
     Require,
-    /// Cifra e verifica il certificato col trust store del sistema operativo.
-    Verify,
+    /// TLS obbligatorio, catena verificata col trust store di sistema, nome host
+    /// non verificato (`verify-ca`).
+    VerifyCa,
+    /// TLS obbligatorio, catena e nome host verificati (`verify-full`).
+    VerifyFull,
 }
 
-fn parse_sslmode(conn: &str) -> SslMode {
-    let lower = conn.to_lowercase();
+/// Legge `sslmode` e restituisce la stringa di connessione con un valore che
+/// tokio-postgres sa interpretare: accetta solo `disable`/`prefer`/`require`,
+/// quindi `allow` diventa `prefer` e `verify-*` diventano `require` (la verifica
+/// la fa il connettore TLS). Un valore sconosciuto resta invariato, così
+/// tokio-postgres lo rifiuta con un errore esplicito invece di ripiegare in
+/// silenzio sul chiaro.
+fn normalize_sslmode(conn: &str) -> (SslMode, String) {
+    // to_ascii_lowercase preserva le posizioni in byte (password non ASCII).
+    let lower = conn.to_ascii_lowercase();
     let Some(idx) = lower.find("sslmode=") else {
-        return SslMode::Disable;
+        return (SslMode::Prefer, conn.to_string());
     };
-    let val = lower[idx + "sslmode=".len()..]
-        .split(|c| c == ' ' || c == '&')
-        .next()
-        .unwrap_or("");
-    match val {
-        "require" | "prefer" | "allow" => SslMode::Require,
-        "verify-ca" | "verify-full" => SslMode::Verify,
-        _ => SslMode::Disable,
-    }
+    let start = idx + "sslmode=".len();
+    let end = lower[start..]
+        .find([' ', '&'])
+        .map_or(conn.len(), |offset| start + offset);
+    let (mode, value) = match &lower[start..end] {
+        "disable" => (SslMode::Disable, "disable"),
+        "allow" | "prefer" => (SslMode::Prefer, "prefer"),
+        "require" => (SslMode::Require, "require"),
+        "verify-ca" => (SslMode::VerifyCa, "require"),
+        "verify-full" => (SslMode::VerifyFull, "require"),
+        _ => return (SslMode::Require, conn.to_string()),
+    };
+    (mode, format!("{}{}{}", &conn[..start], value, &conn[end..]))
 }
 
 /// Apre una connessione al PostgreSQL on-premise scegliendo il TLS in base a
-/// `sslmode`: assente/`disable` → NoTls (LAN/VPN, default storico); `require` →
-/// TLS senza verifica del certificato (server privato/self-signed); `verify-ca`/
-/// `verify-full` → TLS con verifica via trust store di sistema. Avvia il task
-/// della connessione in background e ritorna solo il Client.
+/// `sslmode` (vedi {@link SslMode}). Avvia il task della connessione in
+/// background e ritorna solo il Client.
 async fn connect_pg(conn_string: &str) -> Result<tokio_postgres::Client, String> {
     fn fail(e: tokio_postgres::Error) -> String {
         format!("connessione PostgreSQL on-premise fallita: {e}")
     }
-    match parse_sslmode(conn_string) {
-        SslMode::Disable => {
-            let (client, connection) =
-                tokio_postgres::connect(conn_string, tokio_postgres::NoTls)
-                    .await
-                    .map_err(fail)?;
-            tauri::async_runtime::spawn(async move {
-                if let Err(e) = connection.await {
-                    log::error!("connessione on-premise interrotta: {e}");
-                }
-            });
-            Ok(client)
-        }
-        mode => {
-            let mut builder = native_tls::TlsConnector::builder();
-            if matches!(mode, SslMode::Require) {
-                // Semantica libpq "require": cifra ma non verifica (self-signed).
-                builder.danger_accept_invalid_certs(true);
-                builder.danger_accept_invalid_hostnames(true);
+    let (mode, conn) = normalize_sslmode(conn_string);
+    if mode == SslMode::Disable {
+        let (client, connection) = tokio_postgres::connect(&conn, tokio_postgres::NoTls)
+            .await
+            .map_err(fail)?;
+        tauri::async_runtime::spawn(async move {
+            if let Err(e) = connection.await {
+                log::error!("connessione on-premise interrotta: {e}");
             }
-            let connector = builder
-                .build()
-                .map_err(|e| format!("inizializzazione TLS fallita: {e}"))?;
-            let tls = postgres_native_tls::MakeTlsConnector::new(connector);
-            let (client, connection) =
-                tokio_postgres::connect(conn_string, tls).await.map_err(fail)?;
-            tauri::async_runtime::spawn(async move {
-                if let Err(e) = connection.await {
-                    log::error!("connessione on-premise interrotta: {e}");
-                }
-            });
-            Ok(client)
-        }
+        });
+        return Ok(client);
     }
+    let mut builder = native_tls::TlsConnector::builder();
+    match mode {
+        // Semantica libpq di prefer/require: cifra ma non verifica (self-signed).
+        SslMode::Prefer | SslMode::Require => {
+            builder.danger_accept_invalid_certs(true);
+            builder.danger_accept_invalid_hostnames(true);
+        }
+        SslMode::VerifyCa => {
+            builder.danger_accept_invalid_hostnames(true);
+        }
+        SslMode::VerifyFull | SslMode::Disable => {}
+    }
+    let connector = builder
+        .build()
+        .map_err(|e| format!("inizializzazione TLS fallita: {e}"))?;
+    let tls = postgres_native_tls::MakeTlsConnector::new(connector);
+    let (client, connection) = tokio_postgres::connect(&conn, tls).await.map_err(fail)?;
+    tauri::async_runtime::spawn(async move {
+        if let Err(e) = connection.await {
+            log::error!("connessione on-premise interrotta: {e}");
+        }
+    });
+    Ok(client)
 }
 
 /// Risolve la stringa di connessione dal vault cifrato del profilo. La stringa
@@ -525,20 +544,131 @@ pub async fn agro_pull_mutations(
 // comando recupera il tile lato Rust (nessun vincolo CORS) e ne restituisce i
 // byte grezzi al protocollo MapLibre custom registrato nel frontend
 // (`lib/tauriWmsProtocol.ts`). Solo http(s): nessun accesso a file locali.
+//
+// Il comando è raggiungibile da qualunque codice giri nella WebView: timeout,
+// redirect limitati (e solo verso http(s)) e un tetto ai byte letti impediscono
+// che un URL ostile lo trasformi in un download infinito o in un rimbalzo
+// verso schemi non previsti.
+const TILE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+const TILE_MAX_REDIRECTS: usize = 5;
+const TILE_MAX_BYTES: usize = 16 * 1024 * 1024;
+
+fn tile_client() -> Result<&'static reqwest::Client, String> {
+    static CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
+    if let Some(client) = CLIENT.get() {
+        return Ok(client);
+    }
+    let client = reqwest::Client::builder()
+        .timeout(TILE_TIMEOUT)
+        .redirect(reqwest::redirect::Policy::custom(|attempt| {
+            if attempt.previous().len() >= TILE_MAX_REDIRECTS {
+                attempt.error("troppi redirect")
+            } else if matches!(attempt.url().scheme(), "http" | "https") {
+                attempt.follow()
+            } else {
+                attempt.stop()
+            }
+        }))
+        .build()
+        .map_err(|e| format!("Inizializzazione client tile fallita: {e}"))?;
+    Ok(CLIENT.get_or_init(|| client))
+}
+
 #[tauri::command]
 pub async fn agro_fetch_map_tile(url: String) -> Result<tauri::ipc::Response, String> {
-    if !(url.starts_with("http://") || url.starts_with("https://")) {
+    let parsed = reqwest::Url::parse(&url).map_err(|_| "URL tile non valido.".to_string())?;
+    if !matches!(parsed.scheme(), "http" | "https") {
         return Err("URL tile non valido: ammessi solo http(s).".into());
     }
-    let response = reqwest::get(&url)
+    let mut response = tile_client()?
+        .get(parsed)
+        .send()
         .await
         .map_err(|e| format!("Richiesta tile fallita: {e}"))?;
     if !response.status().is_success() {
         return Err(format!("Tile server ha risposto {}", response.status()));
     }
-    let bytes = response
-        .bytes()
+    if response
+        .content_length()
+        .is_some_and(|declared| declared > TILE_MAX_BYTES as u64)
+    {
+        return Err(format!("Tile troppo grande: il limite è {TILE_MAX_BYTES} byte."));
+    }
+    let mut bytes: Vec<u8> = Vec::new();
+    while let Some(chunk) = response
+        .chunk()
         .await
-        .map_err(|e| format!("Lettura tile fallita: {e}"))?;
-    Ok(tauri::ipc::Response::new(bytes.to_vec()))
+        .map_err(|e| format!("Lettura tile fallita: {e}"))?
+    {
+        if bytes.len() + chunk.len() > TILE_MAX_BYTES {
+            return Err(format!("Tile troppo grande: il limite è {TILE_MAX_BYTES} byte."));
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    Ok(tauri::ipc::Response::new(bytes))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Valore atteso fisso: Argon2id v0x13, m=19 MiB, t=2, p=1, 32 byte (gli
+    /// stessi parametri delle versioni già installate, verificati anche con
+    /// crypto.argon2Sync di Node). Se un aggiornamento di argon2 cambiasse i
+    /// default, i keystore offline esistenti non si aprirebbero più: questo test
+    /// lo impedisce.
+    #[test]
+    fn pin_key_derivation_is_stable() {
+        let key = derive_key("1234", &[7u8; 16]).unwrap();
+        let hex: String = key.iter().map(|b| format!("{b:02x}")).collect();
+        assert_eq!(
+            hex,
+            "ccdba260ebb6d611a0a90347637f612d15d15625b28693b5b0c4ad4942768807"
+        );
+    }
+
+    #[test]
+    fn vault_round_trip_and_wrong_pin() {
+        let vault = seal("host=db password=segreto", "2468").unwrap();
+        assert_eq!(open(&vault, "2468").unwrap(), "host=db password=segreto");
+        assert!(open(&vault, "0000").is_err());
+        let other = seal("host=db password=segreto", "2468").unwrap();
+        assert_ne!(vault.salt, other.salt);
+        assert_ne!(vault.nonce, other.nonce);
+    }
+
+    #[test]
+    fn missing_sslmode_prefers_tls() {
+        let (mode, conn) = normalize_sslmode("host=db user=agro");
+        assert_eq!(mode, SslMode::Prefer);
+        assert_eq!(conn, "host=db user=agro");
+    }
+
+    #[test]
+    fn verify_modes_become_require_for_tokio_postgres() {
+        let (mode, conn) = normalize_sslmode("host=db sslmode=verify-full user=agro");
+        assert_eq!(mode, SslMode::VerifyFull);
+        assert_eq!(conn, "host=db sslmode=require user=agro");
+        let (mode, conn) = normalize_sslmode("postgres://agro@db/farm?sslmode=Verify-CA&application_name=x");
+        assert_eq!(mode, SslMode::VerifyCa);
+        assert_eq!(conn, "postgres://agro@db/farm?sslmode=require&application_name=x");
+    }
+
+    #[test]
+    fn allow_maps_to_prefer_and_disable_stays_plain() {
+        assert_eq!(normalize_sslmode("sslmode=allow").1, "sslmode=prefer");
+        assert_eq!(normalize_sslmode("host=db sslmode=disable").0, SslMode::Disable);
+    }
+
+    #[test]
+    fn non_ascii_password_keeps_byte_offsets() {
+        let (mode, conn) = normalize_sslmode("password=pàssw€rd sslmode=verify-full");
+        assert_eq!(mode, SslMode::VerifyFull);
+        assert_eq!(conn, "password=pàssw€rd sslmode=require");
+    }
+
+    #[test]
+    fn unknown_value_is_left_for_tokio_postgres_to_reject() {
+        assert_eq!(normalize_sslmode("sslmode=bogus").1, "sslmode=bogus");
+    }
 }

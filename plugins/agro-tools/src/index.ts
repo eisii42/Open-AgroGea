@@ -9,6 +9,7 @@ export {
   normalizedDifference,
   coverFraction,
   isSoilIndex,
+  isVegetationIndex,
   NDVI_RAMP,
   NDWI_RAMP,
   NDMI_RAMP,
