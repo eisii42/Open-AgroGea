@@ -17,10 +17,25 @@ updates:
     open-pull-requests-limit: 10
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      - dependency-name: "@electric-sql/pglite"
+      - dependency-name: "@types/node"
+        update-types:
+          - version-update:semver-major
     groups:
       tauri:
         patterns:
           - "@tauri-apps/*"
+      maplibre-ecosystem:
+        patterns:
+          - "maplibre-gl"
+          - "maplibre-gl-*"
+          - "@maplibre/*"
+          - "@deck.gl/*"
+          - "@developmentseed/*"
+          - "@carbonplan/*"
+          - "@geoman-io/*"
+          - "three"
       npm-minor-patch:
         update-types:
           - minor
