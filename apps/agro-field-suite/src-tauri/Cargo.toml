@@ -44,7 +44,7 @@ native-tls = "0.2"
 postgres-native-tls = "0.5"
 uuid = { version = "1", features = ["serde"] }
 # Keystore offline: PIN → Argon2id → AES-256-GCM.
-argon2 = "0.5"
+argon2 = "0.6"
 aes-gcm = "0.10"
 rand = "0.8"
 base64 = "0.22"
