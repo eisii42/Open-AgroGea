@@ -40,6 +40,16 @@ updates:
         update-types:
           - minor
           - patch
+        exclude-patterns:
+          - "@tauri-apps/*"
+          - "maplibre-gl"
+          - "maplibre-gl-*"
+          - "@maplibre/*"
+          - "@deck.gl/*"
+          - "@developmentseed/*"
+          - "@carbonplan/*"
+          - "@geoman-io/*"
+          - "three"
 
   - package-ecosystem: cargo
     directory: "/apps/agro-field-suite/src-tauri"

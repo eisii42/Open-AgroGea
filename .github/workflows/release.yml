@@ -6,10 +6,16 @@ name: release-oss
 # alla Release: l'endpoint dell'updater punta proprio a quel file. Repo PUBBLICO,
 # quindi raw/releases sono raggiungibili senza autenticazione.
 
+# Le note della Release si leggono da docs/releases/<tag>.md (tauri-action v1
+# riscrive titolo e testo di una Release esistente: vanno passati da qui).
+
 on:
   push:
     tags:
       - "v*"
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -24,7 +30,26 @@ jobs:
           node-version: 22
 
       - name: Set version from git tag
-        run: node scripts/set-version.mjs "${{ github.ref_name }}"
+        env:
+          TAG: ${{ github.ref_name }}
+        run: node scripts/set-version.mjs "$env:TAG"
+
+      - name: Release notes
+        id: notes
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          notes="docs/releases/${TAG}.md"
+          {
+            echo "body<<AGROGEA_RELEASE_NOTES"
+            if [ -f "$notes" ]; then
+              cat "$notes"
+            else
+              echo "Aggiornamento automatico. Vedi il changelog nel banner dell'app."
+            fi
+            echo "AGROGEA_RELEASE_NOTES"
+          } >> "$GITHUB_OUTPUT"
 
       - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
 
@@ -39,6 +64,6 @@ jobs:
           projectPath: apps/agro-field-suite
           tagName: ${{ github.ref_name }}
           releaseName: "AgroGea ${{ github.ref_name }}"
-          releaseBody: "Aggiornamento automatico. Vedi il changelog nel banner dell'app."
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false
