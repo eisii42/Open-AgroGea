@@ -5,6 +5,9 @@
  * La cattura dell'immagine mappa e l'export PNG/PDF avvengono nel pannello.
  */
 import type { GeoLibreLayer } from "@geolibre/core";
+import { escapeMarkup } from "../../lib/escape-markup";
+
+export { escapeMarkup };
 
 export interface LegendItem {
   id: string;
@@ -56,15 +59,6 @@ export interface PrintOptions {
   mappaDataUrl?: string | null;
   larghezza?: number;
   altezza?: number;
-}
-
-/** Escape per testo inserito in markup SVG/HTML (testo e attributi tra doppi apici). */
-export function escapeMarkup(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
 }
 
 /** Compone il layout di stampa come stringa SVG (vettoriale, A4 orizzontale). */

@@ -2,6 +2,7 @@ import { useAppStore } from "@geolibre/core";
 import { type MapController, sourceId } from "@geolibre/map";
 import type maplibregl from "maplibre-gl";
 import { type RefObject, useEffect } from "react";
+import { escapeMarkup, sanitizeAttribution } from "../lib/escape-markup";
 
 /**
  * Porta nella barra delle attribuzioni della mappa (la "i" in basso a destra)
@@ -35,18 +36,27 @@ export function useLayerAttributions(
         .getState()
         .layers.find((l) => sourceId(l.id) === id);
       const attribution = layer?.source.attribution;
+      // Le attribuzioni dei nostri layer sono solo testo (quelle WMS arrivano
+      // dal GetCapabilities di server esterni): escape completo.
       return typeof attribution === "string" && attribution.trim()
-        ? attribution.trim()
+        ? escapeMarkup(attribution.trim())
         : null;
     };
 
+    // MapLibre 5.x inserisce l'attribuzione come HTML con un sanitizer
+    // aggirabile (CVE-2026-85061): OGNI sorgente, anche quelle degli stili
+    // remoti e dei plugin, passa da qui ridotta a testo + link http(s).
     const apply = (id: string) => {
-      const attribution = attributionFor(id);
-      if (!attribution) return;
       const source = map.getSource(id) as
         | (maplibregl.Source & { attribution?: string })
         | undefined;
-      if (source && source.attribution !== attribution) {
+      if (!source) return;
+      const attribution =
+        attributionFor(id) ??
+        (typeof source.attribution === "string"
+          ? sanitizeAttribution(source.attribution)
+          : null);
+      if (attribution !== null && source.attribution !== attribution) {
         source.attribution = attribution;
       }
     };

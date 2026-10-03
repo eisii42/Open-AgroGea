@@ -50,6 +50,20 @@ export function isSoilIndex(index: string): index is SoilIndex {
   return SOIL_INDICES.has(index);
 }
 
+const VEGETATION_INDICES: ReadonlySet<string> = new Set<string>([
+  ...Object.keys(REQUIRED_BANDS),
+  ...Object.keys(SOIL_BANDS),
+]);
+
+/**
+ * True se il valore è un indice noto. Barriera per i dati che attraversano un
+ * confine (messaggi dei Web Worker, cache): il nome dell'indice diventa una
+ * chiave di oggetto, quindi niente "__proto__" o chiavi arbitrarie.
+ */
+export function isVegetationIndex(value: unknown): value is VegetationIndex {
+  return typeof value === "string" && VEGETATION_INDICES.has(value);
+}
+
 export interface IndexStats {
   media: number;
   min: number;

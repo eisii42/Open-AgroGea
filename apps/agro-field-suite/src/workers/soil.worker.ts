@@ -15,6 +15,7 @@ import {
   type IndicesScene,
   SENTINEL2_COLLECTION,
   indexStatistics,
+  isVegetationIndex,
   type SasToken,
   planetaryComputerToken,
 } from "@agrogea/tools";
@@ -333,6 +334,9 @@ async function elaboraScena(
   const layers: IndexLayerRaster[] = [];
 
   for (const index of job.indices) {
+    // Il nome arriva da un messaggio e diventa chiave di `medie`: solo indici
+    // noti.
+    if (!isVegetationIndex(index)) continue;
     const valori = computeIndex(index, bande, { L: job.L });
     const { masked } = clipRasterToPolygon(valori, ref, job.geometria);
     const stats = indexStatistics(masked);
@@ -396,6 +400,9 @@ function cellsFromEncoded(job: IndexCellsJob): IndexCellsResult {
 ctx.addEventListener(
   "message",
   async (event: MessageEvent<SoilJob | IndexCellsJob>) => {
+    // Worker dedicato: i messaggi arrivano solo dalla pagina che l'ha creato
+    // (origin vuota o uguale alla nostra). Qualsiasi altra origine si scarta.
+    if (event.origin !== "" && event.origin !== ctx.location.origin) return;
     const job = event.data;
 
     if (job?.type === "index-cells") {
