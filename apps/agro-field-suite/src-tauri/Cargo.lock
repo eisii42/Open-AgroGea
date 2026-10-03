@@ -109,7 +109,6 @@ dependencies = [
  "log",
  "native-tls",
  "postgres-native-tls",
- "rand",
  "reqwest",
  "serde",
  "serde_json",

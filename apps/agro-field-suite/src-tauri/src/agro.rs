@@ -14,7 +14,7 @@ use aes_gcm::{AeadCore, Aes256Gcm, Key, Nonce};
 use argon2::Argon2;
 use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine;
-use rand::RngCore;
+use aes_gcm::aead::rand_core::RngCore;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
