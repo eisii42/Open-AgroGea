@@ -1,0 +1,68 @@
+name: dast
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dast-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  zap-baseline:
+    name: ZAP baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      APP_PORT: "4173"
+      APP_URL: http://127.0.0.1:4173
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm install --legacy-peer-deps
+
+      - name: Build (standalone)
+        run: npm run build:standalone
+
+      - name: Start app (vite preview)
+        run: |
+          nohup npm run preview -w agro-field-suite -- \
+            --host 127.0.0.1 --port "$APP_PORT" --strictPort \
+            > "$RUNNER_TEMP/preview.log" 2>&1 &
+
+      - name: Health check
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl -fsS -o /dev/null --max-time 5 "$APP_URL/"; then
+              echo "App pronta dopo ${attempt} tentativi."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::L'app non risponde su $APP_URL entro 120 s."
+          cat "$RUNNER_TEMP/preview.log"
+          exit 1
+
+      - name: ZAP baseline scan
+        uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25
+        with:
+          target: ${{ env.APP_URL }}/
+          rules_file_name: .zap/rules.tsv
+          cmd_options: "-I -c .zap/rules.tsv"
+          fail_action: true
+          allow_issue_writing: false
+          artifact_name: zap-baseline-report
+
+      - name: Preview server log
+        if: failure()
+        run: cat "$RUNNER_TEMP/preview.log"
