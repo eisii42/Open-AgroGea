@@ -2920,5 +2920,25 @@
     "collapse": "Contraer panel",
     "expand": "Expandir panel",
     "loading": "Cargando…"
+  },
+  "attentionCenter": {
+    "title": "Pendiente",
+    "openWithCount_one": "Pendiente: {{count}} elemento",
+    "openWithCount_other": "Pendiente: {{count}} elementos",
+    "hint": "Toca un elemento para ir donde se resuelve: desaparece cuando el dato está en orden.",
+    "allClear": "Todo en orden",
+    "allClearHint": "Sin datos faltantes ni vencimientos próximos.",
+    "group": {
+      "records": "Registros incompletos",
+      "declarative": "Datos de campaña",
+      "warehouse": "Almacén",
+      "machinery": "Parque de maquinaria",
+      "soil": "Datos del suelo"
+    },
+    "showAll": "Mostrar todos ({{count}})",
+    "showLess": "Mostrar menos",
+    "unknownProduct": "Producto",
+    "lotExpired": "Lote vencido el {{date}}",
+    "lotExpiring": "Lote que vence el {{date}}"
   }
 }

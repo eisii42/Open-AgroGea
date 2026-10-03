@@ -1,6 +1,7 @@
 import { centroid, useAgroStore } from "@agrogea/core";
 import { useEscapeDismiss } from "@agrogea/ui";
 import { BottomSheet } from "../../components/BottomSheet";
+import { SheetPortal } from "../../components/SheetPortal";
 import { cn } from "@geolibre/ui";
 import {
   CloudSun,
@@ -12,14 +13,12 @@ import {
   Wind,
 } from "lucide-react";
 import {
-  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { openExternal } from "../../components/help/helpActions";
 import {
@@ -73,19 +72,6 @@ function useCompanyCoordinates(): WeatherLocation | null {
 }
 
 const OPEN_METEO_URL = "https://open-meteo.com/";
-
-/**
- * Foglio del telefono aperto dall'header: si monta nell'area sopra la barra in
- * basso (`#agro-sheet-host`, App.tsx), come il foglio Moduli. Dentro l'header
- * resterebbe coperto dalla barra.
- */
-function SheetPortal({ children }: { children: ReactNode }) {
-  const host =
-    typeof document === "undefined"
-      ? null
-      : (document.getElementById("agro-sheet-host") ?? document.body);
-  return host ? createPortal(children, host) : null;
-}
 
 /** Coordinata in gradi decimali con emisfero (4 decimali ≈ 11 m). */
 function formatCoordinate(value: number, positive: string, negative: string): string {

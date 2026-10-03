@@ -2920,5 +2920,25 @@
     "collapse": "Riduci pannello",
     "expand": "Espandi pannello",
     "loading": "Caricamento…"
+  },
+  "attentionCenter": {
+    "title": "Da risolvere",
+    "openWithCount_one": "Da risolvere: {{count}} voce",
+    "openWithCount_other": "Da risolvere: {{count}} voci",
+    "hint": "Tocca una voce per andare dove si sistema: sparisce da sola quando il dato è a posto.",
+    "allClear": "Tutto in ordine",
+    "allClearHint": "Nessun dato mancante, nessuna scadenza in arrivo.",
+    "group": {
+      "records": "Record incompleti",
+      "declarative": "Dati di campagna",
+      "warehouse": "Magazzino",
+      "machinery": "Parco macchine",
+      "soil": "Dati del suolo"
+    },
+    "showAll": "Mostra tutte ({{count}})",
+    "showLess": "Mostra meno",
+    "unknownProduct": "Prodotto",
+    "lotExpired": "Lotto scaduto il {{date}}",
+    "lotExpiring": "Lotto in scadenza il {{date}}"
   }
 }

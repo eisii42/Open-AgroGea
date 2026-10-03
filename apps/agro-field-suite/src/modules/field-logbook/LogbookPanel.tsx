@@ -77,6 +77,8 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   );
   const consumeLogbookOpen = useAgroStore((s) => s.consumeLogbookOpen);
   const logbookScopeToken = useAgroStore((s) => s.logbookScopeToken);
+  const logbookEditOperationId = useAgroStore((s) => s.logbookEditOperationId);
+  const consumeLogbookEdit = useAgroStore((s) => s.consumeLogbookEdit);
   const mapOperationIds = useAgroStore((s) => s.mapOperationIds);
   const setMapOperationIds = useAgroStore((s) => s.setMapOperationIds);
 
@@ -224,6 +226,17 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     setFormType(null);
     setChooser(false);
   }, [logbookScopeToken]);
+
+  // Apertura di un'operazione già in modifica (centro "Da risolvere"): il form
+  // parte precompilato, l'utente completa i dati mancanti e salva.
+  useEffect(() => {
+    if (!logbookEditOperationId) return;
+    const op = treatments.find((x) => x.id === logbookEditOperationId);
+    if (op) editOperation(op);
+    consumeLogbookEdit();
+    // Solo alla richiesta: non deve ripartire a ogni cambio del registro.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logbookEditOperationId]);
 
   // Con `scarichi` valorizzato l'attività download i lots di warehouse nella
   // stessa transazione: un errore (stock/lot scaduto) risale al form, che

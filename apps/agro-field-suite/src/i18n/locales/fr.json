@@ -2920,5 +2920,25 @@
     "collapse": "Réduire le panneau",
     "expand": "Développer le panneau",
     "loading": "Chargement…"
+  },
+  "attentionCenter": {
+    "title": "À régler",
+    "openWithCount_one": "À régler : {{count}} élément",
+    "openWithCount_other": "À régler : {{count}} éléments",
+    "hint": "Touchez un élément pour aller là où il se règle : il disparaît dès que la donnée est en place.",
+    "allClear": "Tout est en ordre",
+    "allClearHint": "Aucune donnée manquante, aucune échéance proche.",
+    "group": {
+      "records": "Enregistrements incomplets",
+      "declarative": "Données de campagne",
+      "warehouse": "Stock",
+      "machinery": "Parc de machines",
+      "soil": "Données du sol"
+    },
+    "showAll": "Tout afficher ({{count}})",
+    "showLess": "Afficher moins",
+    "unknownProduct": "Produit",
+    "lotExpired": "Lot expiré le {{date}}",
+    "lotExpiring": "Lot expirant le {{date}}"
   }
 }

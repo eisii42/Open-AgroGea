@@ -15,13 +15,13 @@ import {
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import agrogeaLogo from "../assets/agrogea-logo.png";
 import { usePlatform } from "../hooks/usePlatform";
 import { AccountMenu } from "./AccountMenu";
 import { AddDataControl } from "./AddDataControl";
 import { HeaderSearch } from "./HeaderSearch";
 import { useDiagnostics } from "./help/useDiagnostics";
 import { MobileAppMenu } from "./MobileAppMenu";
+import { AttentionCenter } from "../modules/attention/AttentionCenter";
 import { WeatherCard } from "../modules/weather/WeatherCard";
 
 /**
@@ -103,9 +103,8 @@ export function AppHeader() {
       // Margine per la barra di stato/notch (Android edge-to-edge, iPhone):
       // con viewport-fit=cover l'header vi sale sotto; altrove vale 0.
       <header className="flex h-[calc(56px+env(safe-area-inset-top))] shrink-0 items-center gap-2 border-b border-[var(--line)] bg-[var(--panel)] pl-3 pr-1 pt-[env(safe-area-inset-top)]">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--r-2)] bg-[var(--accent)] text-white">
-          <img src={agrogeaLogo} alt="AgroGea" className="h-6 w-6 object-contain" />
-        </span>
+        {/* Logo = centro "Da risolvere" (badge con le voci aperte). */}
+        <AttentionCenter mobile />
         <div
           className="flex min-w-0 flex-1 items-center gap-1.5"
           title={company?.business_name ?? undefined}
@@ -163,14 +162,8 @@ export function AppHeader() {
   return (
     <header className="flex h-[56px] shrink-0 items-center gap-2 border-b border-[var(--line)] bg-[var(--panel)] px-3 lg:gap-3">
       {/* Logo + brand */}
-      <div className="flex shrink-0 items-center gap-2">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--r-2)] bg-[var(--accent)] text-white">
-          <img src={agrogeaLogo} alt="AgroGea" className="h-6 w-6 object-contain" />
-        </span>
-        <span className="hidden text-[15px] font-semibold tracking-tight lg:inline">
-          AgroGea
-        </span>
-      </div>
+      {/* Logo = centro "Da risolvere": dati mancanti, scadenze, lotti… */}
+      <AttentionCenter />
 
       {/* Azienda attiva: una sola, nessun cambio possibile (display statico). */}
       <div

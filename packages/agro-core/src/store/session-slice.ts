@@ -113,6 +113,7 @@ export function createSessionSlice(
         geometryUndo: [],
         geometryRedo: [],
         logbookOpenPlotId: null,
+        logbookEditOperationId: null,
         mapOperationIds: null,
         mapHarvestIds: null,
       });

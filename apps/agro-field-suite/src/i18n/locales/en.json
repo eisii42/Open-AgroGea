@@ -2920,5 +2920,25 @@
     "collapse": "Collapse panel",
     "expand": "Expand panel",
     "loading": "Loading…"
+  },
+  "attentionCenter": {
+    "title": "To do",
+    "openWithCount_one": "To do: {{count}} item",
+    "openWithCount_other": "To do: {{count}} items",
+    "hint": "Tap an item to go where it gets fixed: it disappears once the data is in place.",
+    "allClear": "All clear",
+    "allClearHint": "No missing data, nothing about to expire.",
+    "group": {
+      "records": "Incomplete records",
+      "declarative": "Campaign data",
+      "warehouse": "Warehouse",
+      "machinery": "Machinery",
+      "soil": "Soil data"
+    },
+    "showAll": "Show all ({{count}})",
+    "showLess": "Show less",
+    "unknownProduct": "Product",
+    "lotExpired": "Lot expired on {{date}}",
+    "lotExpiring": "Lot expiring on {{date}}"
   }
 }
