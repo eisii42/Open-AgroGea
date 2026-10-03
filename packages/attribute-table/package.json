@@ -14,7 +14,7 @@
     "@geolibre/plugins": "*",
     "@geolibre/ui": "*",
     "@tanstack/react-virtual": "^3.14.2",
-    "lucide-react": "^1.17.0",
+    "lucide-react": "^1.49.0",
     "react": "^19.2.7"
   },
   "devDependencies": {
