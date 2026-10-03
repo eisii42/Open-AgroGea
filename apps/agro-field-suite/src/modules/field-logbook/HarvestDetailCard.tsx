@@ -5,8 +5,9 @@
  * su una voce della lista del registro harvests.
  */
 import type { Harvest } from "@agrogea/core";
+import { useModalBehavior } from "@agrogea/ui";
 import { Trash2, Wheat, X } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 function longDate(value: string | Date): string {
@@ -36,6 +37,9 @@ export function HarvestDetailCard({
    */
   onDelete?: () => void | Promise<void>;
 }) {
+  // Stesso modello di tutte le finestre: Esc, focus dentro, focus restituito.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(dialogRef, onClose);
   const { t } = useTranslation();
   const r = harvest;
   const quantity =
@@ -53,6 +57,9 @@ export function HarvestDetailCard({
       onMouseDown={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
         className="flex max-h-[85dvh] w-full max-w-md flex-col overflow-hidden rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-pop)]"
         onMouseDown={(e) => e.stopPropagation()}
       >

@@ -4,6 +4,8 @@ import {
   type IssueRequest,
   type MachineUsageRequest,
   declarativeSystem,
+  evaluateLogCompleteness,
+  toIsoString,
   type OperationType,
   useAgroStore,
 } from "@agrogea/core";
@@ -13,11 +15,13 @@ import {
   type TreatmentFormValues,
 } from "@agrogea/ui";
 import { Button, cn, Input, Label, Select } from "@geolibre/ui";
-import { Copy, MapPin, MapPinOff, Trash2 } from "lucide-react";
+import { AlertTriangle, MapPin, MapPinOff, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useGeoCompliance } from "../compliance/useGeoCompliance";
 import { useCountryCatalog } from "../../hooks/useTenantCountry";
+import { completenessFieldLabel } from "../tasks/task-completeness-view";
+import { taskOperationLabel } from "../tasks/TaskForm";
 import { ConfirmDeleteOperation } from "./ConfirmDeleteOperation";
 import { OperationDetailCard } from "./OperationDetailCard";
 import {
@@ -44,7 +48,7 @@ const TYPE_COLOR: Record<string, string> = {
  * del popup del field (store: quadernoNuovoAppezzamentoId).
  */
 export function LogbookPanel({ onClose }: { onClose: () => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const treatments = useAgroStore((s) => s.treatments);
   const plots = useAgroStore((s) => s.plots);
   const campaignFields = useAgroStore((s) => s.campaignFields);
@@ -61,6 +65,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   const equipment = useAgroStore((s) => s.equipment);
   const sync = useAgroStore((s) => s.sync);
   const recordTreatment = useAgroStore((s) => s.recordTreatment);
+  const updateTreatment = useAgroStore((s) => s.updateTreatment);
   const saveSoilSample = useAgroStore((s) => s.saveSoilSample);
   const deleteTreatment = useAgroStore((s) => s.deleteTreatment);
   // Automazione v17: semina con semente → scheda crop + campagna agraria.
@@ -72,6 +77,8 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   );
   const consumeLogbookOpen = useAgroStore((s) => s.consumeLogbookOpen);
   const logbookScopeToken = useAgroStore((s) => s.logbookScopeToken);
+  const logbookEditOperationId = useAgroStore((s) => s.logbookEditOperationId);
+  const consumeLogbookEdit = useAgroStore((s) => s.consumeLogbookEdit);
   const mapOperationIds = useAgroStore((s) => s.mapOperationIds);
   const setMapOperationIds = useAgroStore((s) => s.setMapOperationIds);
 
@@ -123,6 +130,31 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     setChooser(false);
   }
 
+  // Correzione di un'operazione registrata: stesso form, precompilato con
+  // TUTTI i dati del record (data compresa); al salvataggio si aggiorna la
+  // riga esistente invece di crearne una nuova (`handleSubmit`).
+  const [editing, setEditing] = useState<TreatmentLog | null>(null);
+  const [formDate, setFormDate] = useState<string | undefined>(undefined);
+
+  function editOperation(op: TreatmentLog) {
+    repeatOperation(op);
+    setFormDefaults((d) => ({
+      ...d,
+      note: op.note,
+      weather_conditions: op.weather_conditions,
+    }));
+    setFormDate(toIsoString(op.executed_at)?.slice(0, 10));
+    setEditing(op);
+  }
+
+  function closeForm() {
+    setFormType(null);
+    setFormDefaultAppId("");
+    setFormDefaults(null);
+    setFormDate(undefined);
+    setEditing(null);
+  }
+
   // "Ripeti operazione" (v17): riapre il form del tipo giusto precompilato dal
   // record esistente; la data resta oggi e gli issues si riscelgono sui
   // lots attuali del warehouse.
@@ -152,6 +184,8 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     setFormNonce((n) => n + 1);
     setChooser(false);
     setDetail(null);
+    setFormDate(undefined);
+    setEditing(null);
   }
 
   // Cancellazione protetta: operation in attesa di confirm + notifica esito.
@@ -193,6 +227,17 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     setChooser(false);
   }, [logbookScopeToken]);
 
+  // Apertura di un'operazione già in modifica (centro "Da risolvere"): il form
+  // parte precompilato, l'utente completa i dati mancanti e salva.
+  useEffect(() => {
+    if (!logbookEditOperationId) return;
+    const op = treatments.find((x) => x.id === logbookEditOperationId);
+    if (op) editOperation(op);
+    consumeLogbookEdit();
+    // Solo alla richiesta: non deve ripartire a ogni cambio del registro.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logbookEditOperationId]);
+
   // Con `scarichi` valorizzato l'attività download i lots di warehouse nella
   // stessa transazione: un errore (stock/lot scaduto) risale al form, che
   // resta aperto e mostra il messaggio. `assegnazione` (semina di una semente
@@ -203,6 +248,18 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     assegnazione?: CropAssignment | null,
     machineUsages?: MachineUsageRequest[],
   ) {
+    // Correzione: si aggiorna la riga esistente. Niente scarichi né ore
+    // macchina (applicati alla registrazione), niente nuova coltura.
+    if (editing) {
+      const updated = await updateTreatment(editing.id, values);
+      closeForm();
+      if (updated) {
+        setNotification(
+          t("logbookPanel.notification.updated", { label: operationLabel(updated) }),
+        );
+      }
+      return;
+    }
     await recordTreatment(values, issues, machineUsages);
     if (assegnazione) {
       const crop = await saveCrop({
@@ -229,9 +286,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
         });
       }
     }
-    setFormType(null);
-    setFormDefaultAppId("");
-    setFormDefaults(null);
+    closeForm();
   }
 
   // Campionamento di soil: scrive sulla tabella dedicata `soil_samples`.
@@ -239,9 +294,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
     input: Parameters<typeof saveSoilSample>[0],
   ) {
     await saveSoilSample(input);
-    setFormType(null);
-    setFormDefaultAppId("");
-    setFormDefaults(null);
+    closeForm();
   }
 
   // Notifica transitoria (auto-dismiss dopo l'avvenuta rimozione).
@@ -252,9 +305,16 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   }, [notification]);
 
   /** Etichetta sintetica dell'operazione, per il banner di confirm. */
-  function operationLabel(t: TreatmentLog): string {
-    const data = new Date(t.executed_at).toLocaleDateString("it-IT");
-    return `${t.product_name ?? t.operation_type} · ${data}`;
+  function operationLabel(op: TreatmentLog): string {
+    const data = new Date(op.executed_at).toLocaleDateString(i18n.language);
+    return `${op.product_name ?? taskOperationLabel(t, op.operation_type)} · ${data}`;
+  }
+
+  /** Dati mancanti per un record conforme (motore di completezza PAN). */
+  function missingFields(op: TreatmentLog): string[] {
+    return evaluateLogCompleteness(op)
+      .missing.filter((m) => m.severity === "blocking")
+      .map((m) => completenessFieldLabel(t, m.field));
   }
 
   async function confirmDeletion() {
@@ -296,8 +356,10 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
   return (
     <FieldSheet
       title={
-        formType
-          ? operationSpec(formType).label
+        formType && editing
+          ? t("logbookPanel.title.editOperation")
+          : formType
+            ? operationSpec(formType).label
           : chooser
             ? t("logbookPanel.title.newOperation")
             : t("logbookPanel.title.logbook")
@@ -333,20 +395,19 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
           campaignFields={campaignFieldOptions}
           prodottiCatalogo={fitosanitari}
           concimiCatalogo={concimi}
-          prodottiMagazzino={products}
-          lottiMagazzino={lots}
-          machines={machines}
-          equipment={equipment}
+          // In correzione niente nuovi scarichi né ore macchina.
+          prodottiMagazzino={editing ? [] : products}
+          lottiMagazzino={editing ? [] : lots}
+          machines={editing ? [] : machines}
+          equipment={editing ? [] : equipment}
           valutaCompliance={valutaCompliance}
           defaultAppezzamentoId={formDefaultAppId}
           defaults={formDefaults ?? undefined}
+          defaultDate={formDate}
+          mode={editing ? "edit" : "create"}
           onSubmit={handleSubmit}
           onSubmitSoil={handleSubmitSoil}
-          onCancel={() => {
-            setFormType(null);
-            setFormDefaultAppId("");
-            setFormDefaults(null);
-          }}
+          onCancel={closeForm}
         />
       ) : chooser ? (
         <div className="flex flex-col gap-2">
@@ -461,6 +522,7 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
                 const plot = plots.find(
                   (a) => a.id === treatment.plot_id,
                 );
+                const missing = missingFields(treatment);
                 return (
                   <li
                     key={treatment.id}
@@ -480,11 +542,12 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
                       className="min-w-0 flex-1 text-left"
                     >
                       <p className="truncate text-sm font-semibold">
-                        {treatment.product_name ?? treatment.operation_type}
+                        {treatment.product_name ??
+                          taskOperationLabel(t, treatment.operation_type)}
                       </p>
                       <p className="truncate text-xs text-[var(--ink-3)]">
                         {[
-                          treatment.operation_type,
+                          taskOperationLabel(t, treatment.operation_type),
                           plot?.user_plot_name ?? t("logbook.common.wholeFarm"),
                           treatment.dose_value != null
                             ? `${treatment.dose_value} ${treatment.dose_unit ?? ""}`
@@ -494,10 +557,28 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
                           .filter(Boolean)
                           .join(" · ")}
                       </p>
+                      {/* Record incompleto: quali dati mancano per un
+                          registro conforme (stesso motore del cruscotto
+                          "Record incompleti"). */}
+                      {missing.length > 0 && (
+                        <p
+                          className="mt-0.5 flex items-center gap-1 truncate text-xs font-medium text-[var(--warn)]"
+                          title={t("taskCompleteness.rowBadge.tooltip", {
+                            count: missing.length,
+                          })}
+                        >
+                          <AlertTriangle size={12} className="shrink-0" />
+                          <span className="truncate">
+                            {t("taskCompleteness.panel.missing", {
+                              fields: missing.join(", "),
+                            })}
+                          </span>
+                        </p>
+                      )}
                     </button>
                     <div className="flex shrink-0 flex-col items-end justify-between">
                       <time className="agro-num text-xs text-[var(--ink-3)]">
-                        {new Date(treatment.executed_at).toLocaleDateString("it-IT")}
+                        {new Date(treatment.executed_at).toLocaleDateString(i18n.language)}
                       </time>
                       {sync.pendingCount > 0 ? (
                         <span className="rounded-full bg-[var(--warn-l)] px-1.5 text-[10px] text-[var(--warn)]">
@@ -507,15 +588,16 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
                         <span className="text-xs text-[var(--ok)]">✓</span>
                       )}
                     </div>
-                    {/* "Ripeti operazione": form precompilato con data = oggi. */}
+                    {/* Modifica dell'operazione ("Ripeti" sta nella scheda
+                        dettaglio). */}
                     <button
                       type="button"
-                      onClick={() => repeatOperation(treatment)}
-                      title={t("logbookPanel.list.repeatOperation")}
-                      aria-label={t("logbookPanel.list.repeatOperation")}
+                      onClick={() => editOperation(treatment)}
+                      title={t("logbookPanel.list.editOperation")}
+                      aria-label={t("logbookPanel.list.editOperation")}
                       className="flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-[var(--r-2)] text-[var(--accent)] hover:bg-[var(--accent-l)]"
                     >
-                      <Copy size={15} />
+                      <Pencil size={15} />
                     </button>
                     {/* Cancellazione protetta della singola operation (FIX 1). */}
                     <button
@@ -556,6 +638,9 @@ export function LogbookPanel({ onClose }: { onClose: () => void }) {
             setToDelete(detail);
             setDetail(null);
           }}
+          onEdit={() => editOperation(detail)}
+          onRepeat={() => repeatOperation(detail)}
+          missing={missingFields(detail)}
         />
       )}
     </FieldSheet>

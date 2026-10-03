@@ -17,7 +17,7 @@ import { SATELLITE_LAYER_ID, SATELLITE_MAX_ZOOM } from "../lib/basemaps";
  *      basemap a doverlo dichiarare: una sorgente futura con copertura più
  *      bassa lo farebbe scattare senza toccare questo hook.
  *
- * Il tetto satellitare stava in `BasemapSwitcher` con un ref di ripristino:
+ * Il tetto satellitare stava nel vecchio selettore di sfondo con un ref di ripristino:
  * funzionava finché nessun altro toccava `maxZoom`, ma con una preferenza
  * d'utente scrivibile i due effetti si sarebbero rincorsi (l'uno ripristinava
  * il valore che l'altro aveva appena abbassato). Qui il massimo effettivo è

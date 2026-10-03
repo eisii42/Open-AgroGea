@@ -6,6 +6,7 @@ import {
   useAgroStore,
   useReadOnly,
 } from "@agrogea/core";
+import { useEscapeDismiss } from "@agrogea/ui";
 import { activeReentryWindows } from "@agrogea/tools";
 import { Button, cn } from "@geolibre/ui";
 import {
@@ -51,6 +52,8 @@ type View =
  */
 export function TaskPlannerPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
+  // Esc chiude la pagina (e non un pannello laterale rimasto aperto dietro).
+  useEscapeDismiss(onClose);
   const activeCompanyId = useAgroStore((s) => s.activeCompanyId);
   const readOnly = useReadOnly(activeCompanyId);
   const plots = useAgroStore((s) => s.plots);

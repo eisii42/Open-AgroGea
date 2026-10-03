@@ -446,13 +446,11 @@
     }
   },
   "nav": {
-    "profile": "Profile",
     "settings": "Settings",
     "logout": "Log out",
     "themeLight": "Light",
     "themeDark": "Dark",
     "themeGreen": "Agronomic",
-    "themeTooltip": "{{name}} theme",
     "syncError": "Sync error",
     "syncOffline": "Offline",
     "syncing": "Syncing…",
@@ -493,11 +491,9 @@
   },
   "help": {
     "menu": "Help",
-    "commandPalette": "Command palette",
     "shortcuts": "Keyboard shortcuts",
     "diagnostics": "Diagnostics",
     "feedback": "Send feedback",
-    "checkUpdates": "Check for updates",
     "about": "About",
     "shortcut": {
       "commandPalette": "Open the command palette",
@@ -533,24 +529,18 @@
       "syncError": "Sync failed",
       "pendingQueue": "{{count}} mutation(s) waiting in the outbox queue",
       "weatherMissing": "Weather source not configured for the active company"
-    },
-    "update": {
-      "checking": "Checking for updates…",
-      "available": "New version {{version}} available",
-      "upToDate": "AgroGea is up to date",
-      "unavailable": "Update check is not available here",
-      "error": "Could not check for updates",
-      "notifyTitle": "AgroGea updates"
     }
   },
   "logbookPanel": {
     "fieldFallbackName": "Field {{id}}",
     "notification": {
-      "removed": "Operation removed: {{label}}"
+      "removed": "Operation removed: {{label}}",
+      "updated": "Operation updated: {{label}}"
     },
     "title": {
       "newOperation": "New operation",
-      "logbook": "Field Logbook"
+      "logbook": "Field Logbook",
+      "editOperation": "Edit operation"
     },
     "button": {
       "registerOperation": "Log operation"
@@ -577,7 +567,8 @@
       "queued": "queued",
       "deleteOperation": "Delete operation",
       "repeatOperation": "Repeat operation (prefilled form, today's date)",
-      "deleteAriaLabel": "Delete {{label}}"
+      "deleteAriaLabel": "Delete {{label}}",
+      "editOperation": "Edit operation"
     }
   },
   "taskPlanner": {
@@ -1004,16 +995,23 @@
       "wmsPlaceholder": "https://service.example.org/wms",
       "loadLayers": "Read the available layers",
       "layersFound": "{{count}} layers · WMS {{version}}",
-      "addToMap": "Add to the map",
-      "wmsAdded": "WMS layer “{{name}}” added to the map.",
+      "addToMap": "Use as background",
+      "wmsAdded": "WMS “{{name}}” saved and used as background instead of satellite. You can find it in the background selector.",
       "orthophotoHint": "Georeferenced GeoTIFF (UTM or WGS84). It stays on the device and works offline; the GAEC 8 card can measure on it without a second upload.",
       "chooseTif": "Choose the .tif file",
       "orthophotoAdded": "Orthophoto “{{name}}” added ({{gsdCm}} cm).",
-      "orthophotoAddedScaled": "Orthophoto “{{name}}” added ({{gsdCm}} cm). On the map it is downscaled to {{side}} px per side; GAEC 8 measurements still use the original file."
+      "orthophotoAddedScaled": "Orthophoto “{{name}}” added ({{gsdCm}} cm). On the map it is downscaled to {{side}} px per side; GAEC 8 measurements still use the original file.",
+      "wmsUpdated": "WMS “{{name}}” updated.",
+      "wmsDeleted": "WMS “{{name}}” deleted.",
+      "savedWms": "Saved WMS",
+      "wmsActive": "background",
+      "editWms": "Edit",
+      "deleteWms": "Delete",
+      "editingWmsHint": "Editing the saved WMS: change the address or layer and save.",
+      "saveWmsChanges": "Save changes"
     }
   },
   "basemapSwitcher": {
-    "basemap": "Basemap",
     "overlay": "Overlay",
     "background": "Basemap background",
     "cadastre": "Cadastre (WMS)",
@@ -1058,7 +1056,15 @@
     "today": "Today",
     "unavailable": "Weather unavailable: connect to the internet for the first download.",
     "refreshNow": "Refresh now",
-    "title": "Weather · 5-day forecast"
+    "title": "Weather · 5-day forecast",
+    "source": "Weather data:",
+    "originCompany": "farm headquarters",
+    "originPlot": "centroid of plot “{{name}}”",
+    "station": "Farm weather station: {{model}} (ID {{device}}).",
+    "stationNote": "Its readings feed the DSS models; the forecast still comes from Open-Meteo.",
+    "configureStation": "Configure weather station",
+    "addStation": "Connect a weather station",
+    "noLocation": "Weather is located on the farm headquarters or the first plot: add one to see it."
   },
   "moduleSidebar": {
     "readOnly": "read-only",
@@ -1257,10 +1263,7 @@
       "suffix": " (Viewer role): you can view and export data, but not modify it."
     },
     "scoutingTitle": "Field survey (GPS Scouting)",
-    "tabLogbook": "Logbook",
-    "tabModules": "Modules",
-    "tabOffline": "Offline",
-    "tabScouting": "GPS Survey"
+    "scoutingShort": "GPS scouting"
   },
   "operationForm": {
     "onSurface": "on {{area}} ha",
@@ -1360,7 +1363,8 @@
     "machineCreate": "New machine",
     "machineNewName": "Name",
     "machineNewType": "Type",
-    "machineCreateSave": "Create and select"
+    "machineCreateSave": "Create and select",
+    "submitEdit": "Save changes"
   },
   "warehouse": {
     "importCsv": "Import CSV",
@@ -1868,6 +1872,12 @@
   "soilPanel": {
     "calculateButton": "Compute from Sentinel-2 (STAC)",
     "calculating": "Calculating…",
+    "dataSource": {
+      "note": "Source: Copernicus Sentinel-2 satellite data (ESA). Indices are computed by AgroGea.",
+      "short": "Sentinel-2 · computed by AgroGea",
+      "manualLink": "How they are computed (manual)",
+      "attribution": "Contains modified Copernicus Sentinel-2 data · indices computed by AgroGea"
+    },
     "charts": {
       "needData": "Plots with computed NDVI and soil samples are needed to cross-reference the data.",
       "samples": "samples",
@@ -1960,7 +1970,9 @@
       "fine": "Fine (~20 m)",
       "media": "Medium (~40 m)",
       "grossa": "Coarse (~80 m)"
-    }
+    },
+    "docNote": "Zones are computed by AgroGea from Copernicus Sentinel-2 satellite indices (10 m), using K-means clustering.",
+    "docLink": "Documentation (manual)"
   },
   "cropDataForm": {
     "campaignDeclarativeData": "Campaign {{campaignYear}} · declarative data",
@@ -2333,7 +2345,10 @@
       "safetyPeriod": "Pre-harvest interval (days)"
     },
     "delete": "Delete",
-    "close": "Close"
+    "close": "Close",
+    "edit": "Edit",
+    "repeat": "Repeat",
+    "missingTitle": "Missing data for a compliant record"
   },
   "harvestDetailCard": {
     "harvest": "Harvest",
@@ -2758,7 +2773,8 @@
       "dss": "DSS risk",
       "water": "Water stress"
     },
-    "showAll": "Show all"
+    "showAll": "Show all",
+    "dayDetail": "Details"
   },
   "parcelAdoption": {
     "title": "Public parcels",
@@ -2851,5 +2867,78 @@
       "declarative_fields": "Incomplete campaign declaration data",
       "incomplete_records": "Incomplete logbook records"
     }
+  },
+  "mobileNav": {
+    "label": "Main navigation",
+    "dashboard": "Dashboard",
+    "logbook": "Logbook",
+    "modules": "Modules"
+  },
+  "mobileMenu": {
+    "title": "Menu",
+    "open": "Open menu",
+    "close": "Close",
+    "back": "Back",
+    "theme": "Theme"
+  },
+  "mapLayers": {
+    "title": "Layers",
+    "dataLayers": "Farm layers",
+    "empty": "No layers to show.",
+    "advanced": "Advanced layer management",
+    "close": "Close Layers"
+  },
+  "plotPeek": {
+    "openSheet": "Open plot sheet",
+    "noCrop": "No crop"
+  },
+  "mobileCalendar": {
+    "addOperationShort": "Record"
+  },
+  "headerSearch": {
+    "label": "Search plots, modules and actions",
+    "placeholder": "Search…"
+  },
+  "accountMenu": {
+    "label": "Account and settings"
+  },
+  "moduleRail": {
+    "soil": "Soil",
+    "crop": "Crop",
+    "water": "Water",
+    "draw": "Draw",
+    "tasks": "Tasks",
+    "logbook": "Logbook",
+    "warehouse": "Warehouse",
+    "company": "Company",
+    "compliance": "Compliance",
+    "close": "Close list"
+  },
+  "fieldSheet": {
+    "close": "Close panel",
+    "resize": "Drag to resize (double-click: default width)",
+    "collapse": "Collapse panel",
+    "expand": "Expand panel",
+    "loading": "Loading…"
+  },
+  "attentionCenter": {
+    "title": "To do",
+    "openWithCount_one": "To do: {{count}} item",
+    "openWithCount_other": "To do: {{count}} items",
+    "hint": "Tap an item to go where it gets fixed: it disappears once the data is in place.",
+    "allClear": "All clear",
+    "allClearHint": "No missing data, nothing about to expire.",
+    "group": {
+      "records": "Incomplete records",
+      "declarative": "Campaign data",
+      "warehouse": "Warehouse",
+      "machinery": "Machinery",
+      "soil": "Soil data"
+    },
+    "showAll": "Show all ({{count}})",
+    "showLess": "Show less",
+    "unknownProduct": "Product",
+    "lotExpired": "Lot expired on {{date}}",
+    "lotExpiring": "Lot expiring on {{date}}"
   }
 }

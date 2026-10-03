@@ -1,0 +1,242 @@
+language: it-IT
+tone_instructions: >-
+  Revisore AppSec rigoroso e conciso. Indica severità (Critica/Alta/Media/Bassa),
+  file e riga, scenario di sfruttamento concreto e la correzione. Niente lodi
+  né commenti di stile se c'è un problema di sicurezza aperto.
+early_access: false
+
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+  high_level_summary: true
+  review_status: true
+  collapse_walkthrough: false
+  sequence_diagrams: false
+  poem: false
+  in_progress_fortune: false
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - dev
+
+  path_filters:
+    - "!**/node_modules/**"
+    - "!**/dist/**"
+    - "!**/target/**"
+    - "!**/*.tsbuildinfo"
+    - "!**/*.wasm"
+    - "!**/THIRD_PARTY_LICENSES.txt"
+    - "!apps/agro-field-suite/src-tauri/gen/**"
+    - "!apps/agro-field-suite/src-tauri/icons/**"
+
+  path_instructions:
+    - path: "**/*.{ts,tsx,js,mjs,mts}"
+      instructions: |
+        Security review (OWASP Top 10 for a client-side, local-first app):
+        - XSS / injection sinks: flag `dangerouslySetInnerHTML`, `innerHTML`,
+          `outerHTML`, `insertAdjacentHTML`, `document.write`, MapLibre
+          `Popup.setHTML`, `eval`, `new Function`, string `setTimeout`. Any data
+          from imported files (GeoJSON, KML, CSV, shapefile attributes), WMS/WFS
+          responses or the DB must be rendered as text or escaped.
+        - URLs built from user/remote data: block `javascript:`/`data:` schemes
+          in `href`/`src`/`window.open`; require `rel="noopener noreferrer"`
+          with `target="_blank"`.
+        - Secrets: no API keys, tokens, passwords or connection strings in code,
+          fixtures or `VITE_*` variables (Vite inlines them in the public
+          bundle). `.env.standalone` may only contain non-secret build flags.
+        - Weak crypto: `Math.random()` must never generate IDs, tokens, PINs or
+          salts (use `crypto.randomUUID()` / `crypto.getRandomValues()`); no
+          MD5/SHA-1 for integrity or passwords; no hand-rolled crypto.
+        - Prototype pollution: deep merges / `Object.assign` over parsed
+          JSON/GeoJSON/JSONB must reject `__proto__`, `constructor`, `prototype`.
+        - `postMessage` / worker messages: validate origin and message shape.
+        - Do not log personal data (owner names, tax codes, CUAA, coordinates of
+          private plots) to the console.
+
+    - path: "packages/agro-core/src/db/**"
+      instructions: |
+        PGlite data access layer (SQL injection = OWASP A03):
+        - Every value must go through positional parameters (`$1, $2…`) of
+          `query`/`exec`. Flag any template literal or concatenation that puts
+          values into SQL. Dynamic identifiers (table/column/order by) only from
+          a hard-coded allowlist.
+        - Migrations in `schema.ts` must be additive and idempotent
+          (`create … if not exists`, `add column if not exists`); flag any
+          drop/rename of persisted tables, columns or JSONB keys (real farm data
+          lives on devices).
+        - Backup/restore (`dal-backup.ts`): validate the archive shape and
+          version before writing; never execute SQL text read from a backup.
+
+    - path: "packages/agro-core/src/{transfer,sync,parcel}/**"
+      instructions: |
+        Trust boundary for data coming from outside the device (company
+        transfer files, sync outbox, parcel sources):
+        - Validate schema, types and sizes before persisting; reject unknown
+          fields rather than spreading them into DB rows.
+        - Archives (fflate): guard against zip bombs (max entries / max
+          uncompressed size) and path traversal in entry names.
+        - The sync outbox must not be replayable across companies (check the
+          company/tenant id on every mutation) and must not escalate the
+          role of the importing user.
+
+    - path: "apps/agro-field-suite/src/modules/{add-data,sian,compliance,print,registry,parcel-adoption}/**"
+      instructions: |
+        File import parsers and regulatory exports (SIAN/PAN, SIEX/CUE):
+        - Imports: enforce size limits, handle malformed GeoJSON/KML/CSV/GeoTIFF
+          without crashing, never trust attribute values as HTML.
+        - CSV/XLSX exports: neutralise formula injection (cells starting with
+          `=`, `+`, `-`, `@`, tab, CR). XML exports: escape all values.
+        - Do NOT rename regulatory export field names (they follow the official
+          specs); flag only security problems there.
+
+    - path: "apps/agro-field-suite/src-tauri/src/**"
+      instructions: |
+        Rust Tauri commands are the trust boundary between the webview and the
+        OS. Treat every `#[tauri::command]` argument as attacker-controlled
+        (a compromised webview = XSS).
+        - SSRF: `agro_fetch_map_tile` and `agro_fetch_parcel_source` must accept
+          only http(s), enforce the registered host allowlist, reject
+          loopback/private/link-local/metadata IPs (also after DNS resolution
+          and redirects), set timeouts and a maximum response size.
+        - On-premise sync (`tokio-postgres`): TLS required, no `NoTls` outside
+          tests, no certificate-validation bypass, parameterised queries only.
+        - Offline session PIN: derive with a slow KDF (Argon2id/scrypt/PBKDF2
+          with a high work factor) and a random salt; constant-time
+          comparison; rate limiting / lockout. Flag plain hashes or
+          reversible storage.
+        - Connection profiles / credentials: store encrypted or in the OS
+          keychain; never log them or return them to the webview.
+        - No `unwrap`/`expect`/`panic!` on data that comes from the webview,
+          the network or files. No path traversal on file paths.
+
+    - path: "apps/agro-field-suite/src-tauri/{tauri.conf.json,tauri.android.conf.json,capabilities/**}"
+      instructions: |
+        Privilege boundary of the native app. Flag as HIGH any change that:
+        - loosens the CSP (new `unsafe-*`, wildcards, broader `connect-src`,
+          `script-src` from remote origins) or sets
+          `dangerousDisableAssetCspModification`;
+        - adds broad permissions to capabilities (`fs:*` with wide scopes,
+          `shell:*`, `http:default` without a URL scope, `process:*`) or
+          exposes capabilities to remote URLs;
+        - enables `withGlobalTauri`, changes the updater `pubkey` or points the
+          updater endpoint to a non-HTTPS / non-project URL.
+
+    - path: "apps/agro-field-suite/vite.config.ts"
+      instructions: |
+        The WMS CORS proxy middleware is an open forward proxy and must stay
+        dev-server only (`configureServer`), bound to localhost. Flag
+        `server.host: true`/`0.0.0.0`, any use in `configurePreviewServer`, or
+        any path that ships it into the production build.
+
+    - path: "apps/agro-field-suite/public/sw.js"
+      instructions: |
+        Service worker: cache only same-origin GET responses with status 200;
+        never cache responses with credentials or third-party content that
+        could be poisoned; keep the scope minimal; version caches.
+
+    - path: ".github/workflows/**"
+      instructions: |
+        CI/CD supply chain:
+        - Third-party actions pinned to a full commit SHA with a version comment.
+        - Minimal `permissions:` per workflow/job; flag `write-all` or missing
+          permissions blocks.
+        - No `pull_request_target` / `workflow_run` that checks out or runs PR
+          code with secrets or write tokens.
+        - Script injection: no `${{ github.event.* }}`, `github.head_ref` or
+          inputs interpolated directly in `run:`; pass them through `env:`.
+        - Secrets never echoed, never available to fork PRs.
+
+    - path: "{package.json,**/package.json,package-lock.json}"
+      instructions: |
+        Dependency changes: for every new dependency check maintenance status,
+        typosquatting, install scripts (and `trustedDependencies`) and licence
+        compatibility with AGPL-3.0. In package-lock.json flag `resolved` URLs
+        not on registry.npmjs.org, git/tarball/http dependencies and missing
+        `integrity`.
+
+    - path: "**/Cargo.{toml,lock}"
+      instructions: |
+        New crates: maintenance, licence, git/path sources outside
+        `patches/`. Flag features that disable TLS verification
+        (`danger_accept_invalid_certs`, `dangerous_configuration`).
+
+    - path: "packages/{core,map,ui,plugins,attribute-table}/**"
+      instructions: |
+        Vendored GeoLibre packages (MIT, upstream). They should not be modified
+        in this repository: flag any change and ask for justification, then
+        review it with the same security rules as the rest of the code.
+
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+    title:
+      mode: warning
+    description:
+      mode: warning
+    custom_checks:
+      - name: OWASP Top 10 and input sanitization
+        mode: error
+        instructions: |
+          Fail if this PR introduces a concrete, reachable vulnerability of
+          Critical or High severity from the OWASP Top 10: injection (SQL in
+          PGlite/tokio-postgres without parameters, XSS through HTML sinks fed
+          by imported files or remote responses, command/path injection),
+          broken access control, SSRF in Tauri fetch commands, insecure
+          deserialisation of imported data, or security misconfiguration of the
+          CSP. Untrusted input = imported files, network responses, sync
+          payloads, URL/query parameters, Tauri command arguments.
+          Pass if no such issue is introduced. Report Medium/Low findings as
+          review comments, not as a failure of this check.
+      - name: No hardcoded secrets or tokens
+        mode: error
+        instructions: |
+          Fail if the diff adds credentials or secrets anywhere (source, tests,
+          fixtures, docs, workflows, `.env*` files, `VITE_*` variables): API
+          keys, OAuth/JWT tokens, passwords, private keys, signing keys
+          (Tauri updater private key, Android keystore), database connection
+          strings with passwords, webhook URLs with tokens. Public keys (e.g.
+          the Tauri updater `pubkey`) and `${{ secrets.* }}` references are
+          allowed. Pass otherwise.
+      - name: No weak cryptography
+        mode: error
+        instructions: |
+          Fail if the PR uses weak or misused cryptography for a security
+          purpose: MD5/SHA-1 for passwords, PINs, signatures or integrity;
+          fast unsalted hashes for PINs/passwords instead of Argon2id/scrypt/
+          PBKDF2; `Math.random()` or non-CSPRNG for tokens, IDs used as
+          capabilities, salts or PINs; ECB mode, static IVs/nonces, hard-coded
+          keys; disabled TLS certificate validation. Pass otherwise.
+      - name: No privilege escalation
+        mode: error
+        instructions: |
+          Fail if the PR widens privileges without justification: broader Tauri
+          capabilities/permissions or CSP, new native commands without input
+          validation, GitHub workflows with wider `permissions`,
+          `pull_request_target` with PR code, sync/import paths that can write
+          into another company's data or raise a user's role, or a bypass of
+          the local session/PIN check. Pass otherwise.
+
+  tools:
+    github-checks:
+      enabled: true
+    gitleaks:
+      enabled: true
+    semgrep:
+      enabled: true
+    eslint:
+      enabled: true
+    clippy:
+      enabled: true
+    osvScanner:
+      enabled: true
+    actionlint:
+      enabled: true
+    zizmor:
+      enabled: true
+    yamllint:
+      enabled: true
+    shellcheck:
+      enabled: true
+    languagetool:
+      enabled: false

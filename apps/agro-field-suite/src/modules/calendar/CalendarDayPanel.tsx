@@ -17,8 +17,9 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useBackDismiss, useModalBehavior } from "@agrogea/ui";
 import type { ForecastDay } from "../../lib/WeatherSyncService";
 import { weatherCodeInfo } from "../../lib/weather-codes";
 import { HarvestDetailCard } from "../field-logbook/HarvestDetailCard";
@@ -37,6 +38,10 @@ import type { CalendarEvent } from "./calendar-events";
  * record — un registro di rilevanza legale non deve avere due porte di
  * modifica con regole diverse. Restano modificabili le sole TASK, che sono
  * pianificazione e non registrazione.
+ *
+ * `docked` (desktop da 1280 px): agenda fissa a destra della griglia invece
+ * del pannello sovrapposto — niente sfondo scuro, niente chiusura, il clic su
+ * un giorno la aggiorna.
  */
 export function CalendarDayPanel({
   day,
@@ -52,6 +57,7 @@ export function CalendarDayPanel({
   onAddTask,
   onAddOperation,
   onEditTask,
+  docked = false,
 }: {
   day: string;
   events: CalendarEvent[];
@@ -66,7 +72,13 @@ export function CalendarDayPanel({
   onAddTask: () => void;
   onAddOperation: () => void;
   onEditTask: (task: PlannedTask) => void;
+  /** Agenda fissa nella pagina (desktop largo) invece del pannello sovrapposto. */
+  docked?: boolean;
 }) {
+  // Stesso modello di tutte le finestre: Esc, focus dentro, focus restituito.
+  // L'agenda fissa non è una finestra: niente di tutto questo.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(dialogRef, onClose, !docked);
   const { t, i18n } = useTranslation();
   const plots = useAgroStore((s) => s.plots);
   // Scheda aperta in sola lettura (operazione o raccolta).
@@ -93,15 +105,28 @@ export function CalendarDayPanel({
 
   const info = weatherCodeInfo(weather?.weatherCode);
   const WeatherIcon = info.Icon;
+  // Tasto indietro di Android: chiude il dettaglio (no-op altrove).
+  useBackDismiss(onClose, !docked);
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex justify-end bg-black/40"
-      onMouseDown={onClose}
+      className={
+        docked
+          ? "flex h-full w-[360px] shrink-0 2xl:w-[420px]"
+          : "fixed inset-0 z-[60] flex justify-end bg-black/40"
+      }
+      onMouseDown={docked ? undefined : onClose}
     >
       <div
-        className="flex h-full w-full max-w-md flex-col border-l border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-pop)]"
-        onMouseDown={(e) => e.stopPropagation()}
+        ref={dialogRef}
+        role={docked ? "region" : "dialog"}
+        aria-modal={docked ? undefined : "true"}
+        aria-label={docked ? readableDate : undefined}
+        className={cn(
+          "flex h-full w-full flex-col border-l border-[var(--line)] bg-[var(--panel)]",
+          docked ? "" : "max-w-md shadow-[var(--sh-pop)]",
+        )}
+        onMouseDown={docked ? undefined : (e) => e.stopPropagation()}
       >
         <header className="flex items-start justify-between gap-3 border-b border-[var(--line)] px-4 py-3">
           <div className="min-w-0">
@@ -122,14 +147,16 @@ export function CalendarDayPanel({
               </p>
             )}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t("logbook.common.cancel")}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--r-1)] text-[var(--ink-4)] hover:bg-[var(--panel-2)]"
-          >
-            <X size={15} />
-          </button>
+          {!docked && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={t("logbook.common.cancel")}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--r-1)] text-[var(--ink-4)] hover:bg-[var(--panel-2)] md:h-7 md:w-7"
+            >
+              <X size={15} />
+            </button>
+          )}
         </header>
 
         {/* Le due azioni del giorno: pianificare avanti, registrare indietro. */}

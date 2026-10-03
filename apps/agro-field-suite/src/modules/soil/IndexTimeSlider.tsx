@@ -117,7 +117,6 @@ export function IndexTimeSlider() {
   const platform = usePlatform();
   const timeline = useIndexTimeline();
   const plots = useAgroStore((s) => s.plots);
-  const sidebarCollapsed = useAgroStore((s) => s.sidebarCollapsed);
 
   const [collapsed, setCollapsed] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -286,12 +285,18 @@ export function IndexTimeSlider() {
   return (
     <div
       className={cn(
-        "pointer-events-none absolute z-30 flex justify-center",
-        // Mobile: sopra la tab bar, a tutta larghezza. Desktop: allineato alla
-        // colonna dei moduli e libero dalla colorbar (che sta a destra).
+        // agro-keep-size: striscia misurata al pixel, esclusa dalla scala mobile.
+        "agro-keep-size pointer-events-none absolute z-30 flex justify-center",
+        // Mobile: in fondo alla mappa, a tutta larghezza (la barra di
+        // navigazione ora sta sotto la mappa, non sopra). Desktop: allineato
+        // alla colonna dei moduli e libero dalla pila in basso a destra
+        // (legende + Rilievo GPS/carburante); col pannello laterale aperto si
+        // accorcia con lei (agro-index-timeline, index.css).
         platform.isMobile
-          ? "bottom-[4.5rem] left-2 right-2"
-          : cn("bottom-3 right-32", sidebarCollapsed ? "left-3" : "left-[272px]"),
+          ? "bottom-2 left-2 right-2"
+          : // A sinistra parte dopo la navigazione moduli (--agro-rail-w,
+            // FieldDashboard).
+            "agro-index-timeline bottom-3 left-[calc(var(--agro-rail-w,0px)+0.75rem)] right-[13rem]",
       )}
     >
       <div className="pointer-events-auto w-full max-w-3xl rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-pop)]">

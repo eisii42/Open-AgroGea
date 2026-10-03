@@ -142,6 +142,11 @@ export interface PlotDrawAttrs {
   cadastral_parcel?: string | null;
   irrigation_type?: string | null;
   planting_year?: number | null;
+  /**
+   * Metadata aggiuntivi inseriti alla creazione (es. `suolo`, la composizione
+   * del suolo). Si fondono con quelli di provenienza, che restano prevalenti.
+   */
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -778,6 +783,12 @@ export interface UiSlice {
    */
   logbookOpenPlotId: string | null;
   /**
+   * Operazione del Quaderno da aprire direttamente in modifica (es. dal centro
+   * "Da risolvere", per completarne i dati mancanti). `null` = nessuna
+   * richiesta; il LogbookPanel la consuma.
+   */
+  logbookEditOperationId: string | null;
+  /**
    * Contatore incrementato da {@link openLogbookAllOperations}: segnala al
    * Quaderno di azzerare i propri filtri e mostrare il registro dell'INTERA
    * azienda. Serve un token e non un booleano perché la richiesta va onorata
@@ -970,6 +981,10 @@ export interface UiSlice {
   openLogbookForPlot: (plotId: string | null) => void;
   /** Consuma la richiesta di apertura Quaderno (chiamata dal LogbookPanel). */
   consumeLogbookOpen: () => void;
+  /** Apre il Quaderno con l'operazione indicata già in modifica. */
+  openLogbookOperation: (operationId: string) => void;
+  /** Consuma la richiesta di modifica (chiamata dal LogbookPanel). */
+  consumeLogbookEdit: () => void;
   /**
    * Apre il Quaderno sul registro dell'INTERA azienda, azzerandone i filtri.
    * È l'ingresso dal modulo in sidebar: un registro di compliance aperto "dal
@@ -1083,7 +1098,13 @@ export interface GeometrySlice {
    */
   adoptParcel: (
     parcel: Parcel,
-    attrs: { name: string; cadastralSheet?: string | null; cadastralParcel?: string | null },
+    attrs: {
+      name: string;
+      cadastralSheet?: string | null;
+      cadastralParcel?: string | null;
+      /** Metadata aggiuntivi (es. `suolo`), fusi con la provenienza. */
+      metadata?: Record<string, unknown>;
+    },
   ) => Promise<Plot | null>;
   saveDrawnAsset: (
     geometria: Geometry,

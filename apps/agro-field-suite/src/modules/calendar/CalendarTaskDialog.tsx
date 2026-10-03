@@ -1,6 +1,8 @@
 import type { PlannedTask } from "@agrogea/core";
 import { X } from "lucide-react";
+import { useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { useBackDismiss, useModalBehavior } from "@agrogea/ui";
 import { TaskForm } from "../tasks/TaskForm";
 
 /**
@@ -22,15 +24,24 @@ export function CalendarTaskDialog({
   defaultPlotId?: string;
   onClose: () => void;
 }) {
+  // Stesso modello di tutte le finestre: Esc, focus dentro, focus restituito.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(dialogRef, onClose);
   const { t } = useTranslation();
+
+  // Tasto indietro di Android: chiude il dialogo (no-op altrove).
+  useBackDismiss(onClose);
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-black/40 p-4"
+      className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-black/40 md:p-4"
       onMouseDown={onClose}
     >
       <div
-        className="my-auto flex w-full max-w-[640px] flex-col rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] shadow-[var(--sh-pop)]"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        className="flex min-h-full w-full max-w-[640px] flex-col bg-[var(--panel)] shadow-[var(--sh-pop)] md:my-auto md:min-h-0 md:rounded-[var(--r-3)] md:border md:border-[var(--line)]"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <header className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-4 py-3">

@@ -145,3 +145,40 @@
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
+
+/* Entrata dei fogli dal basso (FieldSheet su telefono): il pannello sale
+   invece di comparire di colpo. Niente animazione per chi la disattiva nel
+   sistema (prefers-reduced-motion). */
+@keyframes agro-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.agro-sheet-enter {
+  animation: agro-sheet-in 240ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .agro-sheet-enter {
+    animation: none;
+  }
+}
+
+/* Drawer desktop in ridimensionamento (FieldSheet, classe su <html>): il
+   cursore resta "col-resize" anche fuori dalla maniglia, il testo non si
+   seleziona e le transizioni dei controlli della mappa si fermano, così
+   seguono il bordo senza ritardo. */
+.agro-resizing,
+.agro-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+  transition: none !important;
+}
+
+/* Finestre fatte a mano (useModalBehavior): all'apertura il focus va sul
+   contenitore, che non deve mostrare il contorno del focus. */
+[role="dialog"][tabindex="-1"]:focus {
+  outline: none;
+}

@@ -14,6 +14,7 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
     selectedPlotId: null,
     lastOperation: null,
     logbookOpenPlotId: null,
+    logbookEditOperationId: null,
     logbookScopeToken: 0,
     plotSheetPlotId: null,
     tasksOpenPlotId: null,
@@ -159,6 +160,20 @@ export function createUiSlice(set: StoreSet, get: StoreGet): UiSlice {
       })),
 
     consumeLogbookOpen: () => set({ logbookOpenPlotId: null }),
+
+    openLogbookOperation: (operationId) =>
+      set((s) => ({
+        logbookEditOperationId: operationId,
+        selectedFeature: null,
+        openPanels:
+          s.panelMode === "docked"
+            ? ["quaderno"]
+            : s.openPanels.includes("quaderno")
+              ? s.openPanels
+              : [...s.openPanels, "quaderno"],
+      })),
+
+    consumeLogbookEdit: () => set({ logbookEditOperationId: null }),
 
     // Quaderno aperto DAL MODULO: registro dell'INTERA azienda, sempre. Il
     // token incrementale è ciò che rende la garanzia strutturale invece che

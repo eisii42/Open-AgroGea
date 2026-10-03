@@ -10,6 +10,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { usePlatform } from "../../hooks/usePlatform";
 import { dssRiskRamp } from "../dss/dss-overlay";
+import { IndexSourceNote } from "../soil/IndexSourceNote";
 import { useIndexTimeline } from "../soil/index-timeline-store";
 import { buildColorbar, type ColorbarModel } from "./colorbar-model";
 
@@ -21,10 +22,10 @@ import { buildColorbar, type ColorbarModel } from "./colorbar-model";
  * RELATIVA al dominio calcolato nella run (`metadata.domain`), così le tacche
  * mostrano il min/max reale dei value invece della scala assoluta 0..1.
  */
-export function Colorbar() {
+export function Colorbar({ stacked = false }: { stacked?: boolean }) {
   const layers = useAppStore((s) => s.layers);
   const platform = usePlatform();
-  // Su smartphone il time slider occupa la fascia bassa sopra la tab bar: la
+  // Su smartphone il time slider occupa la fascia bassa della mappa: la
   // legenda sale sopra di esso invece di finirci sotto. Su desktop lo slider è
   // centrato e lascia libera la colonna di destra, quindi nulla cambia.
   const timeline = useIndexTimeline();
@@ -74,8 +75,19 @@ export function Colorbar() {
   return (
     <div
       className={cn(
-        "pointer-events-none absolute right-3 z-30 flex flex-col gap-2",
-        platform.isMobile && timelineOpen ? "bottom-[12rem]" : "bottom-10",
+        // agro-keep-size: tacche misurate al pixel, escluse dalla scala mobile.
+        "agro-keep-size pointer-events-none flex flex-col gap-2",
+        // Telefono: a sinistra, sopra la scala — a destra ci sono le azioni
+        // rapide (Rilievo GPS). Desktop: dentro la pila in basso a destra di
+        // FieldDashboard, sopra le azioni rapide di campo (`stacked`).
+        stacked
+          ? "items-end"
+          : cn(
+              "absolute z-30",
+              platform.isMobile
+                ? cn("left-3", timelineOpen ? "bottom-[8rem]" : "bottom-9")
+                : "agro-right-overlay bottom-10 right-3",
+            ),
       )}
     >
       {crops.map((crop) => (
@@ -158,6 +170,8 @@ function ColorbarCard({
           {t("colorbar.relativeScale")}
         </p>
       )}
+      {/* Provenienza: Sentinel-2, calcolo AgroGea, link al manuale. */}
+      <IndexSourceNote compact className="mt-1" />
     </div>
   );
 }

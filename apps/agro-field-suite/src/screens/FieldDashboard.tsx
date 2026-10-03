@@ -1,29 +1,35 @@
-import { useAgroStore, useSettingsStore } from "@agrogea/core";
+import { useAgroStore } from "@agrogea/core";
+import { DrawerSlot } from "@agrogea/ui";
 import { MapCanvas, type MapController } from "@geolibre/map";
 import { cn } from "@geolibre/ui";
+import { Lock, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import {
-  Fuel,
-  Lock,
-  MapPin,
-  Menu,
-  NotebookPen,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Wifi,
-} from "lucide-react";
-import { type ReactNode, lazy, Suspense, useEffect, useRef, useState } from "react";
+  type ComponentType,
+  type CSSProperties,
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
-import { BottomSheet } from "../components/BottomSheet";
 import { useGeofenceWatch } from "../modules/field-mode/useGeofenceWatch";
 import { usePlatform } from "../hooks/usePlatform";
 import { AppHeader } from "../components/AppHeader";
-import { BasemapSwitcher } from "../components/BasemapSwitcher";
 import { CropLegend } from "../modules/crops/CropLegend";
 import { GeometryEditToolbar } from "../components/GeometryEditToolbar";
 import { Colorbar } from "../modules/colorbar/Colorbar";
 import { CommandPalette } from "../modules/command-palette/CommandPalette";
-import { MapControls } from "../components/MapControls";
+import {
+  OPEN_COMMAND_PALETTE_EVENT,
+  requestCommandPalette,
+} from "../modules/command-palette/open-command-palette";
+import { DesktopMapFabs } from "../components/DesktopMapFabs";
+import { DesktopMapTools } from "../components/DesktopMapTools";
 import { MapSearchControl } from "../components/MapSearchControl";
+import { MobileMapFabs } from "../components/MobileMapFabs";
+import { MobileMapTools } from "../components/MobileMapTools";
+import { PlotPeekCard } from "../modules/plot-sheet/PlotPeekCard";
 import { MapTooltip } from "../components/MapTooltip";
 import { OperationMarkers } from "../components/OperationMarkers";
 import { HarvestMarkers } from "../components/HarvestMarkers";
@@ -44,6 +50,9 @@ import { useCompassNorth } from "../hooks/useCompassNorth";
 import { useMapStyleEpoch } from "../hooks/useMapStyleEpoch";
 import { useMapZoomLimits } from "../hooks/useMapZoomLimits";
 import { useNativeMapI18n } from "../hooks/useNativeMapI18n";
+import { useLayerAttributions } from "../hooks/useLayerAttributions";
+import { useWmsBasemapRestore } from "../hooks/useWmsBasemapRestore";
+import { useDrawerMapPadding } from "../hooks/useDrawerMapPadding";
 
 /**
  * Pannelli overlay caricati on-demand (code-splitting): non servono al primo
@@ -51,120 +60,125 @@ import { useNativeMapI18n } from "../hooks/useNativeMapI18n";
  * Suolo, moduli crop, export logbook). Lazy → fuori dal chunk iniziale,
  * caricati solo all'apertura del relativo strumento.
  */
-const LogbookPanel = lazy(() =>
+
+/**
+ * Caricatori di tutti i pannelli pigri. Sul telefono si chiamano quando l'app
+ * è inattiva (vedi l'effetto di precarico in FieldDashboard): il browser mette
+ * in cache il modulo, e la prima apertura di un pannello non lascia più la
+ * mappa vuota per il tempo del download mentre il foglio Moduli si chiude.
+ */
+const panelLoaders: Array<() => Promise<unknown>> = [];
+
+function lazyPanel<T extends ComponentType<any>>(
+  load: () => Promise<{ default: T }>,
+) {
+  panelLoaders.push(load);
+  return lazy(load);
+}
+const LogbookPanel = lazyPanel(() =>
   import("../modules/field-logbook/LogbookPanel").then((m) => ({ default: m.LogbookPanel })),
 );
-const PlotSheet = lazy(() =>
+const PlotSheet = lazyPanel(() =>
   import("../modules/plot-sheet/PlotSheet").then((m) => ({ default: m.PlotSheet })),
 );
-const HarvestPanel = lazy(() =>
+const HarvestPanel = lazyPanel(() =>
   import("../modules/field-logbook/HarvestPanel").then((m) => ({ default: m.HarvestPanel })),
 );
-const WarehousePanel = lazy(() =>
+const WarehousePanel = lazyPanel(() =>
   import("../modules/warehouse/WarehousePanel").then((m) => ({
     default: m.WarehousePanel,
   })),
 );
-const FuelRefillPanel = lazy(() =>
+const FuelRefillPanel = lazyPanel(() =>
   import("../modules/machinery/FuelRefillTab").then((m) => ({
     default: m.FuelRefillTab,
   })),
 );
-const SoilPanel = lazy(() =>
+const SoilPanel = lazyPanel(() =>
   import("../modules/soil/SoilPanel").then((m) => ({ default: m.SoilPanel })),
 );
-const CropDataPanel = lazy(() =>
+const CropDataPanel = lazyPanel(() =>
   import("../modules/crops/CropPanel").then((m) => ({
     default: m.CropDataPanel,
   })),
 );
-const CropDssPanel = lazy(() =>
+const CropDssPanel = lazyPanel(() =>
   import("../modules/crops/CropPanel").then((m) => ({
     default: m.CropDssPanel,
   })),
 );
-const VraPanel = lazy(() =>
+const VraPanel = lazyPanel(() =>
   import("../modules/vra/VraPanel").then((m) => ({ default: m.VraPanel })),
 );
-const WaterBalancePanel = lazy(() =>
+const WaterBalancePanel = lazyPanel(() =>
   import("../modules/water-balance/WaterBalancePanel").then((m) => ({
     default: m.WaterBalancePanel,
   })),
 );
-const PrintComposer = lazy(() =>
+const PrintComposer = lazyPanel(() =>
   import("../modules/print/PrintComposer").then((m) => ({
     default: m.PrintComposer,
   })),
 );
-const ParcelAdoptionPanel = lazy(() =>
+const ParcelAdoptionPanel = lazyPanel(() =>
   import("../modules/parcel-adoption/ParcelAdoptionPanel").then((m) => ({
     default: m.ParcelAdoptionPanel,
   })),
 );
-const DataEntrySheet = lazy(() =>
+const DataEntrySheet = lazyPanel(() =>
   import("../components/DataEntrySheet").then((m) => ({
     default: m.DataEntrySheet,
   })),
 );
-const DetailEditSheet = lazy(() =>
+const DetailEditSheet = lazyPanel(() =>
   import("../components/DetailEditSheet").then((m) => ({
     default: m.DetailEditSheet,
   })),
 );
-const GeometryRegistry = lazy(() =>
+const GeometryRegistry = lazyPanel(() =>
   import("../components/GeometryRegistry").then((m) => ({
     default: m.GeometryRegistry,
   })),
 );
-const SyncPanel = lazy(() =>
+const SyncPanel = lazyPanel(() =>
   import("../components/SyncPanel").then((m) => ({ default: m.SyncPanel })),
 );
-const SettingsPanel = lazy(() =>
+const SettingsPanel = lazyPanel(() =>
   import("../modules/settings/SettingsPanel").then((m) => ({
     default: m.SettingsPanel,
   })),
 );
-const RegistryPanel = lazy(() =>
+const RegistryPanel = lazyPanel(() =>
   import("../modules/registry/RegistryPanel").then((m) => ({
     default: m.RegistryPanel,
   })),
 );
-const GeoCompliancePanel = lazy(() =>
+const GeoCompliancePanel = lazyPanel(() =>
   import("../modules/compliance/GeoCompliancePanel").then((m) => ({
     default: m.GeoCompliancePanel,
   })),
 );
-const CompliancePanel = lazy(() =>
+const CompliancePanel = lazyPanel(() =>
   import("../modules/compliance/CompliancePanel").then((m) => ({
     default: m.CompliancePanel,
   })),
 );
-const UserProfileSettingsPage = lazy(() =>
-  import("./UserProfileSettingsPage").then((m) => ({
-    default: m.UserProfileSettingsPage,
-  })),
-);
-const TaskPlannerPanel = lazy(() =>
+const TaskPlannerPanel = lazyPanel(() =>
   import("../modules/tasks/TaskPlannerPanel").then((m) => ({
     default: m.TaskPlannerPanel,
   })),
 );
-const FieldCollectionTool = lazy(() =>
+const FieldCollectionTool = lazyPanel(() =>
   import("../components/FieldCollectionTool").then((m) => ({
     default: m.FieldCollectionTool,
   })),
 );
-const OfflineAreaDialog = lazy(() =>
-  import("../components/OfflineAreaDialog").then((m) => ({
-    default: m.OfflineAreaDialog,
-  })),
-);
-const FieldDetectionModal = lazy(() =>
+const FieldDetectionModal = lazyPanel(() =>
   import("../modules/field-mode/FieldDetectionModal").then((m) => ({
     default: m.FieldDetectionModal,
   })),
 );
-const IndexTimeSlider = lazy(() =>
+const IndexTimeSlider = lazyPanel(() =>
   import("../modules/soil/IndexTimeSlider").then((m) => ({
     default: m.IndexTimeSlider,
   })),
@@ -176,6 +190,18 @@ const IndexTimeSlider = lazy(() =>
  * non si ridimensiona), mappa persistente a tutto schermo, controlli nativi
  * (layer-control, terrain, measure) e tooltip hover sopra di essa.
  */
+/**
+ * Navigazione moduli sul desktop: "rail" = barra di icone da 76 px con
+ * l'elenco degli strumenti a comparsa (fase D4 del redesign); "list" = la
+ * lista a fisarmonica da 260 px, a scomparsa col bottone in alto a sinistra.
+ * Per tornare alla lista basta cambiare questo valore.
+ */
+const DESKTOP_MODULE_NAV = "rail" as "rail" | "list";
+/** Larghezza della barra di icone (w-[76px] in ModuleSidebar). */
+const RAIL_WIDTH = 76;
+/** Larghezza della lista moduli (w-[260px] in ModuleSidebar). */
+const LIST_WIDTH = 260;
+
 export function FieldDashboard() {
   const { t } = useTranslation();
   const openPanels = useAgroStore((s) => s.openPanels);
@@ -184,11 +210,6 @@ export function FieldDashboard() {
   const readOnly = useReadOnly(activeCompanyId);
   const sidebarCollapsed = useAgroStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useAgroStore((s) => s.toggleSidebar);
-  const openRefillPanel = useAgroStore((s) => s.openRefillPanel);
-  // Accesso rapido al refill a bordo campo (§6.2): il pannello Refill è staccato
-  // dal Magazzino e raggiungibile SOLO da questo FAB, visibile se abilitato in
-  // Impostazioni del profilo.
-  const refillEnabled = useSettingsStore((s) => s.dashboardLayout.panelRefill);
   const pendingGeometry = useAgroStore((s) => s.pendingGeometry);
   const selectedFeature = useAgroStore((s) => s.selectedFeature);
   // Geofencing GPS: rilevamento AUTOMATICO dell'ingresso in un appezzamento.
@@ -204,12 +225,20 @@ export function FieldDashboard() {
   // Contenitore della mappa: ci vivono i controlli NATIVI (righello, gestore
   // livelli), che si localizzano a valle — vedi useNativeMapI18n.
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  // Area mappa (mappa + pannelli laterali): osservata per il padding del drawer.
+  const mapAreaRef = useRef<HTMLDivElement>(null);
   const [mapReady, setMapReady] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [offlineOpen, setOfflineOpen] = useState(false);
 
   const platform = usePlatform();
+  // Desktop: più moduli aperti insieme nella colonna di destra (modalità
+  // "floating" dello store). Telefono: un foglio alla volta ("docked").
+  const setPanelMode = useAgroStore((s) => s.setPanelMode);
+  useEffect(() => {
+    setPanelMode(platform.isMobile ? "docked" : "floating");
+  }, [platform.isMobile, setPanelMode]);
+  const railWidth =
+    DESKTOP_MODULE_NAV === "rail" ? RAIL_WIDTH : sidebarCollapsed ? 0 : LIST_WIDTH;
 
   // Su mobile forziamo la sidebar collassata al primo render.
   // biome-ignore lint/correctness/useExhaustiveDependencies: solo al mount
@@ -220,20 +249,28 @@ export function FieldDashboard() {
   // Undo/Redo geometrie + scorciatoie globali (Ctrl/Cmd+Z, Y).
   const undoRedo = useGeometryUndoRedo();
 
-  // Command Palette globale: Ctrl/Cmd+K apre/chiude. La dashboard resta
-  // montata anche col Command Center in primo piano (keep-alive in App.tsx):
-  // la palette risponde solo quando la vista mappa è quella attiva, altrimenti
-  // si aprirebbe invisibile sotto l'altra vista.
+  // Command Palette globale: Ctrl/Cmd+K apre/chiude, da QUALUNQUE vista. La
+  // dashboard resta montata anche con Calendario o Command Center in primo
+  // piano (keep-alive in App.tsx): da lì si torna sulla mappa e la si apre
+  // (requestCommandPalette), invece di ignorare il tasto. Lo stesso evento lo
+  // lancia il campo "Cerca… Ctrl K" dell'header.
+  const paletteOpenRef = useRef(false);
+  paletteOpenRef.current = paletteOpen;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
-        if (useAgroStore.getState().activeView !== "map") return;
         e.preventDefault();
-        setPaletteOpen((v) => !v);
+        if (paletteOpenRef.current) setPaletteOpen(false);
+        else requestCommandPalette();
       }
     };
+    const onOpenRequest = () => setPaletteOpen(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpenRequest);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpenRequest);
+    };
   }, []);
 
   // Cambio/aggiunta basemap → lo stile MapLibre riparte da zero: questo epoch
@@ -250,17 +287,57 @@ export function FieldDashboard() {
   // scelta hover e click appartengono alla proposta.
   useParcelCandidatesLayer(mapControllerRef, styleEpoch);
   useFieldLayers(styleEpoch);
+  // Fonti dei layer (WMS, satellite, catasto, indici Sentinel-2) nella barra attribuzioni.
+  useLayerAttributions(mapControllerRef, mapReady);
+  // Sfondo WMS salvato dell'azienda: torna com'era alla riapertura.
+  useWmsBasemapRestore(mapControllerRef, mapReady);
   const hover = useHoverTooltips(mapControllerRef, mapReady);
-  useFeatureSelection(mapControllerRef, mapReady);
+  // Telefono: il tocco su un appezzamento apre la scheda compatta in basso
+  // (PlotPeekCard) invece della scheda completa; un tocco a vuoto la chiude.
+  const [peekPlotId, setPeekPlotId] = useState<string | null>(null);
+  useFeatureSelection(
+    mapControllerRef,
+    mapReady,
+    platform.isMobile
+      ? { onPlotTap: setPeekPlotId, onEmptyTap: () => setPeekPlotId(null) }
+      : {},
+  );
+  // Telefono: quando l'app è inattiva (requestIdleCallback, quindi senza
+  // contendere risorse alla mappa) si scarica il codice di tutti i pannelli.
+  // Senza, la prima apertura (es. Moduli → Coltura → Dati coltura) chiudeva il
+  // foglio Moduli e lasciava la mappa vuota per il tempo del download, prima
+  // che il pannello comparisse di colpo.
+  useEffect(() => {
+    if (!platform.isMobile) return;
+    const preload = () => {
+      for (const load of panelLoaders) void load().catch(() => {});
+    };
+    // Le WebView più vecchie (Safari < 16.4) non hanno requestIdleCallback.
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(preload, { timeout: 4000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = globalThis.setTimeout(preload, 1500);
+    return () => globalThis.clearTimeout(id);
+  }, [platform.isMobile]);
+
+  // Un pannello aperto (Quaderno, Moduli, scheda completa…) prende il posto
+  // della scheda compatta: non restano due fogli impilati.
+  useEffect(() => {
+    if (openPanels.length > 0) setPeekPlotId(null);
+  }, [openPanels.length]);
   // Righello e gestore livelli sono controlli di terze parti con le etichette
   // cablate in inglese: si traducono a valle sul DOM della mappa.
   useNativeMapI18n(mapContainerRef);
   // Bussola: segnala la vista orientata a nord (piccola "N" + colore).
   useCompassNorth(mapControllerRef, mapContainerRef);
+  // Desktop: con un pannello laterale aperto la mappa centra e zooma sull'area
+  // visibile, non sotto il pannello.
+  useDrawerMapPadding(mapControllerRef, mapReady, mapAreaRef, !platform.isMobile);
 
   return (
     <div className="flex h-full flex-col">
-      <AppHeader onOpenCommandPalette={() => setPaletteOpen(true)} />
+      <AppHeader />
 
       {readOnly && (
         <div className="flex items-center gap-2 border-b border-[var(--line)] bg-[var(--panel-2)] px-3 py-1.5 text-xs text-[var(--ink-2)]">
@@ -271,15 +348,28 @@ export function FieldDashboard() {
         </div>
       )}
 
-      <div className="relative min-h-0 flex-1 overflow-hidden">
-        {/* Mappa persistente: mai rimontata, mai ridimensionata dai pannelli.
-            `data-sidebar` permette al CSS di scostare i controlli nativi top-left
-            (es. pannello Misura) a destra della colonna bottoni, così la scheda
-            si apre di fianco al bottone without finire dietro la barra moduli. */}
+      {/* agro-map-area: con un pannello laterale aperto (agro-drawer) il CSS
+          sposta i controlli di destra alla sua sinistra, vedi index.css. */}
+      {/* `--agro-rail-w`: spazio occupato a sinistra dalla navigazione moduli
+          (desktop). Lo leggono gli elementi ancorati a sinistra — strumenti di
+          modifica, legenda colture, time slider, scala — per non finirle sotto. */}
+      <div
+        ref={mapAreaRef}
+        className="agro-map-area relative min-h-0 flex-1 overflow-hidden"
+        data-drawer-bounds
+        style={
+          platform.isMobile
+            ? undefined
+            : ({ "--agro-rail-w": `${railWidth}px` } as CSSProperties)
+        }
+      >
+        {/* Mappa persistente: mai rimontata, mai ridimensionata dai pannelli. */}
         <div
           ref={mapContainerRef}
           className="agro-field-map absolute inset-0"
-          data-sidebar={sidebarCollapsed ? "collapsed" : "open"}
+          // Telefono: il CSS sfoltisce la colonna dei controlli nativi (vedi
+          // index.css, sezione "Mappa su telefono").
+          data-mobile={platform.isMobile ? "true" : undefined}
         >
           <MapCanvas
             controllerRef={mapControllerRef}
@@ -294,27 +384,55 @@ export function FieldDashboard() {
             (in fondo, sotto il gestore livelli) — vedi MapSearchControl. */}
         <MapSearchControl mapControllerRef={mapControllerRef} />
 
-        {/* Sidebar moduli: overlay che scorre fuori schermo via transform. */}
-        <div
-          className={cn(
-            "absolute inset-y-0 left-0 z-20 transition-transform duration-300 ease-in-out",
-            sidebarCollapsed ? "-translate-x-full" : "translate-x-0",
-          )}
-        >
-          <ModuleSidebar />
-        </div>
+        {/* Telefono: una sola colonna di controlli (a destra, nella colonna
+            nativa) più le azioni rapide in basso; niente colonna di sinistra,
+            le sue funzioni stanno in Livelli, Moduli e nei pulsanti rotondi. */}
+        {platform.isMobile && (
+          <>
+            <MobileMapTools mapControllerRef={mapControllerRef} />
+            {mapReady && !peekPlotId && <MobileMapFabs />}
+            {/* Durante l'editing geometrico gli strumenti di modifica restano. */}
+            <div className="absolute left-3 top-3 z-30 flex flex-col gap-2">
+              <GeometryEditToolbar />
+            </div>
+          </>
+        )}
 
-        {/* Colonna fluttuante: toggle sidebar + controlli mappa nativi.
-            La transizione è sulla SOLA posizione: con `transition-all` veniva
+        {/* Navigazione moduli desktop: barra di icone sempre visibile, oppure
+            (DESKTOP_MODULE_NAV = "list") la lista che scorre fuori schermo via
+            transform. Su telefono i moduli sono nel foglio della barra in basso. */}
+        {!platform.isMobile && DESKTOP_MODULE_NAV === "rail" && (
+          <div className="absolute inset-y-0 left-0 z-[35]">
+            <ModuleSidebar rail />
+          </div>
+        )}
+        {!platform.isMobile && DESKTOP_MODULE_NAV === "list" && (
+          <div
+            className={cn(
+              "absolute inset-y-0 left-0 z-20 transition-transform duration-300 ease-in-out",
+              sidebarCollapsed ? "-translate-x-full" : "translate-x-0",
+            )}
+          >
+            <ModuleSidebar />
+          </div>
+        )}
+
+        {/* Desktop: UNA colonna di controlli mappa, a destra, come sul telefono
+            (Livelli · Misura · Wayback in testa, poi zoom, bussola, schermo
+            intero, terreno, posizione, cerca luogo). A sinistra resta solo il
+            comando della barra moduli, più gli strumenti di modifica durante
+            l'editing geometrico (con la barra di icone solo questi ultimi).
+            Rilievo GPS e carburante stanno in basso a destra (DesktopMapFabs). */}
+        {!platform.isMobile && (
+          <DesktopMapTools mapControllerRef={mapControllerRef} />
+        )}
+        {!platform.isMobile && (
+        /* La transizione è sulla SOLA posizione: con `transition-all` veniva
             animata anche la visibility ereditata, e uscendo dalla vista mappa
             (nascosta con visibility:hidden) i bottoni restavano a schermo per
-            tutta la durata dell’animazione. */}
-        <div
-          className={cn(
-            "absolute top-3 z-30 flex flex-col gap-2 transition-[left] duration-300 ease-in-out",
-            sidebarCollapsed ? "left-3" : "left-[272px]",
-          )}
-        >
+            tutta la durata dell’animazione. */
+        <div className="absolute left-[calc(var(--agro-rail-w,0px)+0.75rem)] top-3 z-30 flex flex-col gap-2 transition-[left] duration-300 ease-in-out">
+          {DESKTOP_MODULE_NAV === "list" && (
           <button
             type="button"
             onClick={toggleSidebar}
@@ -331,44 +449,12 @@ export function FieldDashboard() {
               <PanelLeftClose size={18} />
             )}
           </button>
-          <MapControls mapControllerRef={mapControllerRef} />
-          <BasemapSwitcher mapControllerRef={mapControllerRef} />
-          {mapReady && (
-            <button
-              type="button"
-              onClick={() => togglePanel("scouting")}
-              title={t("fieldDashboard.scoutingTitle")}
-              className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-[var(--r-2)] border shadow-[var(--sh-1)]",
-                openPanels.includes("scouting")
-                  ? "border-[var(--accent)] bg-[var(--accent)] text-white"
-                  : "border-[var(--line)] bg-[var(--panel)] text-[var(--ink-2)] hover:bg-[var(--panel-2)]",
-              )}
-            >
-              <MapPin size={18} />
-            </button>
           )}
-          {/* Accesso rapido al refill carburante a bordo campo (§6.2): apre la
-              sotto-scheda Refill del Magazzino con il form già precompilato. */}
-          {mapReady && refillEnabled && (
-            <button
-              type="button"
-              onClick={() => openRefillPanel({ quickRefill: true })}
-              title={t("machineryRefill.quickAction")}
-              aria-label={t("machineryRefill.quickAction")}
-              className="flex h-10 w-10 items-center justify-center rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] text-[var(--ink-2)] shadow-[var(--sh-1)] hover:bg-[var(--panel-2)]"
-            >
-              <Fuel size={18} />
-            </button>
-          )}
-          {/* Nessun pulsante per il geofencing: il rilevamento è automatico e
-              il GPS "mostrami sulla mappa" è già il controllo nativo in alto a
-              destra. Lo stato del watch è consultabile nel Riquadro
-              Pianificazione Task, non come chrome di mappa. */}
           {/* Strumenti di MODIFICA: compaiono a lato dei moduli solo durante
               l'editing geometrico, con i soli tool di modifica (non di disegno). */}
           <GeometryEditToolbar />
         </div>
+        )}
 
         {/* Simboli operazioni del Quaderno e harvests (toggle "Mostra sulla
             mappa"): marker HTML on-demand, creati solo quando il toggle è
@@ -387,11 +473,23 @@ export function FieldDashboard() {
             compaiono solo sui campi che hanno davvero qualcosa da segnalare. */}
         <PlotAlertMarkers mapControllerRef={mapControllerRef} mapReady={mapReady} />
 
-        {/* Tooltip hover (Modulo UI §2). */}
-        <MapTooltip hover={hover} />
+        {/* Tooltip hover (Modulo UI §2). Su touch non c'è passaggio del mouse:
+            al suo posto la scheda compatta dell'appezzamento toccato. */}
+        {platform.isMobile ? (
+          peekPlotId &&
+          openPanels.length === 0 && (
+            <PlotPeekCard
+              plotId={peekPlotId}
+              onClose={() => setPeekPlotId(null)}
+            />
+          )
+        ) : (
+          <MapTooltip hover={hover} />
+        )}
 
-        {/* Legenda a gradiente degli indici: compare con gli overlay attivi. */}
-        <Colorbar />
+        {/* Legenda a gradiente degli indici: compare con gli overlay attivi.
+            Desktop: dentro la pila in basso a destra (sotto). */}
+        {platform.isMobile && <Colorbar />}
 
         {/* Time slider degli indici: compare in basso dopo un calcolo e resta
             navigabile anche a pannello Suolo chiuso. */}
@@ -405,103 +503,156 @@ export function FieldDashboard() {
         )}
 
         {/* Feed attività: tag temporali degli ultimi import/export (FIX 2).
-            Si nasconde quando non c'è nulla da mostrare. */}
-        <div className="pointer-events-none absolute bottom-3 right-3 z-20 flex max-w-[min(20rem,70vw)] flex-col items-end gap-1">
-          <TransferTagsFeed
-            limit={3}
-            autoHideMs={10000}
-            className="flex flex-col items-end gap-1"
-          />
-        </div>
+            Si nasconde quando non c'è nulla da mostrare. Su telefono in alto a
+            sinistra: in basso a destra ci sono le azioni rapide. */}
+        {platform.isMobile ? (
+          <div className="pointer-events-none absolute left-3 top-3 z-20 flex max-w-[min(20rem,70vw)] flex-col items-start gap-1">
+            <TransferTagsFeed
+              limit={3}
+              autoHideMs={10000}
+              className="flex flex-col items-start gap-1"
+            />
+          </div>
+        ) : (
+          /* Desktop: una sola pila in basso a destra, sopra le attribuzioni —
+             feed attività, legende degli indici, azioni rapide di campo — che
+             si sposta a fianco del pannello laterale quando è aperto
+             (agro-right-overlay, index.css). */
+          <div className="agro-right-overlay pointer-events-none absolute bottom-9 right-3 z-30 flex max-w-[20rem] flex-col items-end gap-2">
+            <TransferTagsFeed
+              limit={3}
+              autoHideMs={10000}
+              className="flex flex-col items-end gap-1"
+            />
+            <Colorbar stacked />
+            {mapReady && <DesktopMapFabs />}
+          </div>
+        )}
 
         {/* Pannelli strumenti (bottom-sheet mobile / drawer desktop). Lazy:
-            il fallback è nullo perché sono overlay e il caricamento è breve. */}
+            il fallback è nullo perché sono overlay e il caricamento è breve.
+            Desktop: stanno tutti nella pila della colonna di destra
+            (agro-drawer-dock, index.css), così più moduli restano aperti
+            insieme: l'ultimo in cima, gli altri ridotti all'intestazione. Sul
+            telefono la pila non esiste (display: contents), un foglio alla
+            volta. */}
+        <div className="agro-drawer-dock">
         <Suspense fallback={null}>
           {openPanels.includes("quaderno") && (
-            <LogbookPanel onClose={() => togglePanel("quaderno")} />
+            <DrawerSlot id="quaderno">
+              <LogbookPanel onClose={() => togglePanel("quaderno")} />
+            </DrawerSlot>
           )}
           {/* Scheda dell'appezzamento (tap sul field in mappa): task
               programmate avviabili + operazioni registrate su QUEL field.
               L'ambito aziendale completo resta nel Quaderno, pannello a sé. */}
-          {openPanels.includes("plot-sheet") && <PlotSheet />}
+          {openPanels.includes("plot-sheet") && (
+            <DrawerSlot id="plot-sheet">
+              <PlotSheet />
+            </DrawerSlot>
+          )}
           {openPanels.includes("raccolta") && (
-            <HarvestPanel onClose={() => togglePanel("raccolta")} />
+            <DrawerSlot id="raccolta">
+              <HarvestPanel onClose={() => togglePanel("raccolta")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("magazzino") && (
-            <WarehousePanel
-              onClose={() => togglePanel("magazzino")}
-              mapControllerRef={mapControllerRef}
-            />
+            <DrawerSlot id="magazzino">
+              <WarehousePanel
+                onClose={() => togglePanel("magazzino")}
+                mapControllerRef={mapControllerRef}
+              />
+            </DrawerSlot>
           )}
           {/* Refill carburante: pannello a sé (staccato dal Magazzino), aperto
               solo dal FAB rapido a bordo campo (§6.2). */}
           {openPanels.includes("refill") && (
-            <FuelRefillPanel onClose={() => togglePanel("refill")} />
+            <DrawerSlot id="refill">
+              <FuelRefillPanel onClose={() => togglePanel("refill")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("ndvi") && (
-            <SoilPanel onClose={() => togglePanel("ndvi")} />
+            <DrawerSlot id="ndvi">
+              <SoilPanel onClose={() => togglePanel("ndvi")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("vra") && (
-            <VraPanel onClose={() => togglePanel("vra")} />
+            <DrawerSlot id="vra">
+              <VraPanel onClose={() => togglePanel("vra")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("stampa") && (
-            <PrintComposer
-              onClose={() => togglePanel("stampa")}
-              mapControllerRef={mapControllerRef}
-            />
+            <DrawerSlot id="stampa">
+              <PrintComposer
+                onClose={() => togglePanel("stampa")}
+                mapControllerRef={mapControllerRef}
+              />
+            </DrawerSlot>
           )}
           {/* Adozione di particelle da fonti pubbliche: riceve la mappa per
               leggere il riquadro visibile e per il click puntuale. */}
           {openPanels.includes("parcel-adoption") && (
-            <ParcelAdoptionPanel
-              onClose={() => togglePanel("parcel-adoption")}
-              mapControllerRef={mapControllerRef}
-            />
+            <DrawerSlot id="parcel-adoption">
+              <ParcelAdoptionPanel
+                onClose={() => togglePanel("parcel-adoption")}
+                mapControllerRef={mapControllerRef}
+              />
+            </DrawerSlot>
           )}
           {openPanels.includes("coltura") && (
-            <CropDataPanel onClose={() => togglePanel("coltura")} />
+            <DrawerSlot id="coltura">
+              <CropDataPanel onClose={() => togglePanel("coltura")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("coltura-dss") && (
-            <CropDssPanel onClose={() => togglePanel("coltura-dss")} />
+            <DrawerSlot id="coltura-dss">
+              <CropDssPanel onClose={() => togglePanel("coltura-dss")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("acqua") && (
-            <WaterBalancePanel onClose={() => togglePanel("acqua")} />
+            <DrawerSlot id="acqua">
+              <WaterBalancePanel onClose={() => togglePanel("acqua")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("sync") && (
-            <SyncPanel onClose={() => togglePanel("sync")} />
+            <DrawerSlot id="sync">
+              <SyncPanel onClose={() => togglePanel("sync")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("anagrafica") && (
-            <RegistryPanel onClose={() => togglePanel("anagrafica")} />
+            <DrawerSlot id="anagrafica">
+              <RegistryPanel onClose={() => togglePanel("anagrafica")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("impostazioni") && (
-            <SettingsPanel onClose={() => togglePanel("impostazioni")} />
+            <DrawerSlot id="impostazioni">
+              <SettingsPanel onClose={() => togglePanel("impostazioni")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("geocompliance") && (
-            <GeoCompliancePanel onClose={() => togglePanel("geocompliance")} />
+            <DrawerSlot id="geocompliance">
+              <GeoCompliancePanel onClose={() => togglePanel("geocompliance")} />
+            </DrawerSlot>
           )}
           {openPanels.includes("compliance-monitor") && (
-            <CompliancePanel onClose={() => togglePanel("compliance-monitor")} />
+            <DrawerSlot id="compliance-monitor">
+              <CompliancePanel onClose={() => togglePanel("compliance-monitor")} />
+            </DrawerSlot>
           )}
-          {/* Impostazioni Profilo: pagina a tutto schermo (non un drawer), sopra
-              mappa e pannelli. Raggiunta dal menù profile e dalla Command Palette. */}
-          {openPanels.includes("profile") && (
-            <UserProfileSettingsPage onClose={() => togglePanel("profile")} />
-          )}
-          {/* Riquadro Pianificazione Task / Ricette: pagina a tutto schermo
-              come le Impostazioni Profilo (non un drawer). */}
-          {openPanels.includes("tasks") && (
-            <TaskPlannerPanel onClose={() => togglePanel("tasks")} />
-          )}
+          {/* Impostazioni Profilo: montate in App.tsx, sopra TUTTE le viste
+              (si aprono anche da Calendario e Command Center). */}
           {/* Registro: drawer destro come la scheda dettaglio. Quando un
               elemento è selezionato lascia il posto alla scheda e riappare alla
               sua chiusura, così si possono gestire più elementi di fila. */}
           {openPanels.includes("registro") &&
             !selectedFeature &&
             !pendingGeometry && (
-              <GeometryRegistry
-                onClose={() => togglePanel("registro")}
-                mapControllerRef={mapControllerRef}
-              />
+              <DrawerSlot id="registro">
+                <GeometryRegistry
+                  onClose={() => togglePanel("registro")}
+                  mapControllerRef={mapControllerRef}
+                />
+              </DrawerSlot>
             )}
 
           {/* Scheda dati: si apre automaticamente a fine disegno (Modulo UI §3). */}
@@ -514,6 +665,28 @@ export function FieldDashboard() {
             <DetailEditSheet selected={selectedFeature} />
           )}
         </Suspense>
+        {/* Pannello rilievo GPS (mobile + desktop). */}
+        <Suspense fallback={null}>
+          {openPanels.includes("scouting") && (
+            <DrawerSlot id="scouting">
+              <FieldCollectionTool
+                onClose={() => togglePanel("scouting")}
+                mapControllerRef={mapControllerRef}
+              />
+            </DrawerSlot>
+          )}
+        </Suspense>
+        </div>
+
+        {/* Riquadro Pianificazione Task / Ricette: pagina a tutto schermo
+            come le Impostazioni Profilo (non un drawer). Sta FUORI dalla pila
+            dei pannelli laterali: dentro, il suo `absolute inset-0` prendeva
+            le misure della pila (larga zero senza pannelli) e non si vedeva. */}
+        <Suspense fallback={null}>
+          {openPanels.includes("tasks") && (
+            <TaskPlannerPanel onClose={() => togglePanel("tasks")} />
+          )}
+        </Suspense>
 
         {/* Command Palette globale (Ctrl/Cmd+K): overlay sopra mappa e pannelli. */}
         <CommandPalette
@@ -523,21 +696,6 @@ export function FieldDashboard() {
           undoRedo={undoRedo}
         />
 
-        {/* Pannello rilievo GPS (mobile + desktop). */}
-        <Suspense fallback={null}>
-          {openPanels.includes("scouting") && (
-            <FieldCollectionTool
-              onClose={() => togglePanel("scouting")}
-              mapControllerRef={mapControllerRef}
-            />
-          )}
-          {offlineOpen && (
-            <OfflineAreaDialog
-              onClose={() => setOfflineOpen(false)}
-              mapControllerRef={mapControllerRef}
-            />
-          )}
-        </Suspense>
 
         {/* Modalità Campo: modale di rilevamento ingresso in field, sopra ogni
             altro overlay (z-index massimo). Compare da sé quando il geofencing
@@ -545,88 +703,7 @@ export function FieldDashboard() {
         <Suspense fallback={null}>
           <FieldDetectionModal />
         </Suspense>
-
-        {/* Tab bar mobile: navigazione principale su smartphone (sostituisce la
-            sidebar laterale che non è usabile con un solo pollice su schermi
-            piccoli). Visibile solo su viewport < 768 px. */}
-        {platform.isMobile && (
-          <nav className="absolute bottom-0 left-0 right-0 z-30 flex items-center justify-around border-t border-[var(--line)] bg-[var(--panel)] px-2 pb-safe pt-2 shadow-[var(--sh-pop)]">
-            <MobileTabBtn
-              label={t("fieldDashboard.tabLogbook")}
-              icon={<NotebookPen size={20} />}
-              active={openPanels.includes("quaderno")}
-              onClick={() => {
-                setMobileSidebarOpen(false);
-                togglePanel("quaderno");
-              }}
-            />
-            <MobileTabBtn
-              label={t("fieldDashboard.tabScouting")}
-              icon={<MapPin size={20} />}
-              active={openPanels.includes("scouting")}
-              onClick={() => {
-                setMobileSidebarOpen(false);
-                togglePanel("scouting");
-              }}
-            />
-            <MobileTabBtn
-              label={t("fieldDashboard.tabOffline")}
-              icon={<Wifi size={20} />}
-              active={offlineOpen}
-              onClick={() => {
-                setMobileSidebarOpen(false);
-                setOfflineOpen((v) => !v);
-              }}
-            />
-            <MobileTabBtn
-              label={t("fieldDashboard.tabModules")}
-              icon={<Menu size={20} />}
-              active={mobileSidebarOpen}
-              onClick={() => setMobileSidebarOpen((v) => !v)}
-            />
-          </nav>
-        )}
-
-        {/* Sidebar moduli come BottomSheet su mobile. */}
-        {platform.isMobile && (
-          <BottomSheet
-            open={mobileSidebarOpen}
-            onClose={() => setMobileSidebarOpen(false)}
-            title={t("nav.modulesHeading")}
-            maxHeight="70dvh"
-          >
-            <div className="px-2 pb-4">
-              <ModuleSidebar embedded />
-            </div>
-          </BottomSheet>
-        )}
       </div>
     </div>
-  );
-}
-
-function MobileTabBtn({
-  label,
-  icon,
-  active,
-  onClick,
-}: {
-  label: string;
-  icon: ReactNode;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex flex-col items-center gap-0.5 px-3 py-1 text-[10px] font-medium",
-        active ? "text-[var(--accent)]" : "text-[var(--ink-3)]",
-      )}
-    >
-      {icon}
-      {label}
-    </button>
   );
 }

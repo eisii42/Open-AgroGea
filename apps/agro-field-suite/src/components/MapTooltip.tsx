@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { cropIcon } from "../lib/cropIcon";
 import { assetIcon } from "../lib/assetIcon";
 import type { HoverState } from "../hooks/useHoverTooltips";
+import { PlotAlertList } from "./PlotAlertList";
 
 /** Ordine di visualizzazione degli indici nel tooltip cella (solo quelli presenti). */
 const INDEX_ORDER: VegetationIndex[] = [
@@ -171,6 +172,10 @@ function PlotBody({ props }: { props: Record<string, unknown> }) {
             <span className="text-[var(--ink-4)]">—</span>
           )
         }
+      />
+      <PlotAlertList
+        plotId={str(props.id)}
+        className="mt-0.5 border-t border-[var(--line)] pt-1"
       />
     </div>
   );

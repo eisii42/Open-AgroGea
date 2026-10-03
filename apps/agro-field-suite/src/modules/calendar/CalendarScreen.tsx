@@ -20,9 +20,12 @@ import {
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppHeader } from "../../components/AppHeader";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { usePlatform } from "../../hooks/usePlatform";
 import { weatherCodeInfo } from "../../lib/weather-codes";
 import { taskOperationLabel } from "../tasks/TaskForm";
 import { CalendarDayPanel } from "./CalendarDayPanel";
+import { CalendarMobileMonth } from "./CalendarMobileMonth";
 import { CalendarOperationDialog } from "./CalendarOperationDialog";
 import { CalendarTaskDialog } from "./CalendarTaskDialog";
 import {
@@ -123,6 +126,13 @@ export function CalendarScreen() {
     () => new Set(ALL_KINDS),
   );
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const { isMobile } = usePlatform();
+  // Desktop largo: agenda del giorno fissa a destra della griglia (oggi
+  // all'apertura), invece del pannello che copriva la vista.
+  const wide = useMediaQuery("(min-width: 1280px)");
+  const agendaDocked = !isMobile && wide;
+  // Telefono: giorno mostrato nell'agenda sotto la griglia (oggi all'apertura).
+  const [agendaDay, setAgendaDay] = useState(() => todayKey(new Date()));
   // Dialoghi di inserimento: la data è SEMPRE quella del giorno aperto.
   const [taskDialogDay, setTaskDialogDay] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<PlannedTask | null>(null);
@@ -239,25 +249,99 @@ export function CalendarScreen() {
     const next = new Date(year, month + delta, 1);
     setYear(next.getFullYear());
     setMonth(next.getMonth());
+    // L'agenda del telefono segue il mese: oggi se ci cade, altrimenti il primo.
+    const firstKey = todayKey(next);
+    const currentKey = todayKey(new Date());
+    setAgendaDay(
+      currentKey.slice(0, 7) === firstKey.slice(0, 7) ? currentKey : firstKey,
+    );
   }
 
   function goToday() {
     const current = new Date();
     setYear(current.getFullYear());
     setMonth(current.getMonth());
+    setAgendaDay(todayKey(current));
   }
 
   return (
     <div className="flex h-full flex-col">
       <AppHeader />
 
+      {/* Telefono: una riga per il mese (con Oggi e aggiorna), una per
+          l'appezzamento. Pianifica/Registra stanno nell'agenda del giorno. */}
+      {isMobile && (
+        <div className="flex flex-col gap-2 border-b border-[var(--line)] bg-[var(--panel)] px-3 py-2">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => shiftMonth(-1)}
+              aria-label={t("calendar.previousMonth")}
+              title={t("calendar.previousMonth")}
+              className="flex h-11 w-11 items-center justify-center rounded-[var(--r-2)] text-[var(--ink-3)] active:bg-[var(--panel-2)]"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <span className="flex-1 text-center text-[16px] font-semibold capitalize">
+              {monthLabels(t)[month]} {year}
+            </span>
+            <button
+              type="button"
+              onClick={() => shiftMonth(1)}
+              aria-label={t("calendar.nextMonth")}
+              title={t("calendar.nextMonth")}
+              className="flex h-11 w-11 items-center justify-center rounded-[var(--r-2)] text-[var(--ink-3)] active:bg-[var(--panel-2)]"
+            >
+              <ChevronRight size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={goToday}
+              className="min-h-11 rounded-[var(--r-2)] border border-[var(--line)] px-3 text-[13px] font-medium active:bg-[var(--panel-2)]"
+            >
+              {t("calendar.today")}
+            </button>
+            <button
+              type="button"
+              onClick={data.refresh}
+              title={t("calendar.refreshTitle")}
+              aria-label={t("calendar.refreshTitle")}
+              className="flex h-11 w-11 items-center justify-center rounded-[var(--r-2)] text-[var(--ink-3)] active:bg-[var(--panel-2)]"
+            >
+              {data.loading ? (
+                <Loader2 size={17} className="animate-spin" />
+              ) : (
+                <RefreshCw size={17} />
+              )}
+            </button>
+          </div>
+          <select
+            value={plotId}
+            onChange={(e) => setPlotId(e.target.value)}
+            aria-label={t("calendar.plotScope")}
+            className="min-h-11 w-full rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-3 text-[15px]"
+          >
+            <option value="">{t("calendar.allPlots")}</option>
+            {plots
+              .filter((p) => p.deleted_at == null)
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.user_plot_name}
+                </option>
+              ))}
+          </select>
+        </div>
+      )}
+
       {/* Prima barra: quando (mese) e dove (appezzamento) + le due azioni. */}
+      {!isMobile && (
       <div className="flex flex-wrap items-center gap-3 border-b border-[var(--line)] bg-[var(--panel)] px-4 py-2">
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => shiftMonth(-1)}
             aria-label={t("calendar.previousMonth")}
+            title={t("calendar.previousMonth")}
             className="flex h-8 w-8 items-center justify-center rounded-[var(--r-1)] text-[var(--ink-3)] hover:bg-[var(--panel-2)]"
           >
             <ChevronLeft size={16} />
@@ -269,6 +353,7 @@ export function CalendarScreen() {
             type="button"
             onClick={() => shiftMonth(1)}
             aria-label={t("calendar.nextMonth")}
+            title={t("calendar.nextMonth")}
             className="flex h-8 w-8 items-center justify-center rounded-[var(--r-1)] text-[var(--ink-3)] hover:bg-[var(--panel-2)]"
           >
             <ChevronRight size={16} />
@@ -333,10 +418,19 @@ export function CalendarScreen() {
           </button>
         </div>
       </div>
+      )}
 
       {/* Seconda barra: COSA mostrare. Le pillole fanno da legenda e da filtro
-          insieme — un colore, un significato, un interruttore. */}
-      <div className="flex flex-wrap items-center gap-1.5 border-b border-[var(--line)] bg-[var(--panel)] px-4 py-2">
+          insieme — un colore, un significato, un interruttore. Sul telefono
+          scorrono in orizzontale invece di andare a capo su tre righe. */}
+      <div
+        className={cn(
+          "flex items-center gap-1.5 border-b border-[var(--line)] bg-[var(--panel)] py-2",
+          isMobile
+            ? "no-scrollbar flex-nowrap overflow-x-auto px-3 [&>button]:shrink-0"
+            : "flex-wrap px-4",
+        )}
+      >
         {FILTER_KINDS.map(({ kind, color }) => {
           const on = visibleKinds.has(kind);
           const count = monthCounts.get(kind) ?? 0;
@@ -380,7 +474,23 @@ export function CalendarScreen() {
         )}
       </div>
 
+      <div className="flex min-h-0 flex-1">
       <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--bg)] p-3">
+        {isMobile ? (
+          <CalendarMobileMonth
+            cells={cells}
+            weekdays={weekdayLabels(t)}
+            eventsByDay={eventsByDay}
+            weather={weather}
+            today={today}
+            selectedDay={agendaDay}
+            readOnly={readOnly}
+            onSelectDay={setAgendaDay}
+            onOpenDay={setSelectedDay}
+            onAddTask={(day) => openTaskDialog(day)}
+            onAddOperation={(day) => openOperationDialog(day)}
+          />
+        ) : (
         <div className="grid grid-cols-7 gap-1">
           {weekdayLabels(t).map((label) => (
             <div
@@ -394,6 +504,8 @@ export function CalendarScreen() {
             if (!day) return <div key={`empty-${index}`} />;
             const dayEvents = eventsByDay.get(day) ?? [];
             const isToday = day === today;
+            // Con l'agenda fissa si vede quale giorno sta mostrando.
+            const isAgendaDay = agendaDocked && day === (selectedDay ?? today);
             const forecast = weather.get(day);
             const info = weatherCodeInfo(forecast?.weatherCode);
             const WeatherIcon = info.Icon;
@@ -407,7 +519,9 @@ export function CalendarScreen() {
                   isToday
                     ? "border-[var(--accent)] bg-[var(--accent-l)]"
                     : "border-[var(--line)] bg-[var(--panel)] hover:bg-[var(--panel-2)]",
+                  isAgendaDay && "ring-2 ring-inset ring-[var(--accent)]",
                 )}
+                aria-pressed={agendaDocked ? isAgendaDay : undefined}
               >
                 <div className="flex items-start justify-between gap-1">
                   <span
@@ -465,9 +579,31 @@ export function CalendarScreen() {
             );
           })}
         </div>
+        )}
+      </div>
+      {agendaDocked && (
+        <CalendarDayPanel
+          docked
+          day={selectedDay ?? today}
+          events={eventsByDay.get(selectedDay ?? today) ?? []}
+          weather={weather.get(selectedDay ?? today)}
+          treatments={treatments}
+          harvests={harvests}
+          plannedTasks={plannedTasks}
+          dssResults={data.dssResults}
+          soilIndices={data.soilIndices}
+          readOnly={readOnly}
+          onClose={() => setSelectedDay(null)}
+          onAddTask={() => openTaskDialog(selectedDay ?? today)}
+          onAddOperation={() => openOperationDialog(selectedDay ?? today)}
+          onEditTask={(task) =>
+            openTaskDialog(task.planned_date ?? selectedDay ?? today, task)
+          }
+        />
+      )}
       </div>
 
-      {selectedDay && (
+      {selectedDay && !agendaDocked && (
         <CalendarDayPanel
           day={selectedDay}
           events={eventsByDay.get(selectedDay) ?? []}

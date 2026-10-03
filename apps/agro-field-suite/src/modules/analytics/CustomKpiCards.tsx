@@ -1,3 +1,4 @@
+import { useModalBehavior } from "@agrogea/ui";
 import { cn } from "@geolibre/ui";
 import {
   ArrowDownRight,
@@ -9,7 +10,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { v4 as uuidv4 } from "uuid";
 import { Bar, BarChart, Line, LineChart, ResponsiveContainer } from "recharts";
@@ -229,6 +230,9 @@ function KpiCardEditModal({
   onSave: (card: CustomKpiCard) => void;
   onClose: () => void;
 }) {
+  // Stesso modello di tutte le finestre: Esc, focus dentro, focus restituito.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(dialogRef, onClose);
   const { t } = useTranslation();
   const firstEntity = ENTITIES[0];
 
@@ -335,6 +339,9 @@ function KpiCardEditModal({
       onMouseDown={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
         className="max-h-full w-full max-w-sm overflow-y-auto rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--sh-pop)]"
         onMouseDown={(e) => e.stopPropagation()}
       >
@@ -668,7 +675,7 @@ export function CustomKpiCards({
         <button
           type="button"
           onClick={() => setCreating(true)}
-          className="flex shrink-0 items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1.5 text-sm font-medium text-[var(--ink-2)] hover:bg-[var(--panel-2)]"
+          className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1.5 text-sm font-medium text-[var(--ink-2)] hover:bg-[var(--panel-2)] sm:min-h-0"
         >
           <Plus size={15} /> {t("customKpiCards.addCard")}
         </button>
@@ -679,7 +686,10 @@ export function CustomKpiCards({
           {t("customKpiCards.noCards")}
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+        // Telefono: una scheda per riga (su due colonne titoli e valori si
+        // troncavano). Poi colonne automatiche (schede da almeno 15rem):
+        // tante quante ne entrano, su qualsiasi larghezza.
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-3">
           {cards.map((c, i) => (
             <KpiCard
               key={c.id}

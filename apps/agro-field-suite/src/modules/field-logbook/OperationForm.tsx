@@ -310,6 +310,13 @@ export interface OperationFormProps {
    * registrare un'operazione sul giorno cliccato invece che su oggi.
    */
   defaultDate?: string;
+  /**
+   * "edit": correzione di un'operazione già registrata (Quaderno). Il form è
+   * precompilato da `defaults` + `defaultDate` e il pulsante dice "Salva
+   * modifiche"; scarichi di magazzino e ore macchina non si ripropongono (sono
+   * già stati applicati alla registrazione).
+   */
+  mode?: "create" | "edit";
 }
 
 export function OperationForm({
@@ -329,6 +336,7 @@ export function OperationForm({
   onCancel,
   defaults,
   defaultDate,
+  mode = "create",
 }: OperationFormProps) {
   const { t } = useTranslation();
   const spec = operationSpec(operationType);
@@ -359,6 +367,13 @@ export function OperationForm({
   const [plotId, setPlotId] = useState(initialApp);
   const [fieldCampaignId, setFieldCampaignId] = useState(() => {
     if (!usesCampaign || !initialApp) return "";
+    // Correzione/ripetizione: la campagna del record, se ancora disponibile.
+    if (
+      defaults?.plot_campaign_id &&
+      campaignFields?.some((c) => c.fieldCampaignId === defaults.plot_campaign_id)
+    ) {
+      return defaults.plot_campaign_id;
+    }
     return (
       campaignFields?.find((c) => c.plotId === initialApp)
         ?.fieldCampaignId ?? ""
@@ -448,7 +463,7 @@ export function OperationForm({
   const [savingMachine, setSavingMachine] = useState(false);
   const [reentry, setReentry] = useState(numStr(defaults?.reentry_interval_h));
   const [safetyPeriod, setSafetyPeriod] = useState(numStr(defaults?.safety_period_days));
-  const [note, setNote] = useState("");
+  const [note, setNote] = useState(defaults?.note ?? "");
   // Campionamento: matrice + analisi del soil.
   const [matrix, setMatrix] = useState<"suolo" | "altro">("suolo");
   const [depth, setDepth] = useState("");
@@ -1929,7 +1944,11 @@ export function OperationForm({
 
       <div className="flex gap-2 pt-1">
         <Button type="submit" disabled={!canSubmit} className={cn("min-h-[var(--touch-min)] flex-1")}>
-          {saving ? t("logbook.common.saving") : t("operationForm.submit")}
+          {saving
+            ? t("logbook.common.saving")
+            : mode === "edit"
+              ? t("operationForm.submitEdit")
+              : t("operationForm.submit")}
         </Button>
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel} className="min-h-[var(--touch-min)]">

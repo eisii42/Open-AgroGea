@@ -3,8 +3,24 @@ import { describe, it } from "node:test";
 import {
   buildWmsTileUrl,
   parseWmsCapabilities,
+  wmsAttribution,
   wmsCapabilitiesUrl,
 } from "../apps/agro-field-suite/src/modules/add-data/wms";
+import {
+  EMPTY_WMS_BASEMAPS,
+  loadWmsBasemaps,
+  persistWmsBasemaps,
+  removeWmsBasemap,
+  savedWmsIdFromLayerId,
+  upsertWmsBasemap,
+  wmsBasemapLayer,
+} from "../apps/agro-field-suite/src/modules/add-data/wms-basemaps";
+import {
+  listOrthophotos,
+  registerOrthophoto,
+  resetOrthophotoRegistry,
+  unregisterOrthophoto,
+} from "../apps/agro-field-suite/src/modules/add-data/orthophoto-registry";
 
 /**
  * Cartografia raster da "Aggiungi dati": WMS da indirizzo.
@@ -85,6 +101,40 @@ describe("WMS / lettura delle capabilities", () => {
   });
 });
 
+describe("WMS / attribuzione sulla mappa", () => {
+  it("legge il titolo del SERVIZIO, non quello di un layer", () => {
+    const parsed = parseWmsCapabilities(CAPABILITIES);
+    assert.equal(parsed.serviceTitle, "Servizio cartografico regionale");
+  });
+
+  it("senza titolo del servizio resta null", () => {
+    const parsed = parseWmsCapabilities(
+      `<WMS_Capabilities version="1.3.0"><Service><Name>WMS</Name></Service>` +
+        `<Layer><Name>a</Name><Title>A</Title></Layer></WMS_Capabilities>`,
+    );
+    assert.equal(parsed.serviceTitle, null);
+  });
+
+  it("cita layer e servizio che lo pubblica", () => {
+    assert.equal(
+      wmsAttribution(
+        "Ortofoto 2023",
+        { serviceTitle: "Geoportale Regionale" },
+        "https://geo.example.it/wms",
+      ),
+      "Ortofoto 2023 — WMS Geoportale Regionale",
+    );
+  });
+
+  it("se il servizio non ha titolo cita l'host", () => {
+    // Una fonte anonima non è un'attribuzione: l'host almeno dice di chi è.
+    assert.equal(
+      wmsAttribution("Ortofoto", { serviceTitle: null }, "https://geo.example.it/wms?map=x"),
+      "Ortofoto — WMS geo.example.it",
+    );
+  });
+});
+
 describe("WMS / costruzione degli URL", () => {
   it("trasforma un GetMap incollato in una GetCapabilities", () => {
     // Capita di incollare l'URL che si aveva sotto mano: i parametri di
@@ -142,5 +192,108 @@ describe("WMS / costruzione degli URL", () => {
     assert.match(tile, /[?&]STYLES=/);
     assert.match(tile, /TRANSPARENT=true/);
     assert.match(tile, /WIDTH=256/);
+  });
+});
+
+describe("WMS salvati come sfondo / persistenza per azienda", () => {
+  const item = {
+    id: "w1",
+    name: "Ortofoto 2023",
+    baseUrl: "https://geo.example.it/wms",
+    layerName: "ortofoto2023",
+    version: "1.3.0" as const,
+    attribution: "Ortofoto 2023 — WMS Geoportale",
+  };
+
+  /** Storage in memoria al posto di localStorage (assente in Node). */
+  function memoryStorage() {
+    const data = new Map<string, string>();
+    return {
+      getItem: (k: string) => data.get(k) ?? null,
+      setItem: (k: string, v: string) => void data.set(k, v),
+    };
+  }
+
+  it("sopravvive alla riapertura: salvato, si rilegge uguale", () => {
+    const storage = memoryStorage();
+    const state = { ...upsertWmsBasemap(EMPTY_WMS_BASEMAPS, item), activeId: "w1" };
+    persistWmsBasemaps("azienda-a", state, storage);
+    assert.deepEqual(loadWmsBasemaps("azienda-a", storage), state);
+  });
+
+  it("è per azienda: un'altra azienda non lo vede", () => {
+    const storage = memoryStorage();
+    persistWmsBasemaps("azienda-a", upsertWmsBasemap(EMPTY_WMS_BASEMAPS, item), storage);
+    assert.deepEqual(loadWmsBasemaps("azienda-b", storage), EMPTY_WMS_BASEMAPS);
+  });
+
+  it("un contenuto corrotto non blocca l'app", () => {
+    const storage = memoryStorage();
+    storage.setItem("agrogea.wmsBasemaps.azienda-a", "{non json");
+    assert.deepEqual(loadWmsBasemaps("azienda-a", storage), EMPTY_WMS_BASEMAPS);
+  });
+
+  it("scarta voci incomplete e uno sfondo attivo che non esiste più", () => {
+    const storage = memoryStorage();
+    storage.setItem(
+      "agrogea.wmsBasemaps.azienda-a",
+      JSON.stringify({ items: [item, { id: "rotto" }], activeId: "sparito" }),
+    );
+    assert.deepEqual(loadWmsBasemaps("azienda-a", storage), {
+      items: [item],
+      activeId: null,
+    });
+  });
+
+  it("la modifica sostituisce la voce, non ne aggiunge una", () => {
+    const edited = { ...item, layerName: "ortofoto2024", name: "Ortofoto 2024" };
+    const state = upsertWmsBasemap(upsertWmsBasemap(EMPTY_WMS_BASEMAPS, item), edited);
+    assert.deepEqual(state.items, [edited]);
+  });
+
+  it("eliminare lo sfondo attivo azzera lo sfondo", () => {
+    const state = removeWmsBasemap(
+      { ...upsertWmsBasemap(EMPTY_WMS_BASEMAPS, item), activeId: "w1" },
+      "w1",
+    );
+    assert.deepEqual(state, EMPTY_WMS_BASEMAPS);
+  });
+
+  it("il layer porta attribuzione e un id riconoscibile come sfondo WMS", () => {
+    const layer = wmsBasemapLayer(item);
+    assert.equal(savedWmsIdFromLayerId(layer.id), "w1");
+    assert.equal(layer.type, "wms");
+    assert.equal(layer.source.attribution, item.attribution);
+    assert.match(String((layer.source.tiles as string[])[0]), /LAYERS=ortofoto2023/);
+  });
+});
+
+describe("Ortofoto / registro di sessione", () => {
+  const entry = (layerId: string, addedAt: string) => ({
+    layerId,
+    file: {} as File,
+    gsdM: 0.2,
+    addedAt,
+  });
+
+  it("due letture senza modifiche restituiscono lo STESSO elenco", () => {
+    // È lo snapshot di useSyncExternalStore: un array nuovo a ogni lettura
+    // manda React in loop infinito e smonta l'app all'apertura della Normativa.
+    resetOrthophotoRegistry();
+    registerOrthophoto(entry("a", "2026-01-01T00:00:00Z"));
+    assert.equal(listOrthophotos(), listOrthophotos());
+  });
+
+  it("una modifica produce un elenco nuovo, ordinato per data", () => {
+    resetOrthophotoRegistry();
+    registerOrthophoto(entry("b", "2026-02-01T00:00:00Z"));
+    const before = listOrthophotos();
+    registerOrthophoto(entry("a", "2026-01-01T00:00:00Z"));
+    const after = listOrthophotos();
+    assert.notEqual(before, after);
+    assert.deepEqual(after.map((o) => o.layerId), ["a", "b"]);
+    unregisterOrthophoto("a");
+    assert.deepEqual(listOrthophotos().map((o) => o.layerId), ["b"]);
+    resetOrthophotoRegistry();
   });
 });

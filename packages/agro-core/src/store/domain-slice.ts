@@ -70,6 +70,7 @@ export function createDomainSlice(set: StoreSet, get: StoreGet): DomainSlice {
         pendingGeometry: null,
         drawIntent: null,
         logbookOpenPlotId: null,
+        logbookEditOperationId: null,
         tasksOpenPlotId: null,
         cropOpenPlotId: null,
         mapOperationIds: null,

@@ -1,7 +1,8 @@
+import { useModalBehavior } from "@agrogea/ui";
 import { cn } from "@geolibre/ui";
 import type { TFunction } from "i18next";
 import { GripVertical, Pencil, Plus, Trash2, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -273,6 +274,9 @@ function ChartEditModal({
   onSave: (chart: CustomChart) => void;
   onClose: () => void;
 }) {
+  // Stesso modello di tutte le finestre: Esc, focus dentro, focus restituito.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalBehavior(dialogRef, onClose);
   const { t } = useTranslation();
   const [title, setTitle] = useState(initial?.title ?? "");
   const [kind, setKind] = useState<"preset" | "query">(initial?.kind ?? "query");
@@ -367,6 +371,9 @@ function ChartEditModal({
       onMouseDown={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
         className="w-full max-w-sm rounded-[var(--r-3)] border border-[var(--line)] bg-[var(--panel)] p-4 shadow-[var(--sh-pop)]"
         onMouseDown={(e) => e.stopPropagation()}
       >
@@ -618,7 +625,9 @@ export function CustomDashboard({
 
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
+      {/* Telefono: titolo sopra, controlli sotto a tutta larghezza (su una riga
+          sola sforavano lo schermo). Da 640 px in su la riga di sempre. */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-sm font-semibold">{t("customDashboard.title")}</h2>
           <p className="text-[11px] text-[var(--ink-4)]">
@@ -631,7 +640,7 @@ export function CustomDashboard({
             value={rangeMode}
             onChange={(e) => setRangeMode(e.target.value as RangeMode)}
             title={t("customDashboard.dataPeriod")}
-            className="rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1.5 text-sm"
+            className="min-h-11 min-w-0 flex-1 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1.5 text-sm sm:min-h-0 sm:flex-none"
           >
             <option value="campaign">{t("customDashboard.campaignYear", { year: campaignYear })}</option>
             <option value="all">{t("customDashboard.wholeHistory")}</option>
@@ -640,7 +649,7 @@ export function CustomDashboard({
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="flex items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1.5 text-sm font-medium text-[var(--ink-2)] hover:bg-[var(--panel-2)]"
+            className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1.5 text-sm font-medium text-[var(--ink-2)] hover:bg-[var(--panel-2)] sm:min-h-0"
           >
             <Plus size={15} /> {t("customDashboard.addChart")}
           </button>
@@ -675,7 +684,9 @@ export function CustomDashboard({
           {t("customDashboard.noCharts")}
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        // Colonne automatiche (grafici da almeno 30rem): una sul telefono,
+        // due dal desktop, tre sugli schermi larghi.
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,30rem),1fr))] gap-3">
           {charts.map((c, i) => (
             <ChartCard
               key={c.id}

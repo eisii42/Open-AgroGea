@@ -18,6 +18,12 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { useReadOnly } from "@agrogea/core";
+import {
+  mergeSoilMetadata,
+  SOIL_FORM_EMPTY,
+  SoilCompositionSection,
+  type SoilForm,
+} from "../modules/soil/SoilCompositionSection";
 
 /**
  * Scheda dati fissa (Modulo UI §3): si apre automaticamente a fine disegno e
@@ -112,8 +118,14 @@ function PlotForm({
   const readOnly = useReadOnly(useAgroStore((s) => s.activeCompanyId));
   const [name, setName] = useState("");
   const [irrigation, setIrrigation] = useState("");
+  // Composizione del suolo già alla creazione: resta poi modificabile dalla
+  // scheda dell'appezzamento (Lista appezzamenti).
+  const [soil, setSoil] = useState<SoilForm>(() => ({ ...SOIL_FORM_EMPTY }));
   const [saving, setSaving] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
+
+  const setSoilField = (field: keyof SoilForm, value: string) =>
+    setSoil((s) => ({ ...s, [field]: value }));
 
   const submit = async () => {
     setSaving(true);
@@ -122,6 +134,7 @@ function PlotForm({
       await onSave({
         name: name.trim() || undefined,
         irrigation_type: irrigation.trim() || null,
+        metadata: mergeSoilMetadata({}, soil),
       });
     } catch (e) {
       // Non si chiude la scheda: l'utente vede il motivo e può ritentare senza
@@ -181,6 +194,11 @@ function PlotForm({
             placeholder={t("dataEntrySheet.irrigationTypePlaceholder")}
           />
         </div>
+        <SoilCompositionSection
+          soil={soil}
+          onChange={setSoilField}
+          idPrefix="ap"
+        />
         <p className="text-[11px] text-[var(--ink-4)]">
           {t("dataEntrySheet.plotHint")}
         </p>

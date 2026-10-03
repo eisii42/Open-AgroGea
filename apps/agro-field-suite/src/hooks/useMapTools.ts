@@ -7,29 +7,27 @@ import {
   openMeasurePanel,
   subscribeMeasurePanel,
 } from "@geolibre/plugins";
-import { cn } from "@geolibre/ui";
-import { History, Ruler } from "lucide-react";
 import { type RefObject, useEffect, useState, useSyncExternalStore } from "react";
-import { useTranslation } from "react-i18next";
 import { createFieldAppApi } from "../lib/fieldAppApi";
 
+export interface MapTools {
+  showMeasure: boolean;
+  measureOn: boolean;
+  toggleMeasure: () => void;
+  showWayback: boolean;
+  waybackOn: boolean;
+  toggleWayback: () => void;
+}
+
 /**
- * Cluster di controlli mappa fluttuante (Modulo UI §4). Espone il controllo
- * Measure NATIVO di GeoLibre (pannello righello per distanze/aree al volo) via
- * le API `openMeasurePanel`/`closeMeasurePanel` del plugin components: nessuna
- * logica di misura riscritta.
- *
- * Il Terrain Control è anch'esso nativo ma ha già il suo pulsante MapLibre
- * (built-in "terrain", abilitato in `useFieldPlugins`) montato in alto a
- * destra sulla mappa, quindi non va duplicato qui. Stessa colonna di destra per
- * "Cerca luogo" (vedi `MapSearchControl`), che sta sotto il gestore livelli.
+ * Strumenti di mappa NATIVI di GeoLibre pilotati dalla colonna AgroGea: il
+ * righello (pannello Misura) e l'imagery storica Esri Wayback. Condiviso dalla
+ * colonna desktop (`DesktopMapTools`) e da quella mobile (`MobileMapTools`): va
+ * montato in UN solo punto alla volta, perché lo stato di Wayback è locale.
  */
-export function MapControls({
-  mapControllerRef,
-}: {
-  mapControllerRef: RefObject<MapController | null>;
-}) {
-  const { t } = useTranslation();
+export function useMapTools(
+  mapControllerRef: RefObject<MapController | null>,
+): MapTools {
   const measureOn = useSyncExternalStore(
     subscribeMeasurePanel,
     isMeasurePanelVisible,
@@ -83,38 +81,12 @@ export function MapControls({
     setWaybackOn(false);
   }, [showWayback, waybackOn, mapControllerRef]);
 
-  return (
-    <>
-      {showMeasure && (
-        <button
-          type="button"
-          onClick={toggleMeasure}
-          title={t("mapControls.measure")}
-          className={cn(
-            "flex h-10 w-10 items-center justify-center rounded-[var(--r-2)] border bg-[var(--panel)] shadow-[var(--sh-1)] hover:bg-[var(--panel-2)]",
-            measureOn
-              ? "border-[var(--accent)] text-[var(--accent)]"
-              : "border-[var(--line)] text-[var(--ink-2)]",
-          )}
-        >
-          <Ruler size={18} />
-        </button>
-      )}
-      {showWayback && (
-        <button
-          type="button"
-          onClick={toggleWayback}
-          title={t("mapControls.wayback")}
-          className={cn(
-            "flex h-10 w-10 items-center justify-center rounded-[var(--r-2)] border bg-[var(--panel)] shadow-[var(--sh-1)] hover:bg-[var(--panel-2)]",
-            waybackOn
-              ? "border-[var(--accent)] text-[var(--accent)]"
-              : "border-[var(--line)] text-[var(--ink-2)]",
-          )}
-        >
-          <History size={18} />
-        </button>
-      )}
-    </>
-  );
+  return {
+    showMeasure,
+    measureOn,
+    toggleMeasure,
+    showWayback,
+    waybackOn,
+    toggleWayback,
+  };
 }

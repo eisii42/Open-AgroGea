@@ -106,3 +106,26 @@ describe("scheda appezzamento / ambito separato", () => {
     assert.equal(state.logbookScopeToken, 0);
   });
 });
+
+describe("Quaderno / operazione aperta in modifica (centro \"Da risolvere\")", () => {
+  it("apre il Quaderno e lascia la richiesta di modifica da consumare", () => {
+    resetUi();
+    useAgroStore.setState({ logbookEditOperationId: null });
+    useAgroStore.getState().openLogbookOperation("op-1");
+
+    const state = useAgroStore.getState();
+    assert.ok(state.openPanels.includes("quaderno"));
+    assert.equal(state.logbookEditOperationId, "op-1");
+    assert.equal(state.logbookOpenPlotId, null, "nessun filtro di appezzamento");
+
+    useAgroStore.getState().consumeLogbookEdit();
+    assert.equal(useAgroStore.getState().logbookEditOperationId, null);
+  });
+
+  it("con più pannelli (desktop) si aggiunge senza chiudere gli altri", () => {
+    resetUi();
+    useAgroStore.setState({ panelMode: "floating", openPanels: ["acqua"] });
+    useAgroStore.getState().openLogbookOperation("op-2");
+    assert.deepEqual(useAgroStore.getState().openPanels, ["acqua", "quaderno"]);
+  });
+});

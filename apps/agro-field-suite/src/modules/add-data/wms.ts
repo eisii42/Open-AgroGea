@@ -39,6 +39,11 @@ export interface WmsLayerInfo {
 export interface WmsCapabilities {
   version: WmsVersion;
   layers: WmsLayerInfo[];
+  /**
+   * Titolo del servizio (`<Service><Title>`): è il nome con cui l'ente
+   * pubblica la cartografia, e quello da citare come fonte sulla mappa.
+   */
+  serviceTitle: string | null;
 }
 
 /** URL di GetCapabilities, preservando eventuali parametri già presenti. */
@@ -68,6 +73,15 @@ export function parseWmsCapabilities(xml: string): WmsCapabilities {
   const version = /version\s*=\s*"1\.1\.1"/i.test(xml) ? "1.1.1" : "1.3.0";
   const serviceEnd = xml.search(/<\/(?:\w+:)?Service>/i);
   const body = serviceEnd >= 0 ? xml.slice(serviceEnd) : xml;
+  const serviceTitleMatch =
+    serviceEnd >= 0
+      ? /<(?:\w+:)?Title>([\s\S]*?)<\/(?:\w+:)?Title>/i.exec(
+          xml.slice(0, serviceEnd),
+        )
+      : null;
+  const serviceTitle = serviceTitleMatch
+    ? decodeXml(serviceTitleMatch[1]) || null
+    : null;
 
   // Coppie Name/Title in ordine di documento: dentro un <Layer> il nome
   // precede sempre il titolo, quindi il primo titolo dopo un nome è il suo.
@@ -92,7 +106,30 @@ export function parseWmsCapabilities(xml: string): WmsCapabilities {
       title: next?.kind === "title" && next.value ? next.value : found[i].value,
     });
   }
-  return { version, layers };
+  return { version, layers, serviceTitle };
+}
+
+/**
+ * Testo dell'attribuzione di un layer WMS: il titolo del layer e la fonte, cioè
+ * il titolo del servizio o, se il servizio non lo dichiara, il suo host. Senza
+ * fonte la mappa mostrerebbe cartografia di terzi senza dire di chi è.
+ */
+export function wmsAttribution(
+  layerTitle: string,
+  capabilities: Pick<WmsCapabilities, "serviceTitle">,
+  baseUrl: string,
+): string {
+  let source = capabilities.serviceTitle;
+  if (!source) {
+    try {
+      source = new URL(baseUrl).host;
+    } catch {
+      source = null;
+    }
+  }
+  return source && source !== layerTitle
+    ? `${layerTitle} — WMS ${source}`
+    : `${layerTitle} — WMS`;
 }
 
 /** Entità XML minime che compaiono nei titoli dei servizi reali. */

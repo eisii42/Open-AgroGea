@@ -446,13 +446,11 @@
     }
   },
   "nav": {
-    "profile": "Perfil",
     "settings": "Ajustes",
     "logout": "Salir",
     "themeLight": "Claro",
     "themeDark": "Oscuro",
     "themeGreen": "Agronómico",
-    "themeTooltip": "Tema {{name}}",
     "syncError": "Error de sync",
     "syncOffline": "Sin conexión",
     "syncing": "Sincronizando…",
@@ -493,11 +491,9 @@
   },
   "help": {
     "menu": "Ayuda",
-    "commandPalette": "Paleta de comandos",
     "shortcuts": "Atajos de teclado",
     "diagnostics": "Diagnóstico",
     "feedback": "Enviar comentarios",
-    "checkUpdates": "Buscar actualizaciones",
     "about": "Información",
     "shortcut": {
       "commandPalette": "Abrir la paleta de comandos",
@@ -533,24 +529,18 @@
       "syncError": "Error de sincronización",
       "pendingQueue": "{{count}} mutación(es) en espera en la cola outbox",
       "weatherMissing": "Fuente meteo no configurada para la empresa activa"
-    },
-    "update": {
-      "checking": "Buscando actualizaciones…",
-      "available": "Nueva versión {{version}} disponible",
-      "upToDate": "AgroGea está actualizado",
-      "unavailable": "La búsqueda de actualizaciones no está disponible aquí",
-      "error": "No se pudieron buscar actualizaciones",
-      "notifyTitle": "Actualizaciones de AgroGea"
     }
   },
   "logbookPanel": {
     "fieldFallbackName": "Campo {{id}}",
     "notification": {
-      "removed": "Operación eliminada: {{label}}"
+      "removed": "Operación eliminada: {{label}}",
+      "updated": "Operación actualizada: {{label}}"
     },
     "title": {
       "newOperation": "Nueva operación",
-      "logbook": "Cuaderno de campo"
+      "logbook": "Cuaderno de campo",
+      "editOperation": "Editar operación"
     },
     "button": {
       "registerOperation": "Registrar operación"
@@ -577,7 +567,8 @@
       "queued": "en cola",
       "deleteOperation": "Eliminar operación",
       "repeatOperation": "Repetir operación (formulario precargado, fecha de hoy)",
-      "deleteAriaLabel": "Eliminar {{label}}"
+      "deleteAriaLabel": "Eliminar {{label}}",
+      "editOperation": "Editar operación"
     }
   },
   "taskPlanner": {
@@ -1004,16 +995,23 @@
       "wmsPlaceholder": "https://servicio.ejemplo.es/wms",
       "loadLayers": "Leer las capas disponibles",
       "layersFound": "{{count}} capas · WMS {{version}}",
-      "addToMap": "Añadir al mapa",
-      "wmsAdded": "Capa WMS «{{name}}» añadida al mapa.",
+      "addToMap": "Usar como fondo",
+      "wmsAdded": "WMS «{{name}}» guardado y usado como fondo en lugar del satélite. Lo encontrarás en el selector de fondo.",
       "orthophotoHint": "GeoTIFF georreferenciado (UTM o WGS84). Se queda en el dispositivo y funciona sin conexión; la ficha BCAM 8 puede medir sobre ella sin volver a subirla.",
       "chooseTif": "Elegir el archivo .tif",
       "orthophotoAdded": "Ortofoto «{{name}}» añadida ({{gsdCm}} cm).",
-      "orthophotoAddedScaled": "Ortofoto «{{name}}» añadida ({{gsdCm}} cm). En el mapa se reduce a {{side}} px de lado; las medidas de la BCAM 8 usan el archivo original."
+      "orthophotoAddedScaled": "Ortofoto «{{name}}» añadida ({{gsdCm}} cm). En el mapa se reduce a {{side}} px de lado; las medidas de la BCAM 8 usan el archivo original.",
+      "wmsUpdated": "WMS «{{name}}» actualizado.",
+      "wmsDeleted": "WMS «{{name}}» eliminado.",
+      "savedWms": "WMS guardados",
+      "wmsActive": "fondo",
+      "editWms": "Editar",
+      "deleteWms": "Eliminar",
+      "editingWmsHint": "Edición del WMS guardado: cambia la dirección o la capa y guarda.",
+      "saveWmsChanges": "Guardar cambios"
     }
   },
   "basemapSwitcher": {
-    "basemap": "Mapa base",
     "overlay": "Superposición",
     "background": "Fondo cartográfico",
     "cadastre": "Catastro (WMS)",
@@ -1058,7 +1056,15 @@
     "today": "Hoy",
     "unavailable": "Meteorología no disponible: conéctate para la primera descarga.",
     "refreshNow": "Actualizar ahora",
-    "title": "Meteorología · previsión a 5 días"
+    "title": "Meteorología · previsión a 5 días",
+    "source": "Datos meteorológicos:",
+    "originCompany": "sede de la explotación",
+    "originPlot": "centroide de la parcela «{{name}}»",
+    "station": "Estación meteorológica de la explotación: {{model}} (ID {{device}}).",
+    "stationNote": "Sus lecturas alimentan los modelos DSS; la previsión sigue siendo de Open-Meteo.",
+    "configureStation": "Configurar estación meteorológica",
+    "addStation": "Conectar una estación meteorológica",
+    "noLocation": "El tiempo se localiza en la sede de la explotación o en la primera parcela: añade una para verlo."
   },
   "moduleSidebar": {
     "readOnly": "solo lectura",
@@ -1257,10 +1263,7 @@
       "suffix": " (rol de Visualizador): puedes consultar y exportar, pero no modificar los datos."
     },
     "scoutingTitle": "Relevamiento en campo (Scouting GPS)",
-    "tabLogbook": "Cuaderno",
-    "tabModules": "Módulos",
-    "tabOffline": "Sin conexión",
-    "tabScouting": "Relevamiento GPS"
+    "scoutingShort": "Relevamiento GPS"
   },
   "operationForm": {
     "onSurface": "en {{area}} ha",
@@ -1360,7 +1363,8 @@
     "machineCreate": "Nueva máquina",
     "machineNewName": "Nombre",
     "machineNewType": "Tipo",
-    "machineCreateSave": "Crear y seleccionar"
+    "machineCreateSave": "Crear y seleccionar",
+    "submitEdit": "Guardar cambios"
   },
   "warehouse": {
     "importCsv": "Importar CSV",
@@ -1652,6 +1656,12 @@
   "soilPanel": {
     "calculateButton": "Calcular desde Sentinel-2 (STAC)",
     "calculating": "Calculando…",
+    "dataSource": {
+      "note": "Fuente: datos satelitales Copernicus Sentinel-2 (ESA). Los índices los calcula AgroGea.",
+      "short": "Sentinel-2 · cálculo AgroGea",
+      "manualLink": "Cómo se calculan (manual)",
+      "attribution": "Contiene datos modificados de Copernicus Sentinel-2 · índices calculados por AgroGea"
+    },
     "charts": {
       "needData": "Se necesitan parcelas con NDVI calculado y muestreos de suelo para cruzar los datos.",
       "samples": "muestras",
@@ -1744,7 +1754,9 @@
       "fine": "Fina (~20 m)",
       "media": "Media (~40 m)",
       "grossa": "Gruesa (~80 m)"
-    }
+    },
+    "docNote": "Las zonas las calcula AgroGea a partir de los índices satelitales Copernicus Sentinel-2 (10 m), con clustering K-means.",
+    "docLink": "Documentación (manual)"
   },
   "cropDataForm": {
     "campaignDeclarativeData": "Campaña {{campaignYear}} · datos declarativos",
@@ -2117,7 +2129,10 @@
       "safetyPeriod": "Plazo de seguridad (días)"
     },
     "delete": "Eliminar",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "edit": "Editar",
+    "repeat": "Repetir",
+    "missingTitle": "Datos faltantes para un registro conforme"
   },
   "harvestDetailCard": {
     "harvest": "Cosecha",
@@ -2758,7 +2773,8 @@
       "dss": "Riesgo DSS",
       "water": "Estrés hídrico"
     },
-    "showAll": "Mostrar todo"
+    "showAll": "Mostrar todo",
+    "dayDetail": "Detalle"
   },
   "parcelAdoption": {
     "title": "Parcelas públicas",
@@ -2851,5 +2867,78 @@
       "declarative_fields": "Datos declarativos de campaña incompletos",
       "incomplete_records": "Registros del Cuaderno incompletos"
     }
+  },
+  "mobileNav": {
+    "label": "Navegación principal",
+    "dashboard": "Panel",
+    "logbook": "Cuaderno",
+    "modules": "Módulos"
+  },
+  "mobileMenu": {
+    "title": "Menú",
+    "open": "Abrir el menú",
+    "close": "Cerrar",
+    "back": "Atrás",
+    "theme": "Tema"
+  },
+  "mapLayers": {
+    "title": "Capas",
+    "dataLayers": "Capas de la explotación",
+    "empty": "No hay capas que mostrar.",
+    "advanced": "Gestión avanzada de capas",
+    "close": "Cerrar Capas"
+  },
+  "plotPeek": {
+    "openSheet": "Abrir la ficha",
+    "noCrop": "Sin cultivo"
+  },
+  "mobileCalendar": {
+    "addOperationShort": "Registrar"
+  },
+  "headerSearch": {
+    "label": "Buscar parcelas, módulos y acciones",
+    "placeholder": "Buscar…"
+  },
+  "accountMenu": {
+    "label": "Cuenta y ajustes"
+  },
+  "moduleRail": {
+    "soil": "Suelo",
+    "crop": "Cultivo",
+    "water": "Agua",
+    "draw": "Dibujo",
+    "tasks": "Tareas",
+    "logbook": "Cuaderno",
+    "warehouse": "Almacén",
+    "company": "Empresa",
+    "compliance": "Normativa",
+    "close": "Cerrar lista"
+  },
+  "fieldSheet": {
+    "close": "Cerrar panel",
+    "resize": "Arrastra para redimensionar (doble clic: ancho estándar)",
+    "collapse": "Contraer panel",
+    "expand": "Expandir panel",
+    "loading": "Cargando…"
+  },
+  "attentionCenter": {
+    "title": "Pendiente",
+    "openWithCount_one": "Pendiente: {{count}} elemento",
+    "openWithCount_other": "Pendiente: {{count}} elementos",
+    "hint": "Toca un elemento para ir donde se resuelve: desaparece cuando el dato está en orden.",
+    "allClear": "Todo en orden",
+    "allClearHint": "Sin datos faltantes ni vencimientos próximos.",
+    "group": {
+      "records": "Registros incompletos",
+      "declarative": "Datos de campaña",
+      "warehouse": "Almacén",
+      "machinery": "Parque de maquinaria",
+      "soil": "Datos del suelo"
+    },
+    "showAll": "Mostrar todos ({{count}})",
+    "showLess": "Mostrar menos",
+    "unknownProduct": "Producto",
+    "lotExpired": "Lote vencido el {{date}}",
+    "lotExpiring": "Lote que vence el {{date}}"
   }
 }

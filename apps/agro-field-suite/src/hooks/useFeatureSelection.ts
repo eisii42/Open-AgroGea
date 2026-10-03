@@ -1,4 +1,5 @@
 import { type SelectableKind, useAgroStore } from "@agrogea/core";
+import { requestDrawerFocus } from "@agrogea/ui";
 import {
   circleLayerId,
   fillLayerId,
@@ -6,7 +7,7 @@ import {
   type MapController,
 } from "@geolibre/map";
 import type maplibregl from "maplibre-gl";
-import { type RefObject, useEffect } from "react";
+import { type RefObject, useEffect, useRef } from "react";
 
 /**
  * Click su un elemento esistente sui layer vettoriali agro. Il comportamento
@@ -67,10 +68,25 @@ const SCOUTING_LAYER = circleLayerId(SCOUTING_ID);
 // adozione nel pannello, senza toccare nulla in PGlite.
 const PARCEL_CANDIDATES_LAYER = fillLayerId(PARCEL_CANDIDATES_ID);
 
+export interface FeatureSelectionOptions {
+  /**
+   * Tocco su un appezzamento: se presente sostituisce l'apertura diretta della
+   * scheda (telefono → scheda compatta, vedi `PlotPeekCard`).
+   */
+  onPlotTap?: (plotId: string) => void;
+  /** Tocco sulla mappa fuori da ogni elemento selezionabile. */
+  onEmptyTap?: () => void;
+}
+
 export function useFeatureSelection(
   mapControllerRef: RefObject<MapController | null>,
   mapReady: boolean,
+  options: FeatureSelectionOptions = {},
 ): void {
+  // Le callback si leggono da un ref: cambiano a ogni render del chiamante e
+  // non devono far riagganciare il listener della mappa.
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
   const selectFeatureOnMap = useAgroStore((s) => s.selectFeatureOnMap);
   const openPlotSheet = useAgroStore((s) => s.openPlotSheet);
   const openScoutingForObservation = useAgroStore(
@@ -96,7 +112,10 @@ export function useFeatureSelection(
       const present = LAYER_KINDS.filter((l) => map.getLayer(l.id));
       const scoutingPresent = map.getLayer(SCOUTING_LAYER);
       const candidatesPresent = map.getLayer(PARCEL_CANDIDATES_LAYER);
-      if (present.length === 0 && !scoutingPresent && !candidatesPresent) return;
+      if (present.length === 0 && !scoutingPresent && !candidatesPresent) {
+        optionsRef.current.onEmptyTap?.();
+        return;
+      }
 
       // Ordine di priorità: i punti scouting (piccoli, specifici), poi le
       // particelle candidate — mentre si sceglie che cosa adottare il click
@@ -108,7 +127,10 @@ export function useFeatureSelection(
         ...present.map((l) => l.id),
       ];
       const hits = map.queryRenderedFeatures(e.point, { layers: queryLayers });
-      if (hits.length === 0) return;
+      if (hits.length === 0) {
+        optionsRef.current.onEmptyTap?.();
+        return;
+      }
 
       // `queryRenderedFeatures` restituisce i match dall'alto verso il basso
       // nell'ordine dei layer renderizzati; il primo è quello "sopra".
@@ -134,7 +156,14 @@ export function useFeatureSelection(
       // Plot → SCHEDA dell'appezzamento (task programmate + operazioni
       // registrate); altri → dettaglio.
       if (layerKind.kind === "appezzamento") {
-        openPlotSheet(id);
+        const onPlotTap = optionsRef.current.onPlotTap;
+        if (onPlotTap) onPlotTap(id);
+        else {
+          openPlotSheet(id);
+          // Desktop con più pannelli: se la scheda era già aperta (magari
+          // ridotta all'intestazione) torna in primo piano sul nuovo campo.
+          requestDrawerFocus("plot-sheet");
+        }
       } else {
         void selectFeatureOnMap({ kind: layerKind.kind, id });
       }

@@ -29,6 +29,8 @@ import {
 import maplibregl from "maplibre-gl";
 import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
+import { taskOperationLabel } from "../modules/tasks/TaskForm";
 
 const OP_ICON: Record<OperationType, LucideIcon> = {
   phytosanitary: SprayCan,
@@ -48,16 +50,6 @@ const OP_COLOR: Record<OperationType, string> = {
   sowing: "#a855f7",
   harvest: "#d97706",
   sampling: "#0d9488",
-};
-
-const OP_LABEL: Record<OperationType, string> = {
-  phytosanitary: "Trattamento",
-  fertilization: "Fertilizzazione",
-  irrigation: "Irrigazione",
-  tillage: "Lavorazione",
-  sowing: "Semina",
-  harvest: "Harvest",
-  sampling: "Campionamento",
 };
 
 interface Placement {
@@ -187,11 +179,14 @@ export function OperationMarkers({
 }
 
 function OpBadge({ op }: { op: TreatmentLog }) {
+  const { t, i18n } = useTranslation();
   const Icon = OP_ICON[op.operation_type] ?? Leaf;
   const color = OP_COLOR[op.operation_type] ?? "#64748b";
-  const data = new Date(op.executed_at).toLocaleDateString("it-IT");
+  const data = new Date(op.executed_at).toLocaleDateString(i18n.language);
+  // Tipo operazione tradotto (prima un'etichetta scritta a mano, con "Harvest"
+  // rimasto in inglese).
   const title = [
-    OP_LABEL[op.operation_type] ?? op.operation_type,
+    taskOperationLabel(t, op.operation_type),
     op.product_name,
     data,
   ]

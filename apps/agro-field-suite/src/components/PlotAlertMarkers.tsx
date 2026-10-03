@@ -16,33 +16,34 @@
  * Marker HTML come `OperationMarkers`/`HarvestMarkers`, ma di dimensione FISSA
  * in pixel: questi non rappresentano un oggetto al suolo di cui interessi la
  * scala, sono notifiche, e a zoom basso devono restare leggibili e cliccabili.
- * Sono ancorati SOPRA il centroide, così non finiscono sotto le icone delle
- * operazioni (che stanno sul centroide).
+ *
+ * Un solo marker per appezzamento, a "spillo": i due simboli affiancati e la
+ * BASE del gruppo poggiata esattamente sul centroide (`anchor: "bottom"`),
+ * senza scostamenti in pixel. Prima ogni simbolo aveva un offset fisso di 30 px
+ * sopra il centroide: il punto a terra restava fermo, ma quei 30 px valevano
+ * sempre più terreno man mano che si allontanava lo zoom, e l'icona sembrava
+ * scivolare via dall'appezzamento. Con l'ancora sul fondo il simbolo resta
+ * "piantato" sul campo a ogni zoom e sta comunque sopra il centroide, dove
+ * vivono le icone delle operazioni.
  */
 import {
-  buildPlotAlerts,
   centroid,
-  loadOperatorMemory,
   type PlotAlert,
   type PlotDataGap,
   useAgroStore,
 } from "@agrogea/core";
 import type { MapController } from "@geolibre/map";
 import maplibregl from "maplibre-gl";
-import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { useTenantCountry } from "../hooks/useTenantCountry";
+import { usePlotAlerts } from "../hooks/usePlotAlerts";
 
 interface Slot {
   el: HTMLDivElement;
   alert: PlotAlert;
   plotName: string;
 }
-
-/** Scostamento (px) dal centroide: i simboli stanno sopra, affiancati. */
-const TASK_OFFSET: [number, number] = [-13, -30];
-const GAP_OFFSET: [number, number] = [13, -30];
 
 export function PlotAlertMarkers({
   mapControllerRef,
@@ -52,38 +53,9 @@ export function PlotAlertMarkers({
   mapReady: boolean;
 }) {
   const plots = useAgroStore((s) => s.plots);
-  const plannedTasks = useAgroStore((s) => s.plannedTasks);
-  const recipes = useAgroStore((s) => s.recipes);
-  const treatments = useAgroStore((s) => s.treatments);
-  const campaignFields = useAgroStore((s) => s.campaignFields);
-  const { countryCode } = useTenantCountry();
-  const operatorMemory = useMemo(loadOperatorMemory, []);
+  const alerts = usePlotAlerts();
 
-  const alerts = useMemo(
-    () =>
-      buildPlotAlerts({
-        plots,
-        plannedTasks,
-        recipes,
-        treatments,
-        campaignFields,
-        countryCode,
-        operatorName: operatorMemory.name ?? null,
-        operatorLicenseNumber: operatorMemory.license ?? null,
-      }),
-    [
-      plots,
-      plannedTasks,
-      recipes,
-      treatments,
-      campaignFields,
-      countryCode,
-      operatorMemory,
-    ],
-  );
-
-  const [taskSlots, setTaskSlots] = useState<Slot[]>([]);
-  const [gapSlots, setGapSlots] = useState<Slot[]>([]);
+  const [slots, setSlots] = useState<Slot[]>([]);
   const markersRef = useRef<maplibregl.Marker[]>([]);
 
   useEffect(() => {
@@ -94,53 +66,46 @@ export function PlotAlertMarkers({
     markersRef.current = [];
 
     const markers: maplibregl.Marker[] = [];
-    const tasks: Slot[] = [];
-    const gaps: Slot[] = [];
+    const created: Slot[] = [];
     const byId = new Map(plots.map((p) => [p.id, p]));
 
     for (const alert of alerts) {
       const plot = byId.get(alert.plotId);
-      if (!plot) continue;
+      if (!plot || (alert.taskCount === 0 && alert.gaps.length === 0)) continue;
       const lngLat = centroid(plot.geometry) as [number, number];
-      const add = (offset: [number, number], into: Slot[]) => {
-        const el = document.createElement("div");
-        markers.push(
-          new maplibregl.Marker({ element: el, offset })
-            .setLngLat(lngLat)
-            .addTo(map),
-        );
-        into.push({ el, alert, plotName: plot.user_plot_name });
-      };
-      if (alert.taskCount > 0) add(TASK_OFFSET, tasks);
-      if (alert.gaps.length > 0) add(GAP_OFFSET, gaps);
+      const el = document.createElement("div");
+      markers.push(
+        new maplibregl.Marker({ element: el, anchor: "bottom" })
+          .setLngLat(lngLat)
+          .addTo(map),
+      );
+      created.push({ el, alert, plotName: plot.user_plot_name });
     }
 
     markersRef.current = markers;
-    setTaskSlots(tasks);
-    setGapSlots(gaps);
+    setSlots(created);
 
     return () => {
       markers.forEach((m) => m.remove());
       markersRef.current = [];
-      setTaskSlots([]);
-      setGapSlots([]);
+      setSlots([]);
     };
   }, [alerts, plots, mapReady, mapControllerRef]);
 
   return (
     <>
-      {taskSlots.map(({ el, alert, plotName }) =>
+      {slots.map(({ el, alert, plotName }) =>
         createPortal(
-          <TaskAlertBadge alert={alert} plotName={plotName} />,
+          <div className="flex items-end gap-1">
+            {alert.taskCount > 0 && (
+              <TaskAlertBadge alert={alert} plotName={plotName} />
+            )}
+            {alert.gaps.length > 0 && (
+              <DataGapBadge alert={alert} plotName={plotName} />
+            )}
+          </div>,
           el,
-          `task-${alert.plotId}`,
-        ),
-      )}
-      {gapSlots.map(({ el, alert, plotName }) =>
-        createPortal(
-          <DataGapBadge alert={alert} plotName={plotName} />,
-          el,
-          `gap-${alert.plotId}`,
+          `alert-${alert.plotId}`,
         ),
       )}
     </>

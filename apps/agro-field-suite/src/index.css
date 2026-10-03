@@ -192,21 +192,40 @@ select {
   }
 }
 
-/* Pannello Misura nativo (controllo top-left): toggle nativo nascosto (apertura
-   pilotata dal bottone custom della colonna) e scheda scostata a DESTRA della
-   colonna bottoni così si apre di fianco al suo bottone, senza sovrapporsi e
-   senza finire dietro la barra moduli. L'offset segue lo stato della sidebar
-   (data-sidebar su .agro-field-map): a barra chiusa supera la colonna bottoni, a
-   barra aperta anche i 272px del pannello moduli. */
-.agro-field-map .geolibre-measure-control {
-  position: relative;
-  transition: margin-left 0.3s ease-in-out;
-}
-.agro-field-map[data-sidebar="collapsed"] .geolibre-measure-control {
-  margin-left: 60px;
-}
-.agro-field-map[data-sidebar="open"] .geolibre-measure-control {
-  margin-left: 320px;
+/* Pannello Misura nativo: il vendor lo monta fra i controlli top-left, ma il
+   suo bottone sta nella colonna di destra (DesktopMapTools). Sul desktop il
+   contenitore top-left si allarga a tutta la mappa (resta trasparente ai clic,
+   come tutti i contenitori MapLibre) e la scheda si ancora a DESTRA, a fianco
+   della colonna, come il popover Livelli; col pannello laterale aperto si
+   sposta con la colonna. Sul telefono resta in alto a sinistra (sotto). */
+@media (min-width: 768px) {
+  .agro-field-map:not([data-mobile]) .maplibregl-ctrl-top-left {
+    right: 0;
+    transition: right 0.2s ease-out;
+  }
+  /* I controlli di sinistra (scala in basso, eventuali plugin in alto)
+     partono dopo la navigazione moduli (`--agro-rail-w`, FieldDashboard). */
+  .agro-field-map:not([data-mobile])
+    :is(.maplibregl-ctrl-top-left, .maplibregl-ctrl-bottom-left) {
+    left: var(--agro-rail-w, 0px) !important;
+  }
+  .agro-map-area:has(.agro-drawer)
+    .agro-field-map:not([data-mobile])
+    .maplibregl-ctrl-top-left {
+    right: var(--agro-drawer-w, 380px) !important;
+  }
+  .agro-field-map:not([data-mobile]) .geolibre-measure-control {
+    position: absolute;
+    top: 10px;
+    right: 62px;
+    margin: 0;
+  }
+  /* Il vendor apre la scheda verso destra (classe `right`): qui verso sinistra,
+     dal bordo della colonna. `!important`: il CSS vendor non sta in un layer. */
+  .agro-field-map:not([data-mobile]) .geolibre-measure-control .measure-panel {
+    left: auto !important;
+    right: 0 !important;
+  }
 }
 /* Misura: il toggle nativo si rimuove del tutto (il pannello è ancorato via CSS
    al container, non dipende dal toggle). */
@@ -285,6 +304,199 @@ html.dark .agro-field-map .geolibre-measure-control {
   visibility: hidden;
 }
 
+/* Viste in keep-alive (App.tsx): la mappa nascosta resta montata con
+   `visibility:hidden`, ma MapLibre dichiara `visibility:visible` sulla barra
+   attribuzioni espansa, che quindi "bucava" Calendario e Command Center.
+   `!important` perché questo foglio sta in un cascade layer e quello di
+   MapLibre no: senza, vince comunque la sua regola. */
+.invisible .maplibregl-ctrl-attrib.maplibregl-compact-show {
+  visibility: hidden !important;
+}
+
+/* Mappa su telefono (`data-mobile` su .agro-field-map, FieldDashboard): una
+   sola colonna di controlli a destra. Via +/− (si zooma col pizzico), schermo
+   intero, terreno 3D e Gestore livelli (sostituito dal foglio Livelli di
+   MobileMapTools); la bussola compare solo a mappa ruotata, quando serve a
+   rimettere il nord in alto. Restano Livelli, Misura e Cerca luogo. Il
+   bottone del Gestore livelli è nascosto anche sul desktop (vedi sotto). */
+.agro-field-map[data-mobile="true"] .maplibregl-ctrl-zoom-in,
+.agro-field-map[data-mobile="true"] .maplibregl-ctrl-zoom-out,
+.agro-field-map[data-mobile="true"]
+  .maplibregl-ctrl-group:has(> .maplibregl-ctrl-compass.agro-compass-north),
+.agro-field-map[data-mobile="true"]
+  .maplibregl-ctrl-group:has(> .maplibregl-ctrl-fullscreen),
+.agro-field-map[data-mobile="true"]
+  .maplibregl-ctrl-group:has(> .maplibregl-ctrl-shrink),
+.agro-field-map[data-mobile="true"]
+  .maplibregl-ctrl-group:has(> .maplibregl-ctrl-terrain),
+.agro-field-map[data-mobile="true"]
+  .maplibregl-ctrl-group:has(> .maplibregl-ctrl-terrain-enabled) {
+  display: none;
+}
+
+/* Gestore livelli NATIVO: il suo bottone non compare mai. Sul telefono lo
+   sostituisce il foglio Livelli; sul desktop il popover Livelli
+   (DesktopMapTools), che lo apre da "Gestione avanzata". Il controllo resta
+   montato e il suo pannello (appeso al contenitore della mappa, posizionato
+   sotto il bottone) viene ancorato alla colonna dei controlli come il popover:
+   a fianco, allineato in alto, e a sinistra del pannello laterale se aperto.
+   `!important` batte lo stile inline del vendor. */
+.agro-field-map .maplibregl-ctrl-layer-control {
+  display: none;
+}
+@media (min-width: 768px) {
+  .agro-ctrl-popover,
+  .agro-field-map .layer-control-panel {
+    top: 10px !important;
+    right: 62px !important;
+    bottom: auto !important;
+    left: auto !important;
+    transition: right 0.2s ease-out;
+  }
+  .agro-map-area:has(.agro-drawer)
+    :is(.agro-ctrl-popover, .agro-field-map .layer-control-panel) {
+    right: calc(var(--agro-drawer-w, 380px) + 62px) !important;
+  }
+}
+/* Desktop: con un pannello laterale aperto (`agro-drawer`, FieldSheet) i
+   controlli di destra della mappa — zoom, bussola, livelli, cerca, posizione,
+   attribuzione — e gli overlay a destra (legenda indici, feed attività) si
+   spostano alla sua sinistra. Prima restavano SOTTO il pannello e non si
+   potevano usare. La larghezza arriva da `--agro-drawer-w` (380 px).
+   `!important`: questo foglio sta in un cascade layer, quello di MapLibre (che
+   fissa `right: 0` ai contenitori dei controlli) no. */
+@media (min-width: 768px) {
+  .agro-field-map :is(.maplibregl-ctrl-top-right, .maplibregl-ctrl-bottom-right),
+  .agro-right-overlay {
+    transition: right 0.2s ease-out;
+  }
+  .agro-map-area:has(.agro-drawer)
+    .agro-field-map
+    :is(.maplibregl-ctrl-top-right, .maplibregl-ctrl-bottom-right) {
+    right: var(--agro-drawer-w, 380px) !important;
+  }
+  .agro-map-area:has(.agro-drawer) .agro-right-overlay {
+    right: calc(var(--agro-drawer-w, 380px) + 12px) !important;
+  }
+  .agro-index-timeline {
+    transition: right 0.2s ease-out;
+  }
+
+  /* Pila dei pannelli laterali (FieldDashboard): più moduli aperti insieme
+     nella colonna di destra. L'ultimo aperto sta in cima (FieldSheet imposta
+     `order`), gli altri ridotti all'intestazione; gli espansi si dividono
+     l'altezza. La pila è alta quanto la mappa solo se c'è un pannello espanso:
+     con tutti ridotti occupa le sole intestazioni e la mappa sotto resta
+     cliccabile. Niente z-index qui: i pannelli e le finestre che aprono
+     restano nello stesso ordine di sovrapposizione di prima. */
+  .agro-drawer-dock {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .agro-drawer-dock:has(.agro-drawer) {
+    width: var(--agro-drawer-w, 380px);
+  }
+  .agro-drawer-dock:has(.agro-drawer:not([data-collapsed])) {
+    bottom: 0;
+  }
+  /* Un pannello avvolto in un elemento proprio: il contenitore sparisce dal
+     layout, il pannello resta un elemento della pila. */
+  .agro-drawer-dock > :not(.agro-drawer):has(> .agro-drawer) {
+    display: contents;
+  }
+  .agro-drawer-dock .agro-drawer {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-height: none !important;
+    flex: 1 1 0%;
+    min-height: 0;
+    border-top-width: 1px !important;
+    border-bottom-width: 1px !important;
+    border-bottom-left-radius: var(--r-3) !important;
+  }
+  .agro-drawer-dock .agro-drawer[data-collapsed] {
+    flex: 0 0 auto;
+  }
+  .agro-map-area:has(.agro-drawer) .agro-index-timeline {
+    right: calc(var(--agro-drawer-w, 380px) + 13rem) !important;
+  }
+}
+
+/* Testo minimo 12 px, su telefono e desktop: i testi da 9–11 px salgono a
+   12 px (sotto non si leggono a braccio, in campo, alla luce del sole — e
+   nemmeno comodamente a monitor). Restano esclusi la mappa (marker,
+   controlli), la legenda degli indici e il time slider, dove lo spazio è
+   misurato al pixel (classe `agro-keep-size`). Per tornare al desktop di
+   prima basta rimettere questa regola dentro il blocco del telefono sotto. */
+:is(.text-\[9px\], .text-\[10px\], .text-\[11px\]):not(
+    .agro-field-map *,
+    .agro-keep-size,
+    .agro-keep-size *
+  ) {
+  font-size: 12px;
+}
+
+/* Focus visibile per chi usa la tastiera (Tab): contorno nel colore
+   d'accento su pulsanti, link, campi e voci di menu. Solo `:focus-visible`,
+   quindi il clic col mouse o il tocco non lo mostrano. `:where` tiene la
+   specificità a zero: i componenti con un proprio anello di focus vincono. */
+:where(
+    button,
+    a[href],
+    input,
+    select,
+    textarea,
+    summary,
+    [role="button"],
+    [role="menuitem"],
+    [role="separator"],
+    [tabindex]:not([tabindex="-1"])
+  ):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Telefono: rifinitura di tocco, valida solo sotto i 768 px.
+   - I campi dei moduli hanno 44 px d'altezza e testo a 16 px: sotto i 16 px
+     iOS ingrandisce la pagina a ogni focus, e il modulo "salta".
+   - Caselle di spunta e radio più grandi, centrabili col pollice. */
+@media (max-width: 767px) {
+  :is(
+      input:not(
+          [type="checkbox"],
+          [type="radio"],
+          [type="range"],
+          [type="file"],
+          [type="color"],
+          [type="hidden"]
+        ),
+      select,
+      textarea
+    ):not(.agro-field-map *) {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  input:is([type="checkbox"], [type="radio"]):not(.agro-field-map *) {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Righe di filtri a scorrimento orizzontale (telefono): si scorrono col dito,
+   la barra di scorrimento non aggiunge nulla e ruba altezza. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+
 /* Toolbar del GeoEditor: l'icona SVG dei pulsanti deve riempire il bottone e
    restare centrata (allineato al desktop GeoLibre). Senza queste regole — anche
    con lo style.css del pacchetto importato — alcune icone collassano a 0px. */
@@ -330,4 +542,12 @@ html.dark .agro-field-map .geolibre-measure-control {
    sono pannelli standalone INDIPENDENTI da questa griglia e restano attive. */
 .agro-field-map .geolibre-components-control {
   display: none !important;
+}
+
+/* Telefono: la pila dei pannelli non esiste, i fogli dal basso si posizionano
+   sull'area mappa come sempre (uno alla volta). */
+@media (max-width: 767px) {
+  .agro-drawer-dock {
+    display: contents;
+  }
 }

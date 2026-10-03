@@ -4,6 +4,7 @@ import { FieldSheet } from "@agrogea/ui";
 import { Button, cn } from "@geolibre/ui";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ManualLink } from "../../components/help/ManualLink";
 import { useVraGenerator } from "./useVraGenerator";
 import {
   TILLAGE_LABELS,
@@ -96,6 +97,13 @@ export function VraPanel({ onClose }: { onClose: () => void }) {
       }
     >
       <div className="flex flex-col gap-4">
+        {/* Provenienza e metodo: zonatura AgroGea sugli indici Sentinel-2, con
+            il rimando alla documentazione del progetto. */}
+        <p className="text-[11px] leading-snug text-[var(--ink-4)]">
+          {t("vraPanel.docNote")}{" "}
+          <ManualLink section="vra" label={t("vraPanel.docLink")} />
+        </p>
+
         {/* Plot */}
         <section>
           <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--ink-4)]">

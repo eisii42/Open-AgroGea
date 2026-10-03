@@ -179,7 +179,7 @@ export function useFieldPlugins(
 
   // Esri Wayback NATIVO (Modulo Profilo §2): il flag rende DISPONIBILE lo
   // strumento, ma il controllo nativo (e il relativo layer storico) è montato
-  // on-demand al click sul tool — vedi MapControls. Così abilitarlo dalle
+  // on-demand al click sul tool — vedi useMapTools. Così abilitarlo dalle
   // impostazioni non apre più la scheda sopra a tutto all'avvio.
 
   // GeoEditor: vive solo finché il pannello "Disegna" è aperto. La cattura
