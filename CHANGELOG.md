@@ -8,9 +8,87 @@ Gli installer nativi di ogni versione rilasciata sono su [GitHub Releases](https
 
 ## [Non rilasciato]
 
-Nessuna modifica oltre a quelle già elencate per la 0.5.0.
+Nessuna modifica oltre a quelle già elencate per la 0.6.0.
 
-## [0.5.0] — in preparazione
+## [0.6.0] — 2026-10-03
+
+Release dell'interfaccia e della sicurezza. Il telefono viene ricostruito attorno all'uso con una mano in campo; il desktop riceve la stessa struttura con più spazio per la mappa (una colonna di controlli, barra di icone dei moduli, colonna destra ridimensionabile con più moduli aperti insieme). Il logo apre il centro **«Da fare»**, il Quaderno di Campagna si **modifica** davvero, e il progetto si dota di una pipeline di sicurezza automatica insieme a una serie di correzioni di sicurezza.
+
+Storage: **nessuna migrazione** (schema PGlite v25 invariato) e formato di backup invariato (v3.1). I valori persistiti (tabelle, colonne, chiavi JSONB come `suolo`, valori enum) non cambiano.
+
+### Aggiunto — Telefono
+
+- **Navigazione in basso**: Mappa · Calendario · Dashboard · Quaderno · Moduli. I moduli si aprono come griglia di riquadri che scende negli strumenti di ciascuno.
+- **Schede come quelle native**: tre altezze di aggancio (intestazione / metà / pieno), trascinamento per ridimensionare o chiudere, tasto Indietro di Android (solo con una scheda aperta), animazione d'ingresso che rispetta la riduzione del movimento.
+- **Una colonna di controlli mappa** a destra (Livelli · Misura · Cerca) e azioni rapide a portata di pollice (rilievo GPS, rifornimento). Il gestore livelli completo resta solo desktop.
+- **Meteo sempre visibile**: chip nell'intestazione (condizioni, temperatura, pioggia di oggi) che apre la previsione a 5 giorni con fonte e posizione. Non è più nascosto nel menu ⋯.
+- **Calendario a griglia mensile** con l'agenda del giorno sotto; le finestre di pianificazione e registrazione si aprono a schermo intero.
+- **Tocco e scrittura**: testo minimo 12 px, controlli dei form da 44 px con testo a 16 px (niente zoom automatico su iOS), caselle di spunta più grandi.
+
+### Aggiunto — Desktop
+
+- **Intestazione**: logo · azienda · «Cerca… Ctrl K» (la command palette, ora da qualunque vista) · viste · sincronizzazione · meteo · Aggiungi dati · un solo menu account (tema, aiuto, impostazioni del profilo).
+- **Controlli mappa in una colonna** a destra. Un **popover Livelli** copre basemap, WMS salvati, catasto e livelli aziendali; «Gestione avanzata dei livelli» apre il gestore nativo. Rilievo GPS e rifornimento passano in una pila in basso a destra, con il feed attività e le legende degli indici.
+- **Barra di icone dei moduli** (76 px invece della fisarmonica da 260 px): ogni modulo apre un riquadro con i suoi strumenti e mostra i badge di magazzino, task e Quaderno. Si torna all'elenco con una costante (`DESKTOP_MODULE_NAV` in `FieldDashboard`).
+- **Colonna destra con più moduli aperti insieme**: l'ultimo pannello si apre in cima, gli altri si riducono all'intestazione e quelli espansi si dividono l'altezza; riselezionare un modulo aperto lo riporta davanti. La colonna è ridimensionabile (360–560 px, trascinando il bordo sinistro; la larghezza viene ricordata) e controlli, overlay e padding della mappa la seguono.
+- **Calendario** (≥ 1280 px): l'agenda del giorno sta accanto alla griglia invece di coprirla.
+- **Dashboard**: contenuto centrato a 1600 px massimo, barra dei filtri fissa, griglie di KPI e grafici che si adattano da sole.
+- **Accessibilità e coerenza**: Esc chiude solo l'elemento più in alto (pila condivisa); le finestre fatte a mano condividono lo stesso comportamento (Esc, focus trattenuto e restituito alla chiusura); anello di focus visibile da tastiera, frecce nei menu, tooltip sui pulsanti a sola icona; pannello «Caricamento…» mentre il codice di un modulo arriva; testo minimo 12 px anche su desktop (reversibile in `index.css`).
+
+### Aggiunto — Centro «Da fare» (tocco sul logo)
+
+- Il logo apre un unico elenco di ciò che va sistemato in azienda: operazioni del Quaderno e task pianificati incompleti (con i campi mancanti), dati dichiarativi di campagna incompleti, lotti di magazzino scaduti o in scadenza, scadenze del parco macchine (manutenzioni, documenti, fermi, anomalie di rifornimento), appezzamenti senza dati di suolo.
+- Un badge sul logo conta le voci aperte (rosso se almeno una è urgente). Ogni voce porta dove si corregge (un'operazione incompleta si apre nel form di modifica) e sparisce quando il dato c'è.
+- Riusa i motori esistenti (segnali sugli appezzamenti, completezza, scadenza lotti, attenzione macchine): è sempre d'accordo con gli altri segnali dell'app. Desktop: popover sotto il logo; telefono: scheda dal basso, da qualunque vista.
+
+### Modificato — Quaderno di Campagna
+
+- **Modifica delle operazioni**: la matita apre il form precompilato con tutto il record e salva la stessa riga (`updateTreatment`); scarichi di magazzino e ore macchina non vengono riapplicati. «Ripeti operazione» passa nella scheda di dettaglio.
+- **Dati mancanti segnalati**: righe e scheda di dettaglio elencano i campi che servono ancora a una registrazione conforme (motore di completezza esistente).
+- I tipi di operazione sono tradotti: elenco e marker sulla mappa non mostrano più `phytosanitary`, `harvest`, … grezzi.
+
+### Sicurezza
+
+- **XSS nelle attribuzioni della mappa (CVE-2026-85061, MapLibre GL ≤ 6.4.0)**: MapLibre inserisce l'attribuzione delle sorgenti come HTML con un sanitizer aggirabile, e il titolo dei servizi WMS arriva dal GetCapabilities di server esterni. Ora ogni attribuzione passa da `useLayerAttributions`: quelle dei layer aziendali come testo puro, tutte le altre (stili remoti, plugin) ridotte a testo + link `http(s)` (`sanitizeAttribution` in `lib/escape-markup.ts`). L'aggiornamento a MapLibre 6 resta pianificato insieme al riallineamento dei pacchetti GeoLibre.
+- **Stampa PDF**: la finestra di stampa non riceve più HTML scritto come stringa (`document.write`): il titolo è testo e il layout entra come immagine SVG, come nell'export PNG.
+- **Sincronizzazione con un PostgreSQL privato**: senza `sslmode` nella stringa di connessione la connessione era **sempre in chiaro**; ora vale la semantica libpq `prefer` (TLS se il server lo offre). `verify-ca` e `verify-full` prima fallivano con un errore di parsing (tokio-postgres accetta solo `disable`/`prefer`/`require`): ora funzionano e verificano davvero il certificato.
+- **Comando nativo dei tile** (`agro_fetch_map_tile`): timeout di 30 s, al massimo 5 redirect e solo verso http(s), tetto di 16 MB per risposta. Prima scaricava qualunque URL senza limiti.
+- **Worker degli indici**: i nomi degli indici che arrivano dai messaggi sono controllati contro l'elenco noto (`isVegetationIndex`) prima di diventare chiavi di oggetto, e i messaggi da un'origine estranea vengono scartati.
+- **Keystore offline**: test con valore atteso fisso sulla derivazione Argon2id della chiave dal PIN (verificato anche con un'implementazione indipendente), così un aggiornamento di `argon2` che ne cambiasse i parametri non può rendere illeggibili i keystore esistenti; test di cifratura/decifratura e PIN errato.
+- **Dipendenze**: `fflate` 0.8.3 anche per la copia annidata di loaders.gl (blocco con ZIP64 malformati, CVE-2026-45820); `image-size` forzato a 2.0.3 (solo strumento CLI, mai caricato nell'app); `tokio-postgres` 0.7.18, `reqwest` 0.13, `argon2` 0.6, `base64` 0.23, `dompurify` 3.4.16. La dipendenza `rand` è stata rimossa: il generatore usato per salt e nonce resta l'`OsRng` del sistema operativo.
+
+### CI e processo
+
+- **SAST** (`.github/workflows/sast.yml`): gitleaks sulla history completa e CodeQL `security-extended` su JavaScript/TypeScript, Rust e GitHub Actions, su push e PR verso `main` e ogni settimana. La copia vendorizzata del crate `cookie` (`src-tauri/patches/`) è esclusa dall'analisi.
+- **DAST** (`.github/workflows/dast.yml`): scansione ZAP baseline della build web di produzione su ogni PR verso `main`; le regole di severità media e alta bloccano la PR (`.zap/rules.tsv`).
+- **CodeRabbit** (`.coderabbit.yaml`): revisione delle PR orientata alla sicurezza, con quattro controlli bloccanti.
+- **Dependabot** (`.github/dependabot.yml`): aggiornamenti settimanali per npm, cargo e GitHub Actions, con attesa di qualche giorno sulle versioni appena pubblicate, gruppi separati per Tauri e per l'ecosistema MapLibre e PGlite escluso (un aggiornamento di Postgres richiede una migrazione dei dati).
+- **Gate di qualità** (`quality.yml`): nuovo job `rust` con `cargo check` e i test del crate Tauri. Prima nessun controllo compilava il Rust, e un aggiornamento di dipendenza aveva rotto la build senza che la CI se ne accorgesse.
+- Tutte le action sono fissate allo SHA del commit e passate alle versioni su Node 24 (GitHub ha rimosso Node 20 dai runner il 16 settembre 2026); `tauri-action` passa alla v1.
+- **Release**: le note della Release su GitHub si leggono da `docs/releases/<tag>.md` (`tauri-action` v1 riscrive il testo delle Release esistenti).
+
+### Corretto
+
+- I layer WMS compaiono nella barra delle attribuzioni; gli appezzamenti sono disegnati sopra i WMS; i WMS salvati restano, si modificano e sostituiscono il satellite quando attivi.
+- Lo zoom con doppio clic non salta più via dalla zona.
+- L'icona di segnalazione dell'appezzamento non si sposta più durante lo zoom; il tooltip dell'appezzamento mostra i dettagli dei dati mancanti.
+- La composizione del suolo si inserisce già alla creazione di un appezzamento o all'adozione di una particella (resta modificabile dall'elenco).
+- L'analisi degli indici dichiara la fonte (Sentinel-2, calcolato da AgroGea) con link al manuale; le mappe VRA rimandano alla loro documentazione; i link al manuale si aprono nel browser di sistema (plugin opener di Tauri).
+- La scheda meteo mostra coordinate, servizio (Open-Meteo) e l'opzione stazione meteo.
+- Le impostazioni del profilo non si aprono più sotto Calendario/Command Center.
+- «Verifica aggiornamenti» è stato tolto dal menu Aiuto e dalla finestra Informazioni.
+- I sottomoduli della Normativa sono raggiungibili dal telefono.
+- «Dati coltura» non chiude e riapre più tutto.
+- Il layer del rilievo GPS poteva essere aggiunto due volte.
+- Il pannello laterale non copre più i controlli mappa; ridotto, si riduce alla sola intestazione.
+- La pagina Task & Ricette si riapre anche con altri pannelli aperti.
+
+### Noto
+
+- **MapLibre GL 5.x** resta in uso: la CVE-2026-85061 è neutralizzata nell'unico punto in cui MapLibre usa il sanitizer vulnerabile (la barra delle attribuzioni), ma la correzione completa arriva con MapLibre 6, insieme al riallineamento dei pacchetti GeoLibre vendorizzati (upstream è già alla 6.11).
+- **glib** (solo Linux): l'avviso GHSA-wrw7-89jp-8q8g riguarda la libreria GTK usata da Tauri/WebKitGTK e si chiude solo quando Tauri passerà a GTK 4; Windows, macOS e Android non sono coinvolti.
+
+## [0.5.0] — 2026-09-27
 
 Sei aree: le particelle si **adottano da fonti pubbliche** invece di ridisegnarle (nuovo pacchetto `@agrogea/parcel`) e il **primo avvio** chiede azienda e paese invece di inventarli; nasce il modulo **Normativa** (autovalutazione PAC e biologico); la certificazione dell'azienda e il regime di produzione diventano dati veri; il magazzino diventa un insieme di **luoghi** con una posizione sulla mappa; il **backup** passa al formato v3 con perimetro selezionabile; la vista cartografica viene vincolata alla scala in cui il lavoro di campo si svolge davvero.
 
@@ -294,7 +372,8 @@ Primo rilascio pubblico dell'edizione Community (standalone, local-first).
 - **Storage local-first**: istanza PGlite (PostgreSQL WASM) isolata per azienda, coda `sync_outbox`, sync opzionale verso PostgreSQL on-premise via comando Rust nativo (Tauri v2).
 - **App desktop** Windows / macOS / Linux con aggiornamenti automatici via Tauri Updater + GitHub Releases, e demo web standalone in-browser.
 
-[Non rilasciato]: https://github.com/eisii42/Open-AgroGea/compare/v0.5.0...HEAD
+[Non rilasciato]: https://github.com/eisii42/Open-AgroGea/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/eisii42/Open-AgroGea/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/eisii42/Open-AgroGea/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/eisii42/Open-AgroGea/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/eisii42/Open-AgroGea/compare/v0.3.0...v0.4.0
