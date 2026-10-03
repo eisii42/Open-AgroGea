@@ -534,11 +534,13 @@
   "logbookPanel": {
     "fieldFallbackName": "Campo {{id}}",
     "notification": {
-      "removed": "Operazione rimossa: {{label}}"
+      "removed": "Operazione rimossa: {{label}}",
+      "updated": "Operazione aggiornata: {{label}}"
     },
     "title": {
       "newOperation": "Nuova operazione",
-      "logbook": "Quaderno di Campagna"
+      "logbook": "Quaderno di Campagna",
+      "editOperation": "Modifica operazione"
     },
     "button": {
       "registerOperation": "Registra operazione"
@@ -565,7 +567,8 @@
       "queued": "coda",
       "deleteOperation": "Elimina operazione",
       "repeatOperation": "Ripeti operazione (form precompilato, data di oggi)",
-      "deleteAriaLabel": "Elimina {{label}}"
+      "deleteAriaLabel": "Elimina {{label}}",
+      "editOperation": "Modifica operazione"
     }
   },
   "taskPlanner": {
@@ -1360,7 +1363,8 @@
     "machineCreate": "Nuovo mezzo",
     "machineNewName": "Nome",
     "machineNewType": "Tipo",
-    "machineCreateSave": "Crea e seleziona"
+    "machineCreateSave": "Crea e seleziona",
+    "submitEdit": "Salva modifiche"
   },
   "warehouse": {
     "importCsv": "Importa CSV",
@@ -2341,7 +2345,10 @@
       "safetyPeriod": "Tempo di carenza (gg)"
     },
     "delete": "Elimina",
-    "close": "Chiudi"
+    "close": "Chiudi",
+    "edit": "Modifica",
+    "repeat": "Ripeti",
+    "missingTitle": "Dati mancanti per un record conforme"
   },
   "harvestDetailCard": {
     "harvest": "Raccolta",

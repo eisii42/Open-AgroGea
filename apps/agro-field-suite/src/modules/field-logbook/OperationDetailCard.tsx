@@ -7,7 +7,7 @@
  */
 import type { TreatmentLog, OperationType } from "@agrogea/core";
 import { useModalBehavior } from "@agrogea/ui";
-import { Trash2, X } from "lucide-react";
+import { AlertTriangle, Pencil, Repeat2, Trash2, X } from "lucide-react";
 import { type ReactNode, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -43,6 +43,9 @@ export function OperationDetailCard({
   appezzamentoNome,
   onClose,
   onDelete,
+  onEdit,
+  onRepeat,
+  missing = [],
 }: {
   operation: TreatmentLog;
   appezzamentoNome: string | null;
@@ -53,6 +56,12 @@ export function OperationDetailCard({
    * correggono dal Quaderno, che è il loro registro).
    */
   onDelete?: () => void | Promise<void>;
+  /** Correzione del record (Quaderno). Omesso nella consultazione. */
+  onEdit?: () => void;
+  /** "Ripeti operazione": nuovo record precompilato, data di oggi. */
+  onRepeat?: () => void;
+  /** Etichette dei dati mancanti per un record conforme (vuoto = completo). */
+  missing?: string[];
 }) {
   // Stesso modello di tutte le finestre: Esc, focus dentro, focus restituito.
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -130,6 +139,8 @@ export function OperationDetailCard({
           <button
             type="button"
             onClick={onClose}
+            aria-label={t("operationDetailCard.close")}
+            title={t("operationDetailCard.close")}
             className="shrink-0 rounded p-1 hover:bg-[var(--panel-2)]"
           >
             <X size={16} />
@@ -137,6 +148,16 @@ export function OperationDetailCard({
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
+          {/* Record incompleto: cosa manca per un registro conforme. */}
+          {missing.length > 0 && (
+            <div className="mb-3 flex items-start gap-2 rounded-[var(--r-2)] border border-[var(--warn)] bg-[var(--warn-l)] px-3 py-2 text-xs text-[var(--warn)]">
+              <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+              <div className="min-w-0">
+                <p className="font-semibold">{t("operationDetailCard.missingTitle")}</p>
+                <p>{missing.join(", ")}</p>
+              </div>
+            </div>
+          )}
           <InfoSection title={t("operationDetailCard.section.cropPlot")} fields={cropPlot} />
           <InfoSection title={t("operationDetailCard.section.productDose")} fields={productDose} />
           <InfoSection title={t("operationDetailCard.section.operator")} fields={operator} />
@@ -159,6 +180,25 @@ export function OperationDetailCard({
               className="mr-auto flex items-center gap-1.5 rounded-[var(--r-2)] px-2.5 py-1.5 text-xs font-medium text-[var(--danger)] hover:bg-[var(--danger-l,#fee2e2)]"
             >
               <Trash2 size={13} /> {t("operationDetailCard.delete")}
+            </button>
+          )}
+          {onRepeat && (
+            <button
+              type="button"
+              onClick={onRepeat}
+              title={t("logbookPanel.list.repeatOperation")}
+              className="flex items-center gap-1.5 rounded-[var(--r-2)] border border-[var(--line)] px-2.5 py-1.5 text-xs font-medium hover:bg-[var(--panel-2)]"
+            >
+              <Repeat2 size={13} /> {t("operationDetailCard.repeat")}
+            </button>
+          )}
+          {onEdit && (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="flex items-center gap-1.5 rounded-[var(--r-2)] bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+            >
+              <Pencil size={13} /> {t("operationDetailCard.edit")}
             </button>
           )}
           <button

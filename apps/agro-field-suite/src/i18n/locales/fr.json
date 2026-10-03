@@ -534,11 +534,13 @@
   "logbookPanel": {
     "fieldFallbackName": "Champ {{id}}",
     "notification": {
-      "removed": "Opération supprimée : {{label}}"
+      "removed": "Opération supprimée : {{label}}",
+      "updated": "Opération mise à jour : {{label}}"
     },
     "title": {
       "newOperation": "Nouvelle opération",
-      "logbook": "Cahier des champs"
+      "logbook": "Cahier des champs",
+      "editOperation": "Modifier l'opération"
     },
     "button": {
       "registerOperation": "Enregistrer une opération"
@@ -565,7 +567,8 @@
       "queued": "en attente",
       "deleteOperation": "Supprimer l'opération",
       "repeatOperation": "Répéter l'opération (formulaire prérempli, date du jour)",
-      "deleteAriaLabel": "Supprimer {{label}}"
+      "deleteAriaLabel": "Supprimer {{label}}",
+      "editOperation": "Modifier l'opération"
     }
   },
   "taskPlanner": {
@@ -1360,7 +1363,8 @@
     "machineCreate": "Nouvel engin",
     "machineNewName": "Nom",
     "machineNewType": "Type",
-    "machineCreateSave": "Créer et sélectionner"
+    "machineCreateSave": "Créer et sélectionner",
+    "submitEdit": "Enregistrer les modifications"
   },
   "warehouse": {
     "importCsv": "Importer CSV",
@@ -2125,7 +2129,10 @@
       "safetyPeriod": "Délai avant récolte (j)"
     },
     "delete": "Supprimer",
-    "close": "Fermer"
+    "close": "Fermer",
+    "edit": "Modifier",
+    "repeat": "Répéter",
+    "missingTitle": "Données manquantes pour un enregistrement conforme"
   },
   "harvestDetailCard": {
     "harvest": "Récolte",

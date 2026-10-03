@@ -534,11 +534,13 @@
   "logbookPanel": {
     "fieldFallbackName": "Field {{id}}",
     "notification": {
-      "removed": "Operation removed: {{label}}"
+      "removed": "Operation removed: {{label}}",
+      "updated": "Operation updated: {{label}}"
     },
     "title": {
       "newOperation": "New operation",
-      "logbook": "Field Logbook"
+      "logbook": "Field Logbook",
+      "editOperation": "Edit operation"
     },
     "button": {
       "registerOperation": "Log operation"
@@ -565,7 +567,8 @@
       "queued": "queued",
       "deleteOperation": "Delete operation",
       "repeatOperation": "Repeat operation (prefilled form, today's date)",
-      "deleteAriaLabel": "Delete {{label}}"
+      "deleteAriaLabel": "Delete {{label}}",
+      "editOperation": "Edit operation"
     }
   },
   "taskPlanner": {
@@ -1360,7 +1363,8 @@
     "machineCreate": "New machine",
     "machineNewName": "Name",
     "machineNewType": "Type",
-    "machineCreateSave": "Create and select"
+    "machineCreateSave": "Create and select",
+    "submitEdit": "Save changes"
   },
   "warehouse": {
     "importCsv": "Import CSV",
@@ -2341,7 +2345,10 @@
       "safetyPeriod": "Pre-harvest interval (days)"
     },
     "delete": "Delete",
-    "close": "Close"
+    "close": "Close",
+    "edit": "Edit",
+    "repeat": "Repeat",
+    "missingTitle": "Missing data for a compliant record"
   },
   "harvestDetailCard": {
     "harvest": "Harvest",
