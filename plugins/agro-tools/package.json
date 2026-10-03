@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "@types/geojson": "^7946.0.16",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "license": "AGPL-3.0-or-later",
   "author": "Andrea Carnasciali"
