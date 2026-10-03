@@ -20,7 +20,7 @@
     "@geolibre/map": "*",
     "@geolibre/plugins": "*",
     "@geolibre/ui": "*",
-    "@duckdb/duckdb-wasm": "1.33.1-dev45.0",
+    "@duckdb/duckdb-wasm": "1.33.1-dev57.0",
     "@geoman-io/maplibre-geoman-free": "^0.7.1",
     "@turf/boolean-intersects": "^7.4.0",
     "@tauri-apps/api": "^2.11.1",
