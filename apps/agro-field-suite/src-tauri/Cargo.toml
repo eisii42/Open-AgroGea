@@ -46,7 +46,7 @@ uuid = { version = "1", features = ["serde"] }
 # Keystore offline: PIN → Argon2id → AES-256-GCM.
 argon2 = "0.6"
 aes-gcm = "0.10"
-base64 = "0.22"
+base64 = "0.23"
 
 # Auto-update nativo: SOLO desktop (Windows/macOS/Linux). L'updater Tauri non
 # esiste su Android/iOS, dove gli aggiornamenti passano dagli store: gating per
