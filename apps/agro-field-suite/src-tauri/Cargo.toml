@@ -45,7 +45,7 @@ postgres-native-tls = "0.5"
 uuid = { version = "1", features = ["serde"] }
 # Keystore offline: PIN → Argon2id → AES-256-GCM.
 argon2 = "0.6"
-aes-gcm = "0.10"
+aes-gcm = "0.11"
 base64 = "0.22"
 
 # Auto-update nativo: SOLO desktop (Windows/macOS/Linux). L'updater Tauri non
