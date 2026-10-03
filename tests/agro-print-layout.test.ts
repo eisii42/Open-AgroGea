@@ -4,6 +4,7 @@ import { DEFAULT_LAYER_STYLE, type GeoLibreLayer } from "@geolibre/core";
 import {
   buildLegenda,
   buildPrintSvg,
+  escapeMarkup,
   spezza,
 } from "../apps/agro-field-suite/src/modules/print/print-layout";
 
@@ -87,6 +88,15 @@ describe("buildPrintSvg", () => {
       mostraLogo: false,
     });
     assert.match(out, /Campo &lt;b&gt; &amp; &quot;x&quot;/);
+  });
+});
+
+describe("escapeMarkup", () => {
+  it("neutralises markup in the print window title", () => {
+    assert.equal(
+      escapeMarkup('</title><img src=x onerror="alert(1)">'),
+      "&lt;/title&gt;&lt;img src=x onerror=&quot;alert(1)&quot;&gt;",
+    );
   });
 });
 

@@ -5,7 +5,7 @@ import { FieldSheet } from "@agrogea/ui";
 import { Button, cn } from "@geolibre/ui";
 import { type RefObject, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { buildLegenda, buildPrintSvg } from "./print-layout";
+import { buildLegenda, buildPrintSvg, escapeMarkup } from "./print-layout";
 
 /**
  * Print Layout Composer: compone un layout di stampa professionale (mappa +
@@ -121,7 +121,7 @@ export function PrintComposer({ onClose, mapControllerRef }: Props) {
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(
-      `<!doctype html><title>${title}</title>` +
+      `<!doctype html><title>${escapeMarkup(title)}</title>` +
         `<body style="margin:0">${svg}</body>`,
     );
     win.document.close();
