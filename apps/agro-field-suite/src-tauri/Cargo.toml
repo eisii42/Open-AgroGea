@@ -31,7 +31,7 @@ tokio-postgres = { version = "0.7", features = ["with-serde_json-1", "with-uuid-
 # Proxy lato nativo dei tile WMS/raster privi di header CORS (es. Catasto AdE):
 # il fetch avviene in Rust, fuori dal sandbox CORS del webview. native-tls per
 # riusare lo stack TLS di sistema già impiegato dal sync on-premise.
-reqwest = { version = "0.12", default-features = false, features = ["native-tls"] }
+reqwest = { version = "0.13", default-features = false, features = ["native-tls"] }
 # Semaforo di concorrenza e attese del backoff per il trasporto delle fonti di
 # particelle (parcel_source.rs). tokio è già nell'albero via tauri/tokio-postgres:
 # qui si dichiara solo ciò che si usa direttamente.
