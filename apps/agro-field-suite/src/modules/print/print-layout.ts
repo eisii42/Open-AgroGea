@@ -58,7 +58,8 @@ export interface PrintOptions {
   altezza?: number;
 }
 
-function esc(value: string): string {
+/** Escape per testo inserito in markup SVG/HTML (testo e attributi tra doppi apici). */
+export function escapeMarkup(value: string): string {
   return value
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -93,8 +94,8 @@ export function buildPrintSvg(opts: PrintOptions): string {
   y += 22;
   for (const item of opts.legenda) {
     blocchi.push(
-      `<rect x="${panelX}" y="${y - 11}" width="14" height="14" rx="3" fill="${esc(item.color)}" stroke="#ffffff"/>`,
-      `<text x="${panelX + 22}" y="${y}" font-size="12" fill="#333d47">${esc(item.name)}</text>`,
+      `<rect x="${panelX}" y="${y - 11}" width="14" height="14" rx="3" fill="${escapeMarkup(item.color)}" stroke="#ffffff"/>`,
+      `<text x="${panelX + 22}" y="${y}" font-size="12" fill="#333d47">${escapeMarkup(item.name)}</text>`,
     );
     y += 22;
   }
@@ -109,7 +110,7 @@ export function buildPrintSvg(opts: PrintOptions): string {
   if (opts.mostraScala && opts.scalaTesto) {
     blocchi.push(
       `<rect x="${panelX}" y="${y - 8}" width="120" height="6" fill="#1a2733"/>`,
-      `<text x="${panelX}" y="${y + 18}" font-size="11" fill="#333d47">Scala ${esc(opts.scalaTesto)}</text>`,
+      `<text x="${panelX}" y="${y + 18}" font-size="11" fill="#333d47">Scala ${escapeMarkup(opts.scalaTesto)}</text>`,
     );
     y += 40;
   }
@@ -132,7 +133,7 @@ export function buildPrintSvg(opts: PrintOptions): string {
     // Spezza le note su più rows (~38 caratteri).
     for (const row of spezza(opts.note, 38)) {
       blocchi.push(
-        `<text x="${panelX}" y="${y}" font-size="11" fill="#333d47">${esc(row)}</text>`,
+        `<text x="${panelX}" y="${y}" font-size="11" fill="#333d47">${escapeMarkup(row)}</text>`,
       );
       y += 16;
     }
@@ -145,7 +146,7 @@ export function buildPrintSvg(opts: PrintOptions): string {
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">` +
     `<rect width="${W}" height="${H}" fill="#ffffff"/>` +
-    `<text x="${margine}" y="40" font-size="20" font-weight="800" fill="#1a2733">${esc(opts.title)}</text>` +
+    `<text x="${margine}" y="40" font-size="20" font-weight="800" fill="#1a2733">${escapeMarkup(opts.title)}</text>` +
     mappa +
     `<rect x="${mapX}" y="${mapY}" width="${mapW}" height="${mapH}" fill="none" stroke="#cdd6df"/>` +
     blocchi.join("") +

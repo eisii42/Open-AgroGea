@@ -117,17 +117,27 @@ export function PrintComposer({ onClose, mapControllerRef }: Props) {
     img.src = svgDataUrl;
   }, [svgDataUrl, fileName]);
 
+  // Nessun markup scritto come stringa nella finestra di stampa: il titolo è
+  // testo (document.title) e il layout entra come immagine SVG, come per
+  // l'export PNG. Così titolo, note e legenda non possono diventare HTML.
   const stampaPdf = useCallback(() => {
     const win = window.open("", "_blank");
     if (!win) return;
-    win.document.write(
-      `<!doctype html><title>${title}</title>` +
-        `<body style="margin:0">${svg}</body>`,
-    );
-    win.document.close();
-    win.focus();
-    win.print();
-  }, [svg, title]);
+    const doc = win.document;
+    doc.title = title;
+    const body = doc.body ?? doc.documentElement.appendChild(doc.createElement("body"));
+    body.style.margin = "0";
+    const img = doc.createElement("img");
+    img.alt = title;
+    img.style.display = "block";
+    img.style.width = "100%";
+    img.onload = () => {
+      win.focus();
+      win.print();
+    };
+    img.src = svgDataUrl;
+    body.appendChild(img);
+  }, [svgDataUrl, title]);
 
   const toggleOptions = [
     { id: "scala", labelKey: "printComposer.toggle.scale", value: mostraScala, set: setMostraScala },
