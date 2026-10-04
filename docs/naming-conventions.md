@@ -9,8 +9,13 @@ are out of scope. See also `docs/glossary.md` for the IT→EN term mapping.
 - **Code is English**: file/folder names, variables, functions, classes, types,
   interfaces, enums, constants, internal object keys, internal event/action
   names — all English.
-- **UI strings stay Italian** and must go through i18n
-  (`apps/agro-field-suite/src/i18n`), never hard-coded.
+- **UI strings go through i18n** (`apps/agro-field-suite/src/i18n/locales/*.json`:
+  it, en, fr, es), never hard-coded. The Italian catalog is the reference text.
+- **i18n keys and namespaces are English** (`harvestPanel`, `logbookPanel`,
+  `attentionCenter`); only the values are translated. `t()` keys are
+  type-checked against `en.json`, so `npm run typecheck` catches a missing or
+  renamed key. The only Italian keys left mirror a persisted discriminant value
+  read dynamically (e.g. `harvestPanel.destinations.<id>`).
 - **Comments keep their current language** (Italian). Update a comment only when
   a rename makes it inaccurate.
 - **Never translate** domain/regulatory terms: `PAN`, `UMA`, `SIAN`, `SIEX`,

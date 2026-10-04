@@ -2,11 +2,13 @@
 
 > 🇮🇹 Italiano · [🇬🇧 English](./manual.en.md)
 
-> **Versione documento 0.5.0** · aggiornato il 27 settembre 2026 · descrive **AgroGea 0.5.0**. Se la tua app mostra una versione diversa (menu **?** → *Informazioni*), le differenze sono elencate nel [CHANGELOG](../../CHANGELOG.md).
+> **Versione documento 0.6.1** · aggiornato il 4 ottobre 2026 · descrive **AgroGea 0.6**. Se la tua app mostra una versione diversa (menu account → **Aiuto** → *Informazioni*), le differenze sono elencate nel [CHANGELOG](../../CHANGELOG.md).
 >
-> Novità della 0.5.0 descritte qui: **primo avvio guidato** (§1), **particelle da fonti pubbliche** (Passo 2), **certificazioni** e **regime di produzione** (Passi 1 e 3), **limiti di zoom** e **segnali di attenzione** (§2), **cartografia raster** (§4.8), **backup selettivo** (§4.12), **magazzini multipli e georeferenziati** (§4.14) e il modulo **Normativa** (§4.17).
+> Novità della 0.6 descritte qui: la **nuova interfaccia** su computer e telefono e il centro **Da risolvere** (§2), la **modifica delle operazioni** e i **dati mancanti** nel Quaderno (§4.1), i **WMS salvati come sfondo** (§4.8), il **calendario** su telefono e su schermi larghi (§4.11), il **meteo nell'intestazione** (§4.13) e le nuove **scorciatoie** (§5).
+>
+> Novità della 0.5 (già descritte nella versione precedente del manuale): **primo avvio guidato** (§1), **particelle da fonti pubbliche** (Passo 2), **certificazioni** e **regime di produzione** (Passi 1 e 3), **limiti di zoom** e **segnali di attenzione** (§2), **cartografia raster** (§4.8), **backup selettivo** (§4.12), **magazzini multipli e georeferenziati** (§4.14) e il modulo **Normativa** (§4.17).
 
-> Guida **passo-passo** all'edizione Desktop Open Source. Parte dall'app appena installata e ti accompagna lungo il flusso di lavoro completo:
+> Guida **passo-passo** ad AgroGea. Parte dall'app appena installata e ti accompagna lungo il flusso di lavoro completo:
 > **Dati aziendali → Appezzamenti → Colture** e poi l'uso di **tutti i moduli** della suite.
 >
 > Per capire *come funzionano* i moduli agronomici a livello scientifico (indici satellitari, mappe VRA, bilancio idrico), vedi la [Documentazione tecnica dei moduli](../technical/moduli-agronomici.md).
@@ -66,35 +68,63 @@ Per lavorare al meglio, tieni presente due cose fin da subito:
 
 ## 2. Come è fatta la schermata
 
-L'interfaccia è **geocentrica**: la mappa occupa tutto lo schermo e ogni funzione si apre come **pannello laterale** sopra la mappa (che non viene mai ricaricata).
+L'interfaccia è **geocentrica**: la mappa occupa tutto lo schermo e ogni funzione si apre come **pannello** sopra la mappa, che non viene mai ricaricata. Computer e telefono hanno la stessa struttura, adattata allo spazio disponibile.
 
-**La barra in alto (header):**
+### Su computer
 
-- **Logo AgroGea** e, accanto, il **nome dell'azienda attiva** (mostra `-` finché non lo compili nel Passo 1).
-- **Add Data** — per trascinare/importare file esterni (vedi §4.8).
-- **Scheda meteo** — condizioni del giorno e previsione a 4 giorni.
-- **Switcher di vista** — tre pulsanti: **Mappa** (il lavoro sul campo), **Calendario** (tutto ciò che ha una data, §4.11) e **Command Center** (la dashboard analitica, §4.10). Le tre viste restano montate: passare dall'una all'altra non ricarica la mappa né rifà i calcoli.
-- A destra: **LED di stato** (nell'edizione locale i dati restano sempre sul dispositivo), **selettore tema** (Chiaro / Scuro / Verde), **menu Aiuto** (`?`) e **menu profilo**.
+**La barra in alto:**
 
-**La sidebar dei moduli:**
+- **Logo AgroGea** — apre il centro **Da risolvere** (vedi sotto); un badge conta le voci aperte.
+- **Nome dell'azienda attiva** (mostra `-` finché non lo compili nel Passo 1).
+- **Cerca… `Ctrl K`** — cerca appezzamenti, moduli e azioni da qualunque vista: è la palette dei comandi.
+- **Viste** — **Mappa** (il lavoro sul campo), **Calendario** (tutto ciò che ha una data, §4.11) e **Command Center** (la dashboard analitica, §4.10). Le tre viste restano montate: passare dall'una all'altra non ricarica la mappa né rifà i calcoli.
+- A destra: lo **stato della sincronizzazione** (un pallino: verde = tutto a posto, ambra = modifiche in coda, rosso = errore, grigio = offline; un clic apre la coda — se non colleghi un server PostgreSQL resta verde, perché i dati stanno sul dispositivo), il **meteo** (§4.13), **Aggiungi dati** (§4.8) e il **menu account**: tema (**Chiaro / Scuro / Agronomico**), **Aiuto** (scorciatoie, diagnostica, feedback, informazioni) e **Impostazioni profilo**.
 
-Si apre dalla **maniglia** sul bordo della mappa e raccoglie tutti gli strumenti, raggruppati in moduli espandibili:
+**La barra dei moduli** è la colonna di icone a sinistra: **Suolo, Coltura, Acqua, Disegno, Attività, Quaderno, Magazzino, Azienda, Normativa**. Un clic su un'icona apre il riquadro con gli strumenti del modulo; i badge segnalano lotti in scadenza, task e operazioni da completare.
 
 | Modulo | Strumenti |
 |---|---|
-| **Suolo** | Lista appezzamenti, Analisi indici (NDVI…), Mappe VRA |
-| **Coltura** | Dati coltura, Modelli DSS |
+| **Suolo** | Lista appezzamenti, Analisi indici (NDVI, NDRE…), Mappe a rateo variabile (VRA) |
+| **Coltura** | Dati coltura, DSS · modelli previsionali |
 | **Acqua** | Bilancio idrico |
-| **Disegna elemento** | **Particelle pubbliche**, Appezzamento (poligono), Infrastruttura (linea), POI (punto), Stampa |
-| **Pianificazione Task** | Task & Ricette |
-| **Quaderno di Campagna** | Operazioni, Raccolta, Export SIAN |
+| **Disegno** | **Particelle pubbliche**, Appezzamento (poligono), Infrastruttura (linea), POI (punto), Stampa mappa |
+| **Attività** | Task & Ricette |
+| **Quaderno** | Registro operazioni, Registra raccolta, Esporta SIAN (CSV) |
 | **Magazzino** | Prodotti e lotti (con l'anagrafica dei **Magazzini**), Parco macchine |
-| **Impostazioni Azienda** | Anagrafica, Meteo |
+| **Azienda** | Anagrafica, Fonte meteo & variabili |
 | **Normativa** | Ammissibilità, Condizionalità (BCAA), Eco-schemi, Trasversali, Biologico, GeoCompliance (layer vincolanti) |
 
-Cliccando uno strumento si apre il pannello corrispondente; cliccandolo di nuovo si chiude.
+In questo manuale i percorsi sono scritti come **Modulo → Strumento** (es. *Quaderno → Registro operazioni*): su computer il modulo è l'icona nella barra a sinistra, sul telefono il riquadro in **Moduli**.
 
-**I controlli della mappa** stanno nella colonna a destra e sono quelli nativi del motore cartografico, **tradotti nella lingua dell'app**: zoom **＋ / −**, **bussola** (trascina per ruotare, clicca per rimettere il nord in alto — quando la mappa è già a nord il pulsante mostra una piccola **N**), **schermo intero**, **trova la mia posizione**, **rilievo 3D**, **righello** (misura distanze e aree, con unità selezionabili), **gestore livelli** (visibilità, opacità, ordine, stile) e **🔍 Cerca luogo** per la ricerca toponomastica.
+**La colonna dei pannelli.** Ogni strumento si apre in una colonna a destra, e **più moduli possono restare aperti insieme**: l'ultimo si apre in cima, gli altri si riducono alla sola intestazione (un clic li riapre) e quelli aperti si dividono l'altezza. Riselezionare un modulo già aperto lo riporta davanti. La colonna si allarga o si stringe **trascinando il bordo sinistro** (da 360 a 560 px) e AgroGea ricorda la larghezza; i controlli della mappa si spostano di conseguenza.
+
+**I controlli della mappa** stanno nella colonna a destra, **tradotti nella lingua dell'app**:
+
+- **Livelli** — un riquadro con lo **sfondo cartografico** (Stradario OSM, Satellite Esri e i tuoi **WMS salvati**, §4.8), l'overlay **Catasto** e i **livelli dell'azienda**; in fondo, **Gestione avanzata livelli** apre il gestore completo (visibilità, opacità, ordine, stile);
+- **Misura** — righello per distanze e aree, con unità selezionabili;
+- zoom **＋ / −**, **bussola** (trascina per ruotare, clicca per rimettere il nord in alto — quando la mappa è già a nord il pulsante mostra una piccola **N**), **schermo intero**, **rilievo 3D**, **trova la mia posizione** e **Cerca luogo** per la ricerca toponomastica.
+
+In basso a destra stanno le azioni rapide **Rilievo in campo (Scouting GPS)** e **Refill carburante**, insieme al feed delle attività e alle legende degli indici.
+
+### Su telefono
+
+- **In alto**: il logo (apre **Da risolvere**), il **chip meteo** sempre visibile (condizioni, temperatura e pioggia di oggi; un tocco apre la previsione a 5 giorni), lo stato della sincronizzazione e il **menu ☰** con Aggiungi dati, tema, Aiuto e Impostazioni profilo.
+- **In basso**, la barra di navigazione: **Mappa · Calendario · Dashboard · Quaderno · Moduli**. *Moduli* apre una griglia di riquadri: tocca un modulo per vederne gli strumenti.
+- **Le schede si aprono dal basso** e hanno tre altezze: solo intestazione, metà schermo, schermo intero. Trascina la maniglia per cambiare altezza o verso il basso per chiudere; il tasto **Indietro** di Android chiude la scheda aperta.
+- **Controlli della mappa**: Livelli, Misura e Cerca luogo sulla destra; **Refill carburante** e **Scouting GPS** in basso a destra, a portata di pollice. La gestione avanzata dei livelli resta su computer.
+- Testi e controlli sono più grandi per l'uso in campo, e i campi dei form non fanno più zoomare lo schermo quando li tocchi.
+
+### Il centro «Da risolvere»
+
+Il **logo** apre un unico elenco di ciò che va sistemato in azienda, diviso in gruppi:
+
+- **Record incompleti** — operazioni del Quaderno e task pianificate, con i campi che mancano;
+- **Dati di campagna** — dati dichiarativi incompleti (codici SIAN/SIEX);
+- **Magazzino** — lotti scaduti o in scadenza;
+- **Parco macchine** — manutenzioni, documenti, fermi, anomalie dei rifornimenti;
+- **Dati del suolo** — appezzamenti senza composizione del suolo.
+
+Il badge sul logo conta le voci aperte ed è **rosso** se almeno una è urgente. **Tocca una voce** per andare dove si sistema (un'operazione incompleta si apre già nel form di modifica): sparisce da sola quando il dato è a posto. Quando non c'è nulla compare *Tutto in ordine*. Su computer l'elenco si apre sotto il logo, sul telefono come scheda dal basso, da qualunque vista.
 
 > **Quanto si può zoomare.** La mappa di campo si muove **solo fra lo zoom 13 e il 17**: sotto il 13 si guarderebbe una regione, sopra il 17 si sovracampionano pixel di ortofoto che non esistono — in mezzo c'è tutto il lavoro agronomico, dal comprensorio al filare. Sono gli **estremi assoluti**: dalle Impostazioni profilo puoi *stringere* l'intervallo (es. 14–16), mai allargarlo. Nota di contorno: l'ortofoto Esri ha copertura garantita fino allo zoom 18, quindi con questi limiti non capita mai di vedere tessere vuote.
 
@@ -116,14 +146,14 @@ Questo è il cuore del tutorial: i tre passaggi che trasformano l'app vuota in u
 
 Ragione sociale e Paese li hai già dati al primo avvio (§1). Qui completi l'identità dell'azienda: servirà per intestare i registri e per scegliere il **tracciato di export corretto in base al Paese**.
 
-1. Apri la sidebar → modulo **Impostazioni** → **Anagrafica azienda** (icona palazzo 🏢).
+1. Apri **Azienda** → **Anagrafica**.
 2. Il pannello è diviso in **cinque sezioni**, selezionabili dalla colonnina di sinistra:
    - **Identità** — Ragione sociale, forma giuridica, codice azienda nazionale, Partita IVA.
    - **Codici** — Codice SDI, PEC, ID Fascicolo Aziendale, Organismo Pagatore.
    - **Sede** — Indirizzo, CAP, Comune, Provincia, Regione, **Paese**, email.
    - **Referente** — Nome e ruolo del referente aziendale.
    - **Certificazioni** — per l'**agricoltura biologica**: organismo di controllo, codice operatore, numero di certificato e validità (dal/al). È la certificazione **dell'azienda**; il regime del singolo appezzamento si dichiara per annata nella scheda coltura (Passo 3) ed è ciò che legge la scheda *Biologico* della Normativa.
-3. Compila i campi che ti servono (la **Ragione sociale** è il minimo consigliato: comparirà nell'header).
+3. Compila i campi che ti servono (la **Ragione sociale** è il minimo consigliato: comparirà nell'intestazione).
 4. Premi **Salva**.
 
 > **Perché il Paese conta:** determina i cataloghi nazionali proposti (specie, varietà, prodotti) e il formato dei registri ufficiali. Ad esempio, con `Italia` avrai l'export **SIAN/PAN**; con `Spagna` il **SIEX/CUE**. Puoi comunque cambiarlo in seguito.
@@ -142,7 +172,7 @@ Un **appezzamento** è la particella fisica coltivata, definita da una geometria
 
 In gran parte d'Europa le particelle agricole sono già vettorializzate e pubblicate dagli enti. Oggi sono disponibili i **Paesi Bassi** (BRP Gewaspercelen, RVO/PDOK) e la **Francia** (RPG, IGN).
 
-1. Apri la sidebar → **Disegna elemento** → **Particelle pubbliche**.
+1. Apri **Disegno** → **Particelle pubbliche**.
 2. Scegli la **Fonte** (vengono proposte quelle del Paese dell'azienda). Sotto vedi l'attribuzione e la licenza del dato.
 3. Inquadra la zona dei tuoi campi e premi **Cerca in questa zona**, oppure **Clicca un punto** e tocca la mappa sopra il campo. La ricerca funziona fra lo **zoom 13 e il 17**: se sei troppo lontano o troppo vicino il pannello ti chiede di avvicinarti o di allontanarti.
 4. Le particelle trovate compaiono sulla mappa: **passaci sopra** per vederne i dati (identificativo, superficie dichiarata, codice coltura), **cliccane una** per selezionarla.
@@ -156,7 +186,7 @@ Nulla viene aggiunto finché non lo scegli tu: si adotta **una particella alla v
 #### Disegnare un appezzamento a mano
 
 1. (Consigliato) Attiva lo sfondo **Satellite** per vedere il terreno: usa lo **switch dei basemap** sulla mappa. In Italia puoi sovrapporre anche il layer **Catasto** per allinearti alle particelle catastali.
-2. Apri la sidebar → **Disegna elemento** → **Appezzamento (poligono)**.
+2. Apri **Disegno** → **Appezzamento (poligono)**.
 3. Sulla mappa, **clicca vertice dopo vertice** per tracciare il perimetro del campo; **doppio clic** (o chiudi sul primo vertice) per terminare il poligono.
 4. Appena chiudi la forma si apre automaticamente la **scheda dati del nuovo appezzamento**:
    - L'**area geodetica** (ha) è già calcolata e mostrata in sola lettura.
@@ -177,7 +207,7 @@ Nulla viene aggiunto finché non lo scegli tu: si adotta **una particella alla v
 
 Ogni appezzamento porta una **coltura per annata**. È questo il dato che "accende" i moduli agronomici: senza una coltura, DSS e bilancio idrico non sanno quale coefficiente colturale usare.
 
-1. Apri la sidebar → modulo **Coltura** → **Dati coltura**.
+1. Apri **Coltura** → **Dati coltura**.
 2. In alto scegli l'**annata** (Campagna Agraria) con **− / +**.
 3. Seleziona l'**appezzamento** dal menu a tendina (mostra il nome e l'eventuale coltura già presente).
 4. (Se disponibile) Usa il **quick-pick dal registro nazionale** per scegliere la specie: compila automaticamente nome comune, nome scientifico e codice ministeriale.
@@ -203,9 +233,9 @@ Da qui in poi l'ordine è libero: usa il modulo che ti serve. Molti pannelli con
 
 Il Quaderno raccoglie la **tracciabilità** di tutto ciò che fai in campo, conforme alle regole **PAN/SIAN**.
 
-> **Aperto dalla sidebar mostra sempre l'intera azienda.** È una garanzia, non una casualità: un registro di compliance non deve poter mostrare, senza dirlo, il sottoinsieme di un singolo appezzamento rimasto da una consultazione precedente. Se vuoi le operazioni di *un* campo, usa il filtro **Appezzamento** qui dentro, oppure tocca il campo sulla mappa e apri la sua scheda.
+> **Aperto dalla barra dei moduli mostra sempre l'intera azienda.** È una garanzia, non una casualità: un registro di compliance non deve poter mostrare, senza dirlo, il sottoinsieme di un singolo appezzamento rimasto da una consultazione precedente. Se vuoi le operazioni di *un* campo, usa il filtro **Appezzamento** qui dentro, oppure tocca il campo sulla mappa e apri la sua scheda.
 
-1. Apri la sidebar → **Quaderno (QDC)** → **Operazioni**.
+1. Apri **Quaderno** → **Registro operazioni** (sul telefono anche dalla voce **Quaderno** della barra in basso).
 2. Premi **＋ Registra operazione** e scegli il **tipo**:
    - **Trattamento fitosanitario** — prodotto e numero di registrazione, sostanza attiva, avversità, dose e unità (kg/ha, l/ha, kg/hl…), operatore e patentino, intervallo di rientro, **tempo di carenza**.
    - **Fertilizzazione** — tipo di concime, titolo **N-P-K** (formato `n-n-n`), quantità.
@@ -219,7 +249,13 @@ Il Quaderno raccoglie la **tracciabilità** di tutto ciò che fai in campo, conf
 
 **Semina smart:** seminando una **semente di magazzino** su un campo senza coltura, l'operazione propone di **assegnare automaticamente la coltura al campo** (scheda coltura + campagna agraria, densità derivata dalla dose). I dati dichiarativi (codici SIAN) restano da completare in Dati coltura.
 
-**Consultare e filtrare:** la lista si filtra per **intervallo di date** e per **appezzamento**. Puoi anche attivare **Mostra sulla mappa** per proiettare le operazioni filtrate come simboli georiferiti. Clicca su una voce per vederne il dettaglio; il cestino la elimina (con conferma); l'icona **copia** la ripete con un form precompilato alla data di oggi (operatore e patentino sono ricordati tra un'operazione e l'altra).
+**Consultare e filtrare:** la lista si filtra per **intervallo di date** e per **appezzamento**. Puoi anche attivare **Mostra sulla mappa** per proiettare le operazioni filtrate come simboli georiferiti. I tipi di operazione compaiono nella tua lingua, nella lista come sulla mappa. Clicca su una voce per vederne il dettaglio; il cestino la elimina (con conferma).
+
+**Modificare un'operazione:** la **matita ✎** apre il form **Modifica operazione** precompilato con tutto il record; salvando aggiorni **la stessa riga**, senza crearne una nuova. Gli scarichi di magazzino e le ore macchina già registrati **non vengono riapplicati**: correggere un refuso non scarica due volte lo stesso lotto.
+
+**Ripetere un'operazione:** dalla scheda di dettaglio, **Ripeti operazione** apre un form precompilato alla data di oggi (operatore e patentino sono ricordati tra un'operazione e l'altra).
+
+**Dati mancanti:** le righe e la scheda di dettaglio elencano i campi che servono ancora a una registrazione conforme (es. numero di registrazione, avversità, patentino). Le stesse operazioni compaiono nel centro **Da risolvere** (§2), da cui si aprono direttamente in modifica.
 
 > **Scorciatoia dal campo:** clicca un appezzamento sulla mappa per aprirne la **scheda** (§4.16) — le operazioni già registrate su quel campo sono lì, insieme alle task programmate, e da lì apri il Quaderno o avvii la lavorazione.
 
@@ -227,7 +263,7 @@ Il Quaderno raccoglie la **tracciabilità** di tutto ciò che fai in campo, conf
 
 Per registrare i conferimenti e alimentare le analisi di resa:
 
-1. Sidebar → **Quaderno (QDC)** → **Raccolta**.
+1. **Quaderno** → **Registra raccolta**.
 2. Per ogni raccolta indica **appezzamento, cultivar, quantità (kg), destinazione/logistica e data**. La cultivar si precompila dalla coltura di campagna del campo; la raccolta è agganciata alla Campagna Agraria **aperta**.
 
 **Chiusura del ciclo colturale:** per le colture **annuali** (seminativi/orticole) il raccolto propone — con spunta pre-attiva — di **chiudere la campagna**: il campo torna libero (mappa neutra, DSS spento) e una nuova semina può ripartire anche nello stesso anno (secondo raccolto). Le perenni restano aperte.
@@ -240,11 +276,11 @@ Questi dati diventano i grafici di resa nel Command Center e nella tabella attri
 
 Calcola il vigore vegetativo da immagini satellitari (Sentinel-2 via STAC).
 
-1. Sidebar → **Suolo** → **Analisi indici**.
+1. **Suolo** → **Analisi indici (NDVI, NDRE…)**.
 2. Spunta gli **indici** da calcolare: **NDVI** (vigore), **NDRE** (stato azotato), **MSAVI2** e **SAVI** (corretti per il suolo nudo), **NDWI** (acqua libera) e **NDMI** (umidità della coltura, la spia dello stress idrico). Marca uno di essi come **indice primario**: è quello colorato sulla mappa.
 3. Seleziona **uno o più appezzamenti**.
 4. Regola il filtro **copertura nuvolosa** (slider %) e la **strategia temporale**: ultima immagine, ultimi 15/30 giorni, o un **intervallo personalizzato** (max 60 giorni, con grafico di trend).
-5. Premi **Calcola**. Ottieni le medie più recenti per appezzamento/indice, la **griglia di celle colorate** sulla mappa e — se hai una serie con più date — il grafico dell'andamento.
+5. Premi **Calcola**. Ottieni le medie più recenti per appezzamento/indice, la **griglia di celle colorate** sulla mappa e — se hai una serie con più date — il grafico dell'andamento. Il pannello dichiara la fonte (**Sentinel-2, calcolato da AgroGea**) con un link a questo manuale.
 
 > **La scala colore è relativa al campo, non assoluta.** I colori si distribuiscono sui valori realmente presenti nei campi calcolati (scartando il 2% agli estremi), non sull'intervallo teorico −1..1. È ciò che fa emergere la variabilità *interna* all'appezzamento — la stessa che serve per zonare una mappa VRA — invece di una macchia uniformemente verde. Il valore assoluto resta leggibile nella colorbar e nelle medie del pannello.
 
@@ -262,7 +298,7 @@ In fondo al pannello trovi anche lo **scatter NDVI ↔ chimica del suolo** (pH, 
 
 Genera prescrizioni a dose variabile per i terminali dei trattori.
 
-1. Sidebar → **Suolo** → **Mappe VRA**.
+1. **Suolo** → **Mappe a rateo variabile (VRA)**.
 2. Scegli **appezzamento**, **indice di base** (es. NDVI), **tipo di lavorazione** (concimazione, fertilizzazione, trattamento, semina, irrigazione).
 3. Imposta il **numero di zone** (da 2 a 5) e la **risoluzione** della cella; assegna il **rateo** (quantità) di ciascuna zona.
 4. **Genera**: la mappa viene zonata via K-means. Poi **esporta** per i terminali di campo (**ISO-XML** / **GeoJSON**).
@@ -271,7 +307,7 @@ Genera prescrizioni a dose variabile per i terminali dei trattori.
 
 Calcola giorno per giorno il fabbisogno d'acqua e ti dice quando il campo entra in stress.
 
-1. Sidebar → **Acqua** → **Bilancio idrico**.
+1. **Acqua** → **Bilancio idrico**.
 2. Seleziona **uno o più appezzamenti** (devono avere una **coltura** assegnata: serve il coefficiente colturale Kc).
 3. (Opzionale) Se hai importato una **mappa del suolo** via Add Data, puoi indicarla come sorgente dei parametri idro-pedologici.
 4. Premi **Calcola bilancio**. Per ogni campo ottieni:
@@ -287,7 +323,7 @@ Calcola giorno per giorno il fabbisogno d'acqua e ti dice quando il campo entra 
 
 Il Sistema di Supporto alle Decisioni sintetizza stress idrico, rischio fitopatologico, vigore (NDVI) e fertilità in un **punteggio colorato** per campo.
 
-1. Sidebar → **Coltura** → **Modelli DSS**.
+1. **Coltura** → **DSS · modelli previsionali**.
 2. Spunta gli **appezzamenti** (devono avere una coltura con un modulo verticale: vite/olivo/frutteto/cereali/orticoltura).
 3. Premi **Calcola modelli**. Ogni campo riceve una **scheda di rischio**:
    - 🟢 **Verde** — ottimale;
@@ -298,24 +334,26 @@ I pesi sono calibrati per coltura (le arboree pesano di più vigore e patologie,
 
 ### 4.7 Disegno — infrastrutture, POI, gestione e stampa
 
-Oltre agli appezzamenti (Passo 2: particelle pubbliche o disegno a mano), il modulo **Disegna elemento** gestisce il resto degli elementi territoriali:
+Oltre agli appezzamenti (Passo 2: particelle pubbliche o disegno a mano), il modulo **Disegno** gestisce il resto degli elementi territoriali:
 
 - **Disegna infrastruttura** (linea) — condotte, recinzioni, reti antigrandine, strade. Alla chiusura inserisci tipo, nome e stato; la **lunghezza** è calcolata.
 - **Disegna POI** (punto) — pozzi, trappole, sensori IoT, ingressi, fabbricati.
-- **Lista appezzamenti** (nella sidebar sta sotto **Suolo**, perché dalla scheda si leggono i parametri del suolo) — l'elenco di tutto ciò che hai tracciato (appezzamenti, infrastrutture, POI). Il tap su una voce **inquadra** l'elemento sulla mappa e ne apre la scheda: parametri del suolo, metadati, modifica della geometria, eliminazione protetta. Aprendola esci dalla modalità disegno, così il tap sulla mappa torna a **selezionare** invece di tracciare.
-- **Stampa** — apri il **compositore di stampa** per generare una mappa impaginata dell'azienda (es. per tecnici, consorzi, enti).
+- **Lista appezzamenti** (sta sotto **Suolo**, perché dalla scheda si leggono i parametri del suolo) — l'elenco di tutto ciò che hai tracciato (appezzamenti, infrastrutture, POI). Il tap su una voce **inquadra** l'elemento sulla mappa e ne apre la scheda: parametri del suolo, metadati, modifica della geometria, eliminazione protetta. Aprendola esci dalla modalità disegno, così il tap sulla mappa torna a **selezionare** invece di tracciare.
+- **Stampa mappa** — apri il **compositore di stampa** per generare una mappa impaginata dell'azienda (es. per tecnici, consorzi, enti), con titolo, note, legenda, scala e nord. La esporti in **SVG** o **PNG**, oppure premi **PDF**: si apre la stampa del sistema, da cui scegli *Salva come PDF*.
 
 ### 4.8 Add Data — importare i tuoi strati
 
 Per portare dati esterni nella mappa:
 
-1. Header → **Add Data** (oppure **trascina** il file nella finestra).
+1. Intestazione → **Aggiungi dati** (sul telefono dal menu **☰**), oppure **trascina** il file nella finestra.
 2. Formati supportati: **Shapefile** (con `.dbf`/`.shx`/`.prj`), **GeoJSON**, estratti **OSM**, **GeoParquet**.
 3. Il file viene caricato nel motore di analisi locale e mostrato come nuovo layer sovrapponibile (utile anche come **mappa del suolo** per il bilancio idrico, §4.5).
 
 **Cartografia raster** (in fondo al pannello) aggiunge immagini invece di geometrie, in due modi:
 
 - **Servizio WMS**: incolli l'indirizzo del servizio e premi *Leggi i layer disponibili*. AgroGea interroga il servizio e ti presenta l'elenco dei layer con il **nome leggibile**, così non devi conoscerne il codice tecnico. Scegli e aggiungi. Il layer resta sul server di chi lo pubblica: è sempre aggiornato, ma richiede la rete.
+  - Il WMS aggiunto viene **salvato** per l'azienda **su questo dispositivo** (è una preferenza di visualizzazione: non viene sincronizzato e non entra nei backup) e usato come **sfondo al posto del satellite**: gli appezzamenti restano disegnati sopra. Lo ritrovi fra gli sfondi di **Livelli** (§2) e nell'elenco **WMS salvati** in fondo al pannello, dove puoi **modificarlo** (indirizzo o layer) o **eliminarlo**.
+  - La fonte del servizio compare nella **barra delle attribuzioni** della mappa (la *i* in basso a destra), come richiesto dalle condizioni d'uso di quasi tutti i servizi pubblici.
 - **Ortofoto (.tif)**: un GeoTIFF georeferenziato dal tuo computer. Resta sul dispositivo e **funziona offline**. Sulla mappa viene ridimensionato per poterlo disegnare; la scheda BCAA 8 del modulo Normativa (§4.17) può però misurarci sopra a piena risoluzione, **senza chiederti di ricaricarlo**.
 
 > L'ortofoto deve essere in **UTM o WGS84**. Con un altro sistema di riferimento AgroGea si rifiuta di caricarla e ti dice quale: meglio che disegnartela spostata di qualche centinaio di metri, che sembrerebbe funzionare.
@@ -337,7 +375,7 @@ La **tabella attributi** integrata trasforma i tuoi dati in un foglio analizzabi
 
 ### 4.10 Data Command Center — la dashboard analitica
 
-Dal pulsante **Command Center** nell'header passi dalla mappa alla **dashboard**, divisa in **due pagine**:
+Dal pulsante **Command Center** nell'intestazione (sul telefono: **Dashboard** nella barra in basso) passi dalla mappa alla **dashboard**, divisa in **due pagine**. Su schermi larghi il contenuto resta centrato (al massimo 1600 px), la barra dei filtri rimane in vista mentre scorri e le griglie di schede e grafici si adattano da sole alla larghezza:
 
 - **Colture e appezzamenti** — l'analisi agronomica: filtri annata → coltura → campi, **indici personalizzati**, grafici componibili e report direzionale.
 - **Azienda** — l'andamento generale: superficie/operazioni/raccolto dell'annata, **stato del Magazzino** (valore giacenze a CUMP, lotti scaduti/in scadenza, prodotti sotto scorta), **costo prodotti per campo** e backup/ripristino. Un alert cliccabile segnala le campagne con dati dichiarativi (SIAN/SIEX) incompleti.
@@ -354,11 +392,11 @@ Facoltativi ma utili: un **filtro** su una dimensione (es. solo i trattamenti fi
 
 Le schede si **trascinano per riordinarle** e si modificano o eliminano dalla scheda stessa. Sono **preferenze di visualizzazione**, salvate per azienda sul dispositivo: non entrano nei dati di dominio e non vengono sincronizzate. Alla prima apertura ne trovi tre di esempio (superficie in scope, operazioni dell'annata, pioggia degli ultimi 30 giorni): modificale o cancellale senza timori.
 
-> Il **calendario delle operazioni** non vive più qui dentro: è diventato una vista a sé, raggiungibile dall'header (§4.11).
+> Il **calendario delle operazioni** non vive più qui dentro: è diventato una vista a sé, raggiungibile dall'intestazione (§4.11).
 
 ### 4.11 Calendario aziendale
 
-Dal pulsante **Calendario** nell'header apri una **griglia mensile con tutto ciò che ha una data**, in un posto solo:
+Dal pulsante **Calendario** nell'intestazione (sul telefono: **Calendario** nella barra in basso) apri una **griglia mensile con tutto ciò che ha una data**, in un posto solo:
 
 | Colore | Cosa mostra |
 |---|---|
@@ -376,6 +414,8 @@ In ogni cella compare anche il **meteo del giorno** — icona, massima/minima e 
 - **cliccare un giorno** per aprirne il dettaglio: cosa è successo (o succederà) in quella data, il meteo, e due porte d'ingresso — **Pianifica task** e **Registra operazione**, entrambe **sul giorno che hai aperto**, mai su "oggi" per errore;
 - ricaricare rischio DSS e bilancio idrico con il pulsante **⟳**.
 
+**Dove compare il dettaglio del giorno.** Su schermi larghi (da 1280 px) l'agenda del giorno sta **accanto alla griglia** invece di coprirla; sul telefono sta **sotto la griglia**, e *Pianifica task* e *Registra operazione* si aprono a schermo intero.
+
 > **Il calendario consulta il registro, non lo riscrive.** Operazioni e raccolte si aprono nella loro scheda di sola lettura: correzioni e cancellazioni restano dove vive il record (Quaderno, modulo Raccolta), perché un registro di rilevanza legale non deve avere due porte di modifica con regole diverse. Restano modificabili — e annullabili — le sole **task**, che sono pianificazione e non registrazione.
 >
 > DSS e stress idrico compaiono **appena i rispettivi calcoli vengono eseguiti** (dalla mappa o dal Command Center): il calendario li legge, non li ricalcola.
@@ -384,7 +424,7 @@ In ogni cella compare anche il **meteo del giorno** — icona, massima/minima e 
 
 **Registri per i controlli** — AgroGea sceglie il tracciato in base al **Paese** dell'azienda:
 
-- **Italia — SIAN/PAN:** da **Quaderno (QDC) → Export SIAN**. CSV ottimizzato per Excel italiano (separatore `;`, BOM UTF-8), con codici ministeriali Isola/Appezzamento.
+- **Italia — SIAN/PAN:** da **Quaderno → Esporta SIAN (CSV)…**. CSV ottimizzato per Excel italiano (separatore `;`, BOM UTF-8), con codici ministeriali Isola/Appezzamento.
 - **Spagna — SIEX/CUE:** *Cuaderno Digital* in JSON (FEGA).
 - **Altri Paesi UE / Francia:** CSV internazionale (separatore `,`, date ISO).
 
@@ -402,9 +442,10 @@ Il periodo filtra le registrazioni **datate** (operazioni, raccolte, analisi, ri
 
 ### 4.13 Impostazioni: meteo, tema, profilo
 
-- **Meteo** (Impostazioni → Meteo) — configura la stazione/sorgente meteo che alimenta il bilancio idrico e il DSS.
-- **Tema** — Chiaro / Scuro / Verde, dal selettore nell'header.
-- **Profilo** — dal menu utente in alto a destra: preferenze e impostazioni dell'app. Qui, oltre a moduli visibili, lingua e unità di misura, c'è la **Vista della mappa**: *zoom minimo* e *zoom massimo* consentiti, selezionabili fra 13 e 17 (vedi §2). Serve a fissare la scala di lavoro: chi lavora sempre a filare può stringere a 16–17 e non perdere più l'inquadratura.
+- **Meteo nell'intestazione** — su computer accanto ad *Aggiungi dati*, sul telefono come chip sempre visibile: condizioni attuali, temperatura e pioggia di oggi. Un clic apre la **previsione a 5 giorni**, con le coordinate del punto, il servizio usato (**Open-Meteo**) e, se ne hai una, la **centralina aziendale**. Il meteo si localizza sulla sede aziendale o sul primo appezzamento: finché non ne hai uno, la scheda te lo dice.
+- **Fonte meteo** (**Azienda** → **Fonte meteo & variabili**) — configura la stazione/sorgente meteo che alimenta il bilancio idrico e il DSS.
+- **Tema** — **Chiaro / Scuro / Agronomico**, dal menu account (sul telefono dal menu **☰**).
+- **Profilo** — menu account → **Impostazioni profilo**: preferenze e impostazioni dell'app. Qui, oltre a moduli visibili, lingua e unità di misura, c'è la **Vista della mappa**: *zoom minimo* e *zoom massimo* consentiti, selezionabili fra 13 e 17 (vedi §2). Serve a fissare la scala di lavoro: chi lavora sempre a filare può stringere a 16–17 e non perdere più l'inquadratura.
 
 ### 4.14 Magazzino — depositi, prodotti, lotti e giacenze
 
@@ -416,7 +457,7 @@ Il Magazzino tiene tre cose collegate: i **depositi** (dove la merce sta davvero
 
 Un'azienda può averne quanti ne servono: il capannone, il deposito fitofarmaci sotto chiave, la cisterna del gasolio, il silos delle sementi.
 
-1. Sidebar → **Magazzino** → **Prodotti e lotti** → pulsante **Magazzini**, in testa al pannello accanto al selettore.
+1. **Magazzino** → **Prodotti e lotti** → pulsante **Magazzini**, in testa al pannello accanto al selettore.
 2. **＋ Nuovo magazzino**: dai un **nome** ("Capannone Nord", "Deposito fitofarmaci") e scegli la **tipologia** — *Generico, Deposito fitosanitari, Deposito concimi, Deposito sementi, Cisterna carburante, Rimessa mezzi*. La tipologia non impone regole: sceglie l'**icona** con cui il deposito compare sulla mappa e aiuta a distinguerli in elenco.
 3. **Posizione sulla mappa** (facoltativa): premi **Tocca la mappa**, poi tocca il punto dove il deposito sta. Da lì in avanti il magazzino è un **POI cliccabile** — riquadro indaco con l'icona della sua tipologia e un **badge** che conta i lotti in giacenza. Un magazzino senza posizione resta valido: è un magazzino "logico", raggiungibile solo dal modulo.
 4. Facoltativi: **indirizzo** e **note**. Il ✏️ modifica un deposito esistente, anche solo per spostarne il punto.
@@ -429,7 +470,7 @@ Un'azienda può averne quanti ne servono: il capannone, il deposito fitofarmaci 
 
 #### Prodotti e lotti
 
-1. Sidebar → **Magazzino** → **Prodotti e lotti**.
+1. **Magazzino** → **Prodotti e lotti**.
 2. **＋ Nuovo prodotto** e scegli la **categoria** (rigida — determina i campi obbligatori):
    - **Agrofarmaco** — richiede il **n. di registrazione PAN**; in più sostanza attiva e **carenza/rientro di default** (precompilati poi nel Quaderno);
    - **Concime** — richiede i **titoli N-P-K** (percentuali);
@@ -468,7 +509,7 @@ Il pulsante **Scarica modello** ti dà un CSV già impostato con una riga di ese
 
 Il Parco macchine gestisce i **mezzi** (unità motrici) e gli **attrezzi**, li collega alle operazioni di campo con **contatori ore automatici**, tiene lo scadenziario di **manutenzione** e **documenti**, e traccia i **rifornimenti** di carburante.
 
-**Anagrafica (Sidebar → Magazzino → Mezzi):**
+**Anagrafica (Magazzino → Parco macchine):**
 
 1. **＋ Nuovo mezzo** (trattore, mietitrebbia…) o **＋ Nuovo attrezzo** (aratro, botte…). I mezzi sono tracciati a **ore di lavoro**, gli attrezzi per **usura** e **larghezza di lavoro**. Alla creazione puoi indicare la **lettura iniziale** del contaore. Lo **stato** (operativo / in manutenzione / fermo-guasto / dismesso) ha un semaforo; i mezzi **dismessi** restano nello storico ma spariscono dalle liste di selezione.
 2. **Import CSV** — popola velocemente il parco da un file (denominazione, tipo, targa, anno, contaore iniziale) con **anteprima e validazione**: le righe non valide sono segnalate e saltate, l'import parziale è consentito. Tutto in locale, senza rete.
@@ -494,7 +535,7 @@ Il Parco macchine gestisce i **mezzi** (unità motrici) e gli **attrezzi**, li c
 
 L'idea è semplice: **decidi in ufficio, in trattore non tocchi più nulla**. Prepari la lavorazione la sera prima, e quando il giorno dopo entri nel campo il resto avviene da sé, fino alla registrazione nel Quaderno.
 
-#### Prima: preparare la task (Sidebar → Pianificazione Task → Task & Ricette)
+#### Prima: preparare la task (Attività → Task & Ricette)
 
 1. **＋ Nuova Ricetta** — una **miscela riutilizzabile** ("Anti-oidico standard", "Concimazione fogliare NPK"): dai un nome, aggiungi i prodotti con la **dose per ettaro** e l'unità. Scegliendo il prodotto dal **Magazzino** vengono ricopiati da soli numero di registrazione, sostanza attiva e — per i concimi — tipo e titolo N-P-K: sono i campi che il Quaderno pretenderà, ed è qui che si compilano una volta per sempre.
 2. **＋ Nuova Task** — la **scheda di lavorazione programmata**. Scegli **per primo il tipo di operazione**: da quello dipendono i campi che compaiono, esattamente gli stessi che il Quaderno chiederebbe per quella lavorazione.
@@ -514,7 +555,7 @@ L'idea è semplice: **decidi in ufficio, in trattore non tocchi più nulla**. Pr
 
 > **Quello che scrivi qui non lo riscrivi in campo.** Il tipo di lavorazione, l'apporto irriguo, la semente e la dose finiscono da soli nella riga del Quaderno alla chiusura della sessione — l'apporto irriguo convertito in litri **sulla superficie che dichiari di aver lavorato**. Scegliendo una ricetta che dichiara la propria avversità bersaglio, anche quella si compila da sé.
 
-> **Perché insiste sui campi obbligatori:** la registrazione a fine lavorazione è automatica, quindi non c'è un momento in cui qualcuno rilegge e completa. Ciò che manca ora mancherebbe nel registro. Per questo la sidebar mostra un contatore **⚠** su *Pianificazione Task* e *Quaderno di Campagna*, con l'elenco dei record da completare.
+> **Perché insiste sui campi obbligatori:** la registrazione a fine lavorazione è automatica, quindi non c'è un momento in cui qualcuno rilegge e completa. Ciò che manca ora mancherebbe nel registro. Per questo la barra dei moduli mostra un contatore su *Attività* e *Quaderno*, e gli stessi record compaiono nel centro **Da risolvere** (§2).
 
 #### In campo: il rilevamento è automatico
 
@@ -588,13 +629,13 @@ La mappa continua a mostrare la tua posizione col suo pulsante GPS abituale, in 
 
 ### 4.17 Normativa — autovalutazione PAC e biologico
 
-Il modulo **Normativa** ti dice, appezzamento per appezzamento, come te la passeresti se arrivasse un controllo. Sta nella sidebar come modulo a sé, con una voce per famiglia: **Ammissibilità**, **Condizionalità (BCAA)**, **Eco-schemi**, **Trasversali**, **Biologico** e **Layer vincolanti**.
+Il modulo **Normativa** ti dice, appezzamento per appezzamento, come te la passeresti se arrivasse un controllo. È un modulo a sé nella barra dei moduli, con una voce per famiglia: **Ammissibilità**, **Condizionalità (BCAA)**, **Eco-schemi**, **Trasversali**, **Biologico** e **Layer vincolanti**.
 
 > **Non è un controllo ufficiale.** Il controllo è l'AMS dell'Organismo Pagatore (Reg. UE 2021/2116 art. 66); per il biologico è il tuo organismo di controllo. Qui c'è un'**autovalutazione** fatta con dati pubblici, e lo trovi scritto in testa al pannello, su ogni scheda e dentro il report che esporti.
 
 **Come si usa**
 
-1. Apri una famiglia dalla sidebar.
+1. Apri una famiglia da **Normativa**.
 2. Scegli **appezzamento e coltura** dal menù in cima: la scelta si fa qui, non sulla mappa (il tocco sulla mappa continua ad aprire il Quaderno).
 3. Ogni scheda mostra *prima* che cosa osserva, quanto è osservabile e che cosa le serve. Premi **Valuta questa scheda** quando vuoi tu: le valutazioni non partono da sole.
 4. Se una scheda dice che mancano delle immagini, premi **Verifica scene**: AgroGea interroga il catalogo satellitare — gratis, senza scaricare nulla — e ti dice quante scene esistono per quella scheda, quante hai già e quanti megabyte servono. Poi decidi se scaricarle.
@@ -626,11 +667,13 @@ Da *Esporta il report* ottieni un file con tutte le schede valutate, le scene us
 
 ## 5. Scorciatoie e produttività
 
-- **Command Palette** — dal menu **Aiuto (`?`)** apri la palette per saltare a qualsiasi azione o pannello digitandone il nome (compresi **Apri Calendario** e **Apri Command Center**).
+- **`Ctrl K`** (o il campo **Cerca…** nell'intestazione) — apre la palette dei comandi da qualunque vista: digiti il nome di un appezzamento, di un modulo o di un'azione e ci salti (compresi **Apri Calendario** e **Apri Command Center**).
+- **`Esc`** — chiude **solo l'elemento più in alto** (un menu, una finestra, poi un pannello), mai tutto insieme. Nelle finestre il focus resta dentro finché sono aperte e torna dov'era quando le chiudi.
+- **Tastiera nei menu** — le frecce **↑ / ↓** scorrono le voci; i pulsanti a sola icona mostrano il loro nome al passaggio del mouse, e un bordo evidenzia l'elemento attivo quando navighi con `Tab`.
 - **Frecce ← / →** — scorrono le tre viste nell'ordine **Mappa → Calendario → Command Center**. Non fanno nulla mentre scrivi in un campo di testo o quando il focus è sulla mappa (lì le frecce spostano la vista).
 - **Clic su un campo** — apre la sua **scheda**: task programmate (avviabili) e operazioni registrate su quell'appezzamento, con le scorciatoie per pianificare o aprire il Quaderno.
-- **Menu Aiuto** — Command Palette, elenco scorciatoie, diagnostica, feedback, aggiornamenti e informazioni.
-- **Aggiornamenti automatici** — all'avvio l'app verifica nuove versioni e mostra un banner con le note di rilascio; nessun download parte senza il tuo consenso.
+- **Menu Aiuto** (nel menu account) — elenco scorciatoie, diagnostica, feedback e informazioni.
+- **Aggiornamenti automatici** — all'avvio l'app desktop verifica nuove versioni e mostra un banner con le note di rilascio; nessun download parte senza il tuo consenso.
 
 ---
 

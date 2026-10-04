@@ -2,7 +2,7 @@
 
 > [🇮🇹 Italiano](./moduli-agronomici.md) · 🇬🇧 English
 
-> **Document version 0.5.0** · updated 27 September 2026 · aligned with **AgroGea 0.5.0** (local PGlite schema **v25**). Version-by-version changes are in the [CHANGELOG](../../CHANGELOG.md).
+> **Document version 0.6.1** · updated 4 October 2026 · aligned with **AgroGea 0.6** (local PGlite schema **v25**; the methods described here are unchanged since 0.5). Version-by-version changes are in the [CHANGELOG](../../CHANGELOG.md).
 
 > This document explains **how the agronomic modules of AgroGea actually work**: which quantities they compute, with which formulas and assumptions, and how to interpret the results. It is the technical companion to the [User Manual](../user-guide/manual.en.md), which instead describes *where to click*.
 >

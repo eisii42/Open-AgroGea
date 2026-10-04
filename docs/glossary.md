@@ -102,6 +102,18 @@ Scope and rules (see `CLAUDE.md` §2–§3):
 | modulo (variabile) | module | |
 | categoria | category | |
 
+## UI shell (0.6)
+
+| Italian (UI) | English (code) | Notes / anchor |
+|---|---|---|
+| Da risolvere (centro) | attention centre | `modules/attention` (`AttentionCenter`, `useAttentionItems`) |
+| barra dei moduli | module rail | `ModuleSidebar` with `railLabelKey`; `DESKTOP_MODULE_NAV` in `FieldDashboard` |
+| colonna dei pannelli / pila | panel dock / drawer stack | `DrawerSlot`, `drawer-stack.ts` in `@agrogea/ui`; store `panelMode` |
+| scheda dal basso | sheet | `FieldSheet`, `useSheetDrag`, `useBackDismiss` |
+| barra di navigazione (telefono) | bottom navigation | `MobileBottomNav` |
+| menu account | account menu | `AccountMenu` (phone: `MobileAppMenu`) |
+| WMS salvato (sfondo) | saved WMS basemap | `modules/add-data/wms-basemaps.ts` |
+
 ## Crop-family folders (`modules/crops/*`)
 
 | Italian | English |

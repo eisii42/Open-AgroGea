@@ -1,8 +1,8 @@
 # Architecture
 
-> **Document version 0.5.0** · updated 27 September 2026 · aligned with **AgroGea 0.5.0** (local PGlite schema **v25**).
+> **Document version 0.6.1** · updated 4 October 2026 · aligned with **AgroGea 0.6** (local PGlite schema **v25**).
 
-AgroGea Community is a **local-first** agronomic GIS suite: an npm workspaces
+AgroGea is a **local-first** agronomic GIS suite: an npm workspaces
 monorepo (Node 22+) with a single Tauri v2 app and a set of internal packages.
 This document maps the packages and features, the data flow, and where to add
 new code. See also [`glossary.md`](glossary.md) and
@@ -17,7 +17,9 @@ packages/
   plugins, attribute-table   the @geolibre/* namespace; treat as upstream
   agro-core                @agrogea/core — domain: types, Zustand store, PGlite
                              DAL, Sync Engine, control-plane adapter
-  agro-ui                  @agrogea/ui — Quaderno di Campagna components
+  agro-ui                  @agrogea/ui — logbook components and the UI shell
+                             primitives (FieldSheet, DrawerSlot + drawer stack,
+                             sheet/menu/modal/Esc hooks)
   agro-parcel              @agrogea/parcel — LEAF package, zero runtime deps:
                              the Parcel contract, the source catalogue (JSON,
                              one file per source) and the WFS/OGC API/manual
@@ -56,9 +58,12 @@ modules/      ONE folder per functional domain (the "features" layer):
                   planned tasks + recorded operations),
                 parcel-adoption (search public parcel sources, adopt one
                   at a time), onboarding (first launch: new company or
-                  restore from backup)
+                  restore from backup), attention ("To do" centre: one list
+                  built from the existing completeness/expiry/alert engines)
 components/    ONLY generic, reusable UI + map/field infrastructure
-              (BottomSheet, AppHeader, MapControls, DataEntrySheet, …)
+              (AppHeader, AccountMenu, HeaderSearch, ModuleSidebar,
+               DesktopMapTools/Fabs, MobileMapTools/Fabs, MobileBottomNav,
+               MobileAppMenu, MapLayersSheet, DataEntrySheet, …)
 hooks/        shared React hooks
 lib/ services/ cross-cutting helpers and GIS services
 i18n/         react-i18next catalogs (it/en/es/fr); UI strings live here
@@ -87,8 +92,8 @@ UI (modules/*, components/*)
   `jsonb` column (no PostGIS in PGlite); area is computed in the DAL with
   `@turf/area`.
 - Mutations accumulate in `sync_outbox`; the target drains it when/if a remote
-  data plane exists. The core is **backend-agnostic** — an edition with remote
-  services registers an adapter via `registerControlPlane`
+  data plane exists. The core is **backend-agnostic** — remote services can be
+  plugged in through an adapter registered via `registerControlPlane`
   ([`control-plane.ts`](../packages/agro-core/src/control-plane.ts)).
 - **DuckDB Spatial (WASM)** reads from PGlite for overlays, spatial joins and
   zoning, entirely on-device.
@@ -142,7 +147,9 @@ UI (modules/*, components/*)
   [`compliance-monitoring.md`](technical/compliance-monitoring.md).
 - **Raster sources** — WMS layers added by URL and user-supplied GeoTIFF
   orthophotos share one loading path in *Add data*; the orthophoto is read once
-  and reused by the GAEC 8 card. See
+  and reused by the GAEC 8 card. A WMS added by URL is **saved per company** and
+  becomes a basemap option (it replaces the satellite while active), editable
+  and deletable from *Add data*. See
   [`raster-sources.md`](technical/raster-sources.md).
 
 The PGlite schema ([`db/schema.ts`](../packages/agro-core/src/db/schema.ts)) is
@@ -162,6 +169,57 @@ subclasses, `rawQuery`, and `tx.query` inside transactions alike.
 > Consequence for tests: a row built in TypeScript already has the right types
 > and proves nothing about this. Any test guarding the boundary must assert
 > against a row **actually read back from the database**.
+
+## UI shell (0.6)
+
+The same component tree serves phone and desktop; `useNarrowViewport` picks the
+layout. What is not obvious from the components alone:
+
+- **Panels are a stack, not a single slot.** On desktop the store runs with
+  `panelMode: "floating"`: `openPanels` keeps several ids, each rendered in a
+  `DrawerSlot` (`@agrogea/ui`) inside the right-hand dock. `drawer-stack.ts`
+  orders them — the latest on top, the others collapsed to their header — and
+  re-selecting an open module brings it to the front. On a phone
+  `panelMode` stays `"docked"` (one panel at a time, as a bottom sheet).
+- **The dock width is a per-device preference**, not domain data:
+  `useDrawerResize` keeps it in `localStorage` (`agrogea.drawerWidth`,
+  360–560 px). Map controls, overlays and the map padding read the same value,
+  so nothing ends up under the dock.
+- **Esc has one owner.** `useEscapeDismiss` keeps a shared stack, so Esc closes
+  only the topmost element (menu → dialog → panel). Hand-made dialogs go
+  through `useModalBehavior` (Esc, focus trap, focus restore), menus through
+  `useMenuKeyboard`, sheets through `useSheetDrag` (three snap heights) and
+  `useBackDismiss` (Android back button, armed only while a sheet is open).
+- **Two reversible choices are constants, not settings**: the desktop icon rail
+  (`DESKTOP_MODULE_NAV` in `FieldDashboard`, `"rail"` or `"list"`) and the 12 px
+  minimum text size (a rule in `index.css`).
+- **The "To do" centre has no engine of its own.** `useAttentionItems` only
+  collects what the existing engines already say — logbook and task
+  completeness, campaign declarative data, lot expiry, machinery attention,
+  missing soil data — so it can never disagree with the badges and map markers
+  that use the same engines.
+- **Editing a logbook operation updates the same row** (`updateTreatment`); the
+  store's `openLogbookOperation(id)` / `consumeLogbookEdit()` let any view (the
+  "To do" centre, the plot sheet) open an operation directly in edit mode.
+  Warehouse discharges and machine hours are not re-applied on edit.
+
+## Security boundaries
+
+AgroGea has no server of its own, so the trust boundaries are inside the app.
+Each one has a single place where untrusted data is handled:
+
+| Untrusted input | Where it is handled |
+|---|---|
+| Map attributions (WMS service titles from external `GetCapabilities`, remote styles, plugins) | `hooks/useLayerAttributions.ts` + `lib/escape-markup.ts`: company layers are escaped to plain text, every other source is reduced to text and `http(s)` links (`sanitizeAttribution`) before MapLibre renders it as HTML. MapLibre 5.x's own sanitizer is bypassable (CVE-2026-85061). |
+| User text in the print layout | `modules/print/print-layout.ts` escapes every value into the SVG; the print window is built with DOM APIs (title as text, layout as an `<img>`), never `document.write`. |
+| Messages to the index worker | `workers/soil.worker.ts` ignores foreign origins and accepts only known index names (`isVegetationIndex`) before they become object keys. |
+| Tauri commands (anything running in the webview can call them) | `src-tauri/src/agro.rs` `agro_fetch_map_tile`: http(s) only, 30 s timeout, at most 5 redirects, 16 MB cap. `parcel_source.rs`: host allow-list from the catalogue, non-public addresses blocked, redirects re-checked. |
+| Private PostgreSQL sync | `normalize_sslmode` in `agro.rs`: libpq semantics (missing `sslmode` = `prefer`), `verify-ca`/`verify-full` really verify the certificate, unknown values are rejected instead of falling back to plaintext. |
+| Offline PIN vault | Argon2id (m = 19 MiB, t = 2, p = 1) → AES-256-GCM with a random salt and nonce from the OS RNG. A known-answer test pins the key derivation, so a dependency update cannot make existing vaults unreadable. |
+
+The repository side (CodeQL, gitleaks, ZAP baseline, CodeRabbit, Dependabot) is
+described in [`contributing.md`](contributing.md#security-checks) and
+[`SECURITY.md`](../SECURITY.md).
 
 ## Field Mode (geofencing → logbook)
 
@@ -217,7 +275,7 @@ Non-obvious constraints, each with a reason:
   watch so it can actually restart, and the hook re-arms itself through the
   Permissions API. Every dead end has a visible state and a way out.
 - **Two scopes, two panels, on purpose.** `plot-sheet` is the per-parcel view
-  (its tasks and its operations); the Logbook opened from the sidebar is the
+  (its tasks and its operations); the Logbook opened from the module rail is the
   whole-farm register and resets its filters via `logbookScopeToken`. A
   compliance register must not be able to show a subset without saying so, and
   keeping them as one panel with a mode flag made that a one-line mistake away.
@@ -229,11 +287,13 @@ Non-obvious constraints, each with a reason:
 1. Create `apps/agro-field-suite/src/modules/<feature>/` and put the domain
    panel(s) + feature-local logic there. Keep only generic UI in `components/`.
 2. Add a `FieldPanel` id if it opens as a panel (`@agrogea/core` `types.ts`), and
-   wire it in the sidebar / `FieldDashboard`.
+   wire it in `ModuleSidebar` (desktop rail flyout and phone module grid) and
+   `FieldDashboard` (a `DrawerSlot` in the dock).
 3. If it persists data: add the table to `db/schema.ts` (additive migration),
    expose typed CRUD in a `db/dal-*.ts`, add a store action, and add the table
    to the `sync_outbox` allow-list in the sync target.
-4. UI strings go through i18n (`src/i18n/locales/*.json`) — never hard-coded.
+4. UI strings go through i18n (`src/i18n/locales/*.json`, English keys) — never
+   hard-coded.
 5. Add a `tests/agro-<feature>.test.ts` suite for any pure logic.
 
 ### … a new parcel source (a new country or region)
@@ -275,8 +335,9 @@ Crops are registered in
    only declares what is crop-specific (its phytopathology DSS, the reference
    phenological species, detail widgets).
 
-## Editions
+## Extension point: remote services
 
-The Community edition is standalone/offline (`VITE_STANDALONE_MODE=true`,
-`LocalOnlySyncTarget`). The core knows no backend; another edition plugs remote
-services in through its own `src/edition.ts` via `registerControlPlane`.
+AgroGea runs offline by default (`VITE_STANDALONE_MODE=true`,
+`LocalOnlySyncTarget`). The core knows no backend: remote services, if ever
+needed, plug in from `src/edition.ts` via `registerControlPlane`. The
+identifiers keep their historical names; there is a single AgroGea.

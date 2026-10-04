@@ -102,7 +102,7 @@ Ciò che è cambiato è che **nessun percorso la valorizza più**:
   [`tests/agro-certifications.test.ts`](../../tests/agro-certifications.test.ts);
 - nessun modulo la legge.
 
-Un'edizione futura potrà droppare la colonna quando nessun device in campo
+Una versione futura potrà droppare la colonna quando nessun device in campo
 conterrà più dati pre-v24; fino ad allora è compatibilità, non funzionalità.
 
 ## Punti che riscrivono una campagna

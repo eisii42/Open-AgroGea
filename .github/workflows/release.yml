@@ -1,7 +1,7 @@
 name: release-oss
 
-# Pubblica gli installer quando spingi un tag vX.Y.Z (firma dell'updater;
-# per la firma di codice Windows/Android vedi docs/technical/code-signing.md).
+# Pubblica gli installer quando spingi un tag vX.Y.Z (firma dell'updater; la
+# firma di codice Windows/Android non è ancora attiva).
 # tauri-action genera anche `latest.json` (createUpdaterArtifacts:true) e lo allega
 # alla Release: l'endpoint dell'updater punta proprio a quel file. Repo PUBBLICO,
 # quindi raw/releases sono raggiungibili senza autenticazione.
