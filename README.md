@@ -5,11 +5,11 @@
 <h1 align="center">AgroGea</h1>
 
 <p align="center">
-  <b>La suite GIS agronomica <i>local-first</i> che porta il campo, non solo la mappa, sul tuo dispositivo.</b>
+  <b>The <i>local-first</i> agronomic GIS suite that brings the field — not just the map — onto your device.</b>
 </p>
 
 <p align="center">
-  <a href="README.en.md">🇬🇧 English</a> · <b>🇮🇹 Italiano</b>
+  <b>🇬🇧 English</b> · <a href="README.md">🇮🇹 Italiano</a>
 </p>
 
 <p align="center">
@@ -21,97 +21,95 @@
 </p>
 
 <p align="center">
-  <a href="https://eisii42.github.io/Open-AgroGea/"><b>🌐 Prova la demo web</b></a> — edizione Standalone, gira interamente nel browser
+  <a href="https://eisii42.github.io/Open-AgroGea/"><b>🌐 Try the web demo</b></a> — Standalone edition, runs entirely in your browser
 </p>
 
 ---
 
-AgroGea è una suite agronomica e di gestione del territorio **local-first**: mappa GIS, Quaderno di Campagna digitale, modelli decisionali fitosanitari e bilancio idrico, analisi del suolo e rateo variabile — **funzionanti offline**, in mezzo a un vigneto senza copertura, con sincronizzazione opzionale verso un server aziendale quando torni in rete.
+AgroGea is a **local-first** agronomy and land-management suite: GIS map, digital Field Logbook, crop-protection decision models and water balance, soil analysis and variable-rate application — **all working offline**, in the middle of a vineyard with no coverage, with optional synchronization to a company server when you get back online.
 
 <p align="center">
-  <img src="docs/assets/Gif_Readme.gif" alt="AgroGea in azione" width="100%">
+  <img src="docs/assets/Gif_Readme.gif" alt="AgroGea in action" width="100%">
 </p>
 
 ## Local-first
 
-- **Funziona al 100% senza rete, in campo.** Disegni un appezzamento, registri un trattamento, consulti la mappa satellitare, calcoli la resa — tutto già sul dispositivo. Quando torni a portata di rete, AgroGea sincronizza da solo ciò che hai inserito.
-- **Velocità istantanea.** Gli overlay catastali, gli spatial join, gli indici di rischio e i calcoli di superficie girano **dentro l'applicazione** (DuckDB Spatial in-browser), non su un server lontano.
-- **Riservatezza dei dati aziendali.** I dati produttivi restano in un archivio isolato sul tuo dispositivo (PGlite, PostgreSQL WASM). Per i clienti che lo richiedono, l'intero backend può girare on-premise: i dati non lasciano mai il perimetro aziendale.
-- **Nessun blocco operativo.** Se il server centrale è irraggiungibile, le modifiche si accodano localmente (`sync_outbox`) e ripartono da sole al ritorno della connessione, con backoff esponenziale.
+- **100% functional with no network, in the field.** Draw a parcel, record a treatment, browse the satellite map, compute the yield — everything is already on the device. When you get back within range, AgroGea syncs on its own whatever you entered.
+- **Instant speed.** Cadastral overlays, spatial joins, risk indices and area computations run **inside the application** (in-browser DuckDB Spatial), not on a distant server.
+- **Confidentiality of farm data.** Production data stays in an isolated store on your device (PGlite, PostgreSQL WASM). For customers who require it, the entire backend can run on-premise: data never leaves the company perimeter.
+- **No operational lock-up.** If the central server is unreachable, changes queue up locally (`sync_outbox`) and resume on their own once the connection returns, with exponential backoff.
 
-## Funzionalità principali
+## Key features
 
-- 🗺️ **Mappa GIS completa** — ortofoto satellitare (Esri World Imagery), overlay catastale WMS, imagery storica *Wayback* per confrontare lo stesso terreno in epoche diverse, import drag-and-drop di Shapefile / GeoJSON / OSM / GeoParquet nel motore di analisi locale. È costruita come **hard fork** del motore GIS [GeoLibre](https://github.com/opengeos/GeoLibre): la cartografia, il rendering vettoriale e gli strumenti di analisi spaziale sono l'eredità diretta di un motore GIS professionale; sopra a questa base AgroGea aggiunge l'intero dominio agronomico — tracciabilità colturale, DSS, export per gli enti di controllo.
-- 🧭 **Particelle già pubblicate, non ridisegnate** — in gran parte d'Europa le particelle agricole sono già vettorializzate e pubblicate come dato aperto. Scegli la fonte ufficiale, cerchi nella zona che stai guardando, le vedi comparire sulla mappa con i loro dati al passaggio del mouse, e ne adotti una con un click: il disegno a mano resta come rettifica e ripiego, non come flusso principale. Ogni appezzamento adottato conserva **da dove viene, di che annata è e con quale licenza** — l'attribuzione viaggia col dato fino all'export. Oggi Paesi Bassi (BRP/PDOK) e Francia (RPG/IGN), verificati contro i servizi vivi; aggiungere un paese significa aggiungere un record JSON al catalogo, non scrivere codice.
-- 📒 **Quaderno di Campagna Digitale** — tracciabilità dei trattamenti fitosanitari e delle fertilizzazioni conforme alle regole **PAN/SIAN**, con validazione automatica dei campi obbligatori, intervallo di rientro e Tempo di Carenza calcolati e sotto controllo prima del conferimento.
-- 🌾 **Harvest & Analytics** — registrazione raccolte per appezzamento/annata, grafici a barre e istogrammi al volo dalla tabella attributi, Field Calculator con formule agronomiche pronte all'uso (densità piante, resa t/ha, massimale N organico ZVN).
-- 🌡️ **DSS & Bilancio Idrico** — mappa colorata del rischio (verde/giallo/rosso) per appezzamento, che combina stress idrico, rischio fitopatologico, vigore NDVI e fertilità del suolo; bilancio idrico giorno per giorno con evapotraspirazione **Penman-Monteith (FAO-56)** e stima della riduzione di resa (fattore Ky, FAO-33/66).
-- 🎯 **Analisi del suolo e rateo variabile (VRA)** — zonazione e prescrizioni a rateo variabile a partire da analisi del suolo e indici vegetazionali.
-- 🚜 **Geofencing e Modalità Campo** — pianifichi la lavorazione in ufficio, poi in trattore non tocchi più nulla: entrando nell'appezzamento il **GPS riconosce il campo** e propone la task programmata, uno schermo ad altissimo contrasto mostra velocità, tempo e cosa stai facendo (con note vocali geotaggate), e alla conclusione basta dichiarare **quanto hai lavorato** perché la lavorazione **si registri da sola nel Quaderno**, con le quantità ricalcolate su quella superficie e lo scarico di magazzino. Sotto il 100% la task resta aperta e si riprende il giorno dopo. Avviso automatico se sul campo è ancora aperto un **tempo di rientro** da trattamento.
-- ⚖️ **Normativa: autovalutazione PAC e biologico** — appezzamento per appezzamento, come te la passeresti a un controllo: ammissibilità, condizionalità (BCAA), eco-schemi e biologico, con quattro esiti (compreso *non decidibile*), le scene satellitari realmente usate, la confidenza e i fattori che la limitano, e soglie modificabili col riferimento normativo accanto. Pendenza da Copernicus DEM, reticolo idrografico da OpenStreetMap, ortofoto tue per gli elementi non produttivi. È un'autovalutazione, e lo dichiara ovunque.
-- 📦 **Magazzino e parco macchine** — più depositi georeferenziati come punti sulla mappa, lotti con scadenza e giacenza per deposito, scarico reale e costo CUMP imputato al campo; mezzi e attrezzi con contatori ore, manutenzioni e rifornimenti.
-- 📅 **Calendario aziendale** — una griglia mensile con tutto ciò che ha una data: task da fare, operazioni registrate, raccolte, meteo giorno per giorno, giorni a rischio DSS e giorni di stress idrico. Da lì pianifichi una task o registri un'operazione **sul giorno che hai aperto**.
-- 📤 **Export per gli enti di controllo** — tracciato scelto automaticamente in base al Paese dell'azienda: **SIAN/PAN** (Italia, CSV Excel-ready con BOM UTF-8), **SIEX/CUE** (Spagna, JSON FEGA), tracciato internazionale di base per gli altri Paesi UE. Import del Fascicolo Aziendale SIAN con creazione automatica degli appezzamenti mancanti. Export geometrie in GeoJSON, KML, GPX, CSV, Shapefile. Backup completo o selettivo (periodo e sezioni) in GeoJSON esteso, ripristinabile anche dal primo avvio.
+- 🗺️ **Full GIS map** — satellite orthophoto (Esri World Imagery), WMS cadastral overlay, historical *Wayback* imagery to compare the same land across different epochs, drag-and-drop import of Shapefile / GeoJSON / OSM / GeoParquet into the local analysis engine. It is built as a **hard fork** of the [GeoLibre](https://github.com/opengeos/GeoLibre) GIS engine: cartography, vector rendering and spatial-analysis tools are the direct legacy of a professional GIS engine; on top of that foundation AgroGea adds the entire agronomic domain — crop traceability, DSS, exports for regulatory bodies.
+- 🧭 **Parcels already published, not redrawn** — across much of Europe agricultural parcels are already digitised and published as open data. Pick the official source, search the area you are looking at, see them appear on the map with their details on hover, and adopt one with a click: hand drawing stays as correction and fallback, not the main flow. Every adopted parcel keeps **where it comes from, which year it refers to and under which licence** — the attribution travels with the data all the way to export. Today the Netherlands (BRP/PDOK) and France (RPG/IGN), verified against the live services; adding a country means adding a JSON record to the catalogue, not writing code.
+- 📒 **Digital Field Logbook** — traceability of crop-protection treatments and fertilizations compliant with **PAN/SIAN** rules, with automatic validation of mandatory fields, re-entry interval and Pre-Harvest Interval computed and under control before delivery.
+- 🌾 **Harvest & Analytics** — harvest recording per parcel/season, bar charts and histograms on the fly from the attribute table, Field Calculator with ready-to-use agronomic formulas (plant density, yield t/ha, organic-N ceiling in Nitrate Vulnerable Zones).
+- 🌡️ **DSS & Water Balance** — colored risk map (green/yellow/red) per parcel, combining water stress, phytopathological risk, NDVI vigor and soil fertility; day-by-day water balance with **Penman-Monteith (FAO-56)** evapotranspiration and yield-reduction estimation (Ky factor, FAO-33/66).
+- 🎯 **Soil analysis and variable-rate application (VRA)** — zoning and variable-rate prescriptions from soil analysis and vegetation indices.
+- 🚜 **Geofencing and Field Mode** — plan the job at the desk, then touch nothing in the tractor: on entering the parcel the **GPS recognises the field** and offers the planned task, a very-high-contrast screen shows speed, elapsed time and what you are doing (with geotagged voice notes), and at the end you only declare **how much you worked** for the job to **record itself in the logbook**, with quantities recomputed on that area and the warehouse stock issued. Below 100% the task stays open and resumes the next day. Automatic warning when a treatment **re-entry interval** is still open on that field.
+- ⚖️ **Compliance: CAP and organic self-assessment** — parcel by parcel, how you would fare at an inspection: eligibility, conditionality (GAEC), eco-schemes and organic, with four outcomes (including *undecidable*), the satellite scenes actually used, the confidence and the factors limiting it, and editable thresholds with the legal reference next to them. Slope from Copernicus DEM, water network from OpenStreetMap, your own orthophotos for non-productive features. It is a self-assessment, and says so everywhere.
+- 📦 **Warehouse and machinery** — several georeferenced stores as points on the map, lots with expiry and stock per store, real stock issue and weighted-average cost charged to the field; vehicles and implements with hour counters, maintenance and refuelling.
+- 📅 **Farm calendar** — a monthly grid with everything that has a date: tasks to do, recorded operations, harvests, day-by-day weather, DSS high-risk days and water-stress days. From there you plan a task or record an operation **on the day you opened**.
+- 📤 **Exports for regulatory bodies** — format chosen automatically based on the farm's country: **SIAN/PAN** (Italy, Excel-ready CSV with UTF-8 BOM), **SIEX/CUE** (Spain, FEGA JSON), a base international format for the other EU countries. Import of the SIAN Farm Dossier with automatic creation of missing parcels. Geometry export to GeoJSON, KML, GPX, CSV, Shapefile. Full or selective backup (period and sections) in extended GeoJSON, restorable right from the first launch.
 
-Guida completa all'uso: [Manuale utente](docs/user-guide/manuale.md) · Funzionamento dei moduli agronomici: [Documentazione tecnica](docs/technical/moduli-agronomici.md).
+Full usage guide: [User Manual](docs/user-guide/manual.en.md) · How the agronomic modules work: [Technical documentation](docs/technical/agronomic-modules.en.md).
 
-## Avvio rapido
+## Quick start
 
-Requisiti: **Node.js 22+**, toolchain **Rust** ([rustup](https://rustup.rs/)) per la build desktop nativa.
+Requirements: **Node.js 22+**, **Rust** toolchain ([rustup](https://rustup.rs/)) for the native desktop build.
 
 ```bash
 git clone https://github.com/eisii42/Open-AgroGea.git
 cd Open-AgroGea
 npm install --legacy-peer-deps
 
-npm run dev:standalone          # edizione desktop OSS, nel browser (Vite, porta 5174)
-npx tauri dev -w agro-field-suite   # app desktop nativa (Tauri v2)
+npm run dev:standalone          # OSS desktop edition, in the browser (Vite, port 5174)
+npx tauri dev -w agro-field-suite   # native desktop app (Tauri v2)
 ```
 
-Build installer nativi (richiede Rust/Cargo):
+Build native installers (requires Rust/Cargo):
 
 ```bash
 npm run build:standalone
-npm run tauri:build             # genera .msi/.exe (Windows), .dmg/.app (macOS), .AppImage (Linux)
+npm run tauri:build             # produces .msi/.exe (Windows), .dmg/.app (macOS), .AppImage (Linux)
 ```
 
-Altri comandi utili:
+Other useful commands:
 
 ```bash
 npm run typecheck
-npm test                        # test del dominio agronomico
+npm test                        # agronomic-domain tests
 npm run lint
 ```
 
-## Architettura in breve
+## Architecture at a glance
 
-- **App**: [`apps/agro-field-suite`](apps/agro-field-suite) — React + TypeScript su Vite, shell **Tauri v2** (core nativo Rust) per desktop/mobile/web dallo stesso codice.
-- **Motore GIS** ([`packages/core`](packages/core), [`map`](packages/map), [`ui`](packages/ui), [`plugins`](packages/plugins), [`attribute-table`](packages/attribute-table)) — vendorizzato da GeoLibre (MIT).
-- **Contratto delle particelle** ([`packages/agro-parcel`](packages/agro-parcel)) — pacchetto foglia senza dipendenze: il tipo `Parcel`, il catalogo delle fonti pubbliche (un JSON per fonte) e gli adapter WFS/OGC API. Consumabile da solo, anche da altri repository.
-- **Dominio agronomico** ([`packages/agro-core`](packages/agro-core), [`agro-ui`](packages/agro-ui), [`plugins/agro-tools`](plugins/agro-tools)) — store Zustand, DAL **PGlite** (PostgreSQL WASM) locale per azienda, Sync Engine, engine di calcolo puri (NDVI/NDRE, FAO 56/66, fenologia, suolo).
-- **Analisi spaziale in-browser** — **DuckDB Spatial (WASM)** legge i dati transazionali da PGlite per overlay, spatial join e zonazione, senza mai lasciare il dispositivo.
-- **Sincronizzazione** — coda `sync_outbox` locale: di default resta no-op (i dati non lasciano mai il dispositivo); opzionalmente si drena verso un PostgreSQL on-premise via comando Rust nativo.
+- **App**: [`apps/agro-field-suite`](apps/agro-field-suite) — React + TypeScript on Vite, **Tauri v2** shell (native Rust core) for desktop/mobile/web from the same codebase.
+- **GIS engine** ([`packages/core`](packages/core), [`map`](packages/map), [`ui`](packages/ui), [`plugins`](packages/plugins), [`attribute-table`](packages/attribute-table)) — vendored from GeoLibre (MIT).
+- **Parcel contract** ([`packages/agro-parcel`](packages/agro-parcel)) — zero-dependency leaf package: the `Parcel` type, the catalogue of public sources (one JSON per source) and the WFS/OGC API adapters. Consumable on its own, including from other repositories.
+- **Agronomic domain** ([`packages/agro-core`](packages/agro-core), [`agro-ui`](packages/agro-ui), [`plugins/agro-tools`](plugins/agro-tools)) — Zustand store, local per-farm **PGlite** (PostgreSQL WASM) DAL, Sync Engine, pure calculation engines (NDVI/NDRE, FAO 56/66, phenology, soil).
+- **In-browser spatial analysis** — **DuckDB Spatial (WASM)** reads transactional data from PGlite for overlays, spatial joins and zoning, without ever leaving the device.
+- **Synchronization** — local `sync_outbox` queue: no-op by default (data never leaves the device); optionally drained toward an on-premise PostgreSQL via a native Rust command.
 
-Mappa completa dei package/feature, flusso dati e come aggiungere una feature o una coltura DSS: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Convenzioni di codice (inglese, naming): [docs/glossary.md](docs/glossary.md) · [docs/naming-conventions.md](docs/naming-conventions.md).
+## Automatic updates (desktop)
 
-## Aggiornamenti automatici (desktop)
-
-L'app desktop si aggiorna da sola via **Tauri Updater** + GitHub Releases: controllo discreto all'avvio, banner con changelog e pulsante "Aggiorna ora", download con barra di avanzamento, nessun aggiornamento silenzioso. Dettagli: [docs/technical/desktop-auto-update.md](docs/technical/desktop-auto-update.md).
+The desktop app updates itself via **Tauri Updater** + GitHub Releases: a discreet check at startup, a banner with changelog and an "Update now" button, download with a progress bar, no silent updates. Details: [docs/technical/desktop-auto-update.md](docs/technical/desktop-auto-update.md).
 
 ## Roadmap
 
-Stato attuale e prossimi passi dell'edizione Community: [ROADMAP.md](ROADMAP.md).
+Current status and next steps of the Community edition: [ROADMAP.md](ROADMAP.md).
 
-## Contribuire
+## Contributing
 
-Segnalazioni di bug, richieste di funzionalità e pull request sono benvenute — vedi la [guida per contribuire](docs/contributing.md). Cronologia delle versioni in [CHANGELOG.md](CHANGELOG.md).
+Bug reports, feature requests and pull requests are welcome — see the [contributing guide](docs/contributing.md). Version history in [CHANGELOG.md](CHANGELOG.md).
 
-## Sicurezza
+## Security
 
-Per segnalare una vulnerabilità **non aprire una issue pubblica**: segui la [Security Policy](SECURITY.md).
+To report a vulnerability **do not open a public issue**: follow the [Security Policy](SECURITY.md).
 
-## Licenza
+## License
 
-AgroGea è distribuito con licenza **[GNU AGPLv3](LICENSE)** © 2026 Andrea Carnasciali.
+AgroGea is distributed under the **[GNU AGPLv3](LICENSE)** license © 2026 Andrea Carnasciali.
 
-Il motore GIS vendorizzato (pacchetti `@geolibre/*` in `packages/core`, `map`, `ui`, `plugins`, `attribute-table`) resta distribuito secondo i termini della sua licenza originale — **[MIT](packages/core/LICENSE)** © Qiusheng Wu — come previsto dalla licenza stessa. Dettagli sull'attribuzione in [NOTICE](NOTICE); licenze di tutte le dipendenze di terze parti in [`apps/agro-field-suite/THIRD_PARTY_LICENSES.txt`](apps/agro-field-suite/THIRD_PARTY_LICENSES.txt).
+The vendored GIS engine (`@geolibre/*` packages in `packages/core`, `map`, `ui`, `plugins`, `attribute-table`) remains distributed under the terms of its original license — **[MIT](packages/core/LICENSE)** © Qiusheng Wu — as permitted by that license itself. Attribution details in [NOTICE](NOTICE); licenses of all third-party dependencies in [`apps/agro-field-suite/THIRD_PARTY_LICENSES.txt`](apps/agro-field-suite/THIRD_PARTY_LICENSES.txt).
