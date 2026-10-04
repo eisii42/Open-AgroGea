@@ -2,11 +2,13 @@
 
 > [🇮🇹 Italiano](./manuale.md) · 🇬🇧 English
 
-> **Document version 0.5.0** · updated 27 September 2026 · describes **AgroGea 0.5.0**. If your app shows a different version (**?** menu → *About*), the differences are listed in the [CHANGELOG](../../CHANGELOG.md).
+> **Document version 0.6.1** · updated 4 October 2026 · describes **AgroGea 0.6**. If your app shows a different version (account menu → **Help** → *About*), the differences are listed in the [CHANGELOG](../../CHANGELOG.md).
 >
-> What is new in 0.5.0 and described here: **guided first launch** (§1), **parcels from public sources** (Step 2), **certifications** and **production regime** (Steps 1 and 3), **map zoom limits** and **attention markers** (§2), **raster maps** (§4.8), **selective backup** (§4.12), **multiple georeferenced warehouses** (§4.14) and the **Compliance** module (§4.17).
+> New in 0.6 and described here: the **new interface** on computer and phone and the **To do** centre (§2), **editing operations** and **missing data** in the Logbook (§4.1), **saved WMS as background** (§4.8), the **calendar** on phones and wide screens (§4.11), **weather in the top bar** (§4.13) and the new **shortcuts** (§5).
+>
+> New in 0.5 (already covered by the previous version of this manual): **guided first launch** (§1), **parcels from public sources** (Step 2), **certifications** and **production regime** (Steps 1 and 3), **map zoom limits** and **attention markers** (§2), **raster maps** (§4.8), **selective backup** (§4.12), **multiple georeferenced warehouses** (§4.14) and the **Compliance** module (§4.17).
 
-> **Step-by-step** guide to the Open Source Desktop edition. It starts from the freshly installed app and walks you through the complete workflow:
+> **Step-by-step** guide to AgroGea. It starts from the freshly installed app and walks you through the complete workflow:
 > **Farm data → Parcels → Crops** and then the use of **all the suite's modules**.
 >
 > To understand *how* the agronomic modules work at a scientific level (satellite indices, VRA maps, water balance), see the [Technical documentation of the modules](../technical/agronomic-modules.en.md).
@@ -66,35 +68,63 @@ To work at your best, keep two things in mind from the start:
 
 ## 2. How the screen is laid out
 
-The interface is **geocentric**: the map fills the whole screen and every function opens as a **side panel** over the map (which is never reloaded).
+The interface is **geocentric**: the map fills the whole screen and every function opens as a **panel** over the map, which is never reloaded. Computer and phone share the same structure, adapted to the available space.
 
-**The top bar (header):**
+### On a computer
 
-- **AgroGea logo** and, next to it, the **name of the active farm** (shows `-` until you fill it in Step 1).
-- **Add Data** — to drag/import external files (see §4.8).
-- **Weather card** — today's conditions and a 4-day forecast.
-- **View switcher** — three buttons: **Map** (fieldwork), **Calendar** (everything that has a date, §4.11) and **Command Center** (the analytics dashboard, §4.10). All three views stay mounted: switching between them does not reload the map or redo the calculations.
-- On the right: **status LED** (in the local edition data always stays on the device), **theme selector** (Light / Dark / Green), **Help menu** (`?`) and **profile menu**.
+**The top bar:**
 
-**The module sidebar:**
+- **AgroGea logo** — opens the **To do** centre (see below); a badge counts the open items.
+- **Name of the active farm** (shows `-` until you fill it in Step 1).
+- **Search… `Ctrl K`** — searches plots, modules and actions from any view: it is the command palette.
+- **Views** — **Map** (fieldwork), **Calendar** (everything that has a date, §4.11) and **Command Center** (the analytics dashboard, §4.10). All three views stay mounted: switching between them does not reload the map or redo the calculations.
+- On the right: the **sync status** (a dot: green = all good, amber = changes queued, red = error, grey = offline; a click opens the queue — if you do not connect a PostgreSQL server it stays green, because the data lives on the device), the **weather** (§4.13), **Add data** (§4.8) and the **account menu**: theme (**Light / Dark / Agronomic**), **Help** (shortcuts, diagnostics, feedback, about) and **Profile Settings**.
 
-It opens from the **handle** on the edge of the map and gathers all the tools, grouped into expandable modules:
+**The module rail** is the column of icons on the left: **Soil, Crop, Water, Draw, Tasks, Logbook, Warehouse, Company, Compliance**. Clicking an icon opens a flyout with the module's tools; badges flag expiring lots, tasks and operations to complete.
 
 | Module | Tools |
 |---|---|
-| **Soil** | Plot list, Index analysis (NDVI…), VRA maps |
-| **Crop** | Crop data, DSS models |
+| **Soil** | Plot list, Index analysis (NDVI, NDRE…), Variable-rate maps (VRA) |
+| **Crop** | Crop data, DSS · forecast models |
 | **Water** | Water balance |
-| **Draw element** | **Public parcels**, Plot (polygon), Infrastructure (line), POI (point), Print |
-| **Task Planning** | Tasks & Recipes |
-| **Field logbook** | Operations, Harvest, SIAN export |
+| **Draw** | **Public parcels**, Plot (polygon), Infrastructure (line), POI (point), Print map |
+| **Tasks** | Tasks & Recipes |
+| **Logbook** | Operations register, Record harvest, Export SIAN (CSV) |
 | **Warehouse** | Products and lots (including the **Warehouses** registry), Machinery |
-| **Company settings** | Company profile, Weather |
+| **Company** | Company profile, Weather source & variables |
 | **Compliance** | Eligibility, Conditionality (GAEC), Eco-schemes, Cross-cutting, Organic, GeoCompliance (binding layers) |
 
-Clicking a tool opens the corresponding panel; clicking it again closes it.
+In this manual paths are written as **Module → Tool** (e.g. *Logbook → Operations register*): on a computer the module is the icon in the rail on the left, on a phone the tile under **Modules**.
 
-**The map controls** sit in the right-hand column and are the mapping engine's native ones, **translated into the app's language**: zoom **＋ / −**, **compass** (drag to rotate, click to put north back on top — when the map is already facing north the button shows a small **N**), **fullscreen**, **find my location**, **3D terrain**, **ruler** (measure distances and areas, with selectable units), **layer manager** (visibility, opacity, order, style) and **🔍 Search place** for gazetteer search.
+**The panel column.** Every tool opens in a column on the right, and **several modules can stay open at once**: the latest opens on top, the others collapse to their header (a click reopens them) and the open ones share the height. Selecting a module that is already open brings it back to the front. **Drag the left edge** to widen or narrow the column (360 to 560 px); AgroGea remembers the width and the map controls move with it.
+
+**The map controls** sit in the right-hand column, **translated into the app's language**:
+
+- **Layers** — a popover with the **basemap background** (Street map OSM, Satellite Esri and your **saved WMS**, §4.8), the **Cadastre** overlay and the **farm layers**; at the bottom, **Advanced layer management** opens the full layer manager (visibility, opacity, order, style);
+- **Measure** — a ruler for distances and areas, with selectable units;
+- zoom **＋ / −**, **compass** (drag to rotate, click to put north back on top — when the map is already facing north the button shows a small **N**), **fullscreen**, **3D terrain**, **find my location** and **Search place** for gazetteer search.
+
+Bottom right you find the quick actions **Field survey (GPS Scouting)** and **Quick fuel refill**, together with the activity feed and the index legends.
+
+### On a phone
+
+- **At the top**: the logo (opens **To do**), the always-visible **weather chip** (conditions, temperature and today's rain; a tap opens the 5-day forecast), the sync status and the **☰ menu** with Add data, theme, Help and Profile Settings.
+- **At the bottom**, the navigation bar: **Map · Calendar · Dashboard · Logbook · Modules**. *Modules* opens a grid of tiles: tap a module to see its tools.
+- **Sheets open from the bottom** and have three heights: header only, half screen, full screen. Drag the handle to change height or down to close; the Android **Back** button closes the open sheet.
+- **Map controls**: Layers, Measure and Search place on the right; **Quick fuel refill** and **GPS Scouting** bottom right, within thumb reach. Advanced layer management stays on the computer.
+- Text and controls are larger for use in the field, and form fields no longer zoom the screen when you tap them.
+
+### The "To do" centre
+
+The **logo** opens a single list of everything that needs fixing in the farm, in groups:
+
+- **Incomplete records** — logbook operations and planned tasks, with the missing fields;
+- **Campaign data** — incomplete declarative data (SIAN/SIEX codes);
+- **Warehouse** — expired or expiring lots;
+- **Machinery** — maintenance, documents, downtime, fuel anomalies;
+- **Soil data** — plots without soil composition.
+
+The badge on the logo counts the open items and turns **red** when at least one is urgent. **Tap an item** to go where it gets fixed (an incomplete operation opens straight in the edit form): it disappears once the data is in place. When there is nothing left you see *All clear*. On a computer the list opens under the logo, on a phone as a bottom sheet, from any view.
 
 > **How far you can zoom.** The field map moves **only between zoom 13 and 17**: below 13 you would be looking at a region, above 17 you oversample orthophoto pixels that do not exist — in between sits every bit of agronomic work, from the district down to the vine row. These are the **absolute bounds**: in Profile settings you can *narrow* the range (e.g. 14–16), never widen it. As a side note, the Esri orthophoto has guaranteed coverage up to zoom 18, so with these limits you never run into empty tiles.
 
@@ -116,14 +146,14 @@ This is the heart of the manual: the three steps that turn the empty app into a 
 
 You already gave the farm name and Country at first launch (§1). Here you complete the farm's identity: it will be used to head the registers and to choose the **correct export format based on the country**.
 
-1. Open the sidebar → **Settings** module → **Farm registry** (building icon 🏢).
+1. Open **Company** → **Company profile**.
 2. The panel is divided into **five sections**, selectable from the left-hand column:
    - **Identity** — Business name, legal form, national farm code, VAT number.
    - **Codes** — SDI code, PEC, Farm Dossier ID, Paying Agency.
    - **Location** — Address, ZIP, Municipality, Province, Region, **Country**, email.
    - **Contact** — Name and role of the farm contact.
    - **Certifications** — for **organic farming**: control body, operator code, certificate number and validity (from/until). This is the **farm's** certification; each parcel's regime is declared per season in the crop sheet (Step 3), and that is what the *Organic* card of the Compliance module reads.
-3. Fill in the fields you need (the **Business name** is the recommended minimum: it will appear in the header).
+3. Fill in the fields you need (the **Business name** is the recommended minimum: it will appear in the top bar).
 4. Press **Save**.
 
 > **Why the Country matters:** it determines the proposed national catalogs (species, varieties, products) and the format of the official registers. For example, with `Italy` you get the **SIAN/PAN** export; with `Spain` the **SIEX/CUE**. You can still change it later.
@@ -142,7 +172,7 @@ A **parcel** is the physical cultivated plot, defined by a geometry on the map. 
 
 Across much of Europe agricultural parcels are already digitised and published by the authorities. Available today: the **Netherlands** (BRP Gewaspercelen, RVO/PDOK) and **France** (RPG, IGN).
 
-1. Open the sidebar → **Draw element** → **Public parcels**.
+1. Open **Draw** → **Public parcels**.
 2. Choose the **Source** (the ones for your farm's Country are offered). The data attribution and licence are shown underneath.
 3. Frame the area of your fields and press **Search this area**, or **Click a point** and tap the map over the field. Searching works between **zoom 13 and 17**: if you are too far out or too close, the panel asks you to zoom in or out.
 4. The parcels found appear on the map: **hover** one to see its details (identifier, declared area, crop code), **click** it to select it.
@@ -156,7 +186,7 @@ Nothing is added until you choose it: parcels are adopted **one at a time**. If 
 #### Drawing a parcel by hand
 
 1. (Recommended) Activate the **Satellite** basemap to see the terrain: use the **basemap switch** on the map. In Italy you can also overlay the **Cadastre** layer to align with cadastral parcels.
-2. Open the sidebar → **Draw element** → **Plot (polygon)**.
+2. Open **Draw** → **Plot (polygon)**.
 3. On the map, **click vertex after vertex** to trace the field perimeter; **double-click** (or close on the first vertex) to finish the polygon.
 4. As soon as you close the shape, the **data card of the new parcel** opens automatically:
    - The **geodetic area** (ha) is already computed and shown read-only.
@@ -177,7 +207,7 @@ Nothing is added until you choose it: parcels are adopted **one at a time**. If 
 
 Every parcel carries a **crop per season**. This is the data that "switches on" the agronomic modules: without a crop, the DSS and water balance don't know which crop coefficient to use.
 
-1. Open the sidebar → **Crop** module → **Crop data**.
+1. Open **Crop** → **Crop data**.
 2. At the top choose the **season** (Agrarian Campaign) with **− / +**.
 3. Select the **parcel** from the dropdown (it shows the name and any crop already present).
 4. (If available) Use the **quick-pick from the national register** to choose the species: it automatically fills common name, scientific name and ministerial code.
@@ -203,9 +233,9 @@ From here on the order is free: use the module you need. Many panels share the s
 
 The Logbook gathers the **traceability** of everything you do in the field, compliant with **PAN/SIAN** rules.
 
-> **Opened from the sidebar it always shows the whole farm.** That is a guarantee, not a coincidence: a compliance register must never silently show the subset of a single parcel left over from an earlier lookup. If you want one field's operations, use the **Parcel** filter inside, or tap the field on the map and open its sheet.
+> **Opened from the module rail it always shows the whole farm.** That is a guarantee, not a coincidence: a compliance register must never silently show the subset of a single parcel left over from an earlier lookup. If you want one field's operations, use the **Parcel** filter inside, or tap the field on the map and open its sheet.
 
-1. Open the sidebar → **Logbook (QDC)** → **Operations**.
+1. Open **Logbook** → **Operations register** (on a phone also from **Logbook** in the bottom bar).
 2. Press **＋ Record operation** and choose the **type**:
    - **Crop-protection treatment** — product and registration number, active substance, target pest, dose and unit (kg/ha, l/ha, kg/hl…), operator and license, re-entry interval, **pre-harvest interval**.
    - **Fertilization** — fertilizer type, **N-P-K** grade (format `n-n-n`), quantity.
@@ -219,7 +249,13 @@ The Logbook gathers the **traceability** of everything you do in the field, comp
 
 **Smart sowing:** sowing a **warehouse seed** on a field without a crop, the operation offers to **automatically assign the crop to the field** (crop sheet + campaign, density derived from the dose). Declaratory data (SIAN codes) still needs completing in Crop data.
 
-**Reviewing and filtering:** the list filters by **date range** and by **parcel**. You can also turn on **Show on map** to project the filtered operations as georeferenced symbols. Click an entry to see its detail; the trash bin deletes it (with confirmation); the **copy** icon repeats it with a prefilled form dated today (operator and license are remembered between operations).
+**Reviewing and filtering:** the list filters by **date range** and by **parcel**. You can also turn on **Show on map** to project the filtered operations as georeferenced symbols. Operation types are shown in your language, in the list and on the map. Click an entry to see its detail; the trash bin deletes it (with confirmation).
+
+**Editing an operation:** the **pencil ✎** opens the **Edit operation** form prefilled with the whole record; saving updates **the same entry** instead of creating a new one. Warehouse discharges and machine hours already recorded are **not applied again**: fixing a typo does not discharge the same lot twice.
+
+**Repeating an operation:** from the detail card, **Repeat operation** opens a form prefilled with today's date (operator and license are remembered between operations).
+
+**Missing data:** rows and the detail card list the fields a compliant record still needs (e.g. registration number, target pest, license). The same operations appear in the **To do** centre (§2), from which they open straight in edit mode.
 
 > **Shortcut from the field:** click a parcel on the map to open its **sheet** (§4.16) — the operations already recorded on that field are there, together with the planned tasks, and from there you open the Logbook or start the job.
 
@@ -227,7 +263,7 @@ The Logbook gathers the **traceability** of everything you do in the field, comp
 
 To record deliveries and feed the yield analyses:
 
-1. Sidebar → **Logbook (QDC)** → **Harvest**.
+1. **Logbook** → **Record harvest**.
 2. For each harvest indicate **parcel, cultivar, quantity (kg), destination/logistics and date**. The cultivar prefills from the field's campaign crop; the harvest is tied to the **open** Agrarian Campaign.
 
 **Closing the crop cycle:** for **annual** crops (arable/horticulture) the harvest offers — pre-ticked — to **close the campaign**: the field becomes free again (neutral map, DSS off) and a new sowing can start even in the same year (second harvest). Perennials stay open.
@@ -240,11 +276,11 @@ This data becomes the yield charts in the Command Center and in the attribute ta
 
 Computes vegetative vigor from satellite imagery (Sentinel-2 via STAC).
 
-1. Sidebar → **Soil** → **Index analysis**.
+1. **Soil** → **Index analysis (NDVI, NDRE…)**.
 2. Tick the **indices** to compute: **NDVI** (vigor), **NDRE** (nitrogen status), **MSAVI2** and **SAVI** (soil-adjusted), **NDWI** (open water) and **NDMI** (crop moisture, the water-stress indicator). Mark one of them as the **primary index**: that is the one colored on the map.
 3. Select **one or more parcels**.
 4. Adjust the **cloud cover** filter (% slider) and the **temporal strategy**: latest image, last 15/30 days, or a **custom range** (max 60 days, with a trend chart).
-5. Press **Compute**. You get the most recent averages per parcel/index, the **grid of colored cells** on the map and — if you have a series with multiple dates — the trend chart.
+5. Press **Compute**. You get the most recent averages per parcel/index, the **grid of colored cells** on the map and — if you have a series with multiple dates — the trend chart. The panel states its source (**Sentinel-2, computed by AgroGea**) with a link to this manual.
 
 > **The color scale is relative to the field, not absolute.** Colors are spread over the values actually present in the computed fields (discarding 2% at each end), not over the theoretical −1..1 range. That is what makes the variability *inside* the parcel emerge — the very thing VRA zoning needs — instead of a uniformly green blob. The absolute value stays readable in the colorbar and in the panel's averages.
 
@@ -262,7 +298,7 @@ At the bottom of the panel you also find the **NDVI ↔ soil chemistry scatter**
 
 Generates variable-dose prescriptions for tractor terminals.
 
-1. Sidebar → **Soil** → **VRA maps**.
+1. **Soil** → **Variable-rate maps (VRA)**.
 2. Choose **parcel**, **base index** (e.g., NDVI), **operation type** (top-dressing, fertilization, treatment, sowing, irrigation).
 3. Set the **number of zones** (2 to 5) and the cell **resolution**; assign the **rate** (quantity) of each zone.
 4. **Generate**: the map is zoned via K-means. Then **export** it for the field terminals (**ISO-XML** / **GeoJSON**).
@@ -271,7 +307,7 @@ Generates variable-dose prescriptions for tractor terminals.
 
 Computes the water requirement day by day and tells you when the field enters stress.
 
-1. Sidebar → **Water** → **Water balance**.
+1. **Water** → **Water balance**.
 2. Select **one or more parcels** (they must have an assigned **crop**: the crop coefficient Kc is required).
 3. (Optional) If you have imported a **soil map** via Add Data, you can indicate it as the source of the hydro-pedological parameters.
 4. Press **Compute balance**. For each field you get:
@@ -287,7 +323,7 @@ Computes the water requirement day by day and tells you when the field enters st
 
 The Decision Support System synthesizes water stress, phytopathological risk, vigor (NDVI) and fertility into a **colored score** per field.
 
-1. Sidebar → **Crop** → **DSS models**.
+1. **Crop** → **DSS · forecast models**.
 2. Tick the **parcels** (they must have a crop with a vertical module: vine/olive/orchard/cereals/horticulture).
 3. Press **Compute models**. Each field receives a **risk card**:
    - 🟢 **Green** — optimal;
@@ -298,24 +334,26 @@ The weights are calibrated per crop (tree crops weight vigor and diseases more, 
 
 ### 4.7 Drawing — infrastructure, POI, management and printing
 
-Beyond parcels (Step 2: public parcels or hand drawing), the **Draw element** module manages the rest of the territorial elements:
+Beyond parcels (Step 2: public parcels or hand drawing), the **Draw** module manages the rest of the territorial elements:
 
 - **Draw infrastructure** (line) — pipelines, fences, anti-hail nets, roads. On closing you enter type, name and status; the **length** is computed.
 - **Draw POI** (point) — wells, traps, IoT sensors, gates, buildings.
-- **Plot list** (in the sidebar it sits under **Soil**, because its sheet is where soil parameters are read) — the list of everything you have drawn (parcels, infrastructure, POIs). Tapping an entry **frames** the element on the map and opens its sheet: soil parameters, metadata, geometry editing, protected deletion. Opening it leaves drawing mode, so a tap on the map goes back to **selecting** instead of tracing.
-- **Print** — open the **print composer** to generate a laid-out map of the farm (e.g., for technicians, consortia, authorities).
+- **Plot list** (it sits under **Soil**, because its sheet is where soil parameters are read) — the list of everything you have drawn (parcels, infrastructure, POIs). Tapping an entry **frames** the element on the map and opens its sheet: soil parameters, metadata, geometry editing, protected deletion. Opening it leaves drawing mode, so a tap on the map goes back to **selecting** instead of tracing.
+- **Print map** — open the **print composer** to generate a laid-out map of the farm (e.g., for technicians, consortia, authorities), with title, notes, legend, scale and north arrow. Export it as **SVG** or **PNG**, or press **PDF**: the system print dialog opens, where you choose *Save as PDF*.
 
 ### 4.8 Add Data — importing your layers
 
 To bring external data onto the map:
 
-1. Header → **Add Data** (or **drag** the file into the window).
+1. Top bar → **Add data** (on a phone from the **☰** menu), or **drag** the file into the window.
 2. Supported formats: **Shapefile** (with `.dbf`/`.shx`/`.prj`), **GeoJSON**, **OSM** extracts, **GeoParquet**.
 3. The file is loaded into the local analysis engine and shown as a new overlayable layer (also useful as a **soil map** for the water balance, §4.5).
 
 **Raster maps** (at the bottom of the panel) add images instead of geometries, in two ways:
 
 - **WMS service**: paste the service address and press *Read the available layers*. AgroGea queries the service and lists its layers by their **readable title**, so you do not need to know the technical code. Choose one and add it. The layer stays on the publisher's server: always up to date, but it needs the network.
+  - The added WMS is **saved** for the farm **on this device** (it is a display preference: it is not synced and is not part of backups) and used as the **background instead of the satellite**: plots stay drawn on top. You find it among the backgrounds in **Layers** (§2) and in the **Saved WMS** list at the bottom of the panel, where you can **edit** it (address or layer) or **delete** it.
+  - The service is credited in the map's **attribution bar** (the *i* bottom right), as the terms of use of almost every public service require.
 - **Orthophoto (.tif)**: a georeferenced GeoTIFF from your computer. It stays on the device and **works offline**. On the map it is downscaled so it can be drawn; the GAEC 8 card of the Compliance module (§4.17) can still measure on it at full resolution, **without asking you to load it again**.
 
 > The orthophoto must be in **UTM or WGS84**. With any other reference system AgroGea refuses to load it and tells you which one it is: better than drawing it a few hundred metres off, which would look like it works.
@@ -337,7 +375,7 @@ The built-in **attribute table** turns your data into an analyzable sheet. The a
 
 ### 4.10 Data Command Center — the analytics dashboard
 
-From the **Command Center** button in the header you switch from the map to the **dashboard**, split into **two pages**:
+From the **Command Center** button in the top bar (on a phone: **Dashboard** in the bottom bar) you switch from the map to the **dashboard**, split into **two pages**. On wide screens the content stays centred (1600 px at most), the filter bar stays in view while you scroll and the card and chart grids fit the width on their own:
 
 - **Crops and fields** — the agronomic analysis: season → crop → field filters, **custom indicators**, composable charts and management report.
 - **Company** — the general overview: season area/operations/harvest, **Warehouse status** (stock value at WAC, expired/expiring lots, products below minimum stock), **product cost by field** and backup/restore. A clickable alert flags campaigns with incomplete declaratory (SIAN/SIEX) data.
@@ -354,11 +392,11 @@ Optional but useful: a **filter** on one dimension (e.g. plant protection treatm
 
 Cards can be **dragged to reorder** and edited or deleted from the card itself. They are **display preferences**, stored per company on the device: they are not domain data and are never synchronized. On first opening you get three examples (area in scope, operations of the season, rain over the last 30 days): change or delete them freely.
 
-> The **operations calendar** no longer lives in here: it has become a view of its own, reachable from the header (§4.11).
+> The **operations calendar** no longer lives in here: it has become a view of its own, reachable from the top bar (§4.11).
 
 ### 4.11 Farm calendar
 
-The **Calendar** button in the header opens a **monthly grid with everything that has a date**, in one place:
+The **Calendar** button in the top bar (on a phone: **Calendar** in the bottom bar) opens a **monthly grid with everything that has a date**, in one place:
 
 | Color | What it shows |
 |---|---|
@@ -376,6 +414,8 @@ Each cell also carries the **weather of the day** — icon, high/low and millime
 - **click a day** to open its detail: what happened (or will happen) on that date, the weather, and two entry points — **Plan task** and **Record operation**, both **on the day you opened**, never on "today" by mistake;
 - reload DSS risk and water balance with the **⟳** button.
 
+**Where the day detail appears.** On wide screens (1280 px and up) the day agenda sits **next to the grid** instead of covering it; on a phone it sits **below the grid**, and *Plan task* and *Record operation* open full screen.
+
 > **The calendar consults the register, it does not rewrite it.** Operations and harvests open in their read-only sheet: corrections and deletions stay where the record lives (Logbook, Harvest module), because a legally-relevant register must not have two editing doors with different rules. Only **tasks** — which are planning, not recording — remain editable and cancellable.
 >
 > DSS and water stress appear **as soon as the respective calculations are run** (from the map or the Command Center): the calendar reads them, it does not recompute them.
@@ -384,7 +424,7 @@ Each cell also carries the **weather of the day** — icon, high/low and millime
 
 **Registers for inspections** — AgroGea chooses the format based on the farm's **Country**:
 
-- **Italy — SIAN/PAN:** from **Logbook (QDC) → SIAN export**. CSV optimized for Italian Excel (separator `;`, UTF-8 BOM), with ministerial Island/Parcel codes.
+- **Italy — SIAN/PAN:** from **Logbook → Export SIAN (CSV)…**. CSV optimized for Italian Excel (separator `;`, UTF-8 BOM), with ministerial Island/Parcel codes.
 - **Spain — SIEX/CUE:** *Cuaderno Digital* in JSON (FEGA).
 - **Other EU countries / France:** international CSV (separator `,`, ISO dates).
 
@@ -402,9 +442,10 @@ The period filters **dated** records (operations, harvests, analyses, scouting, 
 
 ### 4.13 Settings: weather, theme, profile
 
-- **Weather** (Settings → Weather) — configure the weather station/source that feeds the water balance and the DSS.
-- **Theme** — Light / Dark / Green, from the selector in the header.
-- **Profile** — from the user menu top-right: app preferences and settings. Besides visible modules, language and units, this is where **Map view** lives: the allowed *minimum zoom* and *maximum zoom*, selectable between 13 and 17 (see §2). It fixes your working scale: someone always working row by row can narrow it to 16–17 and stop losing the framing.
+- **Weather in the top bar** — on a computer next to *Add data*, on a phone as an always-visible chip: current conditions, temperature and today's rain. A click opens the **5-day forecast**, with the coordinates of the point, the service used (**Open-Meteo**) and, if you have one, the **farm weather station**. The weather is located on the farm's address or on the first plot: until you have one, the card tells you.
+- **Weather source** (**Company** → **Weather source & variables**) — configure the weather station/source that feeds the water balance and the DSS.
+- **Theme** — **Light / Dark / Agronomic**, from the account menu (on a phone from the **☰** menu).
+- **Profile** — account menu → **Profile Settings**: app preferences and settings. Besides visible modules, language and units, this is where **Map view** lives: the allowed *minimum zoom* and *maximum zoom*, selectable between 13 and 17 (see §2). It fixes your working scale: someone always working row by row can narrow it to 16–17 and stop losing the framing.
 
 ### 4.14 Warehouse — stores, products, lots and stock
 
@@ -416,7 +457,7 @@ The Warehouse keeps three linked things: the **stores** (where the goods physica
 
 A farm can have as many as it needs: the main shed, the locked plant-protection store, the diesel tank, the seed silo.
 
-1. Sidebar → **Warehouse** → **Products and lots** → **Warehouses** button, at the top of the panel next to the selector.
+1. **Warehouse** → **Products and lots** → **Warehouses** button, at the top of the panel next to the selector.
 2. **＋ New warehouse**: give it a **name** ("North shed", "Plant protection store") and pick the **type** — *General, Plant protection store, Fertiliser store, Seed store, Fuel tank, Machinery shed*. The type enforces no rules: it picks the **icon** the store gets on the map and helps you tell them apart in the list.
 3. **Position on the map** (optional): press **Tap the map**, then tap where the store is. From then on the warehouse is a **clickable POI** — an indigo tile with its type icon and a **badge** counting the lots in stock. A warehouse with no position stays perfectly valid: it is a "logical" store, reachable only from the module.
 4. Optional: **address** and **notes**. The ✏️ edits an existing store, if only to move its point.
@@ -429,7 +470,7 @@ A farm can have as many as it needs: the main shed, the locked plant-protection 
 
 #### Products and lots
 
-1. Sidebar → **Warehouse** → **Products and lots**.
+1. **Warehouse** → **Products and lots**.
 2. **＋ New product** and pick the **category** (rigid — it determines the required fields):
    - **Plant protection product** — requires the **PAN registration number**; plus active substance and **default PHI/re-entry** (prefilled later in the Logbook);
    - **Fertilizer** — requires the **N-P-K contents** (percentages);
@@ -468,7 +509,7 @@ The **Download template** button gives you a ready-made CSV with one example row
 
 The Machinery module manages **vehicles** (power units) and **implements**, links them to field operations with **automatic hour counters**, keeps the **maintenance** and **document** schedules, and tracks fuel **refills**.
 
-**Registry (Sidebar → Warehouse → Machinery):**
+**Registry (Warehouse → Machinery):**
 
 1. **＋ New vehicle** (tractor, combine…) or **＋ New implement** (plough, sprayer…). Vehicles are tracked by **working hours**, implements by **wear** and **working width**. On creation you can enter the **initial reading** of the hour meter. The **status** (operational / under maintenance / broken down / decommissioned) has a traffic light; **decommissioned** vehicles stay in the history but disappear from the selection lists.
 2. **CSV import** — populate the fleet quickly from a file (name, type, plate, year, initial hour meter) with **preview and validation**: invalid rows are flagged and skipped, partial import is allowed. All local, no network.
@@ -494,7 +535,7 @@ The Machinery module manages **vehicles** (power units) and **implements**, link
 
 The idea is simple: **decide at the desk, touch nothing in the tractor**. You prepare the job the evening before, and when you drive into the field the next day the rest happens by itself, all the way to the logbook entry.
 
-#### Before: prepare the task (Sidebar → Task Planning → Tasks & Recipes)
+#### Before: prepare the task (Tasks → Tasks & Recipes)
 
 1. **＋ New Recipe** — a **reusable mix** ("Standard powdery-mildew spray", "NPK foliar feed"): give it a name, add the products with their **dose per hectare** and unit. Picking the product from the **Warehouse** copies across the registration number, active substance and — for fertilizers — type and N-P-K ratio by itself: these are exactly the fields the logbook will demand, and this is where you fill them in once and for all.
 2. **＋ New Task** — the **planned job card**. Pick the **operation type first**: it decides which fields appear, exactly the ones the logbook would ask for that job.
@@ -511,7 +552,7 @@ The idea is simple: **decide at the desk, touch nothing in the tractor**. You pr
    The **recipe exists only** for treatments and fertilizations: the other jobs have no mix to preset, and their data is entered just as in the logbook. The **licence number** is set once and remembered on the device for every form.
 3. If something is missing, a warning tells you **precisely which fields would make the record non-compliant**. You can still save: planning stays fast, and incomplete tasks remain flagged.
 
-> **Why it insists on mandatory fields:** the entry at the end of the job is automatic, so there is no moment when someone re-reads and completes it. What is missing now would be missing in the register. That is why the sidebar shows a **⚠** counter on *Task Planning* and *Field Logbook*, with the list of records to complete.
+> **Why it insists on mandatory fields:** the entry at the end of the job is automatic, so there is no moment when someone re-reads and completes it. What is missing now would be missing in the register. That is why the module rail shows a counter on *Tasks* and *Logbook*, and the same records appear in the **To do** centre (§2).
 
 #### In the field: detection is automatic
 
@@ -585,13 +626,13 @@ The map still shows your position through its usual GPS control, top right: that
 
 ### 4.17 Compliance — CAP and organic self-assessment
 
-The **Compliance** module tells you, parcel by parcel, how you would fare if an inspection came. It is a module of its own in the sidebar, with one entry per family: **Eligibility**, **Conditionality (GAEC)**, **Eco-schemes**, **Cross-cutting**, **Organic** and **GeoCompliance** (the binding layers).
+The **Compliance** module tells you, parcel by parcel, how you would fare if an inspection came. It is a module of its own in the module rail, with one entry per family: **Eligibility**, **Conditionality (GAEC)**, **Eco-schemes**, **Cross-cutting**, **Organic** and **GeoCompliance** (the binding layers).
 
 > **It is not an official check.** The check is the Paying Agency's area monitoring system (AMS, EU Reg. 2021/2116 art. 66); for organic farming it is your control body. What you get here is a **self-assessment** based on public data, and it says so at the top of the panel, on every card and inside the report you export.
 
 **How to use it**
 
-1. Open a family from the sidebar.
+1. Open a family from **Compliance**.
 2. Choose the **parcel and crop** from the menu at the top: the choice is made here, not on the map (tapping the map still opens the Logbook).
 3. Each card shows *first* what it observes, how observable it is and what it needs. Press **Assess this card** when you want: assessments never start on their own.
 4. If a card says images are missing, press **Check scenes**: AgroGea queries the satellite catalogue — free, without downloading anything — and tells you how many scenes exist for that card, how many you already have and how many megabytes are needed. Then you decide whether to download them.
@@ -623,11 +664,13 @@ An organic field and a conventional one look the same from above. The **Organic*
 
 ## 5. Shortcuts and productivity
 
-- **Command Palette** — from the **Help (`?`)** menu open the palette to jump to any action or panel by typing its name (including **Open Calendar** and **Open Command Center**).
+- **`Ctrl K`** (or the **Search…** field in the top bar) — opens the command palette from any view: type the name of a plot, a module or an action and jump to it (including **Open Calendar** and **Open Command Center**).
+- **`Esc`** — closes **only the topmost element** (a menu, a dialog, then a panel), never everything at once. In dialogs the focus stays inside while they are open and returns where it was when you close them.
+- **Keyboard in menus** — the **↑ / ↓** arrows move through the items; icon-only buttons show their name on hover, and an outline marks the active element when you navigate with `Tab`.
 - **← / → arrows** — cycle the three views in the order **Map → Calendar → Command Center**. They do nothing while you are typing in a text field or when the focus is on the map (there the arrows pan the view).
 - **Click on a field** — opens its **sheet**: planned tasks (startable) and operations recorded on that parcel, with shortcuts to plan or open the logbook.
-- **Help menu** — Command Palette, list of shortcuts, diagnostics, feedback, updates and information.
-- **Automatic updates** — at startup the app checks for new versions and shows a banner with the release notes; no download starts without your consent.
+- **Help menu** (in the account menu) — list of shortcuts, diagnostics, feedback and about.
+- **Automatic updates** — at startup the desktop app checks for new versions and shows a banner with the release notes; no download starts without your consent.
 
 ---
 

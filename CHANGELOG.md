@@ -1,6 +1,6 @@
 # Changelog
 
-Tutte le modifiche rilevanti dell'edizione **AgroGea Community** sono documentate in questo file.
+Tutte le modifiche rilevanti di **AgroGea** sono documentate in questo file.
 
 Il formato segue [Keep a Changelog](https://keepachangelog.com/it/1.1.0/) e il progetto adotta il [Versionamento Semantico](https://semver.org/lang/it/) (`MAJOR.MINOR.PATCH`).
 
@@ -8,7 +8,22 @@ Gli installer nativi di ogni versione rilasciata sono su [GitHub Releases](https
 
 ## [Non rilasciato]
 
-Nessuna modifica oltre a quelle già elencate per la 0.6.0.
+Nessuna modifica oltre a quelle già elencate per la 0.6.1.
+
+## [0.6.1] — in preparazione
+
+Release di **documentazione**: tutta la documentazione viene allineata alla 0.5 e alla 0.6. Nessuna modifica al codice dell'app, allo schema PGlite (v25) o al formato di backup (v3.1).
+
+### Documentazione
+
+- **README principale in inglese**: `README.md` è ora quello inglese, l'italiano passa a `README.it.md`. Descrivono l'interfaccia 0.6, i WMS salvati come sfondo, dove scaricare gli installer (Windows; macOS e Linux dai sorgenti) e i controlli di sicurezza del progetto. Tolti i riferimenti a edizioni diverse e al motore GIS d'origine; le licenze dei componenti inclusi restano in `NOTICE`.
+- **Manuali utente IT/EN** (versione documento 0.6.1): nuova §2 con la schermata su computer e su telefono e il centro **«Da risolvere»**; tutti i percorsi scritti come *Modulo → Strumento* con i nomi reali dell'app (prima citavano la vecchia sidebar); modifica e ripetizione delle operazioni e dati mancanti nel Quaderno (§4.1); WMS salvati come sfondo, solo su questo dispositivo (§4.8); calendario su telefono e su schermi larghi (§4.11); meteo nell'intestazione, tema *Agronomico* e menu account (§4.13); `Ctrl K`, Esc e tastiera nei menu (§5). Verificato che le novità della 0.5 fossero già descritte.
+- **`docs/ARCHITECTURE.md`**: nuove sezioni *UI shell (0.6)* (pila dei pannelli, larghezza per dispositivo, Esc a pila, scelte reversibili, centro «Da risolvere») e *Security boundaries* (dove viene gestito ogni input non fidato); la sezione sulle edizioni diventa il punto di estensione `registerControlPlane`.
+- **`docs/contributing.md`** e **`CONTRIBUTING.md`**: controlli delle pull request, come trattare i risultati di CodeQL, gitleaks, ZAP e CodeRabbit, aggiornamenti delle dipendenze (gruppi, versioni principali, PGlite escluso) e processo di release con le note in `docs/releases/`. Corretta la regola superata sulle chiavi i18n (ora in inglese) e tolto il comando di un'edizione che non esiste più.
+- **`SECURITY.md`**: versioni supportate 0.6.x, ambito aggiornato (comandi Tauri, servizi cartografici, archivio offline protetto dal PIN), come è protetto il progetto e avvisi noti (MapLibre, glib).
+- **`ROADMAP.md`**: 0.5.0 e 0.6.0 rilasciate; nuova sezione delle patch 0.6.x con la sicurezza rimasta aperta (MapLibre 6, PGlite, PIN, proxy tile, CSP, installer); il binario DSS slitta a 0.7.0–0.10.0.
+- **Documenti tecnici**: `raster-sources.md` (WMS salvati, attribuzioni e CVE-2026-85061), `desktop-auto-update.md` (note di rilascio da `docs/releases/`, piattaforme della CI, controllo manuale rimosso), `glossary.md` (termini dell'interfaccia 0.6), `naming-conventions.md` (chiavi i18n in inglese).
+- `release.yml`: tolto il rimando a un documento sulla firma di codice che non esiste nel repository.
 
 ## [0.6.0] — 2026-10-03
 
@@ -372,7 +387,8 @@ Primo rilascio pubblico dell'edizione Community (standalone, local-first).
 - **Storage local-first**: istanza PGlite (PostgreSQL WASM) isolata per azienda, coda `sync_outbox`, sync opzionale verso PostgreSQL on-premise via comando Rust nativo (Tauri v2).
 - **App desktop** Windows / macOS / Linux con aggiornamenti automatici via Tauri Updater + GitHub Releases, e demo web standalone in-browser.
 
-[Non rilasciato]: https://github.com/eisii42/Open-AgroGea/compare/v0.6.0...HEAD
+[Non rilasciato]: https://github.com/eisii42/Open-AgroGea/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/eisii42/Open-AgroGea/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/eisii42/Open-AgroGea/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/eisii42/Open-AgroGea/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/eisii42/Open-AgroGea/compare/v0.4.0...v0.4.1

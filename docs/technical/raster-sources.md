@@ -3,7 +3,10 @@
 > [`modules/add-data/wms.ts`](../../apps/agro-field-suite/src/modules/add-data/wms.ts) ·
 > [`geotiff-overlay.ts`](../../apps/agro-field-suite/src/modules/add-data/geotiff-overlay.ts) ·
 > [`orthophoto-registry.ts`](../../apps/agro-field-suite/src/modules/add-data/orthophoto-registry.ts) ·
+> [`wms-basemaps.ts`](../../apps/agro-field-suite/src/modules/add-data/wms-basemaps.ts) ·
 > UI: [`AddRasterSection.tsx`](../../apps/agro-field-suite/src/components/AddRasterSection.tsx)
+>
+> **Versione documento 0.6.1** · aggiornato il 4 ottobre 2026 · allineato ad **AgroGea 0.6**.
 
 La sezione **Cartografia raster** di *Aggiungi dati* porta sulla mappa immagini
 georeferenziate, in due modi con caratteristiche opposte:
@@ -15,8 +18,8 @@ georeferenziate, in due modi con caratteristiche opposte:
 | senza rete | non funziona | funziona |
 | costo | nessuno per noi | memoria e decodifica |
 
-Il rendering non è nostro: GeoLibre supporta nativamente `type: "wms"` (con
-GetFeatureInfo) e `type: "image"` in [`layer-sync.ts`](../../packages/map/src/layer-sync.ts).
+Il rendering non è nostro: il motore cartografico (`@geolibre/map`) supporta
+nativamente `type: "wms"` (con GetFeatureInfo) e `type: "image"` in [`layer-sync.ts`](../../packages/map/src/layer-sync.ts).
 Qui si costruiscono soltanto il template dell'URL e la sovrapposizione.
 
 ## WMS: perché non basta incollare l'indirizzo
@@ -46,6 +49,48 @@ servizio e non di un layer.
 Si usa **EPSG:3857**, l'unica proiezione in cui i tile di MapLibre sono quadrati;
 con EPSG:4326 la 1.3.0 pretende anche l'ordine invertito degli assi e le immagini
 tornano ruotate.
+
+## WMS salvati come sfondo (0.6)
+
+Fino alla 0.5 un WMS aggiunto viveva solo nello store in memoria: chiudendo
+l'app spariva e andava ricercato da capo. Dalla 0.6 se ne conserva la
+**configurazione** — indirizzo, nome tecnico del layer, versione, titolo e
+attribuzione, non le immagini — in `wms-basemaps.ts`:
+
+- **per azienda e per dispositivo**, in `localStorage`, come le altre preferenze
+  di visualizzazione (grafici e schede KPI del Command Center). È configurazione
+  della vista, non un dato agronomico: non entra nella `sync_outbox` né nei
+  backup. Un contenuto corrotto vale «nessun WMS salvato», mai un errore
+  all'avvio (`sanitizeItem` scarta le voci incomplete);
+- **un'alternativa al satellite, non un layer in più**: quando è attivo ne prende
+  il posto (un solo sfondo alla volta) e resta sotto i dati dell'azienda e sotto
+  l'overlay catastale. Compare fra gli sfondi del riquadro *Livelli* e
+  nell'elenco *WMS salvati*, da cui si modifica o si elimina.
+
+## Attribuzione e sicurezza
+
+Quasi tutti i servizi pubblici chiedono di citare la fonte. Il layer-sync del
+motore cartografico crea le sorgenti senza inoltrare `source.attribution`, quindi
+lo fa [`useLayerAttributions`](../../apps/agro-field-suite/src/hooks/useLayerAttributions.ts)
+sull'evento `sourcedataloading`, che MapLibre emette in modo sincrono prima che
+il controllo delle attribuzioni si aggiorni.
+
+L'attribuzione di un WMS nasce dal **titolo del servizio letto dal
+GetCapabilities**, cioè da un server esterno, e il parser ne decodifica le
+entità XML (`&lt;` torna `<`). MapLibre la inserisce come **HTML**, e il suo
+sanitizer nella 5.x si aggira (CVE-2026-85061): un servizio ostile poteva
+eseguire codice nell'app. Dalla 0.6.0 ogni attribuzione passa da
+[`lib/escape-markup.ts`](../../apps/agro-field-suite/src/lib/escape-markup.ts):
+
+- quelle dei layer dell'azienda (WMS, satellite, catasto, celle degli indici)
+  sono **testo** e vengono escapate per intero (`escapeMarkup`);
+- quelle delle altre sorgenti (stili remoti, plugin) possono contenere link
+  legittimi e vengono ridotte a **testo più link `http(s)`**
+  (`sanitizeAttribution`): ogni altro tag e attributo sparisce, i link ricevono
+  `rel="noopener noreferrer"`. La funzione è idempotente, perché la stessa
+  sorgente può passare più volte dall'hook.
+
+I test sono in `tests/agro-escape-markup.test.ts`, payload della CVE compreso.
 
 ## Ortofoto: due limiti dichiarati
 

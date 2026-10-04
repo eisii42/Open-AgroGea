@@ -1,12 +1,17 @@
-# Roadmap — AgroGea Community (Desktop OSS)
+# Roadmap — AgroGea
 
-Questa roadmap riguarda l'edizione Community (Desktop Open Source) distribuita
-da questo repository.
+> **Aggiornata il 4 ottobre 2026**, dopo il rilascio della **0.6.0**. Le
+> modifiche versione per versione sono nel [CHANGELOG](./CHANGELOG.md).
 
 ## ✅ Disponibile oggi
 
-> Include quanto già sul ramo `dev` e in uscita con la **0.5.0** (vedi la
-> sezione dedicata più sotto e il [CHANGELOG](./CHANGELOG.md)).
+- **Interfaccia pensata per il campo** (0.6.0): sul telefono barra di
+  navigazione in basso, schede trascinabili e meteo sempre in vista; sul
+  computer barra di icone dei moduli e più moduli aperti insieme in una colonna
+  ridimensionabile; centro **«Da risolvere»** con tutto ciò che va sistemato in
+  azienda; modifica delle operazioni del Quaderno
+- Pipeline di sicurezza automatica su ogni pull request (CodeQL, gitleaks, ZAP,
+  revisione automatica, Dependabot) e correzioni di sicurezza della 0.6.0
 
 - Mappa GIS completa (ortofoto Esri, overlay Catasto WMS, Wayback imagery storica, import Shapefile/GeoJSON/OSM/GeoParquet)
 - Particelle da fonti pubbliche: si sceglie una fonte ufficiale dal catalogo, si
@@ -20,7 +25,7 @@ da questo repository.
   modificabili
 - Magazzini multipli georeferenziati, certificazione dell'operatore e regime di
   produzione per annata
-- Cartografia raster: servizi WMS da indirizzo e ortofoto GeoTIFF offline
+- Cartografia raster: servizi WMS da indirizzo (salvabili come sfondo) e ortofoto GeoTIFF offline
 - Quaderno di Campagna Digitale con validazione PAN (trattamenti fitosanitari, fertilizzazioni, Tempo di Carenza)
 - Harvest & Analytics (registrazione raccolte, grafici, Field Calculator)
 - DSS & Bilancio Idrico (mappa colorata del rischio, evapotraspirazione FAO-56, riduzione di resa Ky FAO-33/66)
@@ -29,27 +34,43 @@ da questo repository.
 - Export geometrie (GeoJSON, KML, GPX, CSV, Shapefile) e backup/ripristino dati azienda (GeoJSON esteso v3, con scelta di periodo e sezioni)
 - Funzionamento 100% offline, storage locale isolato (PGlite)
 - Aggiornamenti automatici desktop (Tauri Updater + GitHub Releases)
-- Installer nativi Windows/macOS/Linux dallo stesso codice (Tauri v2)
+- App desktop, telefono e web dallo stesso codice (Tauri v2); installer Windows
+  pubblicati a ogni release, macOS e Linux compilabili dai sorgenti
 
-## 🚧 In lavorazione — `0.1.x`
+## 🚧 Prossime patch — `0.6.x`
 
-Stabilizzazione della base attuale in vista del primo ciclo di feature.
+Nessuna nuova funzione: documentazione, rifiniture e la parte di sicurezza
+rimasta aperta dopo la 0.6.0.
 
-- Installer macOS e Linux verificati end-to-end (finora testati principalmente su Windows)
-- Correzioni e rifiniture sulle funzionalità già disponibili
-- PIN offline: lunghezza minima 6 caratteri, parametri Argon2 rinforzati e pepper per-dispositivo nel keychain di sistema
-- Proxy tile nativo: blocco degli indirizzi privati/loopback (anti-SSRF), con opt-in esplicito per WMS su rete aziendale
-- CSP della webview: rimozione di `unsafe-eval` (resta solo `wasm-unsafe-eval` per PGlite/DuckDB) e restrizione di `connect-src`
+- **`0.6.1` — Documentazione**: manuali IT/EN allineati alla nuova interfaccia,
+  README principale in inglese, ARCHITECTURE con l'interfaccia 0.6 e i confini
+  di sicurezza, guida per contribuire con i controlli delle pull request e il
+  processo di release, Security Policy aggiornata
+- **MapLibre 6**: aggiornamento del motore cartografico insieme ai suoi plugin.
+  Chiude per intero la CVE-2026-85061, oggi neutralizzata nell'app
+- **PGlite / PostgreSQL**: aggiornamento con migrazione esplicita dei dati
+  (esportazione con la versione attuale e reimportazione), oggi escluso dagli
+  aggiornamenti automatici perché il nuovo formato non apre i database esistenti
+- **PIN offline**: lunghezza minima 6 caratteri, parametri Argon2 rinforzati e
+  pepper per-dispositivo nel keychain di sistema, con un archivio versionato che
+  continui ad aprire quelli già creati
+- **Proxy tile nativo**: oltre a timeout e tetti già attivi dalla 0.6.0, blocco
+  degli indirizzi privati/loopback (anti-SSRF) con opt-in esplicito per i WMS su
+  rete aziendale
+- **CSP della webview**: rimozione di `unsafe-eval` (resta solo
+  `wasm-unsafe-eval` per PGlite/DuckDB) e restrizione di `connect-src`
+- **Installer**: build macOS e Linux nella CI di release, firma di codice per
+  Windows
 
 ## 🔭 Piano di rilascio (`0.2.0` → `1.0.0`)
 
 Ogni minor version è un incremento rilasciabile con valore d'uso concreto. Le
 versioni `0.2.0`–`0.4.0` (Magazzino, Parco macchine, Modalità Campo) sono
 sequenziali perché condividono un prerequisito tecnico. La `0.5.0` (particelle
-pubbliche e Normativa) è stata anteposta al binario DSS, che slitta quindi di una
-minor: le versioni `0.6.0`–`0.9.0` (DSS) restano un **binario parallelo
-indipendente** che può essere anticipato o interlacciato, senza vincoli di
-dipendenza.
+pubbliche e Normativa) e la `0.6.0` (interfaccia e sicurezza) sono state
+anteposte al binario DSS, che slitta quindi di due minor: le versioni
+`0.7.0`–`0.10.0` (DSS) restano un **binario parallelo indipendente** che può
+essere anticipato o interlacciato, senza vincoli di dipendenza.
 
 ### `0.2.0` — Magazzino ✅ rilasciata
 
@@ -73,12 +94,12 @@ testo come fallback finché non collegati.
 - **Rilascio quando:** un'attività di campo scarica un lotto reale, la giacenza si
   aggiorna e il costo prodotti è imputato al campo.
 
-> **Esteso dopo la pianificazione originale** (schema v23, in uscita con la `0.5.0`):
+> **Esteso dopo la pianificazione originale** (schema v23, rilasciato con la `0.5.0`):
 > il magazzino non è più unico e implicito. Una tabella `warehouses` con posizione
 > puntuale facoltativa dà all'azienda **più depositi**, ciascuno un POI cliccabile
 > sulla mappa; la collocazione vive su `product_lots.warehouse_id`, così lo stesso
 > prodotto può stare in due depositi con scadenze e quantità diverse. Dettagli
-> nella sezione *Non rilasciato* del [CHANGELOG](./CHANGELOG.md).
+> nella sezione *0.5.0* del [CHANGELOG](./CHANGELOG.md).
 
 ### `0.3.0` — Parco macchine ✅ rilasciata
 
@@ -138,7 +159,7 @@ campo, riducendo la registrazione di una lavorazione a zero digitazioni.
 > **`0.4.1`** ✅ rilasciata — calendario aziendale, schede KPI personalizzate,
 > import CSV dei prodotti, superficie lavorata dichiarata a fine sessione.
 
-### `0.5.0` — Particelle pubbliche e Normativa ✅ implementata (in attesa di rilascio)
+### `0.5.0` — Particelle pubbliche e Normativa ✅ rilasciata
 
 Due prerequisiti di ogni lavoro successivo: sapere **quali campi** ha l'azienda
 senza ridisegnarli, e sapere **come starebbero** davanti a un controllo.
@@ -163,11 +184,35 @@ senza ridisegnarli, e sapere **come starebbero** davanti a un controllo.
   adotta i propri campi dalla fonte ufficiale e ottiene un'autovalutazione PAC
   con esiti tracciabili, senza disegnare nulla a mano.
 
-**Candidati per le patch `0.5.x`:** nuove fonti di particelle nel catalogo
+**Ancora aperti dalla `0.5.x`:** nuove fonti di particelle nel catalogo
 (un record JSON per fonte), attivazione deliberata della verifica settimanale
 delle fonti (`sources-verify.yml`, oggi solo manuale).
 
-### `0.6.0` — DSS: difesa completa sulle colture esistenti
+### `0.6.0` — Interfaccia per il campo e sicurezza ✅ rilasciata
+
+Una release di interfaccia: AgroGea si usa soprattutto in campo, con una mano,
+e il telefono non poteva restare una versione ristretta del desktop.
+
+- **Telefono**: barra di navigazione in basso (Mappa · Calendario · Dashboard ·
+  Quaderno · Moduli), schede con tre altezze trascinabili e tasto Indietro di
+  Android, controlli mappa e azioni rapide a portata di pollice, meteo sempre
+  visibile, testi e controlli più grandi.
+- **Computer**: barra di icone dei moduli, più moduli aperti insieme in una
+  colonna ridimensionabile, controlli mappa in una colonna con il riquadro
+  *Livelli*, ricerca `Ctrl K` da ogni vista, Esc a pila e focus gestito nelle
+  finestre.
+- **Centro «Da risolvere»**: un unico elenco di registrazioni incomplete, dati di
+  campagna, lotti in scadenza, scadenze dei mezzi e appezzamenti senza suolo,
+  costruito sui motori già esistenti.
+- **Quaderno**: modifica delle operazioni sulla stessa riga e dati mancanti
+  segnalati su ogni registrazione.
+- **Sicurezza**: pipeline automatica sulle pull request; XSS delle attribuzioni
+  (CVE-2026-85061) neutralizzata, TLS della sincronizzazione corretto, comando
+  nativo dei tile limitato, input del worker controllato.
+- **Rilascio quando:** un'operazione si registra, si corregge e si ritrova
+  completa dal telefono, in campo, senza passare dal computer. ✔️
+
+### `0.7.0` — DSS: difesa completa sulle colture esistenti
 
 Modelli infettivi veri (oltre alla sola fenologia oggi presente) sulle colture già
 supportate. Ogni coltura è una cartella in `modules/crops/` registrata nel registro
@@ -176,19 +221,19 @@ moduli.
 - Fusariosi della spiga su frumento (finestra BBCH 61-69), Ticchiolatura del melo
   (tabella di Mills), TomCast su pomodoro, Botrite su vite.
 
-### `0.7.0` — DSS: nuovi cereali
+### `0.8.0` — DSS: nuovi cereali
 
 - Mais (GDD base 10 °C, rischio aflatossine), orzo, riso.
 
-### `0.8.0` — DSS: nuove arboree e orticole
+### `0.9.0` — DSS: nuove arboree e orticole
 
 - Pero (Stemphylium), agrumi (mal secco), patata (modello tipo Mileos/SIMPHYT).
 
-### `0.9.0` — DSS: colture industriali e oleaginose
+### `0.10.0` — DSS: colture industriali e oleaginose
 
 - Colza (Sclerotinia), barbabietola da zucchero (CercoBet), girasole, soia.
 
-### `0.10.0` — API sensoristica esterna
+### `0.11.0` — API sensoristica esterna
 
 Sfruttando lo schema `weather_readings` già presente, adapter di ingest da API
 esterne per sensoristica fissa e mobile, con pipeline che alimenta direttamente i

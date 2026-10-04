@@ -1,6 +1,6 @@
 # AgroGea Desktop — Auto-Update (Tauri v2 Updater)
 
-> **Versione documento 0.5.0** · aggiornato il 27 settembre 2026 · allineato ad **AgroGea 0.5.0**. Le modifiche versione per versione sono nel [CHANGELOG](../../CHANGELOG.md).
+> **Versione documento 0.6.1** · aggiornato il 4 ottobre 2026 · allineato ad **AgroGea 0.6**. Le modifiche versione per versione sono nel [CHANGELOG](../../CHANGELOG.md).
 
 L'app desktop open source si aggiorna da sola tramite il **Tauri Updater v2**, con
 gli installer ospitati su **GitHub Releases** e un endpoint JSON statico
@@ -62,16 +62,24 @@ Il workflow [`release.yml`](../../.github/workflows/release.yml) fa tutto da
 solo al push di un tag `vX.Y.Z`:
 
 1. Subito dopo `setup-node`, lo step "Set version from git tag" esegue
-   `node scripts/set-version.mjs "${{ github.ref_name }}"`, che scrive la
-   versione ricavata dal tag in `tauri.conf.json`, nei due `package.json` e in
-   `Cargo.toml` (dettagli in § 6) — **prima** che `tauri-action` builda.
-2. Buildare con `tauri-action`, che con `bundle.createUpdaterArtifacts: true`
+   `scripts/set-version.mjs` con il nome del tag (passato tramite variabile
+   d'ambiente, mai interpolato nello script), che scrive la versione in
+   `tauri.conf.json`, nei due `package.json` e in `Cargo.toml` (dettagli in
+   § 6) — **prima** che `tauri-action` builda.
+2. Lo step "Release notes" legge **`docs/releases/<tag>.md`** (es.
+   `docs/releases/v0.6.0.md`) e lo passa a `tauri-action` come testo della
+   Release; se il file manca usa un testo generico. Le note vanno quindi
+   scritte e committate **prima** di creare il tag. Dalla v1 `tauri-action`
+   riscrive titolo e testo di una Release già esistente: modificarli a mano su
+   GitHub prima della fine della build non serve, vengono sovrascritti.
+3. Buildare con `tauri-action`, che con `bundle.createUpdaterArtifacts: true`
    firma gli installer (usando i secret `TAURI_SIGNING_PRIVATE_KEY` /
    `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`) e genera `latest.json` con la
-   versione appena iniettata.
-3. Crea/aggiorna automaticamente la **GitHub Release** con tag `vX.Y.Z` e vi
+   versione appena iniettata e, come `notes`, lo stesso testo della Release:
+   è ciò che mostra il banner di aggiornamento nell'app.
+4. Crea/aggiorna automaticamente la **GitHub Release** con tag `vX.Y.Z` e vi
    allega tutti gli installer, i file `.sig` **e** `latest.json`.
-4. L'endpoint in `tauri.conf.json`
+5. L'endpoint in `tauri.conf.json`
    (`https://github.com/<owner>/<repo>/releases/latest/download/latest.json`)
    risolve a quell'asset — **nessun passaggio manuale**.
 
@@ -101,6 +109,15 @@ trova una versione nuova mostra `UpdateNotice` — un banner con la versione, le
 note di rilascio espandibili e il pulsante **Aggiorna ora**. Al clic parte il
 download con **barra di avanzamento**; a fine installazione l'app si **riavvia**
 automaticamente sulla nuova versione. Nessun download silente.
+
+Non esiste un controllo manuale: la voce «Verifica aggiornamenti» è stata tolta
+dal menu Aiuto e dalla finestra Informazioni nella 0.6, perché duplicava il
+controllo all'avvio.
+
+> **Piattaforme.** Il job di `release.yml` gira su `windows-latest`: la CI
+> produce oggi l'installer **Windows** (e il relativo `latest.json`). Le build
+> macOS e Linux si fanno in locale con `npm run tauri:build`; aggiungerle alla
+> CI significa estendere il job a una matrice di runner.
 
 ## 6. Versionamento
 

@@ -74,7 +74,7 @@ confidenza sarebbero rumore.
 
 ## Come si naviga
 
-**"Normativa" è un modulo di primo livello della sidebar**, non una voce delle
+**"Normativa" è un modulo di primo livello della barra dei moduli**, non una voce delle
 Impostazioni Azienda. La conformità PAC è lavoro agronomico ricorrente — si
 consulta durante la campagna, non quando si configura l'applicazione. Sotto il
 modulo stanno le **famiglie di schede**, una voce ciascuna:
@@ -302,7 +302,7 @@ la dichiara — che è la differenza fra "nessun override" e "sezione non inclus
 repository: ognuno ha il proprio disciplinare, cambia con tempi suoi e riguarda
 una manciata di aziende. Vivranno in plugin scaricabili, in repo separate.
 
-La giuntura **esiste già** lato GeoLibre e non va reinventata:
+La giuntura **esiste già** nel motore cartografico (`@geolibre/plugins`) e non va reinventata:
 
 - `GeoLibreExternalPluginManifest` ([`packages/plugins/src/types.ts`](../../packages/plugins/src/types.ts)) — id, nome, versione, entry point;
 - `isAllowedPluginManifestUrl` ([`packages/core/src/project.ts`](../../packages/core/src/project.ts)) — **solo HTTPS**, o HTTP su loopback in sviluppo. È lo stesso vincolo del dialogo Impostazioni e del caricamento di un progetto, e vale perché da un manifest si arriva a codice scaricato ed eseguito.
