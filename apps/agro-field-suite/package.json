@@ -30,7 +30,7 @@
     "fflate": "^0.8.3",
     "geotiff": "^3.0.5",
     "i18next": "^26.4.2",
-    "lucide-react": "^1.47.0",
+    "lucide-react": "^1.49.0",
     "maplibre-gl": "^5.24.0",
     "maplibre-gl-components": "^0.20.6",
     "maplibre-gl-geo-editor": "^0.8.0",
@@ -49,7 +49,7 @@
     "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
-    "vite": "^8.3.0"
+    "vite": "^8.3.2"
   },
   "license": "AGPL-3.0-or-later",
   "author": "Andrea Carnasciali"
