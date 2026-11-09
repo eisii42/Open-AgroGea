@@ -9,9 +9,9 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "uuid": "^14.0.0",
+    "uuid": "^14.0.3",
     "zundo": "^2.3.0",
-    "zustand": "^5.0.14"
+    "zustand": "^5.0.16"
   },
   "devDependencies": {
     "@types/geojson": "^7946.0.16",
