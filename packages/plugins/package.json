@@ -20,7 +20,7 @@
     "@developmentseed/deck.gl-raster": "^0.7.0",
     "@developmentseed/morecantile": "^0.7.0",
     "@dvt3d/maplibre-three-plugin": "^1.6.0",
-    "@esri/maplibre-arcgis": "^1.3.0",
+    "@esri/maplibre-arcgis": "^1.3.3",
     "@geolibre/core": "*",
     "@geoman-io/maplibre-geoman-free": "^0.7.1",
     "@maplibre/maplibre-gl-directions": "^0.9.1",
@@ -47,7 +47,7 @@
     "maplibre-gl-swipe": "^0.7.1",
     "maplibre-gl-time-slider": "^1.0.3",
     "maplibre-gl-vector": "^0.3.0",
-    "proj4": "^2.20.9",
+    "proj4": "^2.23.0",
     "shpjs": "^6.2.0",
     "three": "^0.186.1"
   },
